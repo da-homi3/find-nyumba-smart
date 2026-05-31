@@ -14,16 +14,225 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inquiries: {
+        Row: {
+          created_at: string
+          id: string
+          landlord_id: string | null
+          message: string
+          property_id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          landlord_id?: string | null
+          message: string
+          property_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          landlord_id?: string | null
+          message?: string
+          property_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      properties: {
+        Row: {
+          address: string | null
+          amenities: string[]
+          area_sqm: number | null
+          available_from: string | null
+          bathrooms: number
+          bedrooms: number
+          created_at: string
+          deposit_kes: number | null
+          description: string | null
+          id: string
+          images: string[]
+          is_active: boolean
+          is_verified: boolean
+          latitude: number | null
+          longitude: number | null
+          neighborhood: string
+          owner_id: string | null
+          property_type: Database["public"]["Enums"]["property_type"]
+          rent_kes: number
+          title: string
+          updated_at: string
+          video_url: string | null
+          views: number
+        }
+        Insert: {
+          address?: string | null
+          amenities?: string[]
+          area_sqm?: number | null
+          available_from?: string | null
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          deposit_kes?: number | null
+          description?: string | null
+          id?: string
+          images?: string[]
+          is_active?: boolean
+          is_verified?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood: string
+          owner_id?: string | null
+          property_type: Database["public"]["Enums"]["property_type"]
+          rent_kes: number
+          title: string
+          updated_at?: string
+          video_url?: string | null
+          views?: number
+        }
+        Update: {
+          address?: string | null
+          amenities?: string[]
+          area_sqm?: number | null
+          available_from?: string | null
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          deposit_kes?: number | null
+          description?: string | null
+          id?: string
+          images?: string[]
+          is_active?: boolean
+          is_verified?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string
+          owner_id?: string | null
+          property_type?: Database["public"]["Enums"]["property_type"]
+          rent_kes?: number
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+          views?: number
+        }
+        Relationships: []
+      }
+      saved_properties: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_properties_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "tenant" | "landlord" | "manager" | "caretaker" | "admin"
+      property_type:
+        | "bedsitter"
+        | "single_room"
+        | "one_bedroom"
+        | "two_bedroom"
+        | "three_bedroom"
+        | "studio"
+        | "hostel"
+        | "maisonette"
+        | "bungalow"
+        | "townhouse"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +359,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["tenant", "landlord", "manager", "caretaker", "admin"],
+      property_type: [
+        "bedsitter",
+        "single_room",
+        "one_bedroom",
+        "two_bedroom",
+        "three_bedroom",
+        "studio",
+        "hostel",
+        "maisonette",
+        "bungalow",
+        "townhouse",
+      ],
+    },
   },
 } as const
