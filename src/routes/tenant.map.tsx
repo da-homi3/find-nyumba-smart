@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
@@ -81,7 +82,7 @@ function TenantMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const clusterer = useRef<MarkerClusterer | null>(null);
-  const heatmap = useRef<google.maps.visualization.HeatmapLayer | null>(null);
+  const heatmap = useRef<any>(null);
   const markers = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -187,7 +188,7 @@ function TenantMap() {
     heatmap.current?.setMap(null);
     if (g.maps.visualization && filtered.length) {
       const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
-      heatmap.current = new g.maps.visualization.HeatmapLayer({
+      heatmap.current = new (g.maps.visualization as any).HeatmapLayer({
         data: filtered.map((p) => ({
           location: new g.maps.LatLng(p.latitude!, p.longitude!),
           weight: 0.4 + (p.rent_kes / maxRent) * 1.6,
