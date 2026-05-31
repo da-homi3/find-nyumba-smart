@@ -84,7 +84,7 @@ function TenantMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const clusterer = useRef<MarkerClustererType | null>(null);
-  const heatmap = useRef<any>(null);
+  const heatmap = useRef<google.maps.Circle[]>([]);
   const markers = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
