@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
 import { MapPin, Navigation, Layers, Flame, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
+import markerClustererPkg from "@googlemaps/markerclusterer";
+const { MarkerClusterer, SuperClusterAlgorithm } = markerClustererPkg;
+type MarkerClustererType = InstanceType<typeof MarkerClusterer>;
 
 export const Route = createFileRoute("/tenant/map")({
   head: () => ({ meta: [{ title: "Map — NyumbaSearch" }] }),
@@ -81,7 +83,7 @@ function TenantMap() {
   const { data: properties = [] } = useQuery({ queryKey: ["properties"], queryFn: fetchProperties });
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
-  const clusterer = useRef<MarkerClusterer | null>(null);
+  const clusterer = useRef<MarkerClustererType | null>(null);
   const heatmap = useRef<any>(null);
   const markers = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
