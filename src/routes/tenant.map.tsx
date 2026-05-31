@@ -186,34 +186,39 @@ function TenantMap() {
       },
     });
 
-    // Heatmap weighted by rent (so premium pockets glow brighter)
-    heatmap.current?.setMap(null);
-    if (g.maps.visualization && filtered.length) {
+    // Heatmap-style glow weighted by rent using layered Circle overlays
+    heatmap.current.forEach((c) => c.setMap(null));
+    heatmap.current = [];
+    if (filtered.length) {
       const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
-      heatmap.current = new (g.maps.visualization as any).HeatmapLayer({
-        data: filtered.map((p) => ({
-          location: new g.maps.LatLng(p.latitude!, p.longitude!),
-          weight: 0.4 + (p.rent_kes / maxRent) * 1.6,
-        })),
-        radius: 48,
-        opacity: 0.7,
-        gradient: [
-          "rgba(0,0,0,0)",
-          "rgba(13,79,60,0.55)",
-          "rgba(34,139,98,0.7)",
-          "rgba(201,168,76,0.85)",
-          "rgba(232,184,74,0.95)",
-          "rgba(255,107,53,1)",
-        ],
+      const layers = [
+        { mult: 1.0, color: "#ff6b35", opacity: 0.22 },
+        { mult: 1.6, color: "#e8b84a", opacity: 0.16 },
+        { mult: 2.4, color: "#c9a84c", opacity: 0.12 },
+        { mult: 3.4, color: "#0d4f3c", opacity: 0.10 },
+      ];
+      filtered.forEach((p) => {
+        const weight = 0.4 + (p.rent_kes / maxRent) * 1.6;
+        layers.forEach(({ mult, color, opacity }) => {
+          const circle = new g.maps.Circle({
+            center: { lat: p.latitude!, lng: p.longitude! },
+            radius: 120 * weight * mult,
+            strokeOpacity: 0,
+            fillColor: color,
+            fillOpacity: opacity,
+            clickable: false,
+            map: showHeat ? map : null,
+          });
+          heatmap.current.push(circle);
+        });
       });
-      heatmap.current.setMap(showHeat ? map : null);
     }
   }, [ready, properties, query, showHeat]);
 
   // Toggle heatmap visibility without rebuilding
   useEffect(() => {
-    if (!heatmap.current || !mapInstance.current) return;
-    heatmap.current.setMap(showHeat ? mapInstance.current : null);
+    if (!mapInstance.current) return;
+    heatmap.current.forEach((c) => c.setMap(showHeat ? mapInstance.current : null));
   }, [showHeat]);
 
   // Highlight selected marker
