@@ -4,9 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
 import { MapPin, Navigation, Layers, Flame, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import markerClustererPkg from "@googlemaps/markerclusterer";
-const { MarkerClusterer, SuperClusterAlgorithm } = markerClustererPkg;
-type MarkerClustererType = InstanceType<typeof MarkerClusterer>;
+import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
+type MarkerClustererType = MarkerClusterer;
 
 export const Route = createFileRoute("/tenant/map")({
   head: () => ({ meta: [{ title: "Map — NyumbaSearch" }] }),
