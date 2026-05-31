@@ -83,7 +83,7 @@ function TenantMap() {
   const { data: properties = [] } = useQuery({ queryKey: ["properties"], queryFn: fetchProperties });
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
-  const clusterer = useRef<MarkerClusterer | null>(null);
+  const clusterer = useRef<MarkerClustererType | null>(null);
   const heatmap = useRef<any>(null);
   const markers = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
