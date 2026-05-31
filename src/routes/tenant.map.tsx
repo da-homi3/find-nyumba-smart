@@ -44,7 +44,7 @@ function loadGoogleMaps(): Promise<typeof google> {
     const s = document.createElement("script");
     const params = new URLSearchParams({
       key: BROWSER_KEY ?? "",
-      libraries: "visualization,marker",
+      libraries: "marker",
       loading: "async",
       callback: cbName,
       ...(TRACKING_ID ? { channel: TRACKING_ID } : {}),
