@@ -4,9 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
 import { MapPin, Navigation, Layers, Flame, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import markerClustererPkg from "@googlemaps/markerclusterer";
-const { MarkerClusterer, SuperClusterAlgorithm } = markerClustererPkg;
-type MarkerClustererType = InstanceType<typeof MarkerClusterer>;
+// Dynamically imported in-browser to avoid SSR CJS interop issues
+type MarkerClustererType = import("@googlemaps/markerclusterer").MarkerClusterer;
 
 export const Route = createFileRoute("/tenant/map")({
   head: () => ({ meta: [{ title: "Map — NyumbaSearch" }] }),
@@ -85,6 +84,9 @@ function TenantMap() {
   const mapInstance = useRef<google.maps.Map | null>(null);
   const clusterer = useRef<MarkerClustererType | null>(null);
   const heatmap = useRef<google.maps.Circle[]>([]);
+  const allHeatCircles = useRef<google.maps.Circle[]>([]);
+  const rebuildTimer = useRef<number | null>(null);
+  const cullRaf = useRef<number | null>(null);
   const markers = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,105 +122,181 @@ function TenantMap() {
     };
   }, []);
 
-  // Render markers + clusters + heatmap whenever data or visibility changes
+  // Render markers + clusters + heatmap whenever data or filters change (throttled)
   useEffect(() => {
     if (!ready || !mapInstance.current) return;
-    const g = (window as any).google as typeof google;
-    const map = mapInstance.current;
+    if (rebuildTimer.current) window.clearTimeout(rebuildTimer.current);
+    rebuildTimer.current = window.setTimeout(() => {
+      void rebuild();
+    }, 150);
 
-    // Clear existing
-    clusterer.current?.clearMarkers();
-    markers.current.forEach((m) => m.setMap(null));
-    markers.current = [];
+    async function rebuild() {
+      const g = (window as any).google as typeof google;
+      const map = mapInstance.current!;
+      const mcMod: any = await import("@googlemaps/markerclusterer");
+      const MarkerClusterer = mcMod.MarkerClusterer ?? mcMod.default?.MarkerClusterer;
+      const SuperClusterAlgorithm =
+        mcMod.SuperClusterAlgorithm ?? mcMod.default?.SuperClusterAlgorithm;
 
-    const filtered = properties.filter((p) => {
-      if (!p.latitude || !p.longitude) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
-      return (
-        p.neighborhood.toLowerCase().includes(q) ||
-        p.title.toLowerCase().includes(q) ||
-        prettyType(p.property_type).toLowerCase().includes(q)
-      );
-    });
+      clusterer.current?.clearMarkers();
+      markers.current.forEach((m) => m.setMap(null));
+      markers.current = [];
 
-    const newMarkers = filtered.map((p) => {
-      const marker = new g.maps.Marker({
-        position: { lat: p.latitude!, lng: p.longitude! },
-        icon: {
-          url: priceTagSvg(compactKes(p.rent_kes).replace("KES ", ""), false),
-          scaledSize: new g.maps.Size(86, 38),
-          anchor: new g.maps.Point(43, 36),
-        },
-        title: p.title,
+      const qq = query.trim().toLowerCase();
+      const filtered = properties.filter((p) => {
+        if (!p.latitude || !p.longitude) return false;
+        if (!qq) return true;
+        return (
+          p.neighborhood.toLowerCase().includes(qq) ||
+          p.title.toLowerCase().includes(qq) ||
+          prettyType(p.property_type).toLowerCase().includes(qq)
+        );
       });
-      marker.addListener("click", () => {
-        setSelected(p);
-        map.panTo({ lat: p.latitude!, lng: p.longitude! });
-      });
-      (marker as any).__property = p;
-      return marker;
-    });
-    markers.current = newMarkers;
 
-    clusterer.current = new MarkerClusterer({
-      map,
-      markers: newMarkers,
-      algorithm: new SuperClusterAlgorithm({ radius: 70, maxZoom: 15 }),
-      renderer: {
-        render: ({ count, position }) => {
-          const size = Math.min(72, 40 + Math.log2(count) * 8);
-          const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
-            <circle cx='${size / 2}' cy='${size / 2}' r='${size / 2 - 4}' fill='#c9a84c' fill-opacity='0.22'/>
-            <circle cx='${size / 2}' cy='${size / 2}' r='${size / 2 - 10}' fill='#0d4f3c' stroke='#c9a84c' stroke-width='2'/>
-            <text x='50%' y='52%' text-anchor='middle' dominant-baseline='middle' font-family='Space Grotesk, system-ui, sans-serif' font-weight='700' font-size='${size / 3.2}' fill='#f5f0e0'>${count}</text>
-          </svg>`;
-          return new g.maps.Marker({
-            position,
-            icon: {
-              url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-              scaledSize: new g.maps.Size(size, size),
-              anchor: new g.maps.Point(size / 2, size / 2),
-            },
-            zIndex: 999 + count,
-          });
-        },
-      },
-    });
-
-    // Heatmap-style glow weighted by rent using layered Circle overlays
-    heatmap.current.forEach((c) => c.setMap(null));
-    heatmap.current = [];
-    if (filtered.length) {
-      const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
-      const layers = [
-        { mult: 1.0, color: "#ff6b35", opacity: 0.22 },
-        { mult: 1.6, color: "#e8b84a", opacity: 0.16 },
-        { mult: 2.4, color: "#c9a84c", opacity: 0.12 },
-        { mult: 3.4, color: "#0d4f3c", opacity: 0.10 },
-      ];
-      filtered.forEach((p) => {
-        const weight = 0.4 + (p.rent_kes / maxRent) * 1.6;
-        layers.forEach(({ mult, color, opacity }) => {
-          const circle = new g.maps.Circle({
-            center: { lat: p.latitude!, lng: p.longitude! },
-            radius: 120 * weight * mult,
-            strokeOpacity: 0,
-            fillColor: color,
-            fillOpacity: opacity,
-            clickable: false,
-            map: showHeat ? map : null,
-          });
-          heatmap.current.push(circle);
+      const newMarkers = filtered.map((p) => {
+        const marker = new g.maps.Marker({
+          position: { lat: p.latitude!, lng: p.longitude! },
+          icon: {
+            url: priceTagSvg(compactKes(p.rent_kes).replace("KES ", ""), false),
+            scaledSize: new g.maps.Size(86, 38),
+            anchor: new g.maps.Point(43, 36),
+          },
+          title: p.title,
         });
+        marker.addListener("click", () => {
+          setSelected(p);
+          map.panTo({ lat: p.latitude!, lng: p.longitude! });
+        });
+        (marker as any).__property = p;
+        return marker;
       });
+      markers.current = newMarkers;
+
+      clusterer.current = new MarkerClusterer({
+        map,
+        markers: newMarkers,
+        algorithm: new SuperClusterAlgorithm({ radius: 70, maxZoom: 15 }),
+        renderer: {
+          render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
+            const size = Math.min(72, 40 + Math.log2(count) * 8);
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+              <circle cx='${size / 2}' cy='${size / 2}' r='${size / 2 - 4}' fill='#c9a84c' fill-opacity='0.22'/>
+              <circle cx='${size / 2}' cy='${size / 2}' r='${size / 2 - 10}' fill='#0d4f3c' stroke='#c9a84c' stroke-width='2'/>
+              <text x='50%' y='52%' text-anchor='middle' dominant-baseline='middle' font-family='Space Grotesk, system-ui, sans-serif' font-weight='700' font-size='${size / 3.2}' fill='#f5f0e0'>${count}</text>
+            </svg>`;
+            return new g.maps.Marker({
+              position,
+              icon: {
+                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+                scaledSize: new g.maps.Size(size, size),
+                anchor: new g.maps.Point(size / 2, size / 2),
+              },
+              zIndex: 999 + count,
+            });
+          },
+        },
+      });
+
+      // Compress overlay data: snap to a coarse grid, sum weights → far fewer circles
+      allHeatCircles.current.forEach((c) => c.setMap(null));
+      allHeatCircles.current = [];
+      heatmap.current = [];
+
+      if (filtered.length) {
+        const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
+        const CELL = 0.004; // ~400m grid
+        const grid = new Map<string, { lat: number; lng: number; w: number; n: number }>();
+        for (const p of filtered) {
+          const gx = Math.round(p.latitude! / CELL);
+          const gy = Math.round(p.longitude! / CELL);
+          const key = `${gx}:${gy}`;
+          const w = 0.4 + (p.rent_kes / maxRent) * 1.6;
+          const cell = grid.get(key);
+          if (cell) {
+            cell.lat += p.latitude!;
+            cell.lng += p.longitude!;
+            cell.w += w;
+            cell.n += 1;
+          } else {
+            grid.set(key, { lat: p.latitude!, lng: p.longitude!, w, n: 1 });
+          }
+        }
+
+        const layers = [
+          { mult: 1.0, color: "#ff6b35", opacity: 0.22 },
+          { mult: 1.8, color: "#e8b84a", opacity: 0.14 },
+          { mult: 2.8, color: "#0d4f3c", opacity: 0.10 },
+        ];
+        const circles: google.maps.Circle[] = [];
+        grid.forEach((cell) => {
+          const center = { lat: cell.lat / cell.n, lng: cell.lng / cell.n };
+          const weight = Math.min(3.5, cell.w);
+          layers.forEach(({ mult, color, opacity }) => {
+            circles.push(
+              new g.maps.Circle({
+                center,
+                radius: 140 * weight * mult,
+                strokeOpacity: 0,
+                fillColor: color,
+                fillOpacity: opacity,
+                clickable: false,
+                map: null,
+              })
+            );
+          });
+        });
+        allHeatCircles.current = circles;
+        if (showHeat) cullHeatmap();
+      }
     }
   }, [ready, properties, query, showHeat]);
+
+  // Viewport culling: only attach circles whose center is in the visible bounds.
+  function cullHeatmap() {
+    const map = mapInstance.current;
+    if (!map) return;
+    const bounds = map.getBounds();
+    if (!bounds) {
+      allHeatCircles.current.forEach((c) => c.setMap(map));
+      heatmap.current = allHeatCircles.current;
+      return;
+    }
+    const visible: google.maps.Circle[] = [];
+    for (const c of allHeatCircles.current) {
+      const center = c.getCenter();
+      const inView = center ? bounds.contains(center) : false;
+      c.setMap(inView ? map : null);
+      if (inView) visible.push(c);
+    }
+    heatmap.current = visible;
+  }
+
+  // Re-cull on map idle (throttled via rAF) so pan/zoom stays smooth.
+  useEffect(() => {
+    if (!ready || !mapInstance.current) return;
+    const map = mapInstance.current;
+    const schedule = () => {
+      if (cullRaf.current) cancelAnimationFrame(cullRaf.current);
+      cullRaf.current = requestAnimationFrame(() => {
+        if (showHeat) cullHeatmap();
+      });
+    };
+    const listener = map.addListener("idle", schedule);
+    return () => {
+      listener.remove();
+      if (cullRaf.current) cancelAnimationFrame(cullRaf.current);
+    };
+  }, [ready, showHeat]);
 
   // Toggle heatmap visibility without rebuilding
   useEffect(() => {
     if (!mapInstance.current) return;
-    heatmap.current.forEach((c) => c.setMap(showHeat ? mapInstance.current : null));
+    if (showHeat) {
+      cullHeatmap();
+    } else {
+      allHeatCircles.current.forEach((c) => c.setMap(null));
+      heatmap.current = [];
+    }
   }, [showHeat]);
 
   // Highlight selected marker
