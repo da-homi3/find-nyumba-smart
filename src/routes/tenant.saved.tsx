@@ -29,8 +29,15 @@ function SavedPage() {
       <div className="mx-auto max-w-md px-6 pt-24 text-center">
         <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
         <h1 className="mt-4 font-display text-2xl font-semibold">Save your favourites</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Sign in to save homes and pick up where you left off.</p>
-        <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">Sign in</Link>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in to save homes and pick up where you left off.
+        </p>
+        <Link
+          to="/auth"
+          className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+        >
+          Sign in
+        </Link>
       </div>
     );
   }
@@ -45,7 +52,9 @@ function SavedPage() {
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {data.map((p) => <PropertyCard key={p.id} p={p} />)}
+          {data.map((p) => (
+            <PropertyCard key={p.id} p={p} />
+          ))}
         </div>
       )}
     </div>

@@ -22,7 +22,8 @@ function TenantAuth() {
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-          email, password,
+          email,
+          password,
           options: {
             emailRedirectTo: `${window.location.origin}/tenant`,
             data: { full_name: fullName, role: "tenant" },
@@ -52,20 +53,40 @@ function TenantAuth() {
           {mode === "signin" ? "Welcome back" : "Create your account"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "signin" ? "Sign in to save homes and contact landlords." : "Join thousands finding verified homes."}
+          {mode === "signin"
+            ? "Sign in to save homes and contact landlords."
+            : "Join thousands finding verified homes."}
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           {mode === "signup" && (
             <Field label="Full name">
-              <input value={fullName} onChange={(e) => setFullName(e.target.value)} required className={inputCls} />
+              <input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className={inputCls}
+              />
             </Field>
           )}
           <Field label="Email">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={inputCls}
+            />
           </Field>
           <Field label="Password">
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className={inputCls} />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className={inputCls}
+            />
           </Field>
           <button
             type="submit"
@@ -78,20 +99,27 @@ function TenantAuth() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === "signin" ? "New to NyumbaSearch?" : "Already have an account?"}{" "}
-          <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="font-semibold text-primary">
+          <button
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="font-semibold text-primary"
+          >
             {mode === "signin" ? "Sign up" : "Sign in"}
           </button>
         </p>
 
         <p className="mt-10 text-center text-xs text-muted-foreground">
-          Are you a landlord? <Link to="/landlord" className="font-semibold text-foreground">Landlord access →</Link>
+          Are you a landlord?{" "}
+          <Link to="/landlord" className="font-semibold text-foreground">
+            Landlord access →
+          </Link>
         </p>
       </div>
     </div>
   );
 }
 
-const inputCls = "w-full rounded-xl border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring";
+const inputCls =
+  "w-full rounded-xl border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

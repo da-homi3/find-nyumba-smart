@@ -1,6 +1,18 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BedDouble, Bath, Square, MapPin, ShieldCheck, Phone, MessageCircle, Heart, Share2, Calendar } from "lucide-react";
+import {
+  ArrowLeft,
+  BedDouble,
+  Bath,
+  Square,
+  MapPin,
+  ShieldCheck,
+  Phone,
+  MessageCircle,
+  Heart,
+  Share2,
+  Calendar,
+} from "lucide-react";
 import { fetchProperty, formatKes, prettyType } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +24,7 @@ export const Route = createFileRoute("/tenant/property/$id")({
 
 function PropertyDetail() {
   const { id } = useParams({ from: "/tenant/property/$id" });
+  const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
 
@@ -34,11 +47,30 @@ function PropertyDetail() {
     },
   });
 
+  const { data: landlordProfile } = useQuery({
+    queryKey: ["landlord-profile", p?.owner_id],
+    enabled: !!p?.owner_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("phone, full_name")
+        .eq("id", p!.owner_id!)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to save properties");
       if (isSaved) {
-        await supabase.from("saved_properties").delete().eq("user_id", user.id).eq("property_id", id);
+        await supabase
+          .from("saved_properties")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("property_id", id);
       } else {
         await supabase.from("saved_properties").insert({ user_id: user.id, property_id: id });
       }
@@ -49,6 +81,59 @@ function PropertyDetail() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const messageLandlord = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Sign in to message landlords");
+      if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
+
+      const { error } = await supabase.from("inquiries").insert({
+        tenant_id: user.id,
+        property_id: id,
+        landlord_id: p.owner_id,
+        message: `Hi, I'm interested in ${p.title}. Is it still available?`,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("Message sent to the landlord"),
+    onError: (e: Error) => {
+      if (e.message.includes("Sign in")) {
+        toast.error(e.message);
+        navigate({ to: "/auth" });
+        return;
+      }
+
+      toast.error(e.message);
+    },
+  });
+
+  const handleCall = () => {
+    const phone = landlordProfile?.phone?.trim();
+
+    if (!phone) {
+      toast.info("Phone contact is not available yet. Try sending a message.");
+      return;
+    }
+
+    window.location.href = `tel:${phone}`;
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: p?.title ?? "NyumbaSearch listing", url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Listing link copied");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error("Could not share this listing");
+    }
+  };
 
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!p) return <div className="p-6">Property not found.</div>;
@@ -69,11 +154,18 @@ function PropertyDetail() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="absolute top-4 right-4 flex gap-2">
-          <button className="grid h-10 w-10 place-items-center rounded-full bg-background/95 shadow-soft backdrop-blur">
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Share listing"
+            className="grid h-10 w-10 place-items-center rounded-full bg-background/95 shadow-soft backdrop-blur"
+          >
             <Share2 className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={() => toggleSave.mutate()}
+            aria-label={isSaved ? "Remove from saved homes" : "Save home"}
             className="grid h-10 w-10 place-items-center rounded-full bg-background/95 shadow-soft backdrop-blur"
           >
             <Heart className={`h-4 w-4 ${isSaved ? "fill-destructive text-destructive" : ""}`} />
@@ -91,11 +183,14 @@ function PropertyDetail() {
           <div>
             <h1 className="font-display text-2xl font-semibold leading-tight">{p.title}</h1>
             <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" /> {p.neighborhood}{p.address ? ` · ${p.address}` : ""}
+              <MapPin className="h-4 w-4" /> {p.neighborhood}
+              {p.address ? ` · ${p.address}` : ""}
             </p>
           </div>
           <div className="text-right">
-            <div className="font-display text-2xl font-semibold text-primary">{formatKes(p.rent_kes)}</div>
+            <div className="font-display text-2xl font-semibold text-primary">
+              {formatKes(p.rent_kes)}
+            </div>
             <div className="text-xs text-muted-foreground">/month</div>
           </div>
         </div>
@@ -105,12 +200,17 @@ function PropertyDetail() {
           <Stat icon={BedDouble} label="Beds" value={String(p.bedrooms)} />
           <Stat icon={Bath} label="Baths" value={String(p.bathrooms)} />
           <Stat icon={Square} label="Area" value={p.area_sqm ? `${p.area_sqm}m²` : "—"} />
-          <Stat icon={Calendar} label="Move-in" value={p.available_from ? new Date(p.available_from).toLocaleDateString() : "Now"} />
+          <Stat
+            icon={Calendar}
+            label="Move-in"
+            value={p.available_from ? new Date(p.available_from).toLocaleDateString() : "Now"}
+          />
         </div>
 
         <div className="mt-5 rounded-2xl bg-secondary px-4 py-3 text-sm">
           <span className="font-medium">Type:</span> {prettyType(p.property_type)} ·{" "}
-          <span className="font-medium">Deposit:</span> {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
+          <span className="font-medium">Deposit:</span>{" "}
+          {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
         </div>
 
         {/* Description */}
@@ -125,7 +225,12 @@ function PropertyDetail() {
             <h2 className="font-display text-lg font-semibold">Amenities</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               {p.amenities.map((a) => (
-                <span key={a} className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium">{a}</span>
+                <span
+                  key={a}
+                  className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium"
+                >
+                  {a}
+                </span>
               ))}
             </div>
           </section>
@@ -145,7 +250,10 @@ function PropertyDetail() {
                 <div className="text-xs text-muted-foreground">{s.label}</div>
                 <div className="mt-2 flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <span key={i} className={`h-2 w-6 rounded-full ${i <= s.score ? "bg-gradient-emerald" : "bg-muted"}`} />
+                    <span
+                      key={i}
+                      className={`h-2 w-6 rounded-full ${i <= s.score ? "bg-gradient-emerald" : "bg-muted"}`}
+                    />
                   ))}
                 </div>
               </div>
@@ -157,10 +265,19 @@ function PropertyDetail() {
       {/* Action bar */}
       <div className="fixed bottom-16 inset-x-0 z-20 border-t bg-background/95 px-5 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-2">
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold">
+          <button
+            type="button"
+            onClick={handleCall}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
+          >
             <Phone className="h-4 w-4" /> Call
           </button>
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant">
+          <button
+            type="button"
+            onClick={() => messageLandlord.mutate()}
+            disabled={messageLandlord.isPending}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-70"
+          >
             <MessageCircle className="h-4 w-4" /> Message landlord
           </button>
         </div>
@@ -169,7 +286,15 @@ function PropertyDetail() {
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: typeof BedDouble; label: string; value: string }) {
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof BedDouble;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="text-center">
       <Icon className="mx-auto h-4 w-4 text-primary" />

@@ -1,8 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type PropertyType =
-  | "bedsitter" | "single_room" | "one_bedroom" | "two_bedroom"
-  | "three_bedroom" | "studio" | "hostel" | "maisonette" | "bungalow" | "townhouse";
+  | "bedsitter"
+  | "single_room"
+  | "one_bedroom"
+  | "two_bedroom"
+  | "three_bedroom"
+  | "studio"
+  | "hostel"
+  | "maisonette"
+  | "bungalow"
+  | "townhouse";
 
 export interface Property {
   id: string;
@@ -30,8 +38,7 @@ export interface Property {
   updated_at: string;
 }
 
-export const formatKes = (n: number) =>
-  "KES " + n.toLocaleString("en-KE");
+export const formatKes = (n: number) => "KES " + n.toLocaleString("en-KE");
 
 export const prettyType = (t: PropertyType) =>
   ({
@@ -45,7 +52,7 @@ export const prettyType = (t: PropertyType) =>
     maisonette: "Maisonette",
     bungalow: "Bungalow",
     townhouse: "Townhouse",
-  }[t]);
+  })[t];
 
 export async function fetchProperties(): Promise<Property[]> {
   const { data, error } = await supabase
@@ -58,11 +65,7 @@ export async function fetchProperties(): Promise<Property[]> {
 }
 
 export async function fetchProperty(id: string): Promise<Property | null> {
-  const { data, error } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+  const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
   return (data ?? null) as Property | null;
 }

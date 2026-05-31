@@ -6,7 +6,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "NyumbaSearch — Find Verified Homes Smarter" },
-      { name: "description", content: "Discover verified vacant homes across Nairobi. Maps, intelligence, direct contact — no agents." },
+      {
+        name: "description",
+        content:
+          "Discover verified vacant homes across Nairobi. Maps, intelligence, direct contact — no agents.",
+      },
     ],
   }),
   component: Landing,
@@ -19,7 +23,9 @@ function Landing() {
       <header className="absolute top-0 inset-x-0 z-20">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2 text-background">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">N</div>
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
+              N
+            </div>
             <span className="font-display text-xl font-semibold tracking-tight">NyumbaSearch</span>
           </div>
           <Link
@@ -51,7 +57,8 @@ function Landing() {
               Find your next home, <span className="text-gold">smarter</span>.
             </h1>
             <p className="mt-6 max-w-xl text-lg text-background/80">
-              Skip the agents. Browse thousands of verified vacant houses, apartments and bedsitters across Nairobi — with maps, intel, and direct landlord contact.
+              Skip the agents. Browse thousands of verified vacant houses, apartments and bedsitters
+              across Nairobi — with maps, intel, and direct landlord contact.
             </p>
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -92,9 +99,21 @@ function Landing() {
       <section className="mx-auto max-w-7xl px-6 py-24">
         <div className="grid gap-8 md:grid-cols-3">
           {[
-            { icon: ShieldCheck, title: "Verified vacancies", body: "Every listing is checked. No ghost houses, no scam deposits." },
-            { icon: MapPin, title: "Map-first discovery", body: "See water reliability, security, commute and noise — overlaid on the map." },
-            { icon: Sparkles, title: "AI that helps", body: "Recommends neighbourhoods, warns about red flags, compares like a friend." },
+            {
+              icon: ShieldCheck,
+              title: "Verified vacancies",
+              body: "Every listing is checked. No ghost houses, no scam deposits.",
+            },
+            {
+              icon: MapPin,
+              title: "Map-first discovery",
+              body: "See water reliability, security, commute and noise — overlaid on the map.",
+            },
+            {
+              icon: Sparkles,
+              title: "AI that helps",
+              body: "Recommends neighbourhoods, warns about red flags, compares like a friend.",
+            },
           ].map((f) => (
             <div key={f.title} className="rounded-2xl border bg-card p-7 shadow-soft">
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-emerald text-primary-foreground">
@@ -112,7 +131,9 @@ function Landing() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-12 md:flex-row">
           <div>
             <h3 className="font-display text-2xl font-semibold">List your property in minutes</h3>
-            <p className="mt-1 text-muted-foreground">Reach verified tenants directly. Track leads, views and conversions.</p>
+            <p className="mt-1 text-muted-foreground">
+              Reach verified tenants directly. Track leads, views and conversions.
+            </p>
           </div>
           <Link
             to="/landlord"

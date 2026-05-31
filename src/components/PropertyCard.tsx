@@ -26,7 +26,8 @@ export function PropertyCard({ p }: { p: Property }) {
           </span>
         )}
         <span className="absolute bottom-3 left-3 rounded-full bg-gradient-gold px-3 py-1 text-xs font-semibold text-gold-foreground">
-          {formatKes(p.rent_kes)}<span className="font-normal opacity-70">/mo</span>
+          {formatKes(p.rent_kes)}
+          <span className="font-normal opacity-70">/mo</span>
         </span>
       </div>
       <div className="p-4">
@@ -40,8 +41,14 @@ export function PropertyCard({ p }: { p: Property }) {
           <MapPin className="h-3 w-3" /> {p.neighborhood}
         </div>
         <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" />{p.bedrooms} bd</span>
-          <span className="flex items-center gap-1"><Bath className="h-3.5 w-3.5" />{p.bathrooms} ba</span>
+          <span className="flex items-center gap-1">
+            <BedDouble className="h-3.5 w-3.5" />
+            {p.bedrooms} bd
+          </span>
+          <span className="flex items-center gap-1">
+            <Bath className="h-3.5 w-3.5" />
+            {p.bathrooms} ba
+          </span>
           {p.area_sqm && <span>{p.area_sqm} m²</span>}
         </div>
       </div>

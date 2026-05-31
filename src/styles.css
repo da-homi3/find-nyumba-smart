@@ -47,32 +47,32 @@
   --radius: 0.75rem;
 
   /* Emerald Prestige palette in oklch */
-  --background: oklch(0.985 0.012 95);          /* warm cream */
-  --foreground: oklch(0.20 0.04 160);           /* deep emerald-ink */
+  --background: oklch(0.985 0.012 95); /* warm cream */
+  --foreground: oklch(0.2 0.04 160); /* deep emerald-ink */
   --surface: oklch(1 0 0);
-  --surface-foreground: oklch(0.20 0.04 160);
+  --surface-foreground: oklch(0.2 0.04 160);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.20 0.04 160);
+  --card-foreground: oklch(0.2 0.04 160);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.20 0.04 160);
+  --popover-foreground: oklch(0.2 0.04 160);
 
-  --primary: oklch(0.36 0.09 160);              /* deep emerald */
+  --primary: oklch(0.36 0.09 160); /* deep emerald */
   --primary-foreground: oklch(0.98 0.012 95);
-  --primary-glow: oklch(0.52 0.13 160);         /* lighter emerald */
+  --primary-glow: oklch(0.52 0.13 160); /* lighter emerald */
 
   --secondary: oklch(0.95 0.02 100);
   --secondary-foreground: oklch(0.28 0.06 160);
 
   --muted: oklch(0.95 0.015 100);
-  --muted-foreground: oklch(0.50 0.025 160);
+  --muted-foreground: oklch(0.5 0.025 160);
 
   --accent: oklch(0.93 0.04 90);
   --accent-foreground: oklch(0.28 0.06 160);
 
-  --gold: oklch(0.78 0.13 80);                  /* signature gold */
-  --gold-foreground: oklch(0.20 0.04 160);
+  --gold: oklch(0.78 0.13 80); /* signature gold */
+  --gold-foreground: oklch(0.2 0.04 160);
 
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.98 0.012 95);
@@ -85,12 +85,17 @@
   --ring: oklch(0.52 0.13 160);
 
   /* Gradients & shadows */
-  --gradient-hero: linear-gradient(135deg, oklch(0.30 0.08 160) 0%, oklch(0.45 0.12 160) 60%, oklch(0.78 0.13 80) 100%);
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.3 0.08 160) 0%,
+    oklch(0.45 0.12 160) 60%,
+    oklch(0.78 0.13 80) 100%
+  );
   --gradient-emerald: linear-gradient(135deg, oklch(0.36 0.09 160), oklch(0.52 0.13 160));
-  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 80), oklch(0.86 0.10 90));
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 80), oklch(0.86 0.1 90));
   --shadow-elegant: 0 12px 40px -12px oklch(0.36 0.09 160 / 0.25);
-  --shadow-card: 0 4px 16px -4px oklch(0.20 0.04 160 / 0.10);
-  --shadow-soft: 0 2px 8px -2px oklch(0.20 0.04 160 / 0.08);
+  --shadow-card: 0 4px 16px -4px oklch(0.2 0.04 160 / 0.1);
+  --shadow-soft: 0 2px 8px -2px oklch(0.2 0.04 160 / 0.08);
 }
 
 .dark {
@@ -108,7 +113,7 @@
   --secondary: oklch(0.26 0.03 160);
   --secondary-foreground: oklch(0.96 0.012 95);
   --muted: oklch(0.26 0.03 160);
-  --muted-foreground: oklch(0.70 0.02 160);
+  --muted-foreground: oklch(0.7 0.02 160);
   --accent: oklch(0.28 0.05 160);
   --accent-foreground: oklch(0.96 0.012 95);
   --gold: oklch(0.82 0.13 80);
@@ -123,22 +128,42 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body {
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
 }
 
-@utility bg-gradient-hero { background-image: var(--gradient-hero); }
-@utility bg-gradient-emerald { background-image: var(--gradient-emerald); }
-@utility bg-gradient-gold { background-image: var(--gradient-gold); }
-@utility shadow-elegant { box-shadow: var(--shadow-elegant); }
-@utility shadow-card { box-shadow: var(--shadow-card); }
-@utility shadow-soft { box-shadow: var(--shadow-soft); }
+@utility bg-gradient-hero {
+  background-image: var(--gradient-hero);
+}
+@utility bg-gradient-emerald {
+  background-image: var(--gradient-emerald);
+}
+@utility bg-gradient-gold {
+  background-image: var(--gradient-gold);
+}
+@utility shadow-elegant {
+  box-shadow: var(--shadow-elegant);
+}
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}

@@ -47,12 +47,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Something went wrong on our end.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             Try again
@@ -75,22 +76,45 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "NyumbaSearch — Find Verified Homes Smarter" },
-      { name: "description", content: "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams." },
+      {
+        name: "description",
+        content:
+          "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
+      },
       { name: "author", content: "NyumbaSearch" },
       { property: "og:title", content: "NyumbaSearch — Find Verified Homes Smarter" },
-      { property: "og:description", content: "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams." },
+      {
+        property: "og:description",
+        content:
+          "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "NyumbaSearch — Find Verified Homes Smarter" },
-      { name: "twitter:description", content: "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/19928b0b-4662-4a1c-b5da-5998cadae0e5" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/19928b0b-4662-4a1c-b5da-5998cadae0e5" },
+      {
+        name: "twitter:description",
+        content:
+          "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/19928b0b-4662-4a1c-b5da-5998cadae0e5",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/19928b0b-4662-4a1c-b5da-5998cadae0e5",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -102,7 +126,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <head><HeadContent /></head>
+      <head>
+        <HeadContent />
+      </head>
       <body>
         {children}
         <Scripts />

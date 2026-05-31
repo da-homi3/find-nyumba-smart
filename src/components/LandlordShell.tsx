@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, Building2, Inbox, BarChart3, Settings, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
+import { toast } from "sonner";
 
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -22,7 +23,9 @@ export function LandlordShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-secondary">
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-foreground text-background lg:flex">
         <div className="flex items-center gap-2 px-6 py-6">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">N</div>
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
+            N
+          </div>
           <div>
             <div className="font-display text-sm font-semibold">NyumbaSearch</div>
             <div className="text-[10px] uppercase tracking-wider text-background/60">Landlord</div>
@@ -41,13 +44,23 @@ export function LandlordShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="space-y-1 px-3 pb-6">
-          <Link to="/landlord/properties/new" className="flex items-center justify-center gap-2 rounded-lg bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground">
+          <Link
+            to="/landlord/properties/new"
+            className="flex items-center justify-center gap-2 rounded-lg bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground"
+          >
             <Plus className="h-4 w-4" /> Add property
           </Link>
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10">
+          <button
+            type="button"
+            onClick={() => toast.info("Landlord settings will be available soon.")}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10"
+          >
             <Settings className="h-4 w-4" /> Settings
           </button>
-          <button onClick={signOut} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10">
+          <button
+            onClick={signOut}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10"
+          >
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
@@ -56,7 +69,11 @@ export function LandlordShell({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-x-hidden">
         {!loading && user && !isLandlord && (
           <div className="border-b bg-gold/20 px-6 py-3 text-sm text-foreground">
-            This account isn't registered as a landlord. <Link to="/landlord" className="font-semibold underline">Switch accounts</Link>.
+            This account isn't registered as a landlord.{" "}
+            <Link to="/landlord" className="font-semibold underline">
+              Switch accounts
+            </Link>
+            .
           </div>
         )}
         {children}

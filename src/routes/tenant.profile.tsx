@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { User, LogOut, Building2, ShieldCheck, Bell } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/tenant/profile")({
   component: Profile,
@@ -17,12 +18,17 @@ function Profile() {
         </div>
         <div>
           <h1 className="font-display text-xl font-semibold">{user?.email ?? "Guest"}</h1>
-          <p className="text-xs text-muted-foreground">{user ? "Tenant account" : "Not signed in"}</p>
+          <p className="text-xs text-muted-foreground">
+            {user ? "Tenant account" : "Not signed in"}
+          </p>
         </div>
       </header>
 
       {!user ? (
-        <Link to="/auth" className="mt-6 block rounded-2xl bg-primary px-6 py-3 text-center text-sm font-semibold text-primary-foreground">
+        <Link
+          to="/auth"
+          className="mt-6 block rounded-2xl bg-primary px-6 py-3 text-center text-sm font-semibold text-primary-foreground"
+        >
           Sign in or create an account
         </Link>
       ) : null}
@@ -31,7 +37,12 @@ function Profile() {
         {[
           { icon: ShieldCheck, label: "Verification", hint: "Verify your phone & ID" },
           { icon: Bell, label: "Notifications", hint: "Manage alerts" },
-          { icon: Building2, label: "Become a landlord", hint: "List your property", to: "/landlord" },
+          {
+            icon: Building2,
+            label: "Become a landlord",
+            hint: "List your property",
+            to: "/landlord",
+          },
         ].map((i) => {
           const Inner = (
             <div className="flex items-center gap-4 px-4 py-4">
@@ -47,7 +58,17 @@ function Profile() {
           );
           return (
             <li key={i.label}>
-              {i.to ? <Link to={i.to}>{Inner}</Link> : <button className="w-full text-left">{Inner}</button>}
+              {i.to ? (
+                <Link to={i.to}>{Inner}</Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toast.info(`${i.label} settings will be available soon.`)}
+                  className="w-full text-left"
+                >
+                  {Inner}
+                </button>
+              )}
             </li>
           );
         })}
