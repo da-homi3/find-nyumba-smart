@@ -1,13 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Home, Map, Heart, MessageCircle, User } from "lucide-react";
 
-const items = [
+const items: Array<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
   { to: "/tenant", label: "Home", icon: Home, exact: true },
   { to: "/tenant/map", label: "Map", icon: Map },
   { to: "/tenant/saved", label: "Saved", icon: Heart },
   { to: "/tenant/messages", label: "Messages", icon: MessageCircle },
   { to: "/tenant/profile", label: "Profile", icon: User },
-] as const;
+];
 
 export function TenantBottomNav() {
   return (
