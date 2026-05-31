@@ -188,7 +188,7 @@ function TenantMap() {
     heatmap.current?.setMap(null);
     if (g.maps.visualization && filtered.length) {
       const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
-      heatmap.current = new g.maps.visualization.HeatmapLayer({
+      heatmap.current = new (g.maps.visualization as any).HeatmapLayer({
         data: filtered.map((p) => ({
           location: new g.maps.LatLng(p.latitude!, p.longitude!),
           weight: 0.4 + (p.rent_kes / maxRent) * 1.6,
