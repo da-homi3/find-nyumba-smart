@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
