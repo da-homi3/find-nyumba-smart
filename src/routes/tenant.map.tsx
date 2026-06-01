@@ -284,6 +284,12 @@ function TenantMap() {
       return;
     }
     if (error) return;
+    if (!isOnline && !getGoogleMapsWindow().google?.maps) {
+      // Don't even attempt to fetch the maps script while offline — skip
+      // straight to the fallback view.
+      setError("You're offline. Showing cached listings.");
+      return;
+    }
     let cancelled = false;
     const mapsWindow = getGoogleMapsWindow();
     const previousAuthFailure = mapsWindow.gm_authFailure;
@@ -314,7 +320,7 @@ function TenantMap() {
       cancelled = true;
       mapsWindow.gm_authFailure = previousAuthFailure;
     };
-  }, [error]);
+  }, [error, isOnline]);
 
   // Render markers + clusters + heatmap whenever data or filters change (throttled)
   useEffect(() => {
