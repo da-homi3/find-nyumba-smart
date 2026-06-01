@@ -54,6 +54,7 @@ const MAP_STYLE: google.maps.MapTypeStyle[] = [
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3a6b58" }] },
 ];
 
+const LOADER_TIMEOUT_MS = 8000;
 let loaderPromise: Promise<typeof google> | null = null;
 function loadGoogleMaps(): Promise<typeof google> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
@@ -63,14 +64,35 @@ function loadGoogleMaps(): Promise<typeof google> {
   loaderPromise = new Promise((resolve, reject) => {
     const cbName = "__nyumbaInitMap";
     const previousAuthFailure = mapsWindow.gm_authFailure;
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      fn();
+    };
     mapsWindow.gm_authFailure = () => {
       previousAuthFailure?.();
-      reject(new Error("Google Maps key is not authorized for this domain."));
+      finish(() => {
+        loaderPromise = null;
+        reject(new Error("Google Maps key is not authorized for this domain."));
+      });
     };
     mapsWindow[cbName] = () => {
-      if (mapsWindow.google) resolve(mapsWindow.google);
-      else reject(new Error("Google Maps failed to initialize"));
+      finish(() => {
+        if (mapsWindow.google) resolve(mapsWindow.google);
+        else {
+          loaderPromise = null;
+          reject(new Error("Google Maps failed to initialize"));
+        }
+      });
     };
+    const timer = window.setTimeout(() => {
+      finish(() => {
+        loaderPromise = null;
+        reject(new Error("Network is too slow to load the map. Showing offline view."));
+      });
+    }, LOADER_TIMEOUT_MS);
     const s = document.createElement("script");
     const params = new URLSearchParams({
       key: BROWSER_KEY ?? "",
@@ -81,7 +103,11 @@ function loadGoogleMaps(): Promise<typeof google> {
     });
     s.src = `https://maps.googleapis.com/maps/api/js?${params}`;
     s.async = true;
-    s.onerror = () => reject(new Error("Failed to load Google Maps"));
+    s.onerror = () =>
+      finish(() => {
+        loaderPromise = null;
+        reject(new Error("Failed to load Google Maps. Check your connection."));
+      });
     document.head.appendChild(s);
   });
   return loaderPromise;
