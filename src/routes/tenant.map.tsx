@@ -538,11 +538,17 @@ function TenantMap() {
         <div className="absolute inset-0 grid place-items-center bg-secondary/80 backdrop-blur-sm">
           <div className="flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm shadow-card">
             <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-            Loading Nairobi map…
+            {propertiesLoading ? "Loading listings…" : "Loading Nairobi map…"}
           </div>
         </div>
       )}
-      {error && (
+      {!isOnline && (
+        <div className="absolute inset-x-4 top-20 z-20 flex items-center gap-2 rounded-full border border-gold/40 bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-card backdrop-blur">
+          <WifiOff className="h-3.5 w-3.5 text-gold" />
+          Offline — showing {filteredProperties.length} cached listings
+        </div>
+      )}
+      {error && isOnline && (
         <div className="absolute inset-x-4 top-24 z-10 rounded-2xl border bg-card/95 p-3 text-xs shadow-card backdrop-blur">
           <p className="font-semibold text-foreground">Fallback map active</p>
           <p className="text-muted-foreground">{error}</p>
