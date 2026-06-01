@@ -228,7 +228,7 @@ function compactKes(n: number) {
 }
 
 function TenantMap() {
-  const { data: properties = [] } = useQuery({
+  const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties"],
     queryFn: fetchProperties,
   });
@@ -246,7 +246,36 @@ function TenantMap() {
   const [showHeat, setShowHeat] = useState(true);
   const [query, setQuery] = useState("");
   const [markerCount, setMarkerCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
   const filteredProperties = filterMappableProperties(properties, query);
+
+  // Track connectivity so we can degrade gracefully and auto-retry on reconnect.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOnline = () => {
+      setIsOnline(true);
+      // If maps failed earlier (likely network), clear the error so the init
+      // effect re-runs and tries to load Google Maps again now that we're back.
+      setError((prev) =>
+        prev && /network|connection|load Google Maps|too slow/i.test(prev) ? null : prev,
+      );
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      // Force the fallback path immediately so the user sees something useful.
+      if (!mapInstance.current) {
+        setError((prev) => prev ?? "You're offline. Showing cached listings.");
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Init map
   useEffect(() => {
