@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { Property, PropertyType } from "@/lib/properties";
+import { requireRole } from "@/lib/api/_authz";
 
 type AuthContext = {
   supabase: SupabaseClient<Database>;
