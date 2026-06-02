@@ -101,6 +101,7 @@ export type Database = {
           property_type: Database["public"]["Enums"]["property_type"]
           rent_kes: number
           title: string
+          tour_url: string | null
           updated_at: string
           video_url: string | null
           views: number
@@ -126,6 +127,7 @@ export type Database = {
           property_type: Database["public"]["Enums"]["property_type"]
           rent_kes: number
           title: string
+          tour_url?: string | null
           updated_at?: string
           video_url?: string | null
           views?: number
@@ -151,9 +153,52 @@ export type Database = {
           property_type?: Database["public"]["Enums"]["property_type"]
           rent_kes?: number
           title?: string
+          tour_url?: string | null
           updated_at?: string
           video_url?: string | null
           views?: number
+        }
+        Relationships: []
+      }
+      property_quality_reports: {
+        Row: {
+          created_at: string
+          grade: string
+          id: string
+          improvements: Json
+          media_count: number
+          model: string | null
+          owner_id: string
+          property_id: string
+          score: number
+          strengths: Json
+          summary: string
+        }
+        Insert: {
+          created_at?: string
+          grade: string
+          id?: string
+          improvements?: Json
+          media_count?: number
+          model?: string | null
+          owner_id: string
+          property_id: string
+          score: number
+          strengths?: Json
+          summary: string
+        }
+        Update: {
+          created_at?: string
+          grade?: string
+          id?: string
+          improvements?: Json
+          media_count?: number
+          model?: string | null
+          owner_id?: string
+          property_id?: string
+          score?: number
+          strengths?: Json
+          summary?: string
         }
         Relationships: []
       }
