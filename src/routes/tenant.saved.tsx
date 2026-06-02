@@ -2,9 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { PropertyCard } from "@/components/PropertyCard";
-import type { Property } from "@/lib/properties";
+import { listSavedProperties } from "@/lib/api/nyumba.functions";
 
 export const Route = createFileRoute("/tenant/saved")({
   component: SavedPage,
@@ -15,13 +14,7 @@ function SavedPage() {
   const { data = [] } = useQuery({
     queryKey: ["saved-properties", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("saved_properties")
-        .select("properties(*)")
-        .eq("user_id", user!.id);
-      return (data ?? []).map((r) => r.properties as unknown as Property).filter(Boolean);
-    },
+    queryFn: () => listSavedProperties(),
   });
 
   if (!user) {

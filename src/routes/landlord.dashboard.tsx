@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { LandlordShell } from "@/components/LandlordShell";
 import { Building2, Eye, Users, TrendingUp, Plus } from "lucide-react";
-import { formatKes, type Property } from "@/lib/properties";
+import { getLandlordDashboard } from "@/lib/api/nyumba.functions";
+import { formatKes } from "@/lib/properties";
 
 export const Route = createFileRoute("/landlord/dashboard")({
   component: () => (
@@ -16,21 +16,21 @@ export const Route = createFileRoute("/landlord/dashboard")({
 
 function Dashboard() {
   const { user } = useAuth();
-  const { data: properties = [] } = useQuery({
-    queryKey: ["my-properties", user?.id],
+  const { data } = useQuery({
+    queryKey: ["landlord-dashboard", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("owner_id", user!.id)
-        .order("created_at", { ascending: false });
-      return (data ?? []) as Property[];
-    },
+    queryFn: () => getLandlordDashboard(),
   });
 
-  const totalViews = properties.reduce((s, p) => s + p.views, 0);
-  const activeCount = properties.filter((p) => p.is_active).length;
+  const properties = data?.properties ?? [];
+  const stats = data?.stats ?? {
+    totalProperties: 0,
+    activeProperties: 0,
+    totalViews: 0,
+    totalLeads: 0,
+    newLeads: 0,
+    potentialRevenue: 0,
+  };
 
   return (
     <div className="px-6 py-8 lg:px-10">
@@ -54,20 +54,25 @@ function Dashboard() {
         <Kpi
           icon={Building2}
           label="Total Properties"
-          value={String(properties.length)}
-          hint={`${activeCount} active`}
+          value={String(stats.totalProperties)}
+          hint={`${stats.activeProperties} active`}
         />
         <Kpi
           icon={Eye}
           label="Property Views"
-          value={totalViews.toLocaleString()}
+          value={stats.totalViews.toLocaleString()}
           hint="last 30 days"
         />
-        <Kpi icon={Users} label="Tenant Leads" value="0" hint="this month" />
+        <Kpi
+          icon={Users}
+          label="Tenant Leads"
+          value={String(stats.totalLeads)}
+          hint={`${stats.newLeads} new`}
+        />
         <Kpi
           icon={TrendingUp}
           label="Monthly Revenue"
-          value={formatKes(properties.reduce((s, p) => s + (p.is_active ? 0 : p.rent_kes), 0))}
+          value={formatKes(stats.potentialRevenue)}
           hint="potential"
         />
       </div>

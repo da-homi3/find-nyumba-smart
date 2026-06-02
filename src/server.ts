@@ -7,6 +7,16 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+function attachRuntimeEnv(env: unknown) {
+  if (!env || typeof env !== "object" || typeof process === "undefined") return;
+
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value === "string" && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -40,6 +50,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      attachRuntimeEnv(env);
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

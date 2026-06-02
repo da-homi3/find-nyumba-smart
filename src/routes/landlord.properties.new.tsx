@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LandlordShell } from "@/components/LandlordShell";
-import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { createProperty } from "@/lib/api/nyumba.functions";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import type { PropertyType } from "@/lib/properties";
@@ -15,7 +14,6 @@ export const Route = createFileRoute("/landlord/properties/new")({
 });
 
 function Page() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -39,29 +37,28 @@ function Page() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!user) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("properties").insert({
-        owner_id: user.id,
-        title: form.title,
-        property_type: form.property_type,
-        neighborhood: form.neighborhood,
-        address: form.address || null,
-        rent_kes: Number(form.rent_kes),
-        deposit_kes: Number(form.deposit_kes) || null,
-        bedrooms: Number(form.bedrooms),
-        bathrooms: Number(form.bathrooms),
-        area_sqm: Number(form.area_sqm) || null,
-        description: form.description || null,
-        amenities: form.amenities
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        images: form.image_url ? [form.image_url] : [],
-        is_active: true,
+      await createProperty({
+        data: {
+          title: form.title,
+          property_type: form.property_type,
+          neighborhood: form.neighborhood,
+          address: form.address || null,
+          rent_kes: Number(form.rent_kes),
+          deposit_kes: Number(form.deposit_kes) || null,
+          bedrooms: Number(form.bedrooms),
+          bathrooms: Number(form.bathrooms),
+          area_sqm: Number(form.area_sqm) || null,
+          description: form.description || null,
+          amenities: form.amenities
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          images: form.image_url ? [form.image_url] : [],
+          is_active: true,
+        },
       });
-      if (error) throw error;
       toast.success("Property listed!");
       navigate({ to: "/landlord/properties" });
     } catch (err) {

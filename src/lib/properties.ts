@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getProperty, listProperties } from "@/lib/api/nyumba.functions";
 
 export type PropertyType =
   | "bedsitter"
@@ -55,17 +55,27 @@ export const prettyType = (t: PropertyType) =>
   })[t];
 
 export async function fetchProperties(): Promise<Property[]> {
-  const { data, error } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Property[];
+  return listProperties({ data: {} });
 }
 
 export async function fetchProperty(id: string): Promise<Property | null> {
-  const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as Property | null;
+  return getProperty({
+    data: {
+      id,
+      sessionId: getAnonymousSessionId(),
+      source: "property-detail",
+    },
+  });
+}
+
+function getAnonymousSessionId() {
+  if (typeof window === "undefined") return undefined;
+
+  const key = "nyumba_session_id";
+  const existing = window.localStorage.getItem(key);
+  if (existing) return existing;
+
+  const next = crypto.randomUUID();
+  window.localStorage.setItem(key, next);
+  return next;
 }

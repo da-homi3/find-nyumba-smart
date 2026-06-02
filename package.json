@@ -10,6 +10,10 @@
     "preview": "npx vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "check:env": "node -e \"const req=['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY']; const miss=req.filter(k=>!process.env[k]); if(miss.length){console.error('Missing env:',miss.join(',')); process.exit(1)}; console.log('Env looks OK')\"",
+    "db:migrate:push": "echo 'Run migrations with the Supabase CLI: supabase db push --project-ref $SUPABASE_PROJECT_REF'",
+    "migrate:local": "bash scripts/run_migrations.sh",
+    "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",
     "deploy": "npm run build && npx wrangler deploy --config dist/server/wrangler.json"
   },
   "dependencies": {

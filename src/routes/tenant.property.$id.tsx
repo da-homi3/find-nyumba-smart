@@ -16,6 +16,11 @@ import {
 import { fetchProperty, formatKes, prettyType } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  createInquiry,
+  listSavedProperties,
+  toggleSavedProperty,
+} from "@/lib/api/nyumba.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/tenant/property/$id")({
@@ -37,13 +42,8 @@ function PropertyDetail() {
     queryKey: ["saved", id, user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("saved_properties")
-        .select("id")
-        .eq("user_id", user!.id)
-        .eq("property_id", id)
-        .maybeSingle();
-      return !!data;
+      const saved = await listSavedProperties();
+      return saved.some((property) => property.id === id);
     },
   });
 
@@ -65,15 +65,7 @@ function PropertyDetail() {
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to save properties");
-      if (isSaved) {
-        await supabase
-          .from("saved_properties")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("property_id", id);
-      } else {
-        await supabase.from("saved_properties").insert({ user_id: user.id, property_id: id });
-      }
+      await toggleSavedProperty({ data: { propertyId: id, saved: !isSaved } });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["saved"] });
@@ -87,14 +79,12 @@ function PropertyDetail() {
       if (!user) throw new Error("Sign in to message landlords");
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
 
-      const { error } = await supabase.from("inquiries").insert({
-        tenant_id: user.id,
-        property_id: id,
-        landlord_id: p.owner_id,
-        message: `Hi, I'm interested in ${p.title}. Is it still available?`,
+      await createInquiry({
+        data: {
+          propertyId: id,
+          message: `Hi, I'm interested in ${p.title}. Is it still available?`,
+        },
       });
-
-      if (error) throw error;
     },
     onSuccess: () => toast.success("Message sent to the landlord"),
     onError: (e: Error) => {

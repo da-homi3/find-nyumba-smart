@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { LandlordShell } from "@/components/LandlordShell";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
-import { formatKes, prettyType, type Property } from "@/lib/properties";
+import { listLandlordProperties } from "@/lib/api/nyumba.functions";
+import { formatKes, prettyType } from "@/lib/properties";
 import { Plus, Building2 } from "lucide-react";
 
 export const Route = createFileRoute("/landlord/properties")({
@@ -19,14 +19,7 @@ function Page() {
   const { data: properties = [] } = useQuery({
     queryKey: ["my-properties-list", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("owner_id", user!.id)
-        .order("created_at", { ascending: false });
-      return (data ?? []) as Property[];
-    },
+    queryFn: () => listLandlordProperties(),
   });
 
   return (
