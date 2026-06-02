@@ -156,6 +156,7 @@ export const listSavedProperties = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data, error } = await supabase
       .from("saved_properties")
       .select("properties(*)")
@@ -173,6 +174,7 @@ export const toggleSavedProperty = createServerFn({ method: "POST" })
   .inputValidator(z.object({ propertyId: z.string().uuid(), saved: z.boolean().optional() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data: existing, error: existingError } = await supabase
       .from("saved_properties")
       .select("id")
