@@ -18,7 +18,60 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+// Build request middleware array so we can conditionally prepend dev helpers
+const requestMiddlewareArr = [
+  // Dev-only: log raw server-fn request bodies for debugging
+  createMiddleware().server(async ({ request, next }) => {
+    try {
+      const url = new URL(request.url);
+      if (url.pathname.startsWith("/_serverFn/")) {
+        const txt = await request
+          .clone()
+          .text()
+          .catch(() => "<binary>");
+        console.log("DEV DEBUG: /_serverFn/ raw body:", txt?.slice(0, 2000));
+      }
+    } catch (e) {
+      console.error("DEV DEBUG: error reading server-fn body", e);
+    }
+    return await next();
+  }),
+  errorMiddleware,
+];
+
+// Dev-only: compute and return dev-mode server-fn id for a given file+export
+if (typeof process !== "undefined" && process.env.NODE_ENV !== "production") {
+  const debugMiddleware = createMiddleware().server(async ({ request, next }) => {
+    try {
+      const url = new URL(request.url);
+      if (url.pathname === "/__debug/server-fn-id") {
+        const file = url.searchParams.get("file") || "";
+        const exp = url.searchParams.get("export") || "";
+        const payload = { file, export: exp };
+        const b = Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
+        const id = b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        return new Response(JSON.stringify({ id, payload }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } catch (e) {
+      console.error("DEV DEBUG: server-fn-id endpoint error", e);
+      return new Response(JSON.stringify({ error: String(e) }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return await next();
+  });
+  requestMiddlewareArr.unshift(debugMiddleware);
+}
+
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware],
+  requestMiddleware: requestMiddlewareArr,
   functionMiddleware: [attachSupabaseAuth],
 }));
+
+// Dev-only: trigger example server function from the client to register server-fn in dev
+if (typeof window !== "undefined") {
+  import("./tmp-trigger").catch(() => {});
+}

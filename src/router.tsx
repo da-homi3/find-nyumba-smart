@@ -1,6 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+// Ensure example server functions are included in client bundle during dev
+import "./lib/api/example.functions";
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
