@@ -142,8 +142,7 @@ export const getProperty = createServerFn({ method: "POST" })
     await supabase
       .rpc("record_property_view", {
         _property_id: property.id,
-        _viewer_id: null,
-        _session_id: data.sessionId ?? null,
+        _session_id: data.sessionId ?? undefined,
         _source: data.source ?? "property-detail",
       })
       .throwOnError();
