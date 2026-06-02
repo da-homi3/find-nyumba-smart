@@ -2,7 +2,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
-import { MapPin, Navigation, Layers, Flame, X } from "lucide-react";
+import { MapPin, Navigation, Layers, Flame, X, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 // Dynamically imported in-browser to avoid SSR CJS interop issues
 type MarkerClustererType = import("@googlemaps/markerclusterer").MarkerClusterer;
@@ -54,6 +54,7 @@ const MAP_STYLE: google.maps.MapTypeStyle[] = [
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3a6b58" }] },
 ];
 
+const LOADER_TIMEOUT_MS = 8000;
 let loaderPromise: Promise<typeof google> | null = null;
 function loadGoogleMaps(): Promise<typeof google> {
   if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
@@ -63,14 +64,35 @@ function loadGoogleMaps(): Promise<typeof google> {
   loaderPromise = new Promise((resolve, reject) => {
     const cbName = "__nyumbaInitMap";
     const previousAuthFailure = mapsWindow.gm_authFailure;
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      fn();
+    };
     mapsWindow.gm_authFailure = () => {
       previousAuthFailure?.();
-      reject(new Error("Google Maps key is not authorized for this domain."));
+      finish(() => {
+        loaderPromise = null;
+        reject(new Error("Google Maps key is not authorized for this domain."));
+      });
     };
     mapsWindow[cbName] = () => {
-      if (mapsWindow.google) resolve(mapsWindow.google);
-      else reject(new Error("Google Maps failed to initialize"));
+      finish(() => {
+        if (mapsWindow.google) resolve(mapsWindow.google);
+        else {
+          loaderPromise = null;
+          reject(new Error("Google Maps failed to initialize"));
+        }
+      });
     };
+    const timer = window.setTimeout(() => {
+      finish(() => {
+        loaderPromise = null;
+        reject(new Error("Network is too slow to load the map. Showing offline view."));
+      });
+    }, LOADER_TIMEOUT_MS);
     const s = document.createElement("script");
     const params = new URLSearchParams({
       key: BROWSER_KEY ?? "",
@@ -81,7 +103,11 @@ function loadGoogleMaps(): Promise<typeof google> {
     });
     s.src = `https://maps.googleapis.com/maps/api/js?${params}`;
     s.async = true;
-    s.onerror = () => reject(new Error("Failed to load Google Maps"));
+    s.onerror = () =>
+      finish(() => {
+        loaderPromise = null;
+        reject(new Error("Failed to load Google Maps. Check your connection."));
+      });
     document.head.appendChild(s);
   });
   return loaderPromise;
@@ -202,7 +228,7 @@ function compactKes(n: number) {
 }
 
 function TenantMap() {
-  const { data: properties = [] } = useQuery({
+  const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties"],
     queryFn: fetchProperties,
   });
@@ -220,7 +246,36 @@ function TenantMap() {
   const [showHeat, setShowHeat] = useState(true);
   const [query, setQuery] = useState("");
   const [markerCount, setMarkerCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
   const filteredProperties = filterMappableProperties(properties, query);
+
+  // Track connectivity so we can degrade gracefully and auto-retry on reconnect.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOnline = () => {
+      setIsOnline(true);
+      // If maps failed earlier (likely network), clear the error so the init
+      // effect re-runs and tries to load Google Maps again now that we're back.
+      setError((prev) =>
+        prev && /network|connection|load Google Maps|too slow/i.test(prev) ? null : prev,
+      );
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      // Force the fallback path immediately so the user sees something useful.
+      if (!mapInstance.current) {
+        setError((prev) => prev ?? "You're offline. Showing cached listings.");
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Init map
   useEffect(() => {
@@ -229,6 +284,12 @@ function TenantMap() {
       return;
     }
     if (error) return;
+    if (!isOnline && !getGoogleMapsWindow().google?.maps) {
+      // Don't even attempt to fetch the maps script while offline — skip
+      // straight to the fallback view.
+      setError("You're offline. Showing cached listings.");
+      return;
+    }
     let cancelled = false;
     const mapsWindow = getGoogleMapsWindow();
     const previousAuthFailure = mapsWindow.gm_authFailure;
@@ -259,7 +320,7 @@ function TenantMap() {
       cancelled = true;
       mapsWindow.gm_authFailure = previousAuthFailure;
     };
-  }, [error]);
+  }, [error, isOnline]);
 
   // Render markers + clusters + heatmap whenever data or filters change (throttled)
   useEffect(() => {
@@ -477,11 +538,17 @@ function TenantMap() {
         <div className="absolute inset-0 grid place-items-center bg-secondary/80 backdrop-blur-sm">
           <div className="flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm shadow-card">
             <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-            Loading Nairobi map…
+            {propertiesLoading ? "Loading listings…" : "Loading Nairobi map…"}
           </div>
         </div>
       )}
-      {error && (
+      {!isOnline && (
+        <div className="absolute inset-x-4 top-20 z-20 flex items-center gap-2 rounded-full border border-gold/40 bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-card backdrop-blur">
+          <WifiOff className="h-3.5 w-3.5 text-gold" />
+          Offline — showing {filteredProperties.length} cached listings
+        </div>
+      )}
+      {error && isOnline && (
         <div className="absolute inset-x-4 top-24 z-10 rounded-2xl border bg-card/95 p-3 text-xs shadow-card backdrop-blur">
           <p className="font-semibold text-foreground">Fallback map active</p>
           <p className="text-muted-foreground">{error}</p>
