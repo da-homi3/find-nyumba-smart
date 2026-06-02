@@ -317,6 +317,7 @@ export const updateInquiryStatus = createServerFn({ method: "POST" })
   .inputValidator(updateInquiryStatusSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const { data: inquiry, error } = await supabase
       .from("inquiries")
       .update({ status: data.status })
