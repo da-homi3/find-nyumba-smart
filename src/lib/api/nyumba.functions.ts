@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { Property, PropertyType } from "@/lib/properties";
+import { requireRole } from "@/lib/api/_authz";
 
 type AuthContext = {
   supabase: SupabaseClient<Database>;
@@ -155,6 +156,7 @@ export const listSavedProperties = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data, error } = await supabase
       .from("saved_properties")
       .select("properties(*)")
@@ -172,6 +174,7 @@ export const toggleSavedProperty = createServerFn({ method: "POST" })
   .inputValidator(z.object({ propertyId: z.string().uuid(), saved: z.boolean().optional() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data: existing, error: existingError } = await supabase
       .from("saved_properties")
       .select("id")
@@ -206,6 +209,7 @@ export const createProperty = createServerFn({ method: "POST" })
   .inputValidator(propertyPayloadSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const { data: property, error } = await supabase
       .from("properties")
       .insert({
@@ -224,6 +228,7 @@ export const listLandlordProperties = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const { data, error } = await supabase
       .from("properties")
       .select("*")
@@ -239,6 +244,7 @@ export const createInquiry = createServerFn({ method: "POST" })
   .inputValidator(createInquirySchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data: property, error: propertyError } = await supabase
       .from("properties")
       .select("id, owner_id, title")
@@ -276,6 +282,7 @@ export const listTenantInquiries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data, error } = await supabase
       .from("inquiries")
       .select(
@@ -292,6 +299,7 @@ export const listLandlordLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const { data, error } = await supabase
       .from("inquiries")
       .select(
@@ -309,6 +317,7 @@ export const updateInquiryStatus = createServerFn({ method: "POST" })
   .inputValidator(updateInquiryStatusSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const { data: inquiry, error } = await supabase
       .from("inquiries")
       .update({ status: data.status })
@@ -340,6 +349,7 @@ export const getLandlordDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const [{ data: properties, error: propertiesError }, { data: leads, error: leadsError }] =
       await Promise.all([
         supabase.from("properties").select("*").eq("owner_id", userId),
