@@ -68,6 +68,7 @@ const propertyPayloadSchema = z.object({
   amenities: z.array(z.string().trim().min(1)).default([]),
   images: z.array(z.string().url()).default([]),
   video_url: z.string().url().nullable().optional(),
+  tour_url: z.string().url().nullable().optional(),
   available_from: z.string().nullable().optional(),
   is_active: z.boolean().default(true),
 });
