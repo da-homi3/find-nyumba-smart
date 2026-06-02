@@ -52,6 +52,38 @@ export type Database = {
           },
         ]
       }
+      inquiry_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          inquiry_id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          inquiry_id: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          inquiry_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiry_messages_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -202,6 +234,33 @@ export type Database = {
         }
         Relationships: []
       }
+      property_views: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          session_id: string | null
+          source: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          session_id?: string | null
+          source?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          session_id?: string | null
+          source?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: []
+      }
       saved_properties: {
         Row: {
           created_at: string
@@ -263,6 +322,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      record_property_view: {
+        Args: {
+          _property_id: string
+          _session_id: string
+          _source: string
+          _viewer_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
