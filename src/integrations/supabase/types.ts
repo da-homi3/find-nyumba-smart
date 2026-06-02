@@ -326,9 +326,9 @@ export type Database = {
       record_property_view: {
         Args: {
           _property_id: string
-          _session_id: string
-          _source: string
-          _viewer_id: string
+          _session_id?: string
+          _source?: string
+          _viewer_id?: string
         }
         Returns: undefined
       }
