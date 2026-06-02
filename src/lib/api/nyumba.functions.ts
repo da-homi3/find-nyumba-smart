@@ -282,6 +282,7 @@ export const listTenantInquiries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data, error } = await supabase
       .from("inquiries")
       .select(
