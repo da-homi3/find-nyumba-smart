@@ -349,6 +349,7 @@ export const getLandlordDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const [{ data: properties, error: propertiesError }, { data: leads, error: leadsError }] =
       await Promise.all([
         supabase.from("properties").select("*").eq("owner_id", userId),
