@@ -1,9 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LandlordShell } from "@/components/LandlordShell";
 import { createProperty } from "@/lib/api/nyumba.functions";
-import { useState, type FormEvent } from "react";
+import { analyzePropertyQuality, createSignedMediaUrls } from "@/lib/api/media.functions";
+import { useState, type FormEvent, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import type { PropertyType } from "@/lib/properties";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { Image as ImageIcon, Film, Compass, Loader2, X } from "lucide-react";
 
 export const Route = createFileRoute("/landlord/properties/new")({
   component: () => (
@@ -13,9 +17,16 @@ export const Route = createFileRoute("/landlord/properties/new")({
   ),
 });
 
+const MAX_IMG_MB = 10;
+const MAX_VIDEO_MB = 100;
+
 function Page() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     property_type: "one_bedroom" as PropertyType,
@@ -28,18 +39,102 @@ function Page() {
     area_sqm: 0,
     description: "",
     amenities: "",
-    image_url: "",
+    tour_url: "",
   });
 
   function update<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  function onPickImages(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    const valid = files.filter((f) => {
+      if (!f.type.startsWith("image/")) {
+        toast.error(`${f.name}: not an image`);
+        return false;
+      }
+      if (f.size > MAX_IMG_MB * 1024 * 1024) {
+        toast.error(`${f.name}: max ${MAX_IMG_MB}MB`);
+        return false;
+      }
+      return true;
+    });
+    setImageFiles((prev) => [...prev, ...valid].slice(0, 15));
+    e.target.value = "";
+  }
+
+  function onPickVideo(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("video/")) {
+      toast.error("Please choose a video file");
+      return;
+    }
+    if (f.size > MAX_VIDEO_MB * 1024 * 1024) {
+      toast.error(`Video must be under ${MAX_VIDEO_MB}MB`);
+      return;
+    }
+    setVideoFile(f);
+    e.target.value = "";
+  }
+
+  async function uploadAll(propertyKey: string) {
+    if (!user) throw new Error("Sign in required");
+    setUploading(true);
+    try {
+      const uploadedImagePaths: string[] = [];
+      for (const file of imageFiles) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${propertyKey}/img-${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("property-media")
+          .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
+        if (error) throw error;
+        uploadedImagePaths.push(path);
+      }
+
+      let videoPath: string | null = null;
+      if (videoFile) {
+        const ext = videoFile.name.split(".").pop() ?? "mp4";
+        const path = `${user.id}/${propertyKey}/video-${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("property-media")
+          .upload(path, videoFile, { cacheControl: "31536000", upsert: false, contentType: videoFile.type });
+        if (error) throw error;
+        videoPath = path;
+      }
+
+      const allPaths = [...uploadedImagePaths, ...(videoPath ? [videoPath] : [])];
+      if (allPaths.length === 0) return { images: [] as string[], video_url: null as string | null };
+
+      const signed = await createSignedMediaUrls({
+        data: { paths: allPaths },
+      });
+      const map = new Map<string, string>();
+      for (const s of signed) {
+        if (s.path && s.signedUrl) map.set(s.path, s.signedUrl);
+      }
+      return {
+        images: uploadedImagePaths.map((p) => map.get(p)!).filter(Boolean),
+        video_url: videoPath ? (map.get(videoPath) ?? null) : null,
+      };
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!user) {
+      toast.error("Sign in as a landlord first");
+      return;
+    }
     setLoading(true);
     try {
-      await createProperty({
+      const propertyKey = crypto.randomUUID();
+      const media = await uploadAll(propertyKey);
+
+      const created = await createProperty({
         data: {
           title: form.title,
           property_type: form.property_type,
@@ -55,11 +150,24 @@ function Page() {
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean),
-          images: form.image_url ? [form.image_url] : [],
+          images: media.images,
+          video_url: media.video_url,
+          tour_url: form.tour_url.trim() || null,
           is_active: true,
         },
       });
-      toast.success("Property listed!");
+
+      toast.success("Property listed! Running quality analysis…");
+      try {
+        const report = await analyzePropertyQuality({ data: { propertyId: created.id } });
+        toast.success(`Listing quality: ${report.grade} (${report.score}/100)`, {
+          description: report.summary,
+          duration: 8000,
+        });
+      } catch (err) {
+        toast.warning("Quality analysis failed", { description: (err as Error).message });
+      }
+
       navigate({ to: "/landlord/properties" });
     } catch (err) {
       toast.error((err as Error).message);
@@ -68,11 +176,13 @@ function Page() {
     }
   }
 
+  const busy = loading || uploading;
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">Add a property</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Fill out the basics — you can refine details and photos later.
+        Upload photos, a walkthrough video, and an optional 360° tour. We'll auto-score your listing.
       </p>
 
       <form
@@ -130,19 +240,11 @@ function Page() {
         </Row>
 
         <Row>
-          <Field label="Address">
+          <Field label="Address" full>
             <input
               value={form.address}
               onChange={(e) => update("address", e.target.value)}
               placeholder="Street, building"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Cover image URL">
-            <input
-              value={form.image_url}
-              onChange={(e) => update("image_url", e.target.value)}
-              placeholder="https://…"
               className={inputCls}
             />
           </Field>
@@ -213,12 +315,91 @@ function Page() {
           />
         </Field>
 
+        {/* Media */}
+        <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
+          <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+            <ImageIcon className="h-4 w-4" /> Photos
+            <span className="text-xs font-normal text-muted-foreground">
+              Up to 15, max {MAX_IMG_MB}MB each
+            </span>
+          </h3>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={onPickImages}
+            className="mt-2 block w-full text-xs"
+          />
+          {imageFiles.length > 0 && (
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {imageFiles.map((f, i) => (
+                <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border bg-background">
+                  <img
+                    src={URL.createObjectURL(f)}
+                    alt={f.name}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImageFiles((p) => p.filter((_, j) => j !== i))}
+                    className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-background opacity-0 transition group-hover:opacity-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
+            <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+              <Film className="h-4 w-4" /> Walkthrough video
+              <span className="text-xs font-normal text-muted-foreground">
+                Max {MAX_VIDEO_MB}MB
+              </span>
+            </h3>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={onPickVideo}
+              className="mt-2 block w-full text-xs"
+            />
+            {videoFile && (
+              <p className="mt-2 truncate text-xs text-muted-foreground">
+                {videoFile.name} · {(videoFile.size / 1024 / 1024).toFixed(1)}MB
+                <button
+                  type="button"
+                  onClick={() => setVideoFile(null)}
+                  className="ml-2 text-destructive underline"
+                >
+                  remove
+                </button>
+              </p>
+            )}
+          </div>
+
+          <Field label={
+            <span className="flex items-center gap-2"><Compass className="h-4 w-4" /> 360° tour URL</span>
+          }>
+            <input
+              type="url"
+              value={form.tour_url}
+              onChange={(e) => update("tour_url", e.target.value)}
+              placeholder="https://my.matterport.com/show/?m=…"
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
         <button
           type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
+          disabled={busy}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
         >
-          {loading ? "Publishing…" : "Publish property"}
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {uploading ? "Uploading media…" : loading ? "Publishing…" : "Publish & analyze"}
         </button>
       </form>
     </div>
@@ -241,7 +422,7 @@ function Field({
   children,
   full,
 }: {
-  label: string;
+  label: React.ReactNode;
   children: React.ReactNode;
   full?: boolean;
 }) {
