@@ -209,6 +209,7 @@ export const createProperty = createServerFn({ method: "POST" })
   .inputValidator(propertyPayloadSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "landlord");
     const { data: property, error } = await supabase
       .from("properties")
       .insert({
