@@ -48,8 +48,8 @@ function PropertyDetail() {
   });
 
   const { data: landlordProfile } = useQuery({
-    queryKey: ["landlord-profile", p?.owner_id],
-    enabled: !!p?.owner_id,
+    queryKey: ["landlord-profile", p?.owner_id, user?.id],
+    enabled: !!p?.owner_id && !!user,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
