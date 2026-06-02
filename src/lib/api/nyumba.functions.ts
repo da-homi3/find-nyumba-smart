@@ -244,6 +244,7 @@ export const createInquiry = createServerFn({ method: "POST" })
   .inputValidator(createInquirySchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "tenant");
     const { data: property, error: propertyError } = await supabase
       .from("properties")
       .select("id, owner_id, title")
