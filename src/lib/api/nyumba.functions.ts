@@ -68,6 +68,7 @@ const propertyPayloadSchema = z.object({
   amenities: z.array(z.string().trim().min(1)).default([]),
   images: z.array(z.string().url()).default([]),
   video_url: z.string().url().nullable().optional(),
+  tour_url: z.string().url().nullable().optional(),
   available_from: z.string().nullable().optional(),
   is_active: z.boolean().default(true),
 });
@@ -142,8 +143,7 @@ export const getProperty = createServerFn({ method: "POST" })
     await supabase
       .rpc("record_property_view", {
         _property_id: property.id,
-        _viewer_id: null,
-        _session_id: data.sessionId ?? null,
+        _session_id: data.sessionId ?? undefined,
         _source: data.source ?? "property-detail",
       })
       .throwOnError();
