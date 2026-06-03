@@ -704,8 +704,7 @@ function SiteFooter() {
       </div>
       <div className="border-t">
         <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs text-muted-foreground sm:px-6">
-          © {new Date().getFullYear()} NyumbaSearch · Built for Nairobi · KES{" "}
-          {formatKes(0).replace("KES ", "")}-friendly
+          © {new Date().getFullYear()} NyumbaSearch · Built for Nairobi.
         </div>
       </div>
     </footer>
