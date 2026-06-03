@@ -117,10 +117,18 @@ export const listProperties = createServerFn({ method: "POST" })
     if (data?.maxRent) query = query.lte("rent_kes", data.maxRent);
     if (data?.verifiedOnly) query = query.eq("is_verified", true);
     if (data?.query) {
-      const term = data.query.replaceAll(",", " ").trim();
-      query = query.or(
-        `title.ilike.%${term}%,neighborhood.ilike.%${term}%,property_type.eq.${term.replaceAll(" ", "_")}`,
-      );
+      // Strip PostgREST filter metacharacters to prevent filter injection.
+      const term = data.query
+        .replaceAll(",", " ")
+        .replace(/[()\[\].,:*!%\\]/g, "")
+        .trim()
+        .slice(0, 100);
+      if (term) {
+        const typeTerm = term.replaceAll(" ", "_");
+        query = query.or(
+          `title.ilike.*${term}*,neighborhood.ilike.*${term}*,property_type.eq.${typeTerm}`,
+        );
+      }
     }
 
     const { data: rows, error } = await query;
