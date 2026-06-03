@@ -48,12 +48,15 @@ function Page() {
   });
 
   const latestByProperty = new Map<string, Report>();
-  for (const r of reports) if (!latestByProperty.has(r.property_id)) latestByProperty.set(r.property_id, r);
+  for (const r of reports)
+    if (!latestByProperty.has(r.property_id)) latestByProperty.set(r.property_id, r);
 
   const analyze = useMutation({
     mutationFn: (propertyId: string) => analyzePropertyQuality({ data: { propertyId } }),
     onSuccess: (report) => {
-      toast.success(`Quality ${report.grade} · ${report.score}/100`, { description: report.summary });
+      toast.success(`Quality ${report.grade} · ${report.score}/100`, {
+        description: report.summary,
+      });
       qc.invalidateQueries({ queryKey: ["my-property-reports", user?.id] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -115,11 +118,17 @@ function Page() {
                     disabled={isAnalyzing}
                     className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-60"
                   >
-                    {isAnalyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                    {isAnalyzing ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" />
+                    )}
                     {rep ? "Re-analyze" : "Analyze quality"}
                   </button>
                   {rep && (
-                    <p className="mt-2 line-clamp-2 text-[11px] text-muted-foreground">{rep.summary}</p>
+                    <p className="mt-2 line-clamp-2 text-[11px] text-muted-foreground">
+                      {rep.summary}
+                    </p>
                   )}
                 </div>
               </div>

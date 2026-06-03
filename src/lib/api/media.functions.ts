@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -17,7 +18,7 @@ type QualityResult = {
 };
 
 function ctx(context: unknown) {
-  const c = context as { supabase: any; userId: string };
+  const c = context as { supabase: SupabaseClient; userId: string };
   if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
   return c;
 }
@@ -94,7 +95,7 @@ async function callAI(prompt: string): Promise<QualityResult | null> {
           {
             role: "system",
             content:
-              "You are an expert real-estate listing reviewer for Nairobi rentals. Reply ONLY with strict JSON: {\"score\":0-100,\"grade\":\"A|B|C|D|F\",\"summary\":string,\"strengths\":string[],\"improvements\":string[]}. No markdown.",
+              'You are an expert real-estate listing reviewer for Nairobi rentals. Reply ONLY with strict JSON: {"score":0-100,"grade":"A|B|C|D|F","summary":string,"strengths":string[],"improvements":string[]}. No markdown.',
           },
           { role: "user", content: prompt },
         ],
@@ -193,7 +194,12 @@ export const listPropertyQualityReports = createServerFn({ method: "POST" })
 
 const signSchema = z.object({
   paths: z.array(z.string().min(1).max(512)).min(1).max(20),
-  expiresIn: z.number().int().positive().max(60 * 60 * 24 * 365).optional(),
+  expiresIn: z
+    .number()
+    .int()
+    .positive()
+    .max(60 * 60 * 24 * 365)
+    .optional(),
 });
 
 export const createSignedMediaUrls = createServerFn({ method: "POST" })

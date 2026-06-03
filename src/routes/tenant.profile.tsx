@@ -1,11 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Bell, Building2, CheckCircle2, Loader2, LogOut, ShieldCheck, User } from "lucide-react";
+import { 
+  Bell, 
+  Building2, 
+  CheckCircle2, 
+  Loader2, 
+  LogOut, 
+  ShieldCheck, 
+  User, 
+  Calendar, 
+  X, 
+  Upload,
+  CreditCard,
+  UserCheck
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { submitVerification } from "@/lib/api/trust.functions";
+import { listMyViewings, updateViewingStatus } from "@/lib/api/booking.functions";
+import { listTransactions } from "@/lib/api/payment.functions";
 
 export const Route = createFileRoute("/tenant/profile")({
   component: Profile,
@@ -38,11 +54,18 @@ function readPrefs(userId?: string): TenantNotificationPrefs {
 }
 
 function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, roles } = useAuth();
+  const qc = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [prefs, setPrefs] = useState<TenantNotificationPrefs>(() => readPrefs(user?.id));
+  
+  // Verification uploads state
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verType, setVerType] = useState<"phone" | "identity" | "business" | "ownership">("identity");
+  const [docUrl, setDocUrl] = useState("");
+  const [verLoading, setVerLoading] = useState(false);
 
   const initials = useMemo(() => {
     const source = fullName.trim() || user?.email || "";
@@ -60,13 +83,27 @@ function Profile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, phone")
+        .select("full_name, phone, is_phone_verified, is_id_verified, is_business_verified, is_ownership_verified")
         .eq("id", user!.id)
         .maybeSingle();
 
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch tenant viewings
+  const { data: viewings = [] } = useQuery({
+    queryKey: ["my-viewings"],
+    enabled: !!user,
+    queryFn: () => listMyViewings(),
+  });
+
+  // Fetch transactions list
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["my-transactions"],
+    enabled: !!user,
+    queryFn: () => listTransactions(),
   });
 
   useEffect(() => {
@@ -77,6 +114,19 @@ function Profile() {
   useEffect(() => {
     setPrefs(readPrefs(user?.id));
   }, [user?.id]);
+
+  const handleCancelViewing = useMutation({
+    mutationFn: async (viewingId: string) => {
+      await updateViewingStatus({ data: { viewingId, status: "cancelled" } });
+    },
+    onSuccess: () => {
+      toast.success("Viewing cancelled successfully");
+      qc.invalidateQueries({ queryKey: ["my-viewings"] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+    },
+  });
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
@@ -108,6 +158,31 @@ function Profile() {
     }
   }
 
+  async function handleUploadVerification(e: FormEvent) {
+    e.preventDefault();
+    if (!docUrl.trim()) {
+      toast.error("Please enter a document URL link");
+      return;
+    }
+    setVerLoading(true);
+    try {
+      await submitVerification({
+        data: {
+          verificationType: verType,
+          documents: [docUrl.trim()],
+          notes: `Requested ${verType} verification.`,
+        },
+      });
+      toast.success("Verification request submitted successfully for approval!");
+      setIsVerifying(false);
+      setDocUrl("");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setVerLoading(false);
+    }
+  }
+
   function updatePrefs(next: TenantNotificationPrefs) {
     setPrefs(next);
     if (user && typeof window !== "undefined") {
@@ -116,18 +191,30 @@ function Profile() {
     }
   }
 
+  const isAdmin = roles?.includes("admin");
+
   return (
-    <div className="mx-auto max-w-2xl px-5 pt-10">
-      <header className="flex items-center gap-4">
-        <div className="grid h-16 w-16 place-items-center rounded-full bg-gradient-emerald text-2xl font-semibold text-primary-foreground">
-          {initials || <User className="h-7 w-7" />}
+    <div className="mx-auto max-w-2xl px-5 pt-10 pb-20">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-gradient-emerald text-2xl font-semibold text-primary-foreground">
+            {initials || <User className="h-7 w-7" />}
+          </div>
+          <div>
+            <h1 className="font-display text-xl font-semibold">
+              {fullName || user?.email || "Guest"}
+            </h1>
+            <p className="text-xs text-muted-foreground">{user ? user.email : "Not signed in"}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-display text-xl font-semibold">
-            {fullName || user?.email || "Guest"}
-          </h1>
-          <p className="text-xs text-muted-foreground">{user ? user.email : "Not signed in"}</p>
-        </div>
+        {isAdmin && (
+          <Link
+            to="/admin"
+            className="rounded-xl border bg-card px-3.5 py-1.5 text-xs font-semibold text-primary"
+          >
+            Admin Panel
+          </Link>
+        )}
       </header>
 
       {!user ? (
@@ -179,6 +266,143 @@ function Profile() {
             </button>
           </form>
 
+          {/* Verification section */}
+          <section className="mt-6 rounded-2xl border bg-card p-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h2 className="font-display text-sm font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="h-4.5 w-4.5 text-primary" /> Verification Levels
+              </h2>
+              {!isVerifying && (
+                <button
+                  onClick={() => setIsVerifying(true)}
+                  className="text-xs text-primary font-semibold hover:underline"
+                >
+                  Verify Now
+                </button>
+              )}
+            </div>
+
+            {isVerifying ? (
+              <form onSubmit={handleUploadVerification} className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold">Verify Identity / Business</span>
+                  <button type="button" onClick={() => setIsVerifying(false)}>
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </div>
+                <label className="block">
+                  <span className="text-[10px] text-muted-foreground block mb-1">Select Level</span>
+                  <select
+                    value={verType}
+                    onChange={(e) => setVerType(e.target.value as any)}
+                    className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
+                  >
+                    <option value="phone">Level 1: Phone Verification</option>
+                    <option value="identity">Level 2: National ID Verification</option>
+                    <option value="business">Level 3: Business/Agency Verification</option>
+                    <option value="ownership">Level 4: Land Ownership Verification</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-[10px] text-muted-foreground block mb-1">Document Link / URL</span>
+                  <input
+                    type="url"
+                    placeholder="https://example.com/id-image.jpg"
+                    value={docUrl}
+                    onChange={(e) => setDocUrl(e.target.value)}
+                    className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={verLoading}
+                  className="w-full rounded-xl bg-gradient-emerald text-primary-foreground text-xs font-semibold py-2.5 shadow-soft"
+                >
+                  {verLoading ? "Submitting..." : "Submit for Approval"}
+                </button>
+              </form>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                {[
+                  { label: "Phone", status: profile?.is_phone_verified },
+                  { label: "Identity", status: profile?.is_id_verified },
+                  { label: "Business", status: profile?.is_business_verified },
+                  { label: "Ownership", status: profile?.is_ownership_verified },
+                ].map((l) => (
+                  <div key={l.label} className="rounded-xl border bg-background p-2.5 flex items-center justify-between">
+                    <span>{l.label}</span>
+                    <span className={`font-bold ${l.status ? "text-emerald-500" : "text-muted-foreground/60"}`}>
+                      {l.status ? "Verified" : "Pending/None"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Viewing Schedule list */}
+          <section className="mt-6 rounded-2xl border bg-card p-4">
+            <h2 className="font-display text-sm font-semibold flex items-center gap-1.5 border-b pb-3">
+              <Calendar className="h-4.5 w-4.5 text-primary" /> Scheduled Viewings
+            </h2>
+            {viewings.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground text-center py-4">No scheduled viewings yet.</p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {viewings.map((v: any) => (
+                  <div key={v.id} className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4">
+                    <div>
+                      <strong className="text-xs block font-semibold">{v.properties?.title}</strong>
+                      <span className="text-[10px] text-muted-foreground block mt-0.5">
+                        Date: {new Date(v.scheduled_at).toLocaleString()}
+                      </span>
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
+                        v.status === "confirmed" ? "bg-emerald-500/10 text-emerald-600" :
+                        v.status === "cancelled" ? "bg-red-500/10 text-red-600" :
+                        "bg-amber-500/10 text-amber-600"
+                      }`}>
+                        {v.status.toUpperCase()}
+                      </span>
+                    </div>
+                    {v.status === "pending" && (
+                      <button
+                        onClick={() => handleCancelViewing.mutate(v.id)}
+                        className="rounded-lg border border-red-500/20 text-red-500 px-2 py-1 text-[10px] font-semibold hover:bg-red-500/15"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Payment Transactions list */}
+          <section className="mt-6 rounded-2xl border bg-card p-4">
+            <h2 className="font-display text-sm font-semibold flex items-center gap-1.5 border-b pb-3">
+              <CreditCard className="h-4.5 w-4.5 text-primary" /> M-Pesa Transactions
+            </h2>
+            {transactions.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground text-center py-4">No transactions found.</p>
+            ) : (
+              <div className="mt-3 divide-y text-xs">
+                {transactions.map((t: any) => (
+                  <div key={t.id} className="py-2.5 flex justify-between items-center">
+                    <div>
+                      <strong className="font-semibold block capitalize">{t.payment_type.replace("_", " ")}</strong>
+                      <span className="text-[10px] text-muted-foreground">Receipt: {t.mpesa_receipt} · {new Date(t.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-primary">KES {t.amount_kes.toLocaleString()}</div>
+                      <span className="text-[9px] uppercase font-bold text-emerald-600">{t.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           <section className="mt-6 rounded-2xl border bg-card">
             <div className="flex items-center gap-2 border-b px-4 py-4">
               <Bell className="h-4 w-4 text-primary" />
@@ -205,25 +429,6 @@ function Profile() {
           </section>
 
           <ul className="mt-6 divide-y rounded-2xl border bg-card">
-            <li>
-              <button
-                type="button"
-                onClick={() =>
-                  toast.success(
-                    phone
-                      ? "Phone number saved for verification"
-                      : "Add a phone number to start verification",
-                  )
-                }
-                className="w-full text-left"
-              >
-                <SettingsRow
-                  icon={ShieldCheck}
-                  label="Verification"
-                  hint={phone ? "Phone ready for verification" : "Add your phone number first"}
-                />
-              </button>
-            </li>
             <li>
               <Link to="/landlord">
                 <SettingsRow icon={Building2} label="Become a landlord" hint="List your property" />

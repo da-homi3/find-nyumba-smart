@@ -32,6 +32,8 @@ export interface Property {
   video_url: string | null;
   is_verified: boolean;
   is_active: boolean;
+  authenticity_score?: number;
+  health_score?: number;
   available_from: string | null;
   views: number;
   created_at: string;

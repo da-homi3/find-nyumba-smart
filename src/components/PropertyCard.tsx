@@ -1,8 +1,18 @@
 import { Link } from "@tanstack/react-router";
-import { BedDouble, Bath, MapPin, ShieldCheck } from "lucide-react";
+import { BedDouble, Bath, MapPin, ShieldCheck, Flame } from "lucide-react";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
+import { VerificationBadge } from "@/components/VerificationBadge";
 
 export function PropertyCard({ p }: { p: Property }) {
+  const score = p.authenticity_score ?? 70;
+  let level = 0;
+  if (p.is_verified) {
+    if (score >= 90) level = 4;
+    else if (score >= 75) level = 3;
+    else if (score >= 60) level = 2;
+    else level = 1;
+  }
+
   return (
     <Link
       to="/tenant/property/$id"
@@ -20,11 +30,12 @@ export function PropertyCard({ p }: { p: Property }) {
         ) : (
           <div className="grid h-full place-items-center text-muted-foreground">No image</div>
         )}
-        {p.is_verified && (
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-semibold text-primary backdrop-blur">
-            <ShieldCheck className="h-3 w-3" /> Verified
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {level > 0 && <VerificationBadge level={level} />}
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
+            <Flame className="h-3 w-3 text-orange-400" /> Score: {score}%
           </span>
-        )}
+        </div>
         <span className="absolute bottom-3 left-3 rounded-full bg-gradient-gold px-3 py-1 text-xs font-semibold text-gold-foreground">
           {formatKes(p.rent_kes)}
           <span className="font-normal opacity-70">/mo</span>

@@ -22,16 +22,11 @@ export async function requireRole(
   roles: AppRole | AppRole[],
 ): Promise<void> {
   const required = Array.isArray(roles) ? roles : [roles];
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
   if (error) throw error;
   const owned = new Set((data ?? []).map((r) => r.role as AppRole));
   if (!required.some((r) => owned.has(r))) {
-    throw new ForbiddenError(
-      `Forbidden: requires role ${required.join(" or ")}`,
-    );
+    throw new ForbiddenError(`Forbidden: requires role ${required.join(" or ")}`);
   }
 }

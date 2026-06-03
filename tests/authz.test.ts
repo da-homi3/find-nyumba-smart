@@ -35,26 +35,18 @@ describe("requireRole — authorization enforcement", () => {
   });
 
   it("rejects landlord trying to access tenant-only resource", async () => {
-    await expect(requireRole(sb, LANDLORD, "tenant")).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
+    await expect(requireRole(sb, LANDLORD, "tenant")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("rejects tenant trying to access landlord-only resource", async () => {
-    await expect(requireRole(sb, TENANT, "landlord")).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
+    await expect(requireRole(sb, TENANT, "landlord")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("rejects user with no roles", async () => {
-    await expect(requireRole(sb, NOBODY, "tenant")).rejects.toBeInstanceOf(
-      ForbiddenError,
-    );
+    await expect(requireRole(sb, NOBODY, "tenant")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("allows access when ANY required role matches", async () => {
-    await expect(
-      requireRole(sb, LANDLORD, ["tenant", "landlord"]),
-    ).resolves.toBeUndefined();
+    await expect(requireRole(sb, LANDLORD, ["tenant", "landlord"])).resolves.toBeUndefined();
   });
 });

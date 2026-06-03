@@ -97,15 +97,18 @@ function Page() {
       if (videoFile) {
         const ext = videoFile.name.split(".").pop() ?? "mp4";
         const path = `${user.id}/${propertyKey}/video-${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("property-media")
-          .upload(path, videoFile, { cacheControl: "31536000", upsert: false, contentType: videoFile.type });
+        const { error } = await supabase.storage.from("property-media").upload(path, videoFile, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: videoFile.type,
+        });
         if (error) throw error;
         videoPath = path;
       }
 
       const allPaths = [...uploadedImagePaths, ...(videoPath ? [videoPath] : [])];
-      if (allPaths.length === 0) return { images: [] as string[], video_url: null as string | null };
+      if (allPaths.length === 0)
+        return { images: [] as string[], video_url: null as string | null };
 
       const signed = await createSignedMediaUrls({
         data: { paths: allPaths },
@@ -182,7 +185,8 @@ function Page() {
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">Add a property</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Upload photos, a walkthrough video, and an optional 360° tour. We'll auto-score your listing.
+        Upload photos, a walkthrough video, and an optional 360° tour. We'll auto-score your
+        listing.
       </p>
 
       <form
@@ -333,7 +337,10 @@ function Page() {
           {imageFiles.length > 0 && (
             <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
               {imageFiles.map((f, i) => (
-                <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border bg-background">
+                <div
+                  key={i}
+                  className="group relative aspect-square overflow-hidden rounded-lg border bg-background"
+                >
                   <img
                     src={URL.createObjectURL(f)}
                     alt={f.name}
@@ -380,9 +387,13 @@ function Page() {
             )}
           </div>
 
-          <Field label={
-            <span className="flex items-center gap-2"><Compass className="h-4 w-4" /> 360° tour URL</span>
-          }>
+          <Field
+            label={
+              <span className="flex items-center gap-2">
+                <Compass className="h-4 w-4" /> 360° tour URL
+              </span>
+            }
+          >
             <input
               type="url"
               value={form.tour_url}

@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as LandlordRouteImport } from './routes/landlord'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantIndexRouteImport } from './routes/tenant.index'
 import { Route as LandlordIndexRouteImport } from './routes/landlord.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TenantSavedRouteImport } from './routes/tenant.saved'
 import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
 import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
@@ -41,6 +43,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,6 +62,11 @@ const LandlordIndexRoute = LandlordIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => LandlordRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const TenantSavedRoute = TenantSavedRouteImport.update({
   id: '/saved',
@@ -109,6 +121,7 @@ const LandlordPropertiesNewRoute = LandlordPropertiesNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/landlord': typeof LandlordRouteWithChildren
   '/tenant': typeof TenantRouteWithChildren
@@ -120,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/tenant/messages': typeof TenantMessagesRoute
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
+  '/admin/': typeof AdminIndexRoute
   '/landlord/': typeof LandlordIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
@@ -136,6 +150,7 @@ export interface FileRoutesByTo {
   '/tenant/messages': typeof TenantMessagesRoute
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
+  '/admin': typeof AdminIndexRoute
   '/landlord': typeof LandlordIndexRoute
   '/tenant': typeof TenantIndexRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
@@ -144,6 +159,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/landlord': typeof LandlordRouteWithChildren
   '/tenant': typeof TenantRouteWithChildren
@@ -155,6 +171,7 @@ export interface FileRoutesById {
   '/tenant/messages': typeof TenantMessagesRoute
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
+  '/admin/': typeof AdminIndexRoute
   '/landlord/': typeof LandlordIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
@@ -164,6 +181,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/landlord'
     | '/tenant'
@@ -175,6 +193,7 @@ export interface FileRouteTypes {
     | '/tenant/messages'
     | '/tenant/profile'
     | '/tenant/saved'
+    | '/admin/'
     | '/landlord/'
     | '/tenant/'
     | '/landlord/properties/new'
@@ -191,6 +210,7 @@ export interface FileRouteTypes {
     | '/tenant/messages'
     | '/tenant/profile'
     | '/tenant/saved'
+    | '/admin'
     | '/landlord'
     | '/tenant'
     | '/landlord/properties/new'
@@ -198,6 +218,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/auth'
     | '/landlord'
     | '/tenant'
@@ -209,6 +230,7 @@ export interface FileRouteTypes {
     | '/tenant/messages'
     | '/tenant/profile'
     | '/tenant/saved'
+    | '/admin/'
     | '/landlord/'
     | '/tenant/'
     | '/landlord/properties/new'
@@ -217,6 +239,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   LandlordRoute: typeof LandlordRouteWithChildren
   TenantRoute: typeof TenantRouteWithChildren
@@ -245,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -265,6 +295,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/landlord/'
       preLoaderRoute: typeof LandlordIndexRouteImport
       parentRoute: typeof LandlordRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/tenant/saved': {
       id: '/tenant/saved'
@@ -339,6 +376,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface LandlordPropertiesRouteChildren {
   LandlordPropertiesNewRoute: typeof LandlordPropertiesNewRoute
 }
@@ -393,6 +440,7 @@ const TenantRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   LandlordRoute: LandlordRouteWithChildren,
   TenantRoute: TenantRouteWithChildren,

@@ -52,10 +52,7 @@ function Landing() {
     queryFn: fetchProperties,
   });
 
-  const verified = useMemo(
-    () => properties.filter((p) => p.is_verified).slice(0, 8),
-    [properties],
-  );
+  const verified = useMemo(() => properties.filter((p) => p.is_verified).slice(0, 8), [properties]);
 
   const popularNeighborhoods = useMemo(() => {
     const counts = new Map<string, number>();
@@ -72,9 +69,7 @@ function Landing() {
     const total = properties.length;
     const verifiedCount = properties.filter((p) => p.is_verified).length;
     const hoods = new Set(properties.map((p) => p.neighborhood)).size;
-    const avgRent = total
-      ? Math.round(properties.reduce((s, p) => s + p.rent_kes, 0) / total)
-      : 0;
+    const avgRent = total ? Math.round(properties.reduce((s, p) => s + p.rent_kes, 0) / total) : 0;
     return { total, verifiedCount, hoods, avgRent };
   }, [properties]);
 
@@ -122,9 +117,7 @@ function SiteNav() {
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
             N
           </div>
-          <span className="font-display text-xl font-semibold tracking-tight">
-            NyumbaSearch
-          </span>
+          <span className="font-display text-xl font-semibold tracking-tight">NyumbaSearch</span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
           {[
@@ -153,13 +146,7 @@ function SiteNav() {
   );
 }
 
-function Hero({
-  verifiedCount,
-  hoodCount,
-}: {
-  verifiedCount: number;
-  hoodCount: number;
-}) {
+function Hero({ verifiedCount, hoodCount }: { verifiedCount: number; hoodCount: number }) {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [hood, setHood] = useState("");
@@ -172,7 +159,10 @@ function Hero({
     if (hood) params.set("hood", hood);
     if (maxRent) params.set("max", maxRent);
     const search = params.toString();
-    navigate({ to: "/tenant", search: search ? (Object.fromEntries(params) as never) : ({} as never) });
+    navigate({
+      to: "/tenant",
+      search: search ? (Object.fromEntries(params) as never) : ({} as never),
+    });
   };
 
   return (
@@ -196,12 +186,11 @@ function Hero({
             · {hoodCount > 0 ? `${hoodCount} neighborhoods` : "Nairobi"}
           </div>
           <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-            Your next home in Nairobi —{" "}
-            <span className="text-gold">verified, no agents</span>.
+            Your next home in Nairobi — <span className="text-gold">verified, no agents</span>.
           </h1>
           <p className="mt-5 max-w-xl text-base text-background/80 sm:text-lg">
-            Map-first search across thousands of vacant homes. Real reviews from
-            past tenants. AI that warns you about red flags before you visit.
+            Map-first search across thousands of vacant homes. Real reviews from past tenants. AI
+            that warns you about red flags before you visit.
           </p>
 
           {/* Search card */}
@@ -231,9 +220,7 @@ function Hero({
                 />
               </label>
               <label className="flex items-center gap-2 rounded-2xl border bg-card px-3 py-2.5">
-                <span className="text-xs font-semibold text-muted-foreground">
-                  KES
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground">KES</span>
                 <input
                   type="number"
                   inputMode="numeric"
@@ -254,18 +241,16 @@ function Hero({
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5 px-1 pb-1 pt-2 text-[11px] text-muted-foreground">
               <span className="font-medium">Popular:</span>
-              {["Kilimani", "Westlands", "Karen", "Lavington", "Kasarani"].map(
-                (n) => (
-                  <button
-                    type="button"
-                    key={n}
-                    onClick={() => setHood(n)}
-                    className="rounded-full bg-secondary px-2.5 py-0.5 font-medium text-secondary-foreground hover:bg-accent"
-                  >
-                    {n}
-                  </button>
-                ),
-              )}
+              {["Kilimani", "Westlands", "Karen", "Lavington", "Kasarani"].map((n) => (
+                <button
+                  type="button"
+                  key={n}
+                  onClick={() => setHood(n)}
+                  className="rounded-full bg-secondary px-2.5 py-0.5 font-medium text-secondary-foreground hover:bg-accent"
+                >
+                  {n}
+                </button>
+              ))}
             </div>
           </form>
 
@@ -299,10 +284,7 @@ function TrustStrip() {
     { k: "4.7★", v: "Tenant rating" },
   ];
   return (
-    <section
-      aria-label="Trust statistics"
-      className="border-y bg-secondary"
-    >
+    <section aria-label="Trust statistics" className="border-y bg-secondary">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-8 sm:grid-cols-4 sm:px-6">
         {items.map((s) => (
           <div key={s.v} className="text-center sm:text-left">
@@ -317,19 +299,13 @@ function TrustStrip() {
   );
 }
 
-function FeaturedListings({
-  verified,
-}: {
-  verified: import("@/lib/properties").Property[];
-}) {
+function FeaturedListings({ verified }: { verified: import("@/lib/properties").Property[] }) {
   if (!verified.length) return null;
   return (
     <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Featured
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Featured</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
             Verified homes, ready to view
           </h2>
@@ -353,11 +329,7 @@ function FeaturedListings({
   );
 }
 
-function PopularNeighborhoods({
-  hoods,
-}: {
-  hoods: { name: string; count: number }[];
-}) {
+function PopularNeighborhoods({ hoods }: { hoods: { name: string; count: number }[] }) {
   const fallback = [
     "Kilimani",
     "Westlands",
@@ -368,9 +340,7 @@ function PopularNeighborhoods({
     "South B",
     "Roysambu",
   ];
-  const items = hoods.length
-    ? hoods
-    : fallback.map((name) => ({ name, count: 0 }));
+  const items = hoods.length ? hoods : fallback.map((name) => ({ name, count: 0 }));
 
   return (
     <section className="border-t bg-secondary/40">
@@ -393,13 +363,9 @@ function PopularNeighborhoods({
               className="group flex items-center justify-between rounded-2xl border bg-card p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
             >
               <div>
-                <div className="font-display text-base font-semibold">
-                  {h.name}
-                </div>
+                <div className="font-display text-base font-semibold">{h.name}</div>
                 <div className="text-xs text-muted-foreground">
-                  {h.count > 0
-                    ? `${h.count} ${h.count === 1 ? "home" : "homes"}`
-                    : "Explore homes"}
+                  {h.count > 0 ? `${h.count} ${h.count === 1 ? "home" : "homes"}` : "Explore homes"}
                 </div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -431,9 +397,8 @@ function VerifiedSection() {
             Zero room for scams.
           </h2>
           <p className="mt-4 max-w-md text-muted-foreground">
-            Every listing on NyumbaSearch is screened. Landlords build trust by
-            verifying phone, ID, business, and property ownership — visible to
-            you on every card.
+            Every listing on NyumbaSearch is screened. Landlords build trust by verifying phone, ID,
+            business, and property ownership — visible to you on every card.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
@@ -449,21 +414,14 @@ function VerifiedSection() {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {levels.map((l, i) => (
-            <div
-              key={l.title}
-              className="rounded-2xl border bg-card p-5 shadow-soft"
-            >
+            <div key={l.title} className="rounded-2xl border bg-card p-5 shadow-soft">
               <div className="flex items-center justify-between">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-emerald text-primary-foreground">
                   <l.icon className="h-5 w-5" />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground">
-                  Level {i + 1}
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground">Level {i + 1}</span>
               </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">
-                {l.title}
-              </h3>
+              <h3 className="mt-4 font-display text-lg font-semibold">{l.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{l.desc}</p>
             </div>
           ))}
@@ -509,19 +467,12 @@ function WhyNyumba() {
         </div>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((f) => (
-            <div
-              key={f.title}
-              className="rounded-2xl border bg-card p-6 shadow-soft"
-            >
+            <div key={f.title} className="rounded-2xl border bg-card p-6 shadow-soft">
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-emerald text-primary-foreground">
                 <f.icon className="h-5 w-5" />
               </div>
-              <h3 className="mt-5 font-display text-lg font-semibold">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {f.body}
-              </p>
+              <h3 className="mt-5 font-display text-lg font-semibold">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
             </div>
           ))}
         </div>
@@ -588,15 +539,13 @@ function DownloadApp() {
     <section className="border-t bg-gradient-emerald text-primary-foreground">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
         <div className="max-w-xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gold">
-            Coming soon
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gold">Coming soon</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
             Take NyumbaSearch with you.
           </h2>
           <p className="mt-3 text-primary-foreground/80">
-            Save searches, get instant alerts when verified homes match your
-            budget, and message landlords on the go.
+            Save searches, get instant alerts when verified homes match your budget, and message
+            landlords on the go.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -610,9 +559,7 @@ function DownloadApp() {
               <span className="block text-[10px] uppercase tracking-wider opacity-80">
                 Download on the
               </span>
-              <span className="block font-display text-base font-semibold">
-                App Store
-              </span>
+              <span className="block font-display text-base font-semibold">App Store</span>
             </span>
           </button>
           <button
@@ -625,9 +572,7 @@ function DownloadApp() {
               <span className="block text-[10px] uppercase tracking-wider opacity-80">
                 Get it on
               </span>
-              <span className="block font-display text-base font-semibold">
-                Google Play
-              </span>
+              <span className="block font-display text-base font-semibold">Google Play</span>
             </span>
           </button>
         </div>
@@ -641,9 +586,7 @@ function LandlordBand() {
     <section className="border-t bg-background">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-5 py-12 sm:px-6 md:flex-row md:items-center">
         <div>
-          <h3 className="font-display text-2xl font-semibold">
-            List your property in minutes
-          </h3>
+          <h3 className="font-display text-2xl font-semibold">List your property in minutes</h3>
           <p className="mt-1 text-muted-foreground">
             Reach verified tenants directly. Track leads, views and conversions.
           </p>
@@ -668,13 +611,11 @@ function SiteFooter() {
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
               N
             </div>
-            <span className="font-display text-lg font-semibold">
-              NyumbaSearch
-            </span>
+            <span className="font-display text-lg font-semibold">NyumbaSearch</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            The trusted way to find a home in Nairobi. Built for tenants and
-            landlords, free of brokers.
+            The trusted way to find a home in Nairobi. Built for tenants and landlords, free of
+            brokers.
           </p>
         </div>
         <FooterCol
@@ -711,13 +652,7 @@ function SiteFooter() {
   );
 }
 
-function FooterCol({
-  title,
-  links,
-}: {
-  title: string;
-  links: { to: string; label: string }[];
-}) {
+function FooterCol({ title, links }: { title: string; links: { to: string; label: string }[] }) {
   return (
     <div>
       <div className="font-display text-sm font-semibold">{title}</div>

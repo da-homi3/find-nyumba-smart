@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   ArrowLeft,
   BedDouble,
@@ -12,6 +13,10 @@ import {
   Heart,
   Share2,
   Calendar,
+  Flame,
+  Sparkles,
+  Bot,
+  Send,
 } from "lucide-react";
 import { fetchProperty, formatKes, prettyType } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +26,10 @@ import {
   listSavedProperties,
   toggleSavedProperty,
 } from "@/lib/api/nyumba.functions";
+import { getAIValuation, getAIChatResponse } from "@/lib/api/ai.functions";
+import { VerificationBadge } from "@/components/VerificationBadge";
+import { BookingModal } from "@/components/BookingModal";
+import { PropertyReviewsSection } from "@/components/PropertyReviewsSection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/tenant/property/$id")({
@@ -32,6 +41,14 @@ function PropertyDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const qc = useQueryClient();
+
+  // Booking & Chat States
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
+    { role: "assistant", text: "Habari! I am your NyumbaSearch AI Assistant. Ask me anything about this property, the location, or security." }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["property", id],
@@ -60,6 +77,12 @@ function PropertyDetail() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // AI Valuation query
+  const { data: valuation, isLoading: valLoading } = useQuery({
+    queryKey: ["valuation", id],
+    queryFn: () => getAIValuation({ data: { propertyId: id } }),
   });
 
   const toggleSave = useMutation({
@@ -96,25 +119,21 @@ function PropertyDetail() {
         navigate({ to: "/auth" });
         return;
       }
-
       toast.error(e.message);
     },
   });
 
   const handleCall = () => {
     const phone = landlordProfile?.phone?.trim();
-
     if (!phone) {
       toast.info("Phone contact is not available yet. Try sending a message.");
       return;
     }
-
     window.location.href = `tel:${phone}`;
   };
 
   const handleShare = async () => {
     const shareUrl = window.location.href;
-
     try {
       if (navigator.share) {
         await navigator.share({ title: p?.title ?? "NyumbaSearch listing", url: shareUrl });
@@ -128,14 +147,42 @@ function PropertyDetail() {
     }
   };
 
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+
+    const userMsg = chatInput.trim();
+    setChatMessages((prev) => [...prev, { role: "user", text: userMsg }]);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const response = await getAIChatResponse({ data: { message: userMsg, propertyId: id } });
+      setChatMessages((prev) => [...prev, { role: "assistant", text: response }]);
+    } catch (err) {
+      toast.error("AI assistant offline. Please try again.");
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   if (isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   if (!p) return <div className="p-6">Property not found.</div>;
 
+  const score = p.authenticity_score ?? 70;
+  let verificationLevel = 0;
+  if (p.is_verified) {
+    if (score >= 90) verificationLevel = 4;
+    else if (score >= 75) verificationLevel = 3;
+    else if (score >= 60) verificationLevel = 2;
+    else verificationLevel = 1;
+  }
+
   return (
-    <div className="pb-32">
+    <div className="pb-32 bg-background min-h-screen">
       {/* Gallery */}
       <div className="relative">
-        <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+        <div className="aspect-[4/3] w-full overflow-hidden bg-muted max-h-[500px]">
           {p.images[0] ? (
             <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
           ) : (
@@ -168,11 +215,12 @@ function PropertyDetail() {
             <Heart className={`h-4 w-4 ${isSaved ? "fill-destructive text-destructive" : ""}`} />
           </button>
         </div>
-        {p.is_verified && (
-          <span className="absolute bottom-4 left-4 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-            <ShieldCheck className="h-3 w-3" /> Verified listing
+        <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+          {verificationLevel > 0 && <VerificationBadge level={verificationLevel} />}
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+            <Flame className="h-3.5 w-3.5 text-orange-400" /> Authenticity Score: {score}%
           </span>
-        )}
+        </div>
       </div>
 
       <div className="mx-auto max-w-2xl px-5 pt-5">
@@ -204,11 +252,36 @@ function PropertyDetail() {
           />
         </div>
 
-        <div className="mt-5 rounded-2xl bg-secondary px-4 py-3 text-sm">
+        <div className="mt-3 rounded-2xl bg-secondary px-4 py-3 text-sm">
           <span className="font-medium">Type:</span> {prettyType(p.property_type)} ·{" "}
           <span className="font-medium">Deposit:</span>{" "}
           {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
         </div>
+
+        {/* AI Valuation Widget */}
+        <section className="mt-6 rounded-2xl border bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-4">
+          <h3 className="font-display text-sm font-semibold flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300">
+            <Sparkles className="h-4 w-4" />
+            AI Valuation Estimate
+          </h3>
+          {valLoading ? (
+            <p className="text-xs text-muted-foreground mt-1">Calculating fair market rent...</p>
+          ) : valuation ? (
+            <div className="mt-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span>Estimated rent range: <strong className="text-foreground">{valuation.estimatedRentRange}</strong></span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  valuation.valuationGrade === "Good Deal" ? "bg-emerald-500/20 text-emerald-700" :
+                  valuation.valuationGrade === "Overpriced" ? "bg-red-500/20 text-red-700" :
+                  "bg-gray-500/20 text-gray-700"
+                }`}>
+                  {valuation.valuationGrade}
+                </span>
+              </div>
+              <p className="mt-2 text-muted-foreground leading-relaxed">{valuation.details}</p>
+            </div>
+          ) : null}
+        </section>
 
         {/* Description */}
         <section className="mt-6">
@@ -233,30 +306,47 @@ function PropertyDetail() {
           </section>
         )}
 
-        {/* Neighborhood intel */}
-        <section className="mt-6">
-          <h2 className="font-display text-lg font-semibold">Neighborhood intel</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {[
-              { label: "Water reliability", score: 4 },
-              { label: "Security", score: 5 },
-              { label: "Noise", score: 3 },
-              { label: "Internet", score: 5 },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl border bg-card p-3">
-                <div className="text-xs text-muted-foreground">{s.label}</div>
-                <div className="mt-2 flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <span
-                      key={i}
-                      className={`h-2 w-6 rounded-full ${i <= s.score ? "bg-gradient-emerald" : "bg-muted"}`}
-                    />
-                  ))}
+        {/* AI Chat Assistant Widget */}
+        <section className="mt-6 rounded-2xl border bg-card p-4 shadow-soft">
+          <h3 className="font-display text-sm font-semibold flex items-center gap-1.5">
+            <Bot className="h-4.5 w-4.5 text-primary" />
+            Ask the AI Assistant
+          </h3>
+          <div className="mt-3 max-h-48 overflow-y-auto space-y-2 border-b pb-3 text-xs">
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-xl px-3 py-2 ${
+                  msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                }`}>
+                  {msg.text}
                 </div>
               </div>
             ))}
+            {chatLoading && <div className="text-muted-foreground italic">AI is typing...</div>}
           </div>
+          <form onSubmit={handleSendChat} className="mt-3 flex gap-2">
+            <input
+              type="text"
+              placeholder="Ask about water supply, safety, noise..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              className="flex-1 rounded-xl border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+            />
+            <button
+              type="submit"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground hover:opacity-95"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </button>
+          </form>
         </section>
+
+        {/* Reviews & Neighborhood Quality Ratings */}
+        <PropertyReviewsSection
+          propertyId={id}
+          userId={user?.id}
+          isTenant={!!user}
+        />
       </div>
 
       {/* Action bar */}
@@ -273,12 +363,36 @@ function PropertyDetail() {
             type="button"
             onClick={() => messageLandlord.mutate()}
             disabled={messageLandlord.isPending}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-70"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
           >
-            <MessageCircle className="h-4 w-4" /> Message landlord
+            <MessageCircle className="h-4 w-4" /> Message
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!user) {
+                toast.error("Please sign in to book viewings");
+                navigate({ to: "/auth" });
+                return;
+              }
+              setIsBookingOpen(true);
+            }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-95"
+          >
+            <Calendar className="h-4 w-4" /> Book viewing
           </button>
         </div>
       </div>
+
+      {/* Viewing schedule modal */}
+      {p.owner_id && (
+        <BookingModal
+          propertyId={p.id}
+          landlordId={p.owner_id}
+          isOpen={isBookingOpen}
+          onClose={() => setIsBookingOpen(false)}
+        />
+      )}
     </div>
   );
 }
