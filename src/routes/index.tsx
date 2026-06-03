@@ -317,10 +317,12 @@ function TrustStrip() {
   );
 }
 
-function FeaturedListings({ verified }: { verified: ReturnType<typeof Object> }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items = verified as any[];
-  if (!items?.length) return null;
+function FeaturedListings({
+  verified,
+}: {
+  verified: import("@/lib/properties").Property[];
+}) {
+  if (!verified.length) return null;
   return (
     <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
       <div className="flex items-end justify-between gap-4">
