@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +18,15 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+async function fetchUserRoles(userId: string): Promise<AppRole[]> {
+  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  if (error) {
+    console.error(error);
+    return [];
+  }
+  return (data ?? []).map((r) => r.role as AppRole);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -23,33 +34,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+
+    const syncSession = async (s: Session | null) => {
+      if (!active) return;
+      setSession(s);
+      setUser(s?.user ?? null);
+
+      if (!s?.user) {
+        setRoles([]);
+        setLoading(false);
+        return;
+      }
+
+      const nextRoles = await fetchUserRoles(s.user.id);
+      if (!active) return;
+      setRoles(nextRoles);
+      setLoading(false);
+    };
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        // Defer secondary fetch to avoid auth deadlocks
-        setTimeout(async () => {
-          const { data } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", s.user!.id);
-          setRoles((data ?? []).map((r) => r.role as AppRole));
-        }, 0);
-      } else {
-        setRoles([]);
-      }
-      setLoading(false);
+      setLoading(true);
+      setTimeout(() => {
+        void syncSession(s);
+      }, 0);
     });
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(({ data: { session: s } }) => void syncSession(s));
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

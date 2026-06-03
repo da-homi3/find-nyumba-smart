@@ -71,7 +71,10 @@ function PropertyDetail() {
       qc.invalidateQueries({ queryKey: ["saved"] });
       toast.success(isSaved ? "Removed from saved" : "Saved to your list");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      toast.error(e.message);
+      if (e.message.includes("Sign in")) navigate({ to: "/auth" });
+    },
   });
 
   const messageLandlord = useMutation({
@@ -133,8 +136,12 @@ function PropertyDetail() {
       {/* Gallery */}
       <div className="relative">
         <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-          {p.images[0] && (
+          {p.images[0] ? (
             <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center text-sm text-muted-foreground">
+              No image available
+            </div>
           )}
         </div>
         <Link

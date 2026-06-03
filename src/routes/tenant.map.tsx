@@ -246,9 +246,7 @@ function TenantMap() {
   const [showHeat, setShowHeat] = useState(true);
   const [query, setQuery] = useState("");
   const [markerCount, setMarkerCount] = useState(0);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const [isOnline, setIsOnline] = useState(true);
   const filteredProperties = filterMappableProperties(properties, query);
 
   // Track connectivity so we can degrade gracefully and auto-retry on reconnect.
@@ -271,6 +269,7 @@ function TenantMap() {
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    if (!navigator.onLine) handleOffline();
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
@@ -601,11 +600,17 @@ function TenantMap() {
             >
               <X className="h-3.5 w-3.5" />
             </button>
-            <img
-              src={selected.images[0]}
-              alt={selected.title}
-              className="h-20 w-24 shrink-0 rounded-xl object-cover"
-            />
+            {selected.images[0] ? (
+              <img
+                src={selected.images[0]}
+                alt={selected.title}
+                className="h-20 w-24 shrink-0 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
+                No image
+              </div>
+            )}
             <div className="min-w-0 flex-1 pr-6">
               <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
               <p className="text-xs text-muted-foreground">

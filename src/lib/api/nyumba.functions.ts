@@ -263,18 +263,39 @@ export const createInquiry = createServerFn({ method: "POST" })
     if (propertyError) throw propertyError;
     if (!property?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
 
-    const { data: inquiry, error } = await supabase
+    const { data: existingInquiry, error: existingError } = await supabase
       .from("inquiries")
-      .insert({
-        tenant_id: userId,
-        landlord_id: property.owner_id,
-        property_id: property.id,
-        message: data.message,
-      })
       .select("*")
-      .single();
+      .eq("tenant_id", userId)
+      .eq("property_id", property.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error) throw error;
+    if (existingError) throw existingError;
+
+    let inquiry = existingInquiry as InquiryRecord | null;
+    const now = new Date().toISOString();
+
+    if (!inquiry) {
+      const { data: insertedInquiry, error: insertError } = await supabase
+        .from("inquiries")
+        .insert({
+          tenant_id: userId,
+          landlord_id: property.owner_id,
+          property_id: property.id,
+          message: data.message,
+        })
+        .select("*")
+        .single();
+
+      if (insertError) throw insertError;
+      inquiry = insertedInquiry as InquiryRecord;
+    }
+
+    if (!inquiry) {
+      throw new Error("Could not start this conversation");
+    }
 
     const { error: messageError } = await supabase.from("inquiry_messages").insert({
       inquiry_id: inquiry.id,
@@ -282,6 +303,13 @@ export const createInquiry = createServerFn({ method: "POST" })
       body: data.message,
     });
     if (messageError) throw messageError;
+
+    const admin = await adminClient();
+    const { error: touchError } = await admin
+      .from("inquiries")
+      .update({ updated_at: now })
+      .eq("id", inquiry.id);
+    if (touchError) throw touchError;
 
     return inquiry as InquiryRecord;
   });
@@ -297,7 +325,7 @@ export const listTenantInquiries = createServerFn({ method: "GET" })
         "*, properties(id,title,neighborhood,rent_kes,images), profiles:landlord_id(id,full_name,phone,avatar_url), inquiry_messages(*)",
       )
       .eq("tenant_id", userId)
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false });
 
     if (error) throw error;
     return (data ?? []) as unknown as InquiryWithDetails[];
@@ -314,7 +342,7 @@ export const listLandlordLeads = createServerFn({ method: "GET" })
         "*, properties(id,title,neighborhood,rent_kes,images), profiles:tenant_id(id,full_name,phone,avatar_url), inquiry_messages(*)",
       )
       .eq("landlord_id", userId)
-      .order("created_at", { ascending: false });
+      .order("updated_at", { ascending: false });
 
     if (error) throw error;
     return (data ?? []) as unknown as InquiryWithDetails[];
@@ -350,6 +378,13 @@ export const sendInquiryMessage = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
+    const admin = await adminClient();
+    const { error: touchError } = await admin
+      .from("inquiries")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", data.inquiryId);
+    if (touchError) throw touchError;
+
     return message as InquiryMessageRecord;
   });
 

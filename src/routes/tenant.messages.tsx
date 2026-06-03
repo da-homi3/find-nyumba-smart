@@ -11,7 +11,12 @@ export const Route = createFileRoute("/tenant/messages")({
 
 function Messages() {
   const { user } = useAuth();
-  const { data: inquiries = [], isLoading } = useQuery({
+  const {
+    data: inquiries = [],
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["tenant-inquiries", user?.id],
     enabled: !!user,
     queryFn: () => listTenantInquiries(),
@@ -45,6 +50,19 @@ function Messages() {
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-28 animate-pulse rounded-2xl bg-muted" />
           ))}
+        </div>
+      ) : error ? (
+        <div className="mt-10 rounded-2xl border border-destructive/30 p-6 text-center">
+          <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-3 text-sm font-medium text-destructive">Messages did not load.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{(error as Error).message}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
+          >
+            Try again
+          </button>
         </div>
       ) : inquiries.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">

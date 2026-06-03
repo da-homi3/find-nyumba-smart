@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Heart } from "lucide-react";
+import { Heart, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PropertyCard } from "@/components/PropertyCard";
 import { listSavedProperties } from "@/lib/api/nyumba.functions";
@@ -11,7 +11,12 @@ export const Route = createFileRoute("/tenant/saved")({
 
 function SavedPage() {
   const { user } = useAuth();
-  const { data = [] } = useQuery({
+  const {
+    data = [],
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["saved-properties", user?.id],
     enabled: !!user,
     queryFn: () => listSavedProperties(),
@@ -39,7 +44,25 @@ function SavedPage() {
     <div className="mx-auto max-w-2xl px-5 pt-10">
       <h1 className="font-display text-2xl font-semibold">Saved homes</h1>
       <p className="text-sm text-muted-foreground">{data.length} properties</p>
-      {data.length === 0 ? (
+
+      {isLoading ? (
+        <div className="mt-10 flex items-center justify-center gap-2 rounded-2xl border p-10 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading saved homes...
+        </div>
+      ) : error ? (
+        <div className="mt-10 rounded-2xl border border-destructive/30 p-6 text-center">
+          <p className="text-sm font-medium text-destructive">Saved homes did not load.</p>
+          <p className="mt-1 text-xs text-muted-foreground">{(error as Error).message}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
+          >
+            Try again
+          </button>
+        </div>
+      ) : data.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
           You haven't saved anything yet.
         </div>
