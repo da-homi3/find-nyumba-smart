@@ -343,7 +343,7 @@ function FeaturedListings({
       </div>
 
       <div className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
-        {items.map((p) => (
+        {verified.map((p) => (
           <div key={p.id} className="w-72 shrink-0 sm:w-auto">
             <PropertyCard p={p} />
           </div>
