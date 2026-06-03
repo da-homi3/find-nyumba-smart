@@ -19,7 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import heroImg from "@/assets/hero-nairobi.jpg";
-import { fetchProperties, formatKes } from "@/lib/properties";
+import { fetchProperties } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 
 export const Route = createFileRoute("/")({
