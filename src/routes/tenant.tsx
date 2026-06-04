@@ -1,8 +1,8 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+
 
 export const Route = createFileRoute("/tenant")({
   component: TenantLayout,
