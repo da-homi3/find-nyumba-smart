@@ -370,13 +370,6 @@ export const sendInquiryMessage = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
-    const admin = await adminClient();
-    const { error: touchError } = await admin
-      .from("inquiries")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", data.inquiryId);
-    if (touchError) throw touchError;
-
     return message as InquiryMessageRecord;
   });
 
