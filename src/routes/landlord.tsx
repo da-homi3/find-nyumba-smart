@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
@@ -10,19 +10,24 @@ export const Route = createFileRoute("/landlord")({
 function LandlordLayout() {
   const { user, loading, isLandlord } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // The landlord portal entry (/landlord) is public — it hosts the
+  // landlord sign-in / sign-up flow. Only gate nested landlord routes.
+  const isPublicEntry = pathname === "/landlord" || pathname === "/landlord/";
 
   useEffect(() => {
-    if (loading) return;
+    if (isPublicEntry || loading) return;
     if (!user) {
-      navigate({ to: "/auth", search: { redirect: "/landlord" } as never, replace: true });
+      navigate({ to: "/auth", search: { redirect: pathname } as never, replace: true });
       return;
     }
     if (!isLandlord) {
-      navigate({ to: "/tenant", replace: true });
+      navigate({ to: "/landlord", replace: true });
     }
-  }, [loading, user, isLandlord, navigate]);
+  }, [loading, user, isLandlord, isPublicEntry, pathname, navigate]);
 
-  if (loading || !user || !isLandlord) {
+  if (!isPublicEntry && (loading || !user || !isLandlord)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -32,3 +37,4 @@ function LandlordLayout() {
 
   return <Outlet />;
 }
+
