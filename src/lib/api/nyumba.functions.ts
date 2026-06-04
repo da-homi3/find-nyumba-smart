@@ -268,14 +268,13 @@ export const createInquiry = createServerFn({ method: "POST" })
       .select("*")
       .eq("tenant_id", userId)
       .eq("property_id", property.id)
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (existingError) throw existingError;
 
     let inquiry = existingInquiry as InquiryRecord | null;
-    const now = new Date().toISOString();
 
     if (!inquiry) {
       const { data: insertedInquiry, error: insertError } = await supabase
@@ -303,13 +302,6 @@ export const createInquiry = createServerFn({ method: "POST" })
       body: data.message,
     });
     if (messageError) throw messageError;
-
-    const admin = await adminClient();
-    const { error: touchError } = await admin
-      .from("inquiries")
-      .update({ updated_at: now })
-      .eq("id", inquiry.id);
-    if (touchError) throw touchError;
 
     return inquiry as InquiryRecord;
   });
@@ -378,13 +370,6 @@ export const sendInquiryMessage = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
-    const admin = await adminClient();
-    const { error: touchError } = await admin
-      .from("inquiries")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", data.inquiryId);
-    if (touchError) throw touchError;
-
     return message as InquiryMessageRecord;
   });
 
