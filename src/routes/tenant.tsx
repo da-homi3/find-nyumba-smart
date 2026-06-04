@@ -9,22 +9,9 @@ export const Route = createFileRoute("/tenant")({
 });
 
 function TenantLayout() {
-  const { user, roles, loading, isLandlord } = useAuth();
-  const navigate = useNavigate();
-  const blocked = !loading && user && isLandlord && !roles.includes("tenant");
+  const { loading } = useAuth();
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      navigate({ to: "/auth", search: { redirect: "/tenant" } as never, replace: true });
-      return;
-    }
-    if (blocked) {
-      navigate({ to: "/landlord/dashboard", replace: true });
-    }
-  }, [loading, user, blocked, navigate]);
-
-  if (loading || !user || blocked) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -39,3 +26,4 @@ function TenantLayout() {
     </div>
   );
 }
+
