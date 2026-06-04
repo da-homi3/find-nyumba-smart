@@ -1,4 +1,4 @@
-import { createCsrfMiddleware, createStart, createMiddleware } from "@tanstack/react-start";
+import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { attachSupabaseAuth } from "./integrations/supabase/auth-attacher";
 import { renderErrorPage } from "./lib/error-page";
@@ -20,12 +20,9 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 
 const isProduction = typeof process !== "undefined" && process.env.NODE_ENV === "production";
 const isDevelopment = !isProduction;
-const csrfMiddleware = createCsrfMiddleware({
-  filter: (ctx) => ctx.handlerType === "serverFn",
-});
 
 // Build request middleware array so we can conditionally prepend dev helpers
-const requestMiddlewareArr = [csrfMiddleware, errorMiddleware];
+const requestMiddlewareArr = [errorMiddleware];
 
 // Dev-only: compute and return dev-mode server-fn id for a given file+export
 if (isDevelopment) {
