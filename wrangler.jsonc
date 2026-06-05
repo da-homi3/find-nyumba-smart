@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "nyumba-search",
+  "name": "nyumbasearch",
   "compatibility_date": "2026-05-31",
   "observability": { "enabled": true },
   "main": "dist/server/index.mjs",
