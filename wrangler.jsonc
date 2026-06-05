@@ -1,5 +1,5 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "nyumba-search",
   "compatibility_date": "2026-05-31",
   "observability": { "enabled": true },
@@ -8,13 +8,13 @@
   "account_id": "2f9ae70dfb228529cc5e91d230ab2cfc",
   "assets": {
     "binding": "ASSETS",
-    "directory": "dist/client",
+    "directory": "dist/client"
   },
   "no_bundle": true,
   "rules": [
     {
       "type": "ESModule",
-      "globs": ["**/*.mjs", "**/*.js"],
+      "globs": ["**/*.mjs", "**/*.js"]
     },
-  ],
+  ]
 }
