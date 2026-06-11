@@ -26,6 +26,7 @@ import { Route as LandlordLeadsRouteImport } from './routes/landlord.leads'
 import { Route as LandlordDashboardRouteImport } from './routes/landlord.dashboard'
 import { Route as LandlordAnalyticsRouteImport } from './routes/landlord.analytics'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
+import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
 import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
 
 const TenantRoute = TenantRouteImport.update({
@@ -113,6 +114,11 @@ const TenantPropertyIdRoute = TenantPropertyIdRouteImport.update({
   path: '/property/$id',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantMessagesIdRoute = TenantMessagesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TenantMessagesRoute,
+} as any)
 const LandlordPropertiesNewRoute = LandlordPropertiesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -130,13 +136,14 @@ export interface FileRoutesByFullPath {
   '/landlord/leads': typeof LandlordLeadsRoute
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/tenant/map': typeof TenantMapRoute
-  '/tenant/messages': typeof TenantMessagesRoute
+  '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/admin/': typeof AdminIndexRoute
   '/landlord/': typeof LandlordIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
+  '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
 }
 export interface FileRoutesByTo {
@@ -147,13 +154,14 @@ export interface FileRoutesByTo {
   '/landlord/leads': typeof LandlordLeadsRoute
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/tenant/map': typeof TenantMapRoute
-  '/tenant/messages': typeof TenantMessagesRoute
+  '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/admin': typeof AdminIndexRoute
   '/landlord': typeof LandlordIndexRoute
   '/tenant': typeof TenantIndexRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
+  '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
 }
 export interface FileRoutesById {
@@ -168,13 +176,14 @@ export interface FileRoutesById {
   '/landlord/leads': typeof LandlordLeadsRoute
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/tenant/map': typeof TenantMapRoute
-  '/tenant/messages': typeof TenantMessagesRoute
+  '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/admin/': typeof AdminIndexRoute
   '/landlord/': typeof LandlordIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
+  '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
 }
 export interface FileRouteTypes {
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/landlord/'
     | '/tenant/'
     | '/landlord/properties/new'
+    | '/tenant/messages/$id'
     | '/tenant/property/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/landlord'
     | '/tenant'
     | '/landlord/properties/new'
+    | '/tenant/messages/$id'
     | '/tenant/property/$id'
   id:
     | '__root__'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/landlord/'
     | '/tenant/'
     | '/landlord/properties/new'
+    | '/tenant/messages/$id'
     | '/tenant/property/$id'
   fileRoutesById: FileRoutesById
 }
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantPropertyIdRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/tenant/messages/$id': {
+      id: '/tenant/messages/$id'
+      path: '/$id'
+      fullPath: '/tenant/messages/$id'
+      preLoaderRoute: typeof TenantMessagesIdRouteImport
+      parentRoute: typeof TenantMessagesRoute
+    }
     '/landlord/properties/new': {
       id: '/landlord/properties/new'
       path: '/new'
@@ -417,9 +436,21 @@ const LandlordRouteWithChildren = LandlordRoute._addFileChildren(
   LandlordRouteChildren,
 )
 
+interface TenantMessagesRouteChildren {
+  TenantMessagesIdRoute: typeof TenantMessagesIdRoute
+}
+
+const TenantMessagesRouteChildren: TenantMessagesRouteChildren = {
+  TenantMessagesIdRoute: TenantMessagesIdRoute,
+}
+
+const TenantMessagesRouteWithChildren = TenantMessagesRoute._addFileChildren(
+  TenantMessagesRouteChildren,
+)
+
 interface TenantRouteChildren {
   TenantMapRoute: typeof TenantMapRoute
-  TenantMessagesRoute: typeof TenantMessagesRoute
+  TenantMessagesRoute: typeof TenantMessagesRouteWithChildren
   TenantProfileRoute: typeof TenantProfileRoute
   TenantSavedRoute: typeof TenantSavedRoute
   TenantIndexRoute: typeof TenantIndexRoute
@@ -428,7 +459,7 @@ interface TenantRouteChildren {
 
 const TenantRouteChildren: TenantRouteChildren = {
   TenantMapRoute: TenantMapRoute,
-  TenantMessagesRoute: TenantMessagesRoute,
+  TenantMessagesRoute: TenantMessagesRouteWithChildren,
   TenantProfileRoute: TenantProfileRoute,
   TenantSavedRoute: TenantSavedRoute,
   TenantIndexRoute: TenantIndexRoute,

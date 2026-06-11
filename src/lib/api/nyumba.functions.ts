@@ -109,6 +109,8 @@ const sendInquiryMessageSchema = z.object({
   body: z.string().trim().min(1).max(1000),
 });
 
+const inquiryIdSchema = z.object({ inquiryId: z.string().uuid() });
+
 function authContext(context: unknown): AuthContext {
   const ctx = context as Partial<AuthContext>;
   if (!ctx.supabase || !ctx.userId) throw new Error("Unauthorized");
@@ -118,6 +120,58 @@ function authContext(context: unknown): AuthContext {
 async function adminClient() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   return supabaseAdmin;
+}
+
+async function assertInquiryParticipant(
+  supabase: AuthContext["supabase"],
+  userId: string,
+  inquiryId: string,
+) {
+  const { data: inquiry, error } = await supabase
+    .from("inquiries")
+    .select("*, properties(id,title)")
+    .eq("id", inquiryId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!inquiry) throw new Error("Conversation not found");
+  if (inquiry.tenant_id !== userId && inquiry.landlord_id !== userId) {
+    throw new Error("Forbidden");
+  }
+  return inquiry;
+}
+
+async function notifyInquiryParticipant(
+  inquiry: InquiryRecord & { properties?: { title?: string } | null },
+  senderId: string,
+  body: string,
+) {
+  const recipientId =
+    inquiry.tenant_id === senderId ? inquiry.landlord_id : inquiry.tenant_id;
+  if (!recipientId) return;
+  const admin = await adminClient();
+  const [{ data: senderProfile }, { data: recipientProfile }, recipientAuth] =
+    await Promise.all([
+      admin.from("profiles").select("full_name").eq("id", senderId).maybeSingle(),
+      admin.from("profiles").select("full_name").eq("id", recipientId).maybeSingle(),
+      admin.auth.admin.getUserById(recipientId),
+    ]);
+
+  const { notifyNewMessage } = await import("@/lib/api/notify");
+  const baseUrl =
+    process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+  const threadPath =
+    inquiry.tenant_id === recipientId
+      ? `/tenant/messages/${inquiry.id}`
+      : `/landlord/leads?thread=${inquiry.id}`;
+
+  await notifyNewMessage({
+    recipientEmail: recipientAuth.data.user?.email,
+    recipientName: recipientProfile?.full_name ?? "there",
+    senderName: senderProfile?.full_name ?? "Someone",
+    propertyTitle: inquiry.properties?.title ?? "your listing",
+    preview: body,
+    threadUrl: `${baseUrl}${threadPath}`,
+  });
 }
 
 export const listProperties = createServerFn({ method: "POST" })
@@ -364,6 +418,17 @@ export const createInquiry = createServerFn({ method: "POST" })
     });
     if (messageError) throw messageError;
 
+    await supabase
+      .from("inquiries")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", inquiry.id);
+
+    void notifyInquiryParticipant(
+      { ...inquiry, properties: { title: property.title } },
+      userId,
+      data.message,
+    );
+
     return inquiry as InquiryRecord;
   });
 
@@ -419,18 +484,76 @@ export const updateInquiryStatus = createServerFn({ method: "POST" })
     return inquiry as InquiryRecord;
   });
 
+export const listInquiryMessages = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(inquiryIdSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await assertInquiryParticipant(supabase, userId, data.inquiryId);
+    const { data: messages, error } = await supabase
+      .from("inquiry_messages")
+      .select("*")
+      .eq("inquiry_id", data.inquiryId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return messages ?? [];
+  });
+
+export const markMessagesRead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(inquiryIdSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await assertInquiryParticipant(supabase, userId, data.inquiryId);
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("inquiry_messages")
+      .update({ read_at: now })
+      .eq("inquiry_id", data.inquiryId)
+      .neq("sender_id", userId)
+      .is("read_at", null);
+    if (error) throw error;
+    return { readAt: now };
+  });
+
+export const getInquiryThread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(inquiryIdSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    const inquiry = await assertInquiryParticipant(supabase, userId, data.inquiryId);
+    const counterpartyId =
+      inquiry.tenant_id === userId ? inquiry.landlord_id : inquiry.tenant_id;
+    if (!counterpartyId) throw new Error("Conversation participant missing");
+    const { data: counterparty } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone, avatar_url")
+      .eq("id", counterpartyId)
+      .maybeSingle();
+    return { inquiry, counterparty };
+  });
+
 export const sendInquiryMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(sendInquiryMessageSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
+    const inquiry = await assertInquiryParticipant(supabase, userId, data.inquiryId);
+
     const { data: message, error } = await supabase
       .from("inquiry_messages")
       .insert({ inquiry_id: data.inquiryId, sender_id: userId, body: data.body })
       .select("*")
       .single();
-
     if (error) throw error;
+
+    await supabase
+      .from("inquiries")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", data.inquiryId);
+
+    void notifyInquiryParticipant(inquiry, userId, data.body);
+
     return message as InquiryMessageRecord;
   });
 

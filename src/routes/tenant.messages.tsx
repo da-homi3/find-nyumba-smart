@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { listTenantInquiries } from "@/lib/api/nyumba.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
+import { countUnread } from "@/components/ConversationThread";
 
 export const Route = createFileRoute("/tenant/messages")({
   component: Messages,
@@ -73,38 +74,54 @@ function Messages() {
         </div>
       ) : (
         <div className="mt-6 grid gap-3">
-          {inquiries.map((inquiry) => (
-            <article key={inquiry.id} className="rounded-2xl border bg-card p-4 shadow-soft">
-              <div className="flex items-start gap-3">
-                {inquiry.properties?.images?.[0] && (
-                  <img
-                    src={inquiry.properties.images[0]}
-                    alt={inquiry.properties.title}
-                    className="h-16 w-20 shrink-0 rounded-xl object-cover"
-                  />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <h2 className="line-clamp-1 font-display font-semibold">
-                      {inquiry.properties?.title ?? "Listing"}
-                    </h2>
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold capitalize text-muted-foreground">
-                      {inquiry.status}
-                    </span>
+          {inquiries.map((inquiry) => {
+            const unread = countUnread(inquiry.inquiry_messages, user.id);
+            const last =
+              inquiry.inquiry_messages?.[inquiry.inquiry_messages.length - 1]?.body ??
+              inquiry.message;
+            return (
+              <Link
+                key={inquiry.id}
+                to="/tenant/messages/$id"
+                params={{ id: inquiry.id }}
+                className="block rounded-2xl border bg-card p-4 shadow-soft transition hover:border-primary/30"
+              >
+                <article>
+                  <div className="flex items-start gap-3">
+                    {inquiry.properties?.images?.[0] && (
+                      <img
+                        src={inquiry.properties.images[0]}
+                        alt={inquiry.properties.title}
+                        className="h-16 w-20 shrink-0 rounded-xl object-cover"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <h2 className="line-clamp-1 font-display font-semibold">
+                          {inquiry.properties?.title ?? "Listing"}
+                        </h2>
+                        {unread > 0 && (
+                          <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-primary-foreground">
+                            {unread}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {inquiry.profiles?.full_name ?? "Landlord"} ·{" "}
+                        {inquiry.properties
+                          ? `${inquiry.properties.neighborhood} · ${formatKes(inquiry.properties.rent_kes)}`
+                          : "Nairobi"}
+                      </p>
+                      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{last}</p>
+                      <div className="mt-2 text-[11px] text-muted-foreground">
+                        {new Date(inquiry.updated_at).toLocaleDateString()}
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {inquiry.properties?.neighborhood ?? "Nairobi"}
-                    {inquiry.properties ? ` - ${formatKes(inquiry.properties.rent_kes)}` : ""}
-                  </p>
-                  <p className="mt-3 line-clamp-2 text-sm">{inquiry.message}</p>
-                  <div className="mt-3 text-[11px] text-muted-foreground">
-                    {inquiry.profiles?.full_name ?? "Landlord"} -{" "}
-                    {new Date(inquiry.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
+                </article>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

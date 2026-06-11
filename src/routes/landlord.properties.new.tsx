@@ -27,6 +27,7 @@ function Page() {
   const [uploading, setUploading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [tourFile, setTourFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     property_type: "one_bedroom" as PropertyType,
@@ -78,6 +79,21 @@ function Page() {
     e.target.value = "";
   }
 
+  function onPickTour(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      toast.error("360° tour upload must be an equirectangular image");
+      return;
+    }
+    if (f.size > MAX_IMG_MB * 1024 * 1024) {
+      toast.error(`360° image must be under ${MAX_IMG_MB}MB`);
+      return;
+    }
+    setTourFile(f);
+    e.target.value = "";
+  }
+
   async function uploadAll(propertyKey: string) {
     if (!user) throw new Error("Sign in required");
     setUploading(true);
@@ -106,9 +122,30 @@ function Page() {
         videoPath = path;
       }
 
-      const allPaths = [...uploadedImagePaths, ...(videoPath ? [videoPath] : [])];
+      let tourPath: string | null = null;
+      if (tourFile) {
+        const ext = tourFile.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${propertyKey}/tour360-${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from("property-media").upload(path, tourFile, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: tourFile.type,
+        });
+        if (error) throw error;
+        tourPath = path;
+      }
+
+      const allPaths = [
+        ...uploadedImagePaths,
+        ...(videoPath ? [videoPath] : []),
+        ...(tourPath ? [tourPath] : []),
+      ];
       if (allPaths.length === 0)
-        return { images: [] as string[], video_url: null as string | null };
+        return {
+          images: [] as string[],
+          video_url: null as string | null,
+          tour_url: form.tour_url.trim() || null,
+        };
 
       const signed = await createSignedMediaUrls({
         data: { paths: allPaths },
@@ -120,6 +157,9 @@ function Page() {
       return {
         images: uploadedImagePaths.map((p) => map.get(p)!).filter(Boolean),
         video_url: videoPath ? (map.get(videoPath) ?? null) : null,
+        tour_url: tourPath
+          ? (map.get(tourPath) ?? null)
+          : form.tour_url.trim() || null,
       };
     } finally {
       setUploading(false);
@@ -155,7 +195,7 @@ function Page() {
             .filter(Boolean),
           images: media.images,
           video_url: media.video_url,
-          tour_url: form.tour_url.trim() || null,
+          tour_url: media.tour_url,
           is_active: true,
         },
       });
@@ -387,21 +427,36 @@ function Page() {
             )}
           </div>
 
-          <Field
-            label={
-              <span className="flex items-center gap-2">
-                <Compass className="h-4 w-4" /> 360° tour URL
-              </span>
-            }
-          >
+          <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
+            <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+              <Compass className="h-4 w-4" /> 360° tour
+            </h3>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onPickTour}
+              className="mt-2 block w-full text-xs"
+            />
+            {tourFile && (
+              <p className="mt-2 truncate text-xs text-muted-foreground">
+                {tourFile.name}
+                <button
+                  type="button"
+                  onClick={() => setTourFile(null)}
+                  className="ml-2 text-destructive underline"
+                >
+                  remove
+                </button>
+              </p>
+            )}
             <input
               type="url"
               value={form.tour_url}
               onChange={(e) => update("tour_url", e.target.value)}
-              placeholder="https://my.matterport.com/show/?m=…"
-              className={inputCls}
+              placeholder="Or paste Matterport URL"
+              className={`${inputCls} mt-2`}
             />
-          </Field>
+          </div>
         </div>
 
         <button

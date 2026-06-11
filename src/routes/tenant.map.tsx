@@ -3,21 +3,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProperties, formatKes, prettyType, type Property } from "@/lib/properties";
 import { MapPin, Navigation, Layers, Flame, X, WifiOff } from "lucide-react";
+import { getGoogleMapsWindow, loadGoogleMaps } from "@/lib/google-maps-loader";
 import { useEffect, useRef, useState } from "react";
 // Dynamically imported in-browser to avoid SSR CJS interop issues
 type MarkerClustererType = import("@googlemaps/markerclusterer").MarkerClusterer;
 type MarkerClustererModule = typeof import("@googlemaps/markerclusterer") & {
   default?: typeof import("@googlemaps/markerclusterer");
 };
-type GoogleMapsWindow = Window &
-  typeof globalThis & {
-    google?: typeof google;
-    gm_authFailure?: () => void;
-    __nyumbaInitMap?: () => void;
-  };
 type PropertyMarker = google.maps.Marker & { __property?: Property };
-
-const getGoogleMapsWindow = () => window as GoogleMapsWindow;
 
 export const Route = createFileRoute("/tenant/map")({
   head: () => ({ meta: [{ title: "Map — NyumbaSearch" }] }),
@@ -53,65 +46,6 @@ const MAP_STYLE: google.maps.MapTypeStyle[] = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#06120d" }] },
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3a6b58" }] },
 ];
-
-const LOADER_TIMEOUT_MS = 8000;
-let loaderPromise: Promise<typeof google> | null = null;
-function loadGoogleMaps(): Promise<typeof google> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  const mapsWindow = getGoogleMapsWindow();
-  if (mapsWindow.google?.maps) return Promise.resolve(mapsWindow.google);
-  if (loaderPromise) return loaderPromise;
-  loaderPromise = new Promise((resolve, reject) => {
-    const cbName = "__nyumbaInitMap";
-    const previousAuthFailure = mapsWindow.gm_authFailure;
-    let settled = false;
-    const finish = (fn: () => void) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timer);
-      fn();
-    };
-    mapsWindow.gm_authFailure = () => {
-      previousAuthFailure?.();
-      finish(() => {
-        loaderPromise = null;
-        reject(new Error("Google Maps key is not authorized for this domain."));
-      });
-    };
-    mapsWindow[cbName] = () => {
-      finish(() => {
-        if (mapsWindow.google) resolve(mapsWindow.google);
-        else {
-          loaderPromise = null;
-          reject(new Error("Google Maps failed to initialize"));
-        }
-      });
-    };
-    const timer = window.setTimeout(() => {
-      finish(() => {
-        loaderPromise = null;
-        reject(new Error("Network is too slow to load the map. Showing offline view."));
-      });
-    }, LOADER_TIMEOUT_MS);
-    const s = document.createElement("script");
-    const params = new URLSearchParams({
-      key: BROWSER_KEY ?? "",
-      libraries: "marker",
-      loading: "async",
-      callback: cbName,
-      ...(TRACKING_ID ? { channel: TRACKING_ID } : {}),
-    });
-    s.src = `https://maps.googleapis.com/maps/api/js?${params}`;
-    s.async = true;
-    s.onerror = () =>
-      finish(() => {
-        loaderPromise = null;
-        reject(new Error("Failed to load Google Maps. Check your connection."));
-      });
-    document.head.appendChild(s);
-  });
-  return loaderPromise;
-}
 
 function priceTagSvg(label: string, active: boolean) {
   const bg = active ? "#c9a84c" : "#0d4f3c";
@@ -299,7 +233,10 @@ function TenantMap() {
         setError("Google Maps key is not authorized for this domain.");
       }
     };
-    loadGoogleMaps()
+    loadGoogleMaps({
+      apiKey: BROWSER_KEY,
+      trackingId: TRACKING_ID,
+    })
       .then((g) => {
         if (cancelled || !mapRef.current || error) return;
         mapInstance.current = new g.maps.Map(mapRef.current, {

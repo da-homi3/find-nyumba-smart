@@ -122,21 +122,21 @@ async function callAI(prompt: string): Promise<QualityResult | null> {
   }
 }
 
-export const analyzePropertyQuality = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator(propertyIdSchema)
-  .handler(async ({ context, data }) => {
-    const { supabase, userId } = ctx(context);
-    const { data: property, error } = await supabase
-      .from("properties")
-      .select("*")
-      .eq("id", data.propertyId)
-      .eq("owner_id", userId)
-      .maybeSingle();
-    if (error) throw error;
-    if (!property) throw new Error("Property not found");
+async function runQualityAnalysis(
+  supabase: ReturnType<typeof ctx>["supabase"],
+  userId: string,
+  propertyId: string,
+) {
+  const { data: property, error } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("id", propertyId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!property) throw new Error("Property not found");
 
-    const prompt = `Analyze this rental listing for completeness, attractiveness, and conversion potential.
+  const prompt = `Analyze this rental listing for completeness, attractiveness, and conversion potential.
 
 Title: ${property.title}
 Type: ${property.property_type}
@@ -152,28 +152,36 @@ Description: ${property.description ?? "(empty)"}
 
 Score 0-100. Be concrete and actionable.`;
 
-    const ai = await callAI(prompt);
-    const result = ai ?? fallbackScore(property);
-    const mediaCount =
-      (property.images?.length ?? 0) + (property.video_url ? 1 : 0) + (property.tour_url ? 1 : 0);
+  const ai = await callAI(prompt);
+  const result = ai ?? fallbackScore(property);
+  const mediaCount =
+    (property.images?.length ?? 0) + (property.video_url ? 1 : 0) + (property.tour_url ? 1 : 0);
 
-    const { data: inserted, error: insErr } = await supabase
-      .from("property_quality_reports")
-      .insert({
-        property_id: property.id,
-        owner_id: userId,
-        score: result.score,
-        grade: result.grade,
-        summary: result.summary,
-        strengths: result.strengths,
-        improvements: result.improvements,
-        media_count: mediaCount,
-        model: ai ? MODEL : "heuristic",
-      })
-      .select("*")
-      .single();
-    if (insErr) throw insErr;
-    return inserted;
+  const { data: inserted, error: insErr } = await supabase
+    .from("property_quality_reports")
+    .insert({
+      property_id: property.id,
+      owner_id: userId,
+      score: result.score,
+      grade: result.grade,
+      summary: result.summary,
+      strengths: result.strengths,
+      improvements: result.improvements,
+      media_count: mediaCount,
+      model: ai ? MODEL : "heuristic",
+    })
+    .select("*")
+    .single();
+  if (insErr) throw insErr;
+  return inserted;
+}
+
+export const analyzePropertyQuality = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(propertyIdSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = ctx(context);
+    return runQualityAnalysis(supabase, userId, data.propertyId);
   });
 
 export const listPropertyQualityReports = createServerFn({ method: "POST" })
@@ -216,4 +224,62 @@ export const createSignedMediaUrls = createServerFn({ method: "POST" })
       .createSignedUrls(data.paths, data.expiresIn ?? 60 * 60 * 24 * 365);
     if (error) throw error;
     return signed;
+  });
+
+const updateMediaSchema = z.object({
+  propertyId: z.string().uuid(),
+  images: z.array(z.string().url()).optional(),
+  video_url: z.string().url().nullable().optional(),
+  tour_url: z.string().url().nullable().optional(),
+  appendImages: z.array(z.string().url()).optional(),
+  removeImages: z.array(z.string().url()).optional(),
+  runQualityAnalysis: z.boolean().default(true),
+});
+
+export const updatePropertyMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(updateMediaSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = ctx(context);
+    const { data: existing, error: fetchErr } = await supabase
+      .from("properties")
+      .select("id, images, video_url, tour_url")
+      .eq("id", data.propertyId)
+      .eq("owner_id", userId)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!existing) throw new Error("Property not found");
+
+    let images = data.images ?? [...(existing.images ?? [])];
+    if (data.appendImages?.length) images = [...images, ...data.appendImages];
+    if (data.removeImages?.length) {
+      const remove = new Set(data.removeImages);
+      images = images.filter((u) => !remove.has(u));
+    }
+
+    const patch: Record<string, unknown> = {
+      images,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.video_url !== undefined) patch.video_url = data.video_url;
+    if (data.tour_url !== undefined) patch.tour_url = data.tour_url;
+
+    const { data: property, error } = await supabase
+      .from("properties")
+      .update(patch)
+      .eq("id", data.propertyId)
+      .eq("owner_id", userId)
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    let qualityReport = null;
+    if (data.runQualityAnalysis) {
+      try {
+        qualityReport = await runQualityAnalysis(supabase, userId, data.propertyId);
+      } catch {
+        qualityReport = null;
+      }
+    }
+    return { property, qualityReport };
   });

@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { listLandlordProperties } from "@/lib/api/nyumba.functions";
 import { analyzePropertyQuality } from "@/lib/api/media.functions";
 import { formatKes, prettyType } from "@/lib/properties";
+import { PropertyMediaManager } from "@/components/PropertyMediaManager";
 import { Plus, Building2, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -130,6 +131,7 @@ function Page() {
                       {rep.summary}
                     </p>
                   )}
+                  <PropertyMediaManager property={p} />
                 </div>
               </div>
             );

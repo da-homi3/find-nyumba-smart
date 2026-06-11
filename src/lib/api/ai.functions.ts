@@ -143,6 +143,177 @@ export const getAIValuation = createServerFn({ method: "POST" })
     };
   });
 
+type AssistantIntent = "recommend" | "compare" | "neighborhoods" | "scam" | "chat";
+
+function detectIntent(message: string): AssistantIntent {
+  const m = message.toLowerCase();
+  if (/scam|fraud|fake|suspicious|red flag|agent fee|deposit/.test(m)) return "scam";
+  if (/compare|versus|vs\b|difference between/.test(m)) return "compare";
+  if (/neighborhood|area|hood|where should|best area/.test(m)) return "neighborhoods";
+  if (/recommend|suggest|find me|show me|budget/.test(m)) return "recommend";
+  return "chat";
+}
+
+async function heuristicRecommend(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<string> {
+  const { data: saved } = await supabase.from("saved_properties").select("property_id");
+  const savedIds = (saved ?? []).map((s) => s.property_id);
+  const { data: properties } = await supabase
+    .from("properties")
+    .select("id, title, neighborhood, rent_kes, bedrooms, is_verified, authenticity_score")
+    .eq("is_active", true)
+    .order("authenticity_score", { ascending: false })
+    .limit(20);
+
+  const list = properties ?? [];
+  const scored = list
+    .map((p) => {
+      let score = p.authenticity_score ?? 50;
+      if (savedIds.includes(p.id)) score += 30;
+      if (p.is_verified) score += 15;
+      return { ...p, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  if (!scored.length) return "No active listings to recommend right now. Try widening your search on the home tab.";
+  return (
+    "Top picks for you:\n\n" +
+    scored
+      .map(
+        (p, i) =>
+          `${i + 1}. **${p.title}** (${p.neighborhood}) — KES ${p.rent_kes.toLocaleString()}/mo · trust ${p.authenticity_score ?? "n/a"}%`,
+      )
+      .join("\n")
+  );
+}
+
+async function heuristicNeighborhoods(supabase: SupabaseClient<Database>): Promise<string> {
+  const { data } = await supabase
+    .from("properties")
+    .select("neighborhood, rent_kes")
+    .eq("is_active", true);
+  const stats = new Map<string, { count: number; total: number }>();
+  for (const p of data ?? []) {
+    const s = stats.get(p.neighborhood) ?? { count: 0, total: 0 };
+    s.count += 1;
+    s.total += p.rent_kes;
+    stats.set(p.neighborhood, s);
+  }
+  const ranked = [...stats.entries()]
+    .map(([hood, s]) => ({ hood, count: s.count, avg: Math.round(s.total / s.count) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+  if (!ranked.length) return "Not enough listing data yet to rank neighborhoods.";
+  return (
+    "Popular neighborhoods on NyumbaSearch:\n\n" +
+    ranked
+      .map((r) => `• **${r.hood}** — ${r.count} listings, avg KES ${r.avg.toLocaleString()}/mo`)
+      .join("\n")
+  );
+}
+
+async function heuristicScamCheck(message: string): Promise<string> {
+  const warnings: string[] = [];
+  if (/pay before viewing|viewing fee|agent fee upfront/.test(message.toLowerCase())) {
+    warnings.push("Never pay viewing fees upfront — a common Nairobi scam.");
+  }
+  if (/whatsapp only|no phone|urgent deposit/.test(message.toLowerCase())) {
+    warnings.push("Urgent deposit pressure and WhatsApp-only contact are red flags.");
+  }
+  if (!warnings.length) {
+    return (
+      "General safety tips:\n• Prefer **verified** listings with 80%+ trust scores\n• Never pay deposits before a physical viewing\n• Use in-app messaging so conversations are logged\n• Report suspicious listings from the property page"
+    );
+  }
+  return "⚠️ Scam warning signs detected:\n\n" + warnings.map((w) => `• ${w}`).join("\n");
+}
+
+export const getAssistantReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      message: z.string().trim().min(1).max(2000),
+      propertyIds: z.array(z.string().uuid()).max(4).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { checkRateLimit } = await import("@/lib/api/rate-limit");
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const request = getRequest();
+    checkRateLimit(request?.headers?.get("cf-connecting-ip") ?? "ai-assistant");
+
+    const { supabase, userId } = getContext(context);
+    const intent = detectIntent(data.message);
+
+    if (intent === "recommend") {
+      const text = await heuristicRecommend(supabase, userId);
+      const ai = await callAIGateway(
+        `User asked: ${data.message}\n\nBaseline recommendations:\n${text}`,
+        "You are NyumbaSearch AI. Improve these Nairobi rental recommendations. Be concise, friendly, and actionable.",
+      );
+      return { intent, reply: ai ?? text };
+    }
+
+    if (intent === "neighborhoods") {
+      const text = await heuristicNeighborhoods(supabase);
+      const ai = await callAIGateway(
+        `User asked: ${data.message}\n\nData:\n${text}`,
+        "You are NyumbaSearch AI. Suggest Nairobi neighborhoods for renters based on the data. Mention water, security, commute briefly.",
+      );
+      return { intent, reply: ai ?? text };
+    }
+
+    if (intent === "scam") {
+      const text = await heuristicScamCheck(data.message);
+      const ai = await callAIGateway(
+        `User concern: ${data.message}\n\nBaseline:\n${text}`,
+        "You are NyumbaSearch trust assistant. Warn about Kenya rental scams clearly but calmly.",
+      );
+      return { intent, reply: ai ?? text };
+    }
+
+    if (intent === "compare" && data.propertyIds?.length) {
+      const { createPublicClient, PUBLIC_PROPERTY_COLUMNS } = await import(
+        "@/lib/api/public-client"
+      );
+      const pub = createPublicClient();
+      const { data: rows } = await pub
+        .from("properties")
+        .select(PUBLIC_PROPERTY_COLUMNS)
+        .in("id", data.propertyIds)
+        .eq("is_active", true);
+      const list = rows ?? [];
+      const text =
+        list.length < 2
+          ? "Save at least two properties to compare them."
+          : list
+              .map(
+                (p) =>
+                  `• ${p.title} (${p.neighborhood}): KES ${p.rent_kes.toLocaleString()}, ${p.bedrooms}BR, trust ${p.authenticity_score ?? "n/a"}%`,
+              )
+              .join("\n");
+      const ai = await callAIGateway(
+        `Compare these listings for the user:\n${text}\n\nUser: ${data.message}`,
+        "You are NyumbaSearch AI. Compare rentals on value, trust, and fit. Be concise.",
+      );
+      return { intent, reply: ai ?? `Comparison:\n${text}` };
+    }
+
+    const ai = await callAIGateway(
+      data.message,
+      "You are NyumbaSearch's AI assistant for Nairobi renters. Help with properties, pricing, neighborhoods, and platform questions. Be concise and practical.",
+    );
+    return {
+      intent: "chat" as const,
+      reply:
+        ai ??
+        "I'm running in offline mode. Try quick actions: recommend properties, compare saved listings, suggest neighborhoods, or ask about scam red flags.",
+    };
+  });
+
 export const getAIChatResponse = createServerFn({ method: "POST" })
   .inputValidator(z.object({
     message: z.string().trim().min(1),

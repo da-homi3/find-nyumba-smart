@@ -30,6 +30,7 @@ export interface Property {
   amenities: string[];
   images: string[];
   video_url: string | null;
+  tour_url?: string | null;
   is_verified: boolean;
   is_active: boolean;
   authenticity_score?: number;

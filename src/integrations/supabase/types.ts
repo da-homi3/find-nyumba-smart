@@ -17,6 +17,7 @@ export type Database = {
           property_id: string;
           status: string;
           tenant_id: string;
+          updated_at: string;
         };
         Insert: {
           created_at?: string;
@@ -26,6 +27,7 @@ export type Database = {
           property_id: string;
           status?: string;
           tenant_id: string;
+          updated_at?: string;
         };
         Update: {
           created_at?: string;
@@ -34,6 +36,7 @@ export type Database = {
           message?: string;
           property_id?: string;
           status?: string;
+          updated_at?: string;
           tenant_id?: string;
         };
         Relationships: [
@@ -52,6 +55,7 @@ export type Database = {
           created_at: string;
           id: string;
           inquiry_id: string;
+          read_at: string | null;
           sender_id: string;
         };
         Insert: {
@@ -59,6 +63,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           inquiry_id: string;
+          read_at?: string | null;
           sender_id: string;
         };
         Update: {
@@ -66,6 +71,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           inquiry_id?: string;
+          read_at?: string | null;
           sender_id?: string;
         };
         Relationships: [
