@@ -119,13 +119,15 @@ export const listPropertyReviews = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await admin
       .from("property_reviews")
-      .select(`
+      .select(
+        `
         *,
         profiles:reviewer_id (
           full_name,
           avatar_url
         )
-      `)
+      `,
+      )
       .eq("property_id", data.propertyId)
       .order("created_at", { ascending: false });
 
@@ -141,13 +143,15 @@ export const listNeighborhoodReviews = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await admin
       .from("neighborhood_reviews")
-      .select(`
+      .select(
+        `
         *,
         profiles:reviewer_id (
           full_name,
           avatar_url
         )
-      `)
+      `,
+      )
       .eq("neighborhood", data.neighborhood)
       .order("created_at", { ascending: false });
 

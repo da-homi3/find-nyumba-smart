@@ -32,7 +32,11 @@ function ContactPage() {
         >
           <label className="block text-sm font-medium">
             Email
-            <input type="email" required className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm" />
+            <input
+              type="email"
+              required
+              className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
+            />
           </label>
           <label className="block text-sm font-medium">
             Message
@@ -44,7 +48,10 @@ function ContactPage() {
               className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
             />
           </label>
-          <button type="submit" className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground">
+          <button
+            type="submit"
+            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+          >
             Send message
           </button>
         </form>

@@ -84,7 +84,8 @@ export const listMyViewings = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("viewings")
-      .select(`
+      .select(
+        `
         *,
         properties (
           id,
@@ -95,7 +96,8 @@ export const listMyViewings = createServerFn({ method: "GET" })
         ),
         tenant_profile:profiles!viewings_tenant_id_fkey(full_name, phone, avatar_url),
         landlord_profile:profiles!viewings_landlord_id_fkey(full_name, phone, avatar_url)
-      `)
+      `,
+      )
       .or(`tenant_id.eq.${userId},landlord_id.eq.${userId}`)
       .order("scheduled_at", { ascending: true });
 

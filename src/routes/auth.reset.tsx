@@ -42,7 +42,10 @@ function ResetPasswordPage() {
                 className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
               />
             </label>
-            <button type="submit" className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground">
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            >
               Send OTP
             </button>
           </form>
@@ -71,7 +74,10 @@ function ResetPasswordPage() {
                 className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm tracking-widest"
               />
             </label>
-            <button type="submit" className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground">
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            >
               Verify OTP
             </button>
           </form>
@@ -97,7 +103,10 @@ function ResetPasswordPage() {
                 className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
               />
             </label>
-            <button type="submit" className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground">
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            >
               Set new password
             </button>
           </form>

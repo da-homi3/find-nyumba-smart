@@ -1,5 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -25,7 +26,6 @@ function TenantAuth() {
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<AccountRole>("tenant");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const destination = (r: AccountRole) => {
     if (redirect) return redirect;
@@ -34,10 +34,21 @@ function TenantAuth() {
     return "/tenant";
   };
 
+  async function resolveAccountRole(user: User): Promise<AccountRole> {
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const roles = (data ?? []).map((r) => r.role as string);
+    if (roles.includes("landlord")) return "landlord";
+    if (roles.includes("manager")) return "manager";
+    const meta = user.user_metadata?.role as AccountRole | undefined;
+    if (meta === "landlord" || meta === "manager") return meta;
+    return "tenant";
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
+      let nextRole: AccountRole = role;
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
@@ -49,13 +60,13 @@ function TenantAuth() {
         });
         if (error) throw error;
         toast.success("Welcome to NyumbaSearch!");
-        localStorage.setItem("nyumba_mock_jwt", "signed-up");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        localStorage.setItem("nyumba_mock_jwt", "signed-in");
+        if (data.user) nextRole = await resolveAccountRole(data.user);
       }
-      navigate({ to: destination(role) as "/tenant" });
+      const target = destination(nextRole);
+      window.location.href = target.startsWith("/") ? target : `/${target}`;
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -97,7 +108,12 @@ function TenantAuth() {
           {mode === "signup" && (
             <>
               <Field label="Full name">
-                <input value={fullName} onChange={(e) => setFullName(e.target.value)} required className={inputCls} />
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className={inputCls}
+                />
               </Field>
               <Field label="Phone (M-Pesa number)">
                 <input
@@ -109,7 +125,11 @@ function TenantAuth() {
                 />
               </Field>
               <Field label="Account type">
-                <select value={role} onChange={(e) => setRole(e.target.value as AccountRole)} className={inputCls}>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as AccountRole)}
+                  className={inputCls}
+                >
                   <option value="tenant">Tenant</option>
                   <option value="landlord">Landlord</option>
                   <option value="manager">Property manager</option>
@@ -118,7 +138,13 @@ function TenantAuth() {
             </>
           )}
           <Field label="Email">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={inputCls}
+            />
           </Field>
           <Field label="Password">
             <input

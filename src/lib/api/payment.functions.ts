@@ -53,13 +53,13 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
     // Simulate callback completion for demo/development purposes after 2 seconds
     setTimeout(async () => {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin
-        .from("payments")
-        .update({ status: "completed" })
-        .eq("id", row.id);
+      await supabaseAdmin.from("payments").update({ status: "completed" }).eq("id", row.id);
 
       // If it is a property boost, set the property to verified or boosted
-      if (data.propertyId && (data.paymentType === "featured_listing" || data.paymentType === "property_boost")) {
+      if (
+        data.propertyId &&
+        (data.paymentType === "featured_listing" || data.paymentType === "property_boost")
+      ) {
         await supabaseAdmin
           .from("properties")
           .update({ is_verified: true })
@@ -101,13 +101,15 @@ export const listTransactions = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("payments")
-      .select(`
+      .select(
+        `
         *,
         properties (
           title,
           neighborhood
         )
-      `)
+      `,
+      )
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 

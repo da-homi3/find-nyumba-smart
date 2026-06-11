@@ -21,8 +21,8 @@ function AboutPage() {
           listing so you can decide before you visit.
         </p>
         <p className="mt-4 text-muted-foreground leading-relaxed">
-          Landlords list directly, verify in stages, and message tenants in-platform. No
-          middlemen, no hidden viewing fees.
+          Landlords list directly, verify in stages, and message tenants in-platform. No middlemen,
+          no hidden viewing fees.
         </p>
         <p className="mt-8 text-sm font-semibold text-primary">Made in Nairobi 🇰🇪</p>
       </main>

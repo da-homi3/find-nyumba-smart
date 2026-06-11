@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { MessageCircle } from "lucide-react";
 import { listTenantInquiries } from "@/lib/api/nyumba.functions";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/tenant/messages")({
 
 function Messages() {
   const { user } = useAuth();
+  const location = useLocation();
   const {
     data: inquiries = [],
     error,
@@ -33,6 +34,7 @@ function Messages() {
         </p>
         <Link
           to="/auth"
+          search={{ redirect: location.pathname + location.search }}
           className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
         >
           Sign in

@@ -45,7 +45,11 @@ export async function getChatMessages(context: any, conversationId: string) {
   return JSON.parse(raw) as Array<{ from: string; content: string; timestamp: string }>;
 }
 
-export async function addChatMessage(context: any, conversationId: string, message: { from: string; content: string }) {
+export async function addChatMessage(
+  context: any,
+  conversationId: string,
+  message: { from: string; content: string },
+) {
   const kv = getKV(context);
   const messages = await getChatMessages(context, conversationId);
   const enriched = {

@@ -1,22 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { 
-  ShieldAlert, 
-  CheckCircle2, 
-  XCircle, 
-  ListFilter, 
-  Building2, 
-  UserCheck, 
+import {
+  ShieldAlert,
+  CheckCircle2,
+  XCircle,
+  ListFilter,
+  Building2,
+  UserCheck,
   History,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
-import { 
-  listAdminVerifications, 
-  updateVerificationStatus, 
-  listAdminScamReports, 
-  updateScamReportStatus, 
-  listAdminAuditLogs 
+import {
+  listAdminVerifications,
+  updateVerificationStatus,
+  listAdminScamReports,
+  updateScamReportStatus,
+  listAdminAuditLogs,
 } from "@/lib/api/admin.functions";
 import { listProperties } from "@/lib/api/nyumba.functions";
 import { toast } from "sonner";
@@ -103,8 +103,16 @@ function AdminDashboard() {
       <div className="mx-auto max-w-6xl px-6 mt-6">
         <div className="flex border-b text-xs font-semibold">
           {[
-            { id: "verifications", label: "Verification Queue", count: verifications.filter((v: any) => v.status === "pending").length },
-            { id: "scams", label: "Scam Reports", count: scams.filter((s: any) => s.status === "pending").length },
+            {
+              id: "verifications",
+              label: "Verification Queue",
+              count: verifications.filter((v: any) => v.status === "pending").length,
+            },
+            {
+              id: "scams",
+              label: "Scam Reports",
+              count: scams.filter((s: any) => s.status === "pending").length,
+            },
             { id: "properties", label: "Moderate listings", count: properties.length },
             { id: "audits", label: "Audit Logs", count: audits.length },
           ].map((t) => (
@@ -117,7 +125,12 @@ function AdminDashboard() {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.label} {t.count > 0 && <span className="ml-1 rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px]">{t.count}</span>}
+              {t.label}{" "}
+              {t.count > 0 && (
+                <span className="ml-1 rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px]">
+                  {t.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -135,22 +148,33 @@ function AdminDashboard() {
               ) : (
                 <div className="space-y-4">
                   {verifications.map((v: any) => (
-                    <div key={v.id} className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4">
+                    <div
+                      key={v.id}
+                      className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
+                    >
                       <div>
                         <div className="flex items-center gap-2">
-                          <strong className="text-sm font-semibold">{v.profiles?.full_name ?? "Unknown User"}</strong>
+                          <strong className="text-sm font-semibold">
+                            {v.profiles?.full_name ?? "Unknown User"}
+                          </strong>
                           <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase font-bold text-secondary-foreground">
                             {v.verification_type}
                           </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            v.status === "approved" ? "bg-emerald-500/10 text-emerald-600" :
-                            v.status === "rejected" ? "bg-red-500/10 text-red-600" :
-                            "bg-amber-500/10 text-amber-600"
-                          }`}>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              v.status === "approved"
+                                ? "bg-emerald-500/10 text-emerald-600"
+                                : v.status === "rejected"
+                                  ? "bg-red-500/10 text-red-600"
+                                  : "bg-amber-500/10 text-amber-600"
+                            }`}
+                          >
                             {v.status}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">Submitted on: {new Date(v.created_at).toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Submitted on: {new Date(v.created_at).toLocaleString()}
+                        </div>
                         {v.documents && v.documents.length > 0 && (
                           <div className="mt-3 space-y-1">
                             <span className="text-xs font-semibold block">Attached Documents:</span>
@@ -203,20 +227,43 @@ function AdminDashboard() {
               ) : (
                 <div className="space-y-4">
                   {scams.map((s: any) => (
-                    <div key={s.id} className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4">
+                    <div
+                      key={s.id}
+                      className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
+                    >
                       <div>
                         <div className="flex items-center gap-2">
-                          <strong className="text-sm font-semibold">Report #{s.id.slice(0, 8)}</strong>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            s.status === "reviewed" ? "bg-emerald-500/10 text-emerald-600" :
-                            "bg-amber-500/10 text-amber-600"
-                          }`}>
+                          <strong className="text-sm font-semibold">
+                            Report #{s.id.slice(0, 8)}
+                          </strong>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              s.status === "reviewed"
+                                ? "bg-emerald-500/10 text-emerald-600"
+                                : "bg-amber-500/10 text-amber-600"
+                            }`}
+                          >
                             {s.status}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">Property: <Link to="/tenant/property/$id" params={{ id: s.property_id }} className="text-primary hover:underline">{s.properties?.title}</Link></div>
-                        <p className="mt-2 text-xs leading-relaxed"><strong className="text-foreground/80">Reason:</strong> {s.reason}</p>
-                        {s.details && <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{s.details}</p>}
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Property:{" "}
+                          <Link
+                            to="/tenant/property/$id"
+                            params={{ id: s.property_id }}
+                            className="text-primary hover:underline"
+                          >
+                            {s.properties?.title}
+                          </Link>
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed">
+                          <strong className="text-foreground/80">Reason:</strong> {s.reason}
+                        </p>
+                        {s.details && (
+                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                            {s.details}
+                          </p>
+                        )}
                       </div>
 
                       {s.status === "pending" && (
@@ -262,21 +309,35 @@ function AdminDashboard() {
                       {properties.map((p: any) => (
                         <tr key={p.id}>
                           <td className="px-4 py-3 font-medium">
-                            <Link to="/tenant/property/$id" params={{ id: p.id }} className="hover:underline">{p.title}</Link>
+                            <Link
+                              to="/tenant/property/$id"
+                              params={{ id: p.id }}
+                              className="hover:underline"
+                            >
+                              {p.title}
+                            </Link>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">{p.neighborhood}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
-                              p.is_verified ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-600"
-                            }`}>
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
+                                p.is_verified
+                                  ? "bg-emerald-500/10 text-emerald-600"
+                                  : "bg-gray-500/10 text-gray-600"
+                              }`}
+                            >
                               {p.is_verified ? "Verified" : "Unverified"}
                             </span>
                           </td>
                           <td className="px-4 py-3 font-semibold">{p.authenticity_score ?? 70}%</td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-full px-2 py-0.5 text-xs ${
-                              p.is_active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-                            }`}>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs ${
+                                p.is_active
+                                  ? "bg-success/15 text-success"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
                               {p.is_active ? "Active" : "Inactive"}
                             </span>
                           </td>
@@ -308,10 +369,14 @@ function AdminDashboard() {
                   <div className="divide-y">
                     {audits.map((a: any) => (
                       <div key={a.id} className="p-3 flex items-center hover:bg-secondary/40">
-                        <span className="w-1/4 text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                        <span className="w-1/4 text-muted-foreground">
+                          {new Date(a.created_at).toLocaleString()}
+                        </span>
                         <span className="w-1/4 font-semibold text-primary">{a.action}</span>
                         <span className="w-1/4">{a.admin?.full_name ?? "System"}</span>
-                        <span className="w-1/4 text-muted-foreground truncate" title={a.details}>{a.details}</span>
+                        <span className="w-1/4 text-muted-foreground truncate" title={a.details}>
+                          {a.details}
+                        </span>
                       </div>
                     ))}
                   </div>

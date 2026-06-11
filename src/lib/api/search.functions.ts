@@ -68,9 +68,7 @@ export const deleteSavedSearch = createServerFn({ method: "POST" })
 export const compareProperties = createServerFn({ method: "POST" })
   .inputValidator(z.object({ ids: z.array(z.string().uuid()).min(2).max(4) }))
   .handler(async ({ data }) => {
-    const { createPublicClient, PUBLIC_PROPERTY_COLUMNS } = await import(
-      "@/lib/api/public-client"
-    );
+    const { createPublicClient, PUBLIC_PROPERTY_COLUMNS } = await import("@/lib/api/public-client");
     const supabase = createPublicClient();
     const { data: rows, error } = await supabase
       .from("properties")
@@ -91,10 +89,12 @@ export const registerPushToken = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
-    const { error } = await supabase.from("push_tokens").upsert(
-      { user_id: userId, token: data.token, platform: data.platform },
-      { onConflict: "user_id,token" },
-    );
+    const { error } = await supabase
+      .from("push_tokens")
+      .upsert(
+        { user_id: userId, token: data.token, platform: data.platform },
+        { onConflict: "user_id,token" },
+      );
     if (error) throw error;
     return { registered: true };
   });

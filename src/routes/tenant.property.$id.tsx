@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -90,13 +90,18 @@ export const Route = createFileRoute("/tenant/property/$id")({
 function PropertyDetail() {
   const { id } = useParams({ from: "/tenant/property/$id" });
   const navigate = useNavigate();
+  const location = useLocation();
+  const authSearch = { redirect: location.pathname + location.search };
   const { user } = useAuth();
   const qc = useQueryClient();
 
   // Booking & Chat States
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
-    { role: "assistant", text: "Habari! I am your NyumbaSearch AI Assistant. Ask me anything about this property, the location, or security." }
+    {
+      role: "assistant",
+      text: "Habari! I am your NyumbaSearch AI Assistant. Ask me anything about this property, the location, or security.",
+    },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -157,7 +162,7 @@ function PropertyDetail() {
     },
     onError: (e: Error) => {
       toast.error(e.message);
-      if (e.message.includes("Sign in")) navigate({ to: "/auth" });
+      if (e.message.includes("Sign in")) navigate({ to: "/auth", search: authSearch });
     },
   });
 
@@ -177,7 +182,7 @@ function PropertyDetail() {
     onError: (e: Error) => {
       if (e.message.includes("Sign in")) {
         toast.error(e.message);
-        navigate({ to: "/auth" });
+        navigate({ to: "/auth", search: authSearch });
         return;
       }
       toast.error(e.message);
@@ -276,7 +281,13 @@ function PropertyDetail() {
         {gallery.length > 1 && (
           <div className="absolute bottom-4 right-4 flex gap-1.5">
             {gallery.map((src, i) => (
-              <button key={src} type="button" onClick={() => setGalleryIndex(i)} aria-label={`Photo ${i + 1}`} className={`h-12 w-12 overflow-hidden rounded-lg border-2 ${i === galleryIndex ? "border-primary" : "border-white/80"}`}>
+              <button
+                key={src}
+                type="button"
+                onClick={() => setGalleryIndex(i)}
+                aria-label={`Photo ${i + 1}`}
+                className={`h-12 w-12 overflow-hidden rounded-lg border-2 ${i === galleryIndex ? "border-primary" : "border-white/80"}`}
+              >
                 <img src={src} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
@@ -336,8 +347,14 @@ function PropertyDetail() {
             </div>
             <div className="flex-1 text-sm">
               <p className="font-semibold">{landlordProfile?.full_name ?? "Verified landlord"}</p>
-              {vLevel > 0 && <div className="mt-1"><VerificationBadge level={vLevel} /></div>}
-              <p className="mt-2 text-xs text-muted-foreground">Phone verified · Usually replies within 2 hours</p>
+              {vLevel > 0 && (
+                <div className="mt-1">
+                  <VerificationBadge level={vLevel} />
+                </div>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">
+                Phone verified · Usually replies within 2 hours
+              </p>
             </div>
           </div>
         </section>
@@ -353,12 +370,19 @@ function PropertyDetail() {
           ) : valuation ? (
             <div className="mt-2 text-xs">
               <div className="flex justify-between items-center">
-                <span>Estimated rent range: <strong className="text-foreground">{valuation.estimatedRentRange}</strong></span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  valuation.valuationGrade === "Good Deal" ? "bg-emerald-500/20 text-emerald-700" :
-                  valuation.valuationGrade === "Overpriced" ? "bg-red-500/20 text-red-700" :
-                  "bg-gray-500/20 text-gray-700"
-                }`}>
+                <span>
+                  Estimated rent range:{" "}
+                  <strong className="text-foreground">{valuation.estimatedRentRange}</strong>
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    valuation.valuationGrade === "Good Deal"
+                      ? "bg-emerald-500/20 text-emerald-700"
+                      : valuation.valuationGrade === "Overpriced"
+                        ? "bg-red-500/20 text-red-700"
+                        : "bg-gray-500/20 text-gray-700"
+                  }`}
+                >
                   {valuation.valuationGrade}
                 </span>
               </div>
@@ -398,10 +422,17 @@ function PropertyDetail() {
           </h3>
           <div className="mt-3 max-h-48 overflow-y-auto space-y-2 border-b pb-3 text-xs">
             {chatMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] rounded-xl px-3 py-2 ${
-                  msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-                }`}>
+              <div
+                key={i}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-xl px-3 py-2 ${
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                  }`}
+                >
                   {msg.text}
                 </div>
               </div>
@@ -463,7 +494,7 @@ function PropertyDetail() {
             onClick={() => {
               if (!user) {
                 toast.error("Please sign in to book viewings");
-                navigate({ to: "/auth" });
+                navigate({ to: "/auth", search: authSearch });
                 return;
               }
               setIsBookingOpen(true);

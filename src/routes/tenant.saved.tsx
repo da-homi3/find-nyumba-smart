@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Heart, Loader2, Bell, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/tenant/saved")({
 
 function SavedPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const qc = useQueryClient();
   const [alerts, setAlerts] = useState<SearchAlert[]>(() => listSearchAlerts());
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -31,15 +32,19 @@ function SavedPage() {
     frequency: "daily" as SearchAlert["frequency"],
   });
 
-  const { data = [], error, isLoading, refetch } = useQuery({
+  const {
+    data = [],
+    error,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["saved-properties", user?.id],
     enabled: !!user,
     queryFn: () => listSavedProperties(),
   });
 
   const unsave = useMutation({
-    mutationFn: (propertyId: string) =>
-      toggleSavedProperty({ data: { propertyId, saved: false } }),
+    mutationFn: (propertyId: string) => toggleSavedProperty({ data: { propertyId, saved: false } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["saved-properties"] });
       toast.success("Removed from saved");
@@ -54,7 +59,11 @@ function SavedPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Sign in to save homes and pick up where you left off.
         </p>
-        <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+        <Link
+          to="/auth"
+          search={{ redirect: location.pathname + location.search }}
+          className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+        >
           Sign in
         </Link>
       </div>
@@ -74,7 +83,11 @@ function SavedPage() {
       ) : error ? (
         <div className="mt-10 rounded-2xl border border-destructive/30 p-6 text-center">
           <p className="text-sm font-medium text-destructive">Saved homes did not load.</p>
-          <button type="button" onClick={() => void refetch()} className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold">
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
+          >
             Try again
           </button>
         </div>
@@ -82,8 +95,13 @@ function SavedPage() {
         <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
           <Heart className="mx-auto h-14 w-14 text-muted-foreground/40" />
           <p className="mt-4 font-display text-lg font-semibold">You haven't saved any homes yet</p>
-          <p className="mt-2 text-sm text-muted-foreground">Tap the heart on any listing to save it here.</p>
-          <Link to="/tenant" className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground">
+          <p className="mt-2 text-sm text-muted-foreground">
+            Tap the heart on any listing to save it here.
+          </p>
+          <Link
+            to="/tenant"
+            className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+          >
             Browse listings
           </Link>
         </div>
@@ -120,11 +138,16 @@ function SavedPage() {
           </button>
         </div>
         {alerts.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">No alerts yet — get notified when new listings match.</p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            No alerts yet — get notified when new listings match.
+          </p>
         ) : (
           <ul className="mt-4 space-y-2">
             {alerts.map((a) => (
-              <li key={a.id} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm">
+              <li
+                key={a.id}
+                className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 text-sm"
+              >
                 <div>
                   <p className="font-medium">{formatAlertLabel(a)}</p>
                   <p className="text-xs text-muted-foreground capitalize">{a.frequency} alerts</p>
@@ -141,7 +164,14 @@ function SavedPage() {
                     />
                     On
                   </label>
-                  <button type="button" onClick={() => { removeSearchAlert(a.id); setAlerts(listSearchAlerts()); }} aria-label="Delete alert">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeSearchAlert(a.id);
+                      setAlerts(listSearchAlerts());
+                    }}
+                    aria-label="Delete alert"
+                  >
                     <X className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>
@@ -185,7 +215,12 @@ function SavedPage() {
               Frequency
               <select
                 value={alertForm.frequency}
-                onChange={(e) => setAlertForm((f) => ({ ...f, frequency: e.target.value as SearchAlert["frequency"] }))}
+                onChange={(e) =>
+                  setAlertForm((f) => ({
+                    ...f,
+                    frequency: e.target.value as SearchAlert["frequency"],
+                  }))
+                }
                 className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
               >
                 <option value="instant">Instant</option>
@@ -194,10 +229,17 @@ function SavedPage() {
               </select>
             </label>
             <div className="mt-4 flex gap-2">
-              <button type="button" onClick={() => setShowAlertModal(false)} className="flex-1 rounded-xl border py-2.5 text-sm font-semibold">
+              <button
+                type="button"
+                onClick={() => setShowAlertModal(false)}
+                className="flex-1 rounded-xl border py-2.5 text-sm font-semibold"
+              >
                 Cancel
               </button>
-              <button type="submit" className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground">
+              <button
+                type="submit"
+                className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+              >
                 Save alert
               </button>
             </div>

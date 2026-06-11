@@ -58,8 +58,16 @@ function PlanPage() {
 
       {showPay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur">
-          <form onSubmit={handleUpgrade} className="relative w-full max-w-sm rounded-2xl border bg-card p-6">
-            <button type="button" onClick={() => setShowPay(false)} className="absolute right-4 top-4" aria-label="Close">
+          <form
+            onSubmit={handleUpgrade}
+            className="relative w-full max-w-sm rounded-2xl border bg-card p-6"
+          >
+            <button
+              type="button"
+              onClick={() => setShowPay(false)}
+              className="absolute right-4 top-4"
+              aria-label="Close"
+            >
               <X className="h-5 w-5" />
             </button>
             <h3 className="font-display text-lg font-semibold">M-Pesa payment</h3>

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LandlordShell } from "@/components/LandlordShell";
 import { ConversationThread, countUnread } from "@/components/ConversationThread";
@@ -7,7 +7,7 @@ import { formatKes } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";
 import { Inbox, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/landlord/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -23,8 +23,23 @@ export const Route = createFileRoute("/landlord/leads")({
 function LeadsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { thread: threadFromUrl } = Route.useSearch();
   const [activeThread, setActiveThread] = useState<string | undefined>(threadFromUrl);
+
+  useEffect(() => {
+    setActiveThread(threadFromUrl);
+  }, [threadFromUrl]);
+
+  const openThread = (id: string) => {
+    setActiveThread(id);
+    navigate({ to: "/landlord/leads", search: { thread: id } });
+  };
+
+  const closeThread = () => {
+    setActiveThread(undefined);
+    navigate({ to: "/landlord/leads", search: { thread: undefined } });
+  };
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ["landlord-leads", user?.id],
@@ -45,7 +60,7 @@ function LeadsPage() {
   if (activeThread) {
     return (
       <div className="px-4 py-6 lg:px-10">
-        <ConversationThread inquiryId={activeThread} onBack={() => setActiveThread(undefined)} showQuickReplies />
+        <ConversationThread inquiryId={activeThread} onBack={closeThread} showQuickReplies />
       </div>
     );
   }
@@ -141,7 +156,7 @@ function LeadsPage() {
                   )}
                   <button
                     type="button"
-                    onClick={() => setActiveThread(lead.id)}
+                    onClick={() => openThread(lead.id)}
                     className="inline-flex items-center gap-1 rounded-full border bg-primary px-3 py-1.5 font-semibold text-primary-foreground"
                   >
                     <MessageCircle className="h-3.5 w-3.5" />

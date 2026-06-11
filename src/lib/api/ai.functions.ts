@@ -82,13 +82,15 @@ export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
     if (pErr) throw pErr;
 
     // Build prompt
-    const savedListingsText = savedIds.length > 0 
-      ? `User likes these property IDs: ${savedIds.join(", ")}`
-      : "User has not bookmarked any listings yet.";
+    const savedListingsText =
+      savedIds.length > 0
+        ? `User likes these property IDs: ${savedIds.join(", ")}`
+        : "User has not bookmarked any listings yet.";
 
     const prompt = `${savedListingsText}\n\nListings available:\n${JSON.stringify(properties)}\n\nRecommend the top 3 best property IDs for this user as a JSON array.`;
-    
-    const systemPrompt = "You are a real estate recommender bot. Reply ONLY with a strict JSON array of property IDs (strings), e.g. [\"uuid1\", \"uuid2\"]. No markdown.";
+
+    const systemPrompt =
+      'You are a real estate recommender bot. Reply ONLY with a strict JSON array of property IDs (strings), e.g. ["uuid1", "uuid2"]. No markdown.';
 
     const aiRes = await callAIGateway(prompt, systemPrompt);
     let recommendedIds: string[] = [];
@@ -137,13 +139,15 @@ export const getAIValuation = createServerFn({ method: "POST" })
     if (nErr) throw nErr;
 
     const rents = (neighborhoodProperties ?? []).map((np) => np.rent_kes);
-    const avgRent = rents.length > 0 ? rents.reduce((a, b) => a + b, 0) / rents.length : property.rent_kes;
+    const avgRent =
+      rents.length > 0 ? rents.reduce((a, b) => a + b, 0) / rents.length : property.rent_kes;
 
     const prompt = `Valuate this property:\nTitle: ${property.title}\nNeighborhood: ${property.neighborhood}\nRent: ${property.rent_kes}\nBedrooms: ${property.bedrooms}\nBathrooms: ${property.bathrooms}\nArea: ${property.area_sqm} sqm\n\nNeighborhood average rent: ${avgRent}`;
-    const systemPrompt = "You are a Kenyan property valuer. Evaluate the rent and return a JSON object: {\"estimatedRentRange\": \"string\", \"valuationGrade\": \"Fair Value | Overpriced | Good Deal\", \"details\": \"string\"}. No markdown.";
+    const systemPrompt =
+      'You are a Kenyan property valuer. Evaluate the rent and return a JSON object: {"estimatedRentRange": "string", "valuationGrade": "Fair Value | Overpriced | Good Deal", "details": "string"}. No markdown.';
 
     const aiRes = await callAIGateway(prompt, systemPrompt);
-    
+
     if (aiRes) {
       try {
         const match = aiRes.match(/\{[\s\S]*\}/);
@@ -157,7 +161,8 @@ export const getAIValuation = createServerFn({ method: "POST" })
 
     // Heuristic Fallback
     const diff = property.rent_kes - avgRent;
-    const valuationGrade = diff > avgRent * 0.1 ? "Overpriced" : diff < -avgRent * 0.1 ? "Good Deal" : "Fair Value";
+    const valuationGrade =
+      diff > avgRent * 0.1 ? "Overpriced" : diff < -avgRent * 0.1 ? "Good Deal" : "Fair Value";
     return {
       estimatedRentRange: `KES ${(avgRent * 0.9).toLocaleString()} - KES ${(avgRent * 1.1).toLocaleString()}`,
       valuationGrade,
@@ -200,7 +205,8 @@ async function heuristicRecommend(
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
 
-  if (!scored.length) return "No active listings to recommend right now. Try widening your search on the home tab.";
+  if (!scored.length)
+    return "No active listings to recommend right now. Try widening your search on the home tab.";
   return (
     "Top picks for you:\n\n" +
     scored
@@ -246,9 +252,7 @@ async function heuristicScamCheck(message: string): Promise<string> {
     warnings.push("Urgent deposit pressure and WhatsApp-only contact are red flags.");
   }
   if (!warnings.length) {
-    return (
-      "General safety tips:\n• Prefer **verified** listings with 80%+ trust scores\n• Never pay deposits before a physical viewing\n• Use in-app messaging so conversations are logged\n• Report suspicious listings from the property page"
-    );
+    return "General safety tips:\n• Prefer **verified** listings with 80%+ trust scores\n• Never pay deposits before a physical viewing\n• Use in-app messaging so conversations are logged\n• Report suspicious listings from the property page";
   }
   return "⚠️ Scam warning signs detected:\n\n" + warnings.map((w) => `• ${w}`).join("\n");
 }
@@ -298,9 +302,8 @@ export const getAssistantReply = createServerFn({ method: "POST" })
     }
 
     if (intent === "compare" && data.propertyIds?.length) {
-      const { createPublicClient, PUBLIC_PROPERTY_COLUMNS } = await import(
-        "@/lib/api/public-client"
-      );
+      const { createPublicClient, PUBLIC_PROPERTY_COLUMNS } =
+        await import("@/lib/api/public-client");
       const pub = createPublicClient();
       const { data: rows } = await pub
         .from("properties")
@@ -324,10 +327,7 @@ export const getAssistantReply = createServerFn({ method: "POST" })
       return { intent, reply: ai ?? `Comparison:\n${text}` };
     }
 
-    const ai = await callAIGateway(
-      data.message,
-      NYUMBAAI_SYSTEM_PROMPT,
-    );
+    const ai = await callAIGateway(data.message, NYUMBAAI_SYSTEM_PROMPT);
     return {
       intent: "chat" as const,
       reply:
@@ -337,10 +337,12 @@ export const getAssistantReply = createServerFn({ method: "POST" })
   });
 
 export const getAIChatResponse = createServerFn({ method: "POST" })
-  .inputValidator(z.object({
-    message: z.string().trim().min(1),
-    propertyId: z.string().uuid().optional(),
-  }))
+  .inputValidator(
+    z.object({
+      message: z.string().trim().min(1),
+      propertyId: z.string().uuid().optional(),
+    }),
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const admin = supabaseAdmin;
@@ -362,5 +364,8 @@ export const getAIChatResponse = createServerFn({ method: "POST" })
     const systemPrompt = NYUMBAAI_SYSTEM_PROMPT;
 
     const response = await callAIGateway(prompt, systemPrompt);
-    return response ?? "I'm currently unable to access my AI engine, but you can contact the landlord directly using the buttons below!";
+    return (
+      response ??
+      "I'm currently unable to access my AI engine, but you can contact the landlord directly using the buttons below!"
+    );
   });

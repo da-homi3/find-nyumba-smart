@@ -88,9 +88,7 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Props) {
           <span className="mb-1 block font-medium text-muted-foreground">Beds</span>
           <select
             value={filters.bedrooms ?? ""}
-            onChange={(e) =>
-              onChange({ bedrooms: e.target.value ? Number(e.target.value) : null })
-            }
+            onChange={(e) => onChange({ bedrooms: e.target.value ? Number(e.target.value) : null })}
             className="rounded-lg border bg-card px-2 py-1.5 text-sm"
           >
             <option value="">Any</option>

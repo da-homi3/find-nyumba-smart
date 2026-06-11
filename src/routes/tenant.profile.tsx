@@ -1,19 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { 
-  Bell, 
-  Building2, 
-  CheckCircle2, 
-  Loader2, 
-  LogOut, 
-  ShieldCheck, 
-  User, 
-  Calendar, 
-  X, 
+import {
+  Bell,
+  Building2,
+  CheckCircle2,
+  Loader2,
+  LogOut,
+  ShieldCheck,
+  User,
+  Calendar,
+  X,
   Upload,
   CreditCard,
-  UserCheck
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,10 +60,12 @@ function Profile() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [prefs, setPrefs] = useState<TenantNotificationPrefs>(() => readPrefs(user?.id));
-  
+
   // Verification uploads state
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verType, setVerType] = useState<"phone" | "identity" | "business" | "ownership">("identity");
+  const [verType, setVerType] = useState<"phone" | "identity" | "business" | "ownership">(
+    "identity",
+  );
   const [docUrl, setDocUrl] = useState("");
   const [verLoading, setVerLoading] = useState(false);
 
@@ -83,7 +85,9 @@ function Profile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, phone, is_phone_verified, is_id_verified, is_business_verified, is_ownership_verified")
+        .select(
+          "full_name, phone, is_phone_verified, is_id_verified, is_business_verified, is_ownership_verified",
+        )
         .eq("id", user!.id)
         .maybeSingle();
 
@@ -304,7 +308,9 @@ function Profile() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="text-[10px] text-muted-foreground block mb-1">Document Link / URL</span>
+                  <span className="text-[10px] text-muted-foreground block mb-1">
+                    Document Link / URL
+                  </span>
                   <input
                     type="url"
                     placeholder="https://example.com/id-image.jpg"
@@ -329,9 +335,14 @@ function Profile() {
                   { label: "Business", status: profile?.is_business_verified },
                   { label: "Ownership", status: profile?.is_ownership_verified },
                 ].map((l) => (
-                  <div key={l.label} className="rounded-xl border bg-background p-2.5 flex items-center justify-between">
+                  <div
+                    key={l.label}
+                    className="rounded-xl border bg-background p-2.5 flex items-center justify-between"
+                  >
                     <span>{l.label}</span>
-                    <span className={`font-bold ${l.status ? "text-emerald-500" : "text-muted-foreground/60"}`}>
+                    <span
+                      className={`font-bold ${l.status ? "text-emerald-500" : "text-muted-foreground/60"}`}
+                    >
                       {l.status ? "Verified" : "Pending/None"}
                     </span>
                   </div>
@@ -346,21 +357,30 @@ function Profile() {
               <Calendar className="h-4.5 w-4.5 text-primary" /> Scheduled Viewings
             </h2>
             {viewings.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground text-center py-4">No scheduled viewings yet.</p>
+              <p className="mt-3 text-xs text-muted-foreground text-center py-4">
+                No scheduled viewings yet.
+              </p>
             ) : (
               <div className="mt-3 space-y-3">
                 {viewings.map((v: any) => (
-                  <div key={v.id} className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4">
+                  <div
+                    key={v.id}
+                    className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4"
+                  >
                     <div>
                       <strong className="text-xs block font-semibold">{v.properties?.title}</strong>
                       <span className="text-[10px] text-muted-foreground block mt-0.5">
                         Date: {new Date(v.scheduled_at).toLocaleString()}
                       </span>
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
-                        v.status === "confirmed" ? "bg-emerald-500/10 text-emerald-600" :
-                        v.status === "cancelled" ? "bg-red-500/10 text-red-600" :
-                        "bg-amber-500/10 text-amber-600"
-                      }`}>
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
+                          v.status === "confirmed"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : v.status === "cancelled"
+                              ? "bg-red-500/10 text-red-600"
+                              : "bg-amber-500/10 text-amber-600"
+                        }`}
+                      >
                         {v.status.toUpperCase()}
                       </span>
                     </div>
@@ -384,18 +404,28 @@ function Profile() {
               <CreditCard className="h-4.5 w-4.5 text-primary" /> M-Pesa Transactions
             </h2>
             {transactions.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground text-center py-4">No transactions found.</p>
+              <p className="mt-3 text-xs text-muted-foreground text-center py-4">
+                No transactions found.
+              </p>
             ) : (
               <div className="mt-3 divide-y text-xs">
                 {transactions.map((t: any) => (
                   <div key={t.id} className="py-2.5 flex justify-between items-center">
                     <div>
-                      <strong className="font-semibold block capitalize">{t.payment_type.replace("_", " ")}</strong>
-                      <span className="text-[10px] text-muted-foreground">Receipt: {t.mpesa_receipt} · {new Date(t.created_at).toLocaleDateString()}</span>
+                      <strong className="font-semibold block capitalize">
+                        {t.payment_type.replace("_", " ")}
+                      </strong>
+                      <span className="text-[10px] text-muted-foreground">
+                        Receipt: {t.mpesa_receipt} · {new Date(t.created_at).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-primary">KES {t.amount_kes.toLocaleString()}</div>
-                      <span className="text-[9px] uppercase font-bold text-emerald-600">{t.status}</span>
+                      <div className="font-bold text-primary">
+                        KES {t.amount_kes.toLocaleString()}
+                      </div>
+                      <span className="text-[9px] uppercase font-bold text-emerald-600">
+                        {t.status}
+                      </span>
                     </div>
                   </div>
                 ))}

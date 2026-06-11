@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProperties } from "@/lib/properties";
-import { isCaretakerSignedIn } from "./caretaker.index";
+import { caretakerSignOut, isCaretakerSignedIn } from "./caretaker.index";
 import { Building2, ToggleLeft, Camera, Calendar, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,9 +37,16 @@ function CaretakerDashboard() {
       <header className="border-b bg-background px-5 py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <h1 className="font-display text-lg font-semibold">Caretaker dashboard</h1>
-          <Link to="/caretaker" className="text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              caretakerSignOut();
+              navigate({ to: "/caretaker" });
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
             Sign out
-          </Link>
+          </button>
         </div>
       </header>
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
@@ -63,7 +70,9 @@ function CaretakerDashboard() {
                   <p className="text-xs text-muted-foreground">{p.neighborhood}</p>
                   <span
                     className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      isVacant ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"
+                      isVacant
+                        ? "bg-amber-500/15 text-amber-700"
+                        : "bg-emerald-500/15 text-emerald-700"
                     }`}
                   >
                     {isVacant ? "Vacant" : "Occupied"}
@@ -90,7 +99,10 @@ function CaretakerDashboard() {
                 >
                   <Camera className="h-3.5 w-3.5" /> Building update
                 </button>
-                <button type="button" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                >
                   <Calendar className="h-3.5 w-3.5" /> Viewings
                 </button>
               </div>

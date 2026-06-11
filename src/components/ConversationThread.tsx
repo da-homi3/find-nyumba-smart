@@ -173,10 +173,7 @@ export function ConversationThread({
             <button
               key={text}
               type="button"
-              onClick={() => {
-                setDraft(text);
-                send.mutate(text);
-              }}
+              onClick={() => send.mutate(text)}
               className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-medium"
             >
               {text}

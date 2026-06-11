@@ -183,7 +183,11 @@ function LandlordAuthPanel() {
       </p>
       <p className="mt-4 text-center text-xs text-muted-foreground">
         Property manager?{" "}
-        <Link to="/auth" search={{ redirect: "/manager/dashboard" }} className="font-semibold text-primary">
+        <Link
+          to="/auth"
+          search={{ redirect: "/manager/dashboard" }}
+          className="font-semibold text-primary"
+        >
           Sign up as manager
         </Link>
         {" · "}

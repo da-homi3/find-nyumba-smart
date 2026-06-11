@@ -530,7 +530,10 @@ function TenantMap() {
           >
             <MapPin className="h-4 w-4" />
           </button>
-          <Link to="/tenant" className="rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
+          <Link
+            to="/tenant"
+            className="rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+          >
             List view
           </Link>
         </div>
@@ -538,7 +541,9 @@ function TenantMap() {
           <button
             onClick={() => setShowHeat((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur transition ${
-              showHeat ? "bg-gradient-gold text-gold-foreground" : "bg-background/90 text-foreground"
+              showHeat
+                ? "bg-gradient-gold text-gold-foreground"
+                : "bg-background/90 text-foreground"
             }`}
           >
             <Flame className="h-3.5 w-3.5" /> Rent heat
@@ -566,10 +571,16 @@ function TenantMap() {
       </div>
 
       {showWater && (
-        <div className="pointer-events-none absolute inset-0 z-[5] bg-blue-500/10 mix-blend-multiply" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0 z-[5] bg-blue-500/10 mix-blend-multiply"
+          aria-hidden
+        />
       )}
       {showSecurity && (
-        <div className="pointer-events-none absolute inset-0 z-[5] bg-red-500/10 mix-blend-multiply" aria-hidden />
+        <div
+          className="pointer-events-none absolute inset-0 z-[5] bg-red-500/10 mix-blend-multiply"
+          aria-hidden
+        />
       )}
 
       <aside
@@ -577,7 +588,11 @@ function TenantMap() {
           panelOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <button type="button" onClick={() => setPanelOpen((v) => !v)} className="mb-2 text-xs font-semibold text-primary">
+        <button
+          type="button"
+          onClick={() => setPanelOpen((v) => !v)}
+          className="mb-2 text-xs font-semibold text-primary"
+        >
           {panelOpen ? "Hide panel" : "Show"}
         </button>
         <div className="space-y-3">
@@ -588,7 +603,9 @@ function TenantMap() {
               onClick={() => setSelected(p)}
               className="flex w-full gap-2 rounded-xl border p-2 text-left hover:bg-secondary"
             >
-              {p.images[0] && <img src={p.images[0]} alt="" className="h-14 w-16 rounded-lg object-cover" />}
+              {p.images[0] && (
+                <img src={p.images[0]} alt="" className="h-14 w-16 rounded-lg object-cover" />
+              )}
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold">{p.title}</p>
                 <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>

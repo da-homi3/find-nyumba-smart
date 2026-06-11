@@ -9,8 +9,8 @@ export const listListings = createServerFn({ method: "GET" })
       limit: z.number().int().min(1).max(100).optional(),
       offset: z.number().int().min(0).optional(),
       minPrice: z.number().optional(),
-      maxPrice: z.number().optional()
-    })
+      maxPrice: z.number().optional(),
+    }),
   )
   .handler(async ({ context, data }: { context: any; data: any }) => {
     const kv = getKV(context);
@@ -39,8 +39,8 @@ export const createListing = createServerFn({ method: "POST" })
       address: z.string().min(1),
       lat: z.number(),
       lng: z.number(),
-      images: z.array(z.string()).optional()
-    })
+      images: z.array(z.string()).optional(),
+    }),
   )
   .handler(async ({ context, data }: { context: any; data: any }) => {
     const kv = getKV(context);
@@ -49,7 +49,7 @@ export const createListing = createServerFn({ method: "POST" })
       id,
       ...data,
       landlordId: (context as any).userId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     await kv.put(id, JSON.stringify(record));
     return record;

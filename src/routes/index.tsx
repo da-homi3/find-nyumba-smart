@@ -151,12 +151,27 @@ function SiteNav() {
 
 const HOOD_META: Record<string, { from: number; img: string }> = {
   Kilimani: { from: 18000, img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
-  Westlands: { from: 25000, img: "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=400" },
+  Westlands: {
+    from: 25000,
+    img: "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=400",
+  },
   Karen: { from: 50000, img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400" },
-  Lavington: { from: 45000, img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400" },
-  Kileleshwa: { from: 35000, img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400" },
-  Kasarani: { from: 12000, img: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=400" },
-  "South B": { from: 20000, img: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400" },
+  Lavington: {
+    from: 45000,
+    img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400",
+  },
+  Kileleshwa: {
+    from: 35000,
+    img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400",
+  },
+  Kasarani: {
+    from: 12000,
+    img: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=400",
+  },
+  "South B": {
+    from: 20000,
+    img: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400",
+  },
   Roysambu: { from: 8000, img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400" },
   Rongai: { from: 12000, img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400" },
   Ruaka: { from: 15000, img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400" },
@@ -309,7 +324,9 @@ function TrustStrip() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), { threshold: 0.3 });
+    const obs = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), {
+      threshold: 0.3,
+    });
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
@@ -407,14 +424,23 @@ function PopularNeighborhoods({ hoods }: { hoods: { name: string; count: number 
               >
                 {meta?.img && (
                   <div className="aspect-[16/9] overflow-hidden bg-muted">
-                    <img src={meta.img} alt="" className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                    <img
+                      src={meta.img}
+                      alt=""
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                      loading="lazy"
+                    />
                   </div>
                 )}
                 <div className="flex items-center justify-between p-4">
                   <div>
                     <div className="font-display text-base font-semibold">{h.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {meta ? `From KES ${meta.from.toLocaleString()}/mo` : h.count > 0 ? `${h.count} homes` : "Explore"}
+                      {meta
+                        ? `From KES ${meta.from.toLocaleString()}/mo`
+                        : h.count > 0
+                          ? `${h.count} homes`
+                          : "Explore"}
                     </div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -506,7 +532,9 @@ function PropertyIntelSection() {
   return (
     <section className="border-t bg-background">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Property intelligence</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+          Property intelligence
+        </p>
         <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
           Know before you visit
         </h2>
@@ -747,9 +775,15 @@ function SiteFooter() {
             © {new Date().getFullYear()} NyumbaSearch · Made in Nairobi 🇰🇪
           </p>
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <a href="#" className="hover:text-primary">Twitter</a>
-            <a href="#" className="hover:text-primary">LinkedIn</a>
-            <a href="#" className="hover:text-primary">Instagram</a>
+            <a href="#" className="hover:text-primary">
+              Twitter
+            </a>
+            <a href="#" className="hover:text-primary">
+              LinkedIn
+            </a>
+            <a href="#" className="hover:text-primary">
+              Instagram
+            </a>
           </div>
         </div>
       </div>

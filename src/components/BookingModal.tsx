@@ -50,8 +50,8 @@ export function BookingModal({
   const booking = useMutation({
     mutationFn: async () => {
       if (!date || !time) throw new Error("Please select a date and time");
-      const scheduledAt = new Date(`${date}T${time}`).toISOString();
-      await bookViewing({
+      const scheduledAt = new Date(`${date}T${time}:00+03:00`).toISOString();
+      const row = await bookViewing({
         data: {
           propertyId,
           landlordId,
@@ -59,7 +59,8 @@ export function BookingModal({
           notes: notes.trim() || undefined,
         },
       });
-      return `NV-${Date.now().toString(36).toUpperCase()}`;
+      const shortId = row.id.replace(/-/g, "").slice(0, 8).toUpperCase();
+      return `NV-${shortId}`;
     },
     onSuccess: (bookingRef) => {
       setRef(bookingRef);
@@ -159,7 +160,11 @@ export function BookingModal({
               })}
             </div>
             <div className="mt-4 flex gap-2">
-              <button type="button" onClick={() => setStep(1)} className="flex-1 rounded-xl border py-3 text-sm font-semibold">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="flex-1 rounded-xl border py-3 text-sm font-semibold"
+              >
                 Back
               </button>
               <button
@@ -193,7 +198,11 @@ export function BookingModal({
               />
             </label>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setStep(2)} className="flex-1 rounded-xl border py-3 text-sm font-semibold">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="flex-1 rounded-xl border py-3 text-sm font-semibold"
+              >
                 Back
               </button>
               <button
@@ -216,7 +225,11 @@ export function BookingModal({
             {propertyAddress && (
               <p className="mt-2 text-xs text-muted-foreground">{propertyAddress}</p>
             )}
-            <button type="button" onClick={reset} className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground">
+            <button
+              type="button"
+              onClick={reset}
+              className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            >
               Done
             </button>
           </div>

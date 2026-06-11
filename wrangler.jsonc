@@ -8,17 +8,17 @@
   "account_id": "2f9ae70dfb228529cc5e91d230ab2cfc",
   "assets": {
     "binding": "ASSETS",
-    "directory": "dist/client"
+    "directory": "dist/client",
   },
   "no_bundle": true,
   "vars": {
     "SUPABASE_URL": "https://fnycwcbxorhreidhbers.supabase.co",
-    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZueWN3Y2J4b3JocmVpZGhiZXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDg3MTQsImV4cCI6MjA5NTkyNDcxNH0.nGqWeqyJKH_tGRXFTc2JsvXBlq2rkDnNrbpwYUOdvdI"
+    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZueWN3Y2J4b3JocmVpZGhiZXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDg3MTQsImV4cCI6MjA5NTkyNDcxNH0.nGqWeqyJKH_tGRXFTc2JsvXBlq2rkDnNrbpwYUOdvdI",
   },
   "rules": [
     {
       "type": "ESModule",
-      "globs": ["**/*.mjs", "**/*.js"]
+      "globs": ["**/*.mjs", "**/*.js"],
     },
-  ]
+  ],
 }

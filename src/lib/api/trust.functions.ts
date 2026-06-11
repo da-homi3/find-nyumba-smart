@@ -33,7 +33,7 @@ export const submitVerification = createServerFn({ method: "POST" })
   .inputValidator(submitVerificationSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
-    
+
     const { data: row, error } = await supabase
       .from("verifications")
       .insert({
@@ -58,9 +58,9 @@ export const reportScam = createServerFn({ method: "POST" })
 
     // Auto-moderation check: flag if keywords include typical rental scams
     const lowercaseDetails = (data.details ?? "").toLowerCase();
-    const isAutoFlagged = 
-      lowercaseDetails.includes("viewing fee") || 
-      lowercaseDetails.includes("pay before") || 
+    const isAutoFlagged =
+      lowercaseDetails.includes("viewing fee") ||
+      lowercaseDetails.includes("pay before") ||
       lowercaseDetails.includes("booking fee") ||
       data.reason.toLowerCase().includes("viewing fee");
 
@@ -95,10 +95,7 @@ export const reportScam = createServerFn({ method: "POST" })
     // If auto-flagged, set property is_active to false until landlord reviews
     if (isAutoFlagged) {
       const admin = await adminClient();
-      await admin
-        .from("properties")
-        .update({ is_active: false })
-        .eq("id", data.propertyId);
+      await admin.from("properties").update({ is_active: false }).eq("id", data.propertyId);
     }
 
     return { report: row, autoFlagged: isAutoFlagged };
@@ -109,7 +106,7 @@ export const checkListingDuplicates = createServerFn({ method: "POST" })
   .inputValidator(z.object({ propertyId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
     const { supabase } = getContext(context);
-    
+
     // Fetch property details
     const { data: property, error: pErr } = await supabase
       .from("properties")

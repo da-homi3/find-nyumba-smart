@@ -145,20 +145,17 @@ async function notifyInquiryParticipant(
   senderId: string,
   body: string,
 ) {
-  const recipientId =
-    inquiry.tenant_id === senderId ? inquiry.landlord_id : inquiry.tenant_id;
+  const recipientId = inquiry.tenant_id === senderId ? inquiry.landlord_id : inquiry.tenant_id;
   if (!recipientId) return;
   const admin = await adminClient();
-  const [{ data: senderProfile }, { data: recipientProfile }, recipientAuth] =
-    await Promise.all([
-      admin.from("profiles").select("full_name").eq("id", senderId).maybeSingle(),
-      admin.from("profiles").select("full_name").eq("id", recipientId).maybeSingle(),
-      admin.auth.admin.getUserById(recipientId),
-    ]);
+  const [{ data: senderProfile }, { data: recipientProfile }, recipientAuth] = await Promise.all([
+    admin.from("profiles").select("full_name").eq("id", senderId).maybeSingle(),
+    admin.from("profiles").select("full_name").eq("id", recipientId).maybeSingle(),
+    admin.auth.admin.getUserById(recipientId),
+  ]);
 
   const { notifyNewMessage } = await import("@/lib/api/notify");
-  const baseUrl =
-    process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+  const baseUrl = process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
   const threadPath =
     inquiry.tenant_id === recipientId
       ? `/tenant/messages/${inquiry.id}`
@@ -453,14 +450,27 @@ export const listLandlordLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
-    await requireRole(supabase, userId, "landlord");
-    const { data, error } = await supabase
+    await requireRole(supabase, userId, ["landlord", "manager"]);
+
+    const { data: roleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const ownedRoles = new Set((roleRows ?? []).map((r) => r.role));
+    const managerOnly = ownedRoles.has("manager") && !ownedRoles.has("landlord");
+
+    let query = supabase
       .from("inquiries")
       .select(
         "*, properties(id,title,neighborhood,rent_kes,images), profiles:tenant_id(id,full_name,phone,avatar_url), inquiry_messages(*)",
       )
-      .eq("landlord_id", userId)
       .order("updated_at", { ascending: false });
+
+    if (!managerOnly) {
+      query = query.eq("landlord_id", userId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return (data ?? []) as unknown as InquiryWithDetails[];
@@ -522,8 +532,7 @@ export const getInquiryThread = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
     const inquiry = await assertInquiryParticipant(supabase, userId, data.inquiryId);
-    const counterpartyId =
-      inquiry.tenant_id === userId ? inquiry.landlord_id : inquiry.tenant_id;
+    const counterpartyId = inquiry.tenant_id === userId ? inquiry.landlord_id : inquiry.tenant_id;
     if (!counterpartyId) throw new Error("Conversation participant missing");
     const { data: counterparty } = await supabase
       .from("profiles")

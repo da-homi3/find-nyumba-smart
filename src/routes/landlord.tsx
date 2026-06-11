@@ -37,4 +37,3 @@ function LandlordLayout() {
 
   return <Outlet />;
 }
-

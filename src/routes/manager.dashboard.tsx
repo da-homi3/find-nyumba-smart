@@ -34,7 +34,9 @@ function ManagerDashboard() {
       <header className="border-b bg-foreground px-5 py-4 text-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-background/60">Property manager</p>
+            <p className="text-[10px] uppercase tracking-wider text-background/60">
+              Property manager
+            </p>
             <h1 className="font-display text-lg font-semibold">Portfolio overview</h1>
           </div>
           <Link to="/landlord/leads" search={{ thread: undefined }} className="text-sm text-gold">
@@ -47,7 +49,10 @@ function ManagerDashboard() {
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard label="Properties managed" value={String(total)} />
           <StatCard label="Total units" value={String(total)} />
-          <StatCard label="Occupancy rate" value={`${total ? Math.round((occupied / total) * 100) : 0}%`} />
+          <StatCard
+            label="Occupancy rate"
+            value={`${total ? Math.round((occupied / total) * 100) : 0}%`}
+          />
         </div>
 
         <section>
@@ -87,7 +92,10 @@ function ManagerDashboard() {
                     .filter((_, i) => i % PIPELINE.length === ci)
                     .slice(0, 2)
                     .map((p) => (
-                      <div key={p.id} className="rounded-lg bg-secondary p-2 text-[11px] font-medium">
+                      <div
+                        key={p.id}
+                        className="rounded-lg bg-secondary p-2 text-[11px] font-medium"
+                      >
                         {p.neighborhood} · {p.title.slice(0, 20)}…
                       </div>
                     ))}
@@ -103,9 +111,15 @@ function ManagerDashboard() {
             Tenant inquiries
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user ? "Open the unified inbox to reply across all managed properties." : "Sign in as a property manager to view inquiries."}
+            {user
+              ? "Open the unified inbox to reply across all managed properties."
+              : "Sign in as a property manager to view inquiries."}
           </p>
-          <Link to="/landlord/leads" search={{ thread: undefined }} className="mt-4 inline-block text-sm font-semibold text-primary">
+          <Link
+            to="/landlord/leads"
+            search={{ thread: undefined }}
+            className="mt-4 inline-block text-sm font-semibold text-primary"
+          >
             Go to inbox →
           </Link>
         </section>

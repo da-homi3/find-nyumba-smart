@@ -19,12 +19,7 @@ export const PLANS = [
     price: "KES 999",
     period: "/mo",
     desc: "For active landlords with multiple units.",
-    features: [
-      "Up to 10 listings",
-      "Full analytics",
-      "Priority support",
-      "Featured listing slot",
-    ],
+    features: ["Up to 10 listings", "Full analytics", "Priority support", "Featured listing slot"],
     cta: "Upgrade to Pro",
     ctaTo: "/landlord/dashboard/plan",
     highlighted: true,

@@ -25,7 +25,8 @@ export function VerificationBadge({ level, showText = true }: VerificationBadgeP
       icon: Building,
     },
     4: {
-      color: "bg-gradient-gold/10 text-amber-600 dark:text-amber-400 border-amber-500/25 bg-amber-500/15",
+      color:
+        "bg-gradient-gold/10 text-amber-600 dark:text-amber-400 border-amber-500/25 bg-amber-500/15",
       label: "Ownership Verified",
       icon: ShieldCheck,
     },

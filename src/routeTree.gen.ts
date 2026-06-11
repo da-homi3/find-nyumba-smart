@@ -20,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantIndexRouteImport } from './routes/tenant.index'
+import { Route as ManagerIndexRouteImport } from './routes/manager.index'
 import { Route as LandlordIndexRouteImport } from './routes/landlord.index'
 import { Route as CaretakerIndexRouteImport } from './routes/caretaker.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -34,6 +35,7 @@ import { Route as LandlordDashboardRouteImport } from './routes/landlord.dashboa
 import { Route as LandlordAnalyticsRouteImport } from './routes/landlord.analytics'
 import { Route as CaretakerDashboardRouteImport } from './routes/caretaker.dashboard'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
+import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
 import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
 import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
@@ -93,6 +95,11 @@ const TenantIndexRoute = TenantIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => TenantRoute,
+} as any)
+const ManagerIndexRoute = ManagerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManagerRoute,
 } as any)
 const LandlordIndexRoute = LandlordIndexRouteImport.update({
   id: '/',
@@ -164,6 +171,11 @@ const AuthResetRoute = AuthResetRouteImport.update({
   path: '/reset',
   getParentRoute: () => AuthRoute,
 } as any)
+const TenantReviewPropertyIdRoute = TenantReviewPropertyIdRouteImport.update({
+  id: '/review/$propertyId',
+  path: '/review/$propertyId',
+  getParentRoute: () => TenantRoute,
+} as any)
 const TenantPropertyIdRoute = TenantPropertyIdRouteImport.update({
   id: '/property/$id',
   path: '/property/$id',
@@ -210,18 +222,19 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/caretaker/': typeof CaretakerIndexRoute
   '/landlord/': typeof LandlordIndexRoute
+  '/manager/': typeof ManagerIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
+  '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
-  '/manager': typeof ManagerRouteWithChildren
   '/pricing': typeof PricingRoute
   '/auth/reset': typeof AuthResetRoute
   '/caretaker/dashboard': typeof CaretakerDashboardRoute
@@ -237,11 +250,13 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/caretaker': typeof CaretakerIndexRoute
   '/landlord': typeof LandlordIndexRoute
+  '/manager': typeof ManagerIndexRoute
   '/tenant': typeof TenantIndexRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
+  '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -269,11 +284,13 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/caretaker/': typeof CaretakerIndexRoute
   '/landlord/': typeof LandlordIndexRoute
+  '/manager/': typeof ManagerIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
+  '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -302,18 +319,19 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/caretaker/'
     | '/landlord/'
+    | '/manager/'
     | '/tenant/'
     | '/landlord/dashboard/plan'
     | '/landlord/properties/new'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
+    | '/tenant/review/$propertyId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/auth'
     | '/contact'
-    | '/manager'
     | '/pricing'
     | '/auth/reset'
     | '/caretaker/dashboard'
@@ -329,11 +347,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/caretaker'
     | '/landlord'
+    | '/manager'
     | '/tenant'
     | '/landlord/dashboard/plan'
     | '/landlord/properties/new'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
+    | '/tenant/review/$propertyId'
   id:
     | '__root__'
     | '/'
@@ -360,11 +380,13 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/caretaker/'
     | '/landlord/'
+    | '/manager/'
     | '/tenant/'
     | '/landlord/dashboard/plan'
     | '/landlord/properties/new'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
+    | '/tenant/review/$propertyId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -458,6 +480,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tenant/'
       preLoaderRoute: typeof TenantIndexRouteImport
       parentRoute: typeof TenantRoute
+    }
+    '/manager/': {
+      id: '/manager/'
+      path: '/'
+      fullPath: '/manager/'
+      preLoaderRoute: typeof ManagerIndexRouteImport
+      parentRoute: typeof ManagerRoute
     }
     '/landlord/': {
       id: '/landlord/'
@@ -556,6 +585,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/reset'
       preLoaderRoute: typeof AuthResetRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/tenant/review/$propertyId': {
+      id: '/tenant/review/$propertyId'
+      path: '/review/$propertyId'
+      fullPath: '/tenant/review/$propertyId'
+      preLoaderRoute: typeof TenantReviewPropertyIdRouteImport
+      parentRoute: typeof TenantRoute
     }
     '/tenant/property/$id': {
       id: '/tenant/property/$id'
@@ -666,10 +702,12 @@ const LandlordRouteWithChildren = LandlordRoute._addFileChildren(
 
 interface ManagerRouteChildren {
   ManagerDashboardRoute: typeof ManagerDashboardRoute
+  ManagerIndexRoute: typeof ManagerIndexRoute
 }
 
 const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerDashboardRoute: ManagerDashboardRoute,
+  ManagerIndexRoute: ManagerIndexRoute,
 }
 
 const ManagerRouteWithChildren =
@@ -694,6 +732,7 @@ interface TenantRouteChildren {
   TenantSavedRoute: typeof TenantSavedRoute
   TenantIndexRoute: typeof TenantIndexRoute
   TenantPropertyIdRoute: typeof TenantPropertyIdRoute
+  TenantReviewPropertyIdRoute: typeof TenantReviewPropertyIdRoute
 }
 
 const TenantRouteChildren: TenantRouteChildren = {
@@ -703,6 +742,7 @@ const TenantRouteChildren: TenantRouteChildren = {
   TenantSavedRoute: TenantSavedRoute,
   TenantIndexRoute: TenantIndexRoute,
   TenantPropertyIdRoute: TenantPropertyIdRoute,
+  TenantReviewPropertyIdRoute: TenantReviewPropertyIdRoute,
 }
 
 const TenantRouteWithChildren =

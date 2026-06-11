@@ -1,19 +1,37 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Star, MessageSquare, Plus, CheckCircle, ShieldAlert } from "lucide-react";
+import { Star, MessageSquare, Plus } from "lucide-react";
 import { listPropertyReviews, createPropertyReview } from "@/lib/api/reviews.functions";
 import { toast } from "sonner";
+
+interface PropertyReview {
+  id: string;
+  created_at: string;
+  rating_overall: number;
+  water_reliability: number;
+  security_rating: number;
+  internet_reliability: number;
+  cleanliness: number;
+  comment?: string | null;
+  profiles?: { full_name?: string | null; avatar_url?: string | null } | null;
+}
 
 interface PropertyReviewsSectionProps {
   propertyId: string;
   userId?: string;
   isTenant: boolean;
+  showFormInitially?: boolean;
 }
 
-export function PropertyReviewsSection({ propertyId, userId, isTenant }: PropertyReviewsSectionProps) {
+export function PropertyReviewsSection({
+  propertyId,
+  userId,
+  isTenant,
+  showFormInitially = false,
+}: PropertyReviewsSectionProps) {
   const qc = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  
+  const [showForm, setShowForm] = useState(showFormInitially);
+
   // Review metrics state
   const [ratingOverall, setRatingOverall] = useState(5);
   const [water, setWater] = useState(5);
@@ -46,7 +64,7 @@ export function PropertyReviewsSection({ propertyId, userId, isTenant }: Propert
       });
     },
     onSuccess: () => {
-      toast.success("Review submitted successfully!");
+      toast.success("Thanks! Your review is live and helps other tenants.");
       qc.invalidateQueries({ queryKey: ["property-reviews", propertyId] });
       qc.invalidateQueries({ queryKey: ["property", propertyId] });
       setShowForm(false);
@@ -59,13 +77,16 @@ export function PropertyReviewsSection({ propertyId, userId, isTenant }: Propert
   });
 
   // Calculate averages
-  const count = reviews.length;
+  const typedReviews = reviews as PropertyReview[];
+  const count = typedReviews.length;
+  const avg = (pick: (r: PropertyReview) => number) =>
+    count ? (typedReviews.reduce((acc, r) => acc + pick(r), 0) / count).toFixed(1) : "—";
   const averages = {
-    overall: count ? (reviews.reduce((acc: number, r: any) => acc + Number(r.rating_overall), 0) / count).toFixed(1) : "—",
-    water: count ? (reviews.reduce((acc: number, r: any) => acc + r.water_reliability, 0) / count).toFixed(1) : "—",
-    security: count ? (reviews.reduce((acc: number, r: any) => acc + r.security_rating, 0) / count).toFixed(1) : "—",
-    internet: count ? (reviews.reduce((acc: number, r: any) => acc + r.internet_reliability, 0) / count).toFixed(1) : "—",
-    cleanliness: count ? (reviews.reduce((acc: number, r: any) => acc + r.cleanliness, 0) / count).toFixed(1) : "—",
+    overall: avg((r) => Number(r.rating_overall)),
+    water: avg((r) => r.water_reliability),
+    security: avg((r) => r.security_rating),
+    internet: avg((r) => r.internet_reliability),
+    cleanliness: avg((r) => r.cleanliness),
   };
 
   return (
@@ -95,7 +116,9 @@ export function PropertyReviewsSection({ propertyId, userId, isTenant }: Propert
       <div className="mt-4 grid grid-cols-2 gap-4 rounded-2xl border bg-card p-4 sm:grid-cols-5">
         <div className="text-center sm:border-r">
           <div className="font-display text-3xl font-bold text-primary">{averages.overall}</div>
-          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-1">Overall</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-1">
+            Overall
+          </div>
         </div>
         <div className="text-center sm:border-r">
           <div className="text-sm font-semibold">{averages.water} / 5</div>
@@ -189,19 +212,25 @@ export function PropertyReviewsSection({ propertyId, userId, isTenant }: Propert
             No reviews yet. Be the first to share an experience!
           </div>
         ) : (
-          reviews.map((r: any) => (
+          typedReviews.map((r) => (
             <div key={r.id} className="rounded-2xl border bg-card p-4 shadow-soft">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-secondary overflow-hidden flex items-center justify-center font-bold text-xs text-secondary-foreground">
                     {r.profiles?.avatar_url ? (
-                      <img src={r.profiles.avatar_url} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={r.profiles.avatar_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       (r.profiles?.full_name ?? "T").charAt(0)
                     )}
                   </div>
                   <div>
-                    <div className="text-xs font-semibold">{r.profiles?.full_name ?? "Anonymous Tenant"}</div>
+                    <div className="text-xs font-semibold">
+                      {r.profiles?.full_name ?? "Anonymous Tenant"}
+                    </div>
                     <div className="text-[10px] text-muted-foreground">
                       {new Date(r.created_at).toLocaleDateString()}
                     </div>
@@ -211,7 +240,9 @@ export function PropertyReviewsSection({ propertyId, userId, isTenant }: Propert
                   <Star className="h-3 w-3 fill-current" /> {r.rating_overall}
                 </div>
               </div>
-              {r.comment && <p className="mt-3 text-xs leading-relaxed text-foreground/80">{r.comment}</p>}
+              {r.comment && (
+                <p className="mt-3 text-xs leading-relaxed text-foreground/80">{r.comment}</p>
+              )}
             </div>
           ))
         )}

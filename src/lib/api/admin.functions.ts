@@ -19,14 +19,16 @@ export const listAdminVerifications = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("verifications")
-      .select(`
+      .select(
+        `
         *,
         profiles:user_id (
           full_name,
           phone,
           avatar_url
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -35,11 +37,13 @@ export const listAdminVerifications = createServerFn({ method: "GET" })
 
 export const updateVerificationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({
-    id: z.string().uuid(),
-    status: z.enum(["approved", "rejected"]),
-    notes: z.string().optional(),
-  }))
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["approved", "rejected"]),
+      notes: z.string().optional(),
+    }),
+  )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
     await requireRole(supabase, userId, "admin");
@@ -72,7 +76,8 @@ export const listAdminScamReports = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("scam_reports")
-      .select(`
+      .select(
+        `
         *,
         properties (
           title,
@@ -82,7 +87,8 @@ export const listAdminScamReports = createServerFn({ method: "GET" })
         reporter:reporter_id (
           full_name
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -91,10 +97,12 @@ export const listAdminScamReports = createServerFn({ method: "GET" })
 
 export const updateScamReportStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({
-    id: z.string().uuid(),
-    status: z.enum(["reviewed", "dismissed"]),
-  }))
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["reviewed", "dismissed"]),
+    }),
+  )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
     await requireRole(supabase, userId, "admin");
@@ -127,12 +135,14 @@ export const listAdminAuditLogs = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("admin_audit_logs")
-      .select(`
+      .select(
+        `
         *,
         admin:admin_id (
           full_name
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;

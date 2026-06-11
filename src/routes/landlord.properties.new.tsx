@@ -160,9 +160,7 @@ function Page() {
       return {
         images: uploadedImagePaths.map((p) => map.get(p)!).filter(Boolean),
         video_url: videoPath ? (map.get(videoPath) ?? null) : null,
-        tour_url: tourPath
-          ? (map.get(tourPath) ?? null)
-          : form.tour_url.trim() || null,
+        tour_url: tourPath ? (map.get(tourPath) ?? null) : form.tour_url.trim() || null,
       };
     } finally {
       setUploading(false);
@@ -224,6 +222,30 @@ function Page() {
 
   const busy = loading || uploading;
 
+  function validateStep(current: number): boolean {
+    if (current === 0) {
+      if (!form.title.trim() || !form.neighborhood.trim()) {
+        toast.error("Title and neighborhood are required");
+        return false;
+      }
+    }
+    if (current === 2 && form.rent_kes <= 0) {
+      toast.error("Enter a valid monthly rent");
+      return false;
+    }
+    if (current === 4 && imageFiles.length === 0) {
+      toast.error("Add at least one photo");
+      return false;
+    }
+    return true;
+  }
+
+  function goNext(e: FormEvent) {
+    e.preventDefault();
+    if (!validateStep(step)) return;
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">Add a property</h1>
@@ -243,238 +265,280 @@ function Page() {
       </div>
 
       <form
-        onSubmit={step < STEPS.length - 1 ? (e) => { e.preventDefault(); setStep((s) => Math.min(s + 1, STEPS.length - 1)); } : onSubmit}
+        onSubmit={step < STEPS.length - 1 ? goNext : onSubmit}
         className="mt-8 space-y-5 rounded-2xl border bg-card p-6 shadow-soft"
       >
-        <Row>
-          <Field label="Title" full>
-            <input
-              required
-              value={form.title}
-              onChange={(e) => update("title", e.target.value)}
-              placeholder="e.g. Modern 2BR with City Views"
-              className={inputCls}
-            />
-          </Field>
-        </Row>
-
-        <Row>
-          <Field label="Type">
-            <select
-              value={form.property_type}
-              onChange={(e) => update("property_type", e.target.value as PropertyType)}
-              className={inputCls}
-            >
-              {(
-                [
-                  "bedsitter",
-                  "single_room",
-                  "studio",
-                  "one_bedroom",
-                  "two_bedroom",
-                  "three_bedroom",
-                  "hostel",
-                  "maisonette",
-                  "bungalow",
-                  "townhouse",
-                ] as PropertyType[]
-              ).map((t) => (
-                <option key={t} value={t}>
-                  {t.replace("_", " ")}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Neighborhood">
-            <input
-              required
-              value={form.neighborhood}
-              onChange={(e) => update("neighborhood", e.target.value)}
-              placeholder="Kilimani"
-              className={inputCls}
-            />
-          </Field>
-        </Row>
-
-        <Row>
-          <Field label="Address" full>
-            <input
-              value={form.address}
-              onChange={(e) => update("address", e.target.value)}
-              placeholder="Street, building"
-              className={inputCls}
-            />
-          </Field>
-        </Row>
-
-        <Row>
-          <Field label="Rent (KES/mo)">
-            <input
-              required
-              type="number"
-              value={form.rent_kes || ""}
-              onChange={(e) => update("rent_kes", Number(e.target.value))}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Deposit (KES)">
-            <input
-              type="number"
-              value={form.deposit_kes || ""}
-              onChange={(e) => update("deposit_kes", Number(e.target.value))}
-              className={inputCls}
-            />
-          </Field>
-        </Row>
-
-        <Row>
-          <Field label="Bedrooms">
-            <input
-              type="number"
-              value={form.bedrooms}
-              onChange={(e) => update("bedrooms", Number(e.target.value))}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Bathrooms">
-            <input
-              type="number"
-              value={form.bathrooms}
-              onChange={(e) => update("bathrooms", Number(e.target.value))}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Area (m²)">
-            <input
-              type="number"
-              value={form.area_sqm || ""}
-              onChange={(e) => update("area_sqm", Number(e.target.value))}
-              className={inputCls}
-            />
-          </Field>
-        </Row>
-
-        <Field label="Amenities (comma separated)" full>
-          <input
-            value={form.amenities}
-            onChange={(e) => update("amenities", e.target.value)}
-            placeholder="WiFi, Borehole, Parking"
-            className={inputCls}
-          />
-        </Field>
-
-        <Field label="Description" full>
-          <textarea
-            rows={4}
-            value={form.description}
-            onChange={(e) => update("description", e.target.value)}
-            className={inputCls}
-          />
-        </Field>
-
-        {/* Media */}
-        <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
-          <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-            <ImageIcon className="h-4 w-4" /> Photos
-            <span className="text-xs font-normal text-muted-foreground">
-              Up to 15, max {MAX_IMG_MB}MB each
-            </span>
-          </h3>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={onPickImages}
-            className="mt-2 block w-full text-xs"
-          />
-          {imageFiles.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {imageFiles.map((f, i) => (
-                <div
-                  key={i}
-                  className="group relative aspect-square overflow-hidden rounded-lg border bg-background"
+        {step === 0 && (
+          <>
+            <Row>
+              <Field label="Title" full>
+                <input
+                  required
+                  value={form.title}
+                  onChange={(e) => update("title", e.target.value)}
+                  placeholder="e.g. Modern 2BR with City Views"
+                  className={inputCls}
+                />
+              </Field>
+            </Row>
+            <Row>
+              <Field label="Type">
+                <select
+                  value={form.property_type}
+                  onChange={(e) => update("property_type", e.target.value as PropertyType)}
+                  className={inputCls}
                 >
-                  <img
-                    src={URL.createObjectURL(f)}
-                    alt={f.name}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImageFiles((p) => p.filter((_, j) => j !== i))}
-                    className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-background opacity-0 transition group-hover:opacity-100"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {(
+                    [
+                      "bedsitter",
+                      "single_room",
+                      "studio",
+                      "one_bedroom",
+                      "two_bedroom",
+                      "three_bedroom",
+                      "hostel",
+                      "maisonette",
+                      "bungalow",
+                      "townhouse",
+                    ] as PropertyType[]
+                  ).map((t) => (
+                    <option key={t} value={t}>
+                      {t.replace("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Neighborhood">
+                <input
+                  required
+                  value={form.neighborhood}
+                  onChange={(e) => update("neighborhood", e.target.value)}
+                  placeholder="Kilimani"
+                  className={inputCls}
+                />
+              </Field>
+            </Row>
+            <Row>
+              <Field label="Address" full>
+                <input
+                  value={form.address}
+                  onChange={(e) => update("address", e.target.value)}
+                  placeholder="Street, building"
+                  className={inputCls}
+                />
+              </Field>
+            </Row>
+          </>
+        )}
+
+        {step === 1 && (
+          <>
+            <Row>
+              <Field label="Bedrooms">
+                <input
+                  type="number"
+                  value={form.bedrooms}
+                  onChange={(e) => update("bedrooms", Number(e.target.value))}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Bathrooms">
+                <input
+                  type="number"
+                  value={form.bathrooms}
+                  onChange={(e) => update("bathrooms", Number(e.target.value))}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Area (m²)">
+                <input
+                  type="number"
+                  value={form.area_sqm || ""}
+                  onChange={(e) => update("area_sqm", Number(e.target.value))}
+                  className={inputCls}
+                />
+              </Field>
+            </Row>
+            <Field label="Amenities (comma separated)" full>
+              <input
+                value={form.amenities}
+                onChange={(e) => update("amenities", e.target.value)}
+                placeholder="WiFi, Borehole, Parking"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Description" full>
+              <textarea
+                rows={4}
+                value={form.description}
+                onChange={(e) => update("description", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+          </>
+        )}
+
+        {step === 2 && (
+          <Row>
+            <Field label="Rent (KES/mo)">
+              <input
+                required
+                type="number"
+                value={form.rent_kes || ""}
+                onChange={(e) => update("rent_kes", Number(e.target.value))}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Deposit (KES)">
+              <input
+                type="number"
+                value={form.deposit_kes || ""}
+                onChange={(e) => update("deposit_kes", Number(e.target.value))}
+                className={inputCls}
+              />
+            </Field>
+          </Row>
+        )}
+
+        {step === 3 && (
+          <div className="rounded-xl border bg-secondary/40 p-4 text-sm text-muted-foreground">
+            <p className="font-semibold text-foreground">Property intelligence</p>
+            <p className="mt-2">
+              After publishing, NyumbaSearch will score water reliability, security, and trust for
+              this neighborhood. You can refine attributes from your dashboard later.
+            </p>
+          </div>
+        )}
+
+        {step === 4 && (
+          <>
+            <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
+              <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+                <ImageIcon className="h-4 w-4" /> Photos
+                <span className="text-xs font-normal text-muted-foreground">
+                  Up to 15, max {MAX_IMG_MB}MB each
+                </span>
+              </h3>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={onPickImages}
+                className="mt-2 block w-full text-xs"
+              />
+              {imageFiles.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                  {imageFiles.map((f, i) => (
+                    <div
+                      key={i}
+                      className="group relative aspect-square overflow-hidden rounded-lg border bg-background"
+                    >
+                      <img
+                        src={URL.createObjectURL(f)}
+                        alt={f.name}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImageFiles((p) => p.filter((_, j) => j !== i))}
+                        className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-background opacity-0 transition group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
-            <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-              <Film className="h-4 w-4" /> Walkthrough video
-              <span className="text-xs font-normal text-muted-foreground">
-                Max {MAX_VIDEO_MB}MB
-              </span>
-            </h3>
-            <input
-              type="file"
-              accept="video/*"
-              onChange={onPickVideo}
-              className="mt-2 block w-full text-xs"
-            />
-            {videoFile && (
-              <p className="mt-2 truncate text-xs text-muted-foreground">
-                {videoFile.name} · {(videoFile.size / 1024 / 1024).toFixed(1)}MB
-                <button
-                  type="button"
-                  onClick={() => setVideoFile(null)}
-                  className="ml-2 text-destructive underline"
-                >
-                  remove
-                </button>
-              </p>
-            )}
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
+                <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+                  <Film className="h-4 w-4" /> Walkthrough video
+                  <span className="text-xs font-normal text-muted-foreground">
+                    Max {MAX_VIDEO_MB}MB
+                  </span>
+                </h3>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={onPickVideo}
+                  className="mt-2 block w-full text-xs"
+                />
+                {videoFile && (
+                  <p className="mt-2 truncate text-xs text-muted-foreground">
+                    {videoFile.name} · {(videoFile.size / 1024 / 1024).toFixed(1)}MB
+                    <button
+                      type="button"
+                      onClick={() => setVideoFile(null)}
+                      className="ml-2 text-destructive underline"
+                    >
+                      remove
+                    </button>
+                  </p>
+                )}
+              </div>
 
-          <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
-            <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-              <Compass className="h-4 w-4" /> 360° tour
-            </h3>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onPickTour}
-              className="mt-2 block w-full text-xs"
-            />
-            {tourFile && (
-              <p className="mt-2 truncate text-xs text-muted-foreground">
-                {tourFile.name}
-                <button
-                  type="button"
-                  onClick={() => setTourFile(null)}
-                  className="ml-2 text-destructive underline"
-                >
-                  remove
-                </button>
-              </p>
-            )}
-            <input
-              type="url"
-              value={form.tour_url}
-              onChange={(e) => update("tour_url", e.target.value)}
-              placeholder="Or paste Matterport URL"
-              className={`${inputCls} mt-2`}
-            />
+              <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
+                <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
+                  <Compass className="h-4 w-4" /> 360° tour
+                </h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onPickTour}
+                  className="mt-2 block w-full text-xs"
+                />
+                {tourFile && (
+                  <p className="mt-2 truncate text-xs text-muted-foreground">
+                    {tourFile.name}
+                    <button
+                      type="button"
+                      onClick={() => setTourFile(null)}
+                      className="ml-2 text-destructive underline"
+                    >
+                      remove
+                    </button>
+                  </p>
+                )}
+                <input
+                  type="url"
+                  value={form.tour_url}
+                  onChange={(e) => update("tour_url", e.target.value)}
+                  placeholder="Or paste Matterport URL"
+                  className={`${inputCls} mt-2`}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-3 text-sm">
+            <p className="font-semibold">Review your listing</p>
+            <ul className="space-y-1 text-muted-foreground">
+              <li>
+                <span className="text-foreground">{form.title || "Untitled"}</span> ·{" "}
+                {form.neighborhood || "No neighborhood"}
+              </li>
+              <li>
+                {form.bedrooms} bed · {form.bathrooms} bath · KES {form.rent_kes.toLocaleString()}
+                /mo
+              </li>
+              <li>
+                {imageFiles.length} photo(s){videoFile ? " · video attached" : ""}
+              </li>
+            </ul>
           </div>
-        </div>
+        )}
 
         <div className="flex gap-2">
           {step > 0 && (
-            <button type="button" onClick={() => setStep((s) => s - 1)} className="flex-1 rounded-xl border py-3 text-sm font-semibold">
+            <button
+              type="button"
+              onClick={() => setStep((s) => s - 1)}
+              className="flex-1 rounded-xl border py-3 text-sm font-semibold"
+            >
               Back
             </button>
           )}

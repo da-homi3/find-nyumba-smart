@@ -1,22 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import {
-  BedDouble,
-  Bath,
-  MapPin,
-  Flame,
-  Heart,
-  Droplets,
-  Shield,
-  Wifi,
-  Car,
-} from "lucide-react";
+import { BedDouble, Bath, MapPin, Flame, Heart, Droplets, Shield, Wifi, Car } from "lucide-react";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { VerificationBadge } from "@/components/VerificationBadge";
-import {
-  formatVerifiedAgo,
-  getListingIntel,
-  verificationLevel,
-} from "@/lib/listing-intel";
+import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/listing-intel";
 
 type Props = {
   p: Property;

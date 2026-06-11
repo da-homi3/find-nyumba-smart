@@ -3,17 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { LandlordShell } from "@/components/LandlordShell";
-import { 
-  Building2, 
-  Eye, 
-  Users, 
-  TrendingUp, 
-  Plus, 
-  Calendar, 
-  Sparkles, 
+import {
+  Building2,
+  Eye,
+  Users,
+  TrendingUp,
+  Plus,
+  Calendar,
+  Sparkles,
   Smartphone,
   Check,
-  X
+  X,
 } from "lucide-react";
 import { getLandlordDashboard } from "@/lib/api/nyumba.functions";
 import { listMyViewings, updateViewingStatus } from "@/lib/api/booking.functions";
@@ -157,11 +157,14 @@ function Dashboard() {
               Boost Your Listing
             </h3>
             <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              Featuring your property puts it at the top of the feed, marks it as Level 2 Verified, and raises the Authenticity Score. Costs KES 1,000.
+              Featuring your property puts it at the top of the feed, marks it as Level 2 Verified,
+              and raises the Authenticity Score. Costs KES 1,000.
             </p>
             <form onSubmit={handleBoostListing} className="mt-4 space-y-3">
               <label className="block">
-                <span className="text-[10px] text-muted-foreground block mb-1">M-Pesa Phone Number</span>
+                <span className="text-[10px] text-muted-foreground block mb-1">
+                  M-Pesa Phone Number
+                </span>
                 <input
                   type="tel"
                   placeholder="0712345678"
@@ -242,9 +245,13 @@ function Dashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          p.is_verified ? "bg-emerald-500/10 text-emerald-600" : "bg-gray-500/10 text-gray-600"
-                        }`}>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            p.is_verified
+                              ? "bg-emerald-500/10 text-emerald-600"
+                              : "bg-gray-500/10 text-gray-600"
+                          }`}
+                        >
                           {p.is_verified ? "Verified" : "Unverified"}
                         </span>
                       </td>
@@ -289,11 +296,15 @@ function Dashboard() {
                       <span className="text-[10px] text-muted-foreground block">
                         Schedule: {new Date(v.scheduled_at).toLocaleString()}
                       </span>
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
-                        v.status === "confirmed" ? "bg-emerald-500/10 text-emerald-600" :
-                        v.status === "cancelled" ? "bg-red-500/10 text-red-600" :
-                        "bg-amber-500/10 text-amber-600"
-                      }`}>
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
+                          v.status === "confirmed"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : v.status === "cancelled"
+                              ? "bg-red-500/10 text-red-600"
+                              : "bg-amber-500/10 text-amber-600"
+                        }`}
+                      >
                         {v.status.toUpperCase()}
                       </span>
                     </div>
