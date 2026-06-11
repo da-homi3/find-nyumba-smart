@@ -270,6 +270,9 @@ AS $$
   );
 $$;
 
+-- Drop first: an earlier version of this function has a different return type
+DROP FUNCTION IF EXISTS public.record_property_view(UUID, UUID, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.record_property_view(
   _property_id UUID,
   _viewer_id UUID DEFAULT NULL,

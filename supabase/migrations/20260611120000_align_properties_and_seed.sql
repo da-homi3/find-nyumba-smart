@@ -1,0 +1,45 @@
+-- Align pre-existing properties table with foundation schema and seed listings
+
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS tour_url TEXT;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS authenticity_score INTEGER NOT NULL DEFAULT 70;
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS health_score INTEGER NOT NULL DEFAULT 0;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('872b192c-3c22-4ee1-95fa-a75b1ec3e763', NULL, 'Spacious 3BR Family Home', 'three_bedroom'::public.property_type, 'Lavington', 'James Gichuru Rd', -1.2829, 36.7669, 120000, 240000, 3, 3, 180, 'Family-friendly home in leafy Lavington. Garden, DSQ, ample parking.', ARRAY['Garden','DSQ','Parking','Borehole','Generator','Security']::text[], ARRAY['https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200','https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('9f0d7e1f-bd38-4e2e-889e-1b12b8a09715', NULL, 'Studio Apt — No Agent Fee', 'studio'::public.property_type, 'Westlands', 'Waiyaki Way', -1.2671, 36.8108, 35000, 35000, 0, 1, 35, 'Modern studio in the heart of Westlands. Walk to Sarit, gyms, restaurants.', ARRAY['WiFi','Gym','Pool','Lift','Security']::text[], ARRAY['https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('9854d951-85eb-4722-b93a-dd2aa686fc8c', NULL, '1BR Apartment, Furnished', 'one_bedroom'::public.property_type, 'Westlands', 'Mpaka Rd', -1.2645, 36.8053, 65000, 65000, 1, 1, 55, 'Fully furnished one-bedroom. Ideal for expats and professionals. Move-in ready.', ARRAY['Furnished','WiFi','Pool','Gym','Parking','Borehole']::text[], ARRAY['https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('0fdb3c13-af9a-4879-956a-15fa73cfb93d', NULL, 'Affordable Single Room', 'single_room'::public.property_type, 'Kasarani', 'Mwiki Rd', -1.2233, 36.8967, 8000, 8000, 0, 1, 18, 'Clean single room in a gated community. Water and security included.', ARRAY['Water','Security']::text[], ARRAY['https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=1200']::text[], NULL, NULL, FALSE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('99201d7c-f792-4fe5-b732-de0e68e6f8a0', NULL, 'Executive Maisonette', 'maisonette'::public.property_type, 'Karen', 'Karen Rd', -1.3197, 36.7085, 220000, 440000, 4, 4, 320, 'Stunning 4BR maisonette on half-acre. Pool, large garden, staff quarters.', ARRAY['Pool','Garden','DSQ','Parking','Borehole','Generator','Security','Pet Friendly']::text[], ARRAY['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200','https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('9a246c3b-ab4c-4919-bb7d-33f959b2c827', NULL, 'Student Hostel Single', 'hostel'::public.property_type, 'Roysambu', 'Lumumba Dr', -1.22, 36.8856, 6500, 6500, 0, 1, 12, 'Hostel room near KU & USIU. Shared kitchen, WiFi included.', ARRAY['WiFi','Water','Security','Student Friendly']::text[], ARRAY['https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('09b9b74f-a0ec-457e-b4fa-17e3d56e9982', NULL, 'Modern 1BR — South B', 'one_bedroom'::public.property_type, 'South B', 'Mara Rd', -1.3083, 36.8378, 28000, 28000, 1, 1, 45, 'Quiet neighbourhood, secure compound, reliable water and power.', ARRAY['Water','Security','Parking']::text[], ARRAY['https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200']::text[], NULL, NULL, FALSE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('f7595ded-69c8-4ac2-8360-ddf1f7c56565', NULL, 'Two Bedroom — Kileleshwa', 'two_bedroom'::public.property_type, 'Kileleshwa', 'Othaya Rd', -1.278, 36.7822, 75000, 150000, 2, 2, 95, 'Newly renovated 2BR with master ensuite. Lift, backup generator, fibre.', ARRAY['Lift','Generator','Borehole','WiFi','Parking','Security']::text[], ARRAY['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200','https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 0, '2026-05-31T07:41:01.159442+00:00', '2026-05-31T07:41:01.159442+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('1cac7d86-5e1d-48b3-ba15-7f4bf7e3240a', NULL, 'Cosy Bedsitter near Yaya Centre', 'bedsitter'::public.property_type, 'Kilimani', 'Ring Rd Kilimani', -1.2929, 36.7855, 18000, 18000, 0, 1, 28, 'Affordable bedsitter walking distance to Yaya Centre. Secure compound, 24/7 caretaker.', ARRAY['Water','Security','Parking']::text[], ARRAY['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 19, '2026-05-31T07:41:01.159442+00:00', '2026-06-08T11:29:55.126579+00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.properties (id, owner_id, title, property_type, neighborhood, address, latitude, longitude, rent_kes, deposit_kes, bedrooms, bathrooms, area_sqm, description, amenities, images, video_url, tour_url, is_verified, is_active, available_from, views, created_at, updated_at)
+VALUES ('4ba17524-cd61-4375-846f-e9026ddcb015', NULL, 'Modern 2BR with City Views', 'two_bedroom'::public.property_type, 'Kilimani', 'Argwings Kodhek Rd', -1.2906, 36.7869, 55000, 110000, 2, 2, 85, 'Spacious, light-filled 2-bedroom apartment with balcony overlooking Kilimani. Borehole water, backup generator, fibre internet ready.', ARRAY['WiFi','Borehole','Generator','Parking','CCTV','Lift']::text[], ARRAY['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200','https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200']::text[], NULL, NULL, TRUE, TRUE, '2026-05-31', 4, '2026-05-31T07:41:01.159442+00:00', '2026-06-04T15:03:57.827184+00:00')
+ON CONFLICT (id) DO NOTHING;
