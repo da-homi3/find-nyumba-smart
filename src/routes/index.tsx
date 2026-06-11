@@ -49,7 +49,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const { data: properties = [] } = useQuery({
     queryKey: ["properties"],
-    queryFn: fetchProperties,
+    queryFn: () => fetchProperties(),
   });
 
   const verified = useMemo(() => properties.filter((p) => p.is_verified).slice(0, 8), [properties]);

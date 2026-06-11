@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, MapPin, Sparkles, ShieldCheck } from "lucide-react";
-import { fetchProperties, prettyType } from "@/lib/properties";
+import { fetchProperties, prettyType, searchProperties } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { useState } from "react";
 import heroImg from "@/assets/hero-nairobi.jpg";
@@ -46,24 +46,23 @@ function TenantHome() {
   const [type, setType] = useState<"all" | PropertyType>("all");
   const [maxRent, setMaxRent] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const { data: properties = [], isLoading } = useQuery({
-    queryKey: ["properties"],
-    queryFn: fetchProperties,
+  const [minAuthenticity, setMinAuthenticity] = useState(false);
+  const { data: searchResult, isLoading } = useQuery({
+    queryKey: ["properties", q, hood, type, maxRent, verifiedOnly, minAuthenticity],
+    queryFn: () =>
+      searchProperties({
+        query: q || undefined,
+        neighborhood: hood !== "All" ? hood : undefined,
+        propertyType: type !== "all" ? type : undefined,
+        maxRent: maxRent ? Number(maxRent) : undefined,
+        verifiedOnly: verifiedOnly || undefined,
+        minAuthenticityScore: minAuthenticity ? 80 : undefined,
+        limit: 50,
+      }),
   });
 
-  const filtered = properties.filter((p) => {
-    const matchHood = hood === "All" || p.neighborhood === hood;
-    const needle = q.toLowerCase();
-    const matchQ =
-      !q ||
-      p.title.toLowerCase().includes(needle) ||
-      p.neighborhood.toLowerCase().includes(needle) ||
-      prettyType(p.property_type).toLowerCase().includes(needle);
-    const matchType = type === "all" || p.property_type === type;
-    const matchRent = !maxRent || p.rent_kes <= Number(maxRent);
-    const matchVerified = !verifiedOnly || p.is_verified;
-    return matchHood && matchQ && matchType && matchRent && matchVerified;
-  });
+  const properties = searchResult?.items ?? [];
+  const filtered = properties;
 
   const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
 
@@ -142,6 +141,15 @@ function TenantHome() {
                     className="h-4 w-4 accent-primary"
                   />
                   Verified
+                </label>
+                <label className="flex items-end gap-2 pb-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={minAuthenticity}
+                    onChange={(e) => setMinAuthenticity(e.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  High trust (80%+)
                 </label>
               </div>
             </div>

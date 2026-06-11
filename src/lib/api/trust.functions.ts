@@ -80,6 +80,18 @@ export const reportScam = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
+    // Record fraud signal for auto-flagged reports
+    if (isAutoFlagged) {
+      const admin = await adminClient();
+      await admin.from("fraud_signals").insert({
+        property_id: data.propertyId,
+        user_id: userId,
+        signal_type: "viewing_fee_scam",
+        severity: "high",
+        details: { reason: data.reason, autoFlagged: true },
+      });
+    }
+
     // If auto-flagged, set property is_active to false until landlord reviews
     if (isAutoFlagged) {
       const admin = await adminClient();

@@ -39,6 +39,32 @@ export const createPropertyReview = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
 
+    // Occupancy gate: user must have completed viewing or active tenancy
+    const [{ data: completedViewing }, { data: tenancy }] = await Promise.all([
+      supabase
+        .from("viewings")
+        .select("id")
+        .eq("property_id", data.propertyId)
+        .eq("tenant_id", userId)
+        .eq("status", "completed")
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("tenancies")
+        .select("id")
+        .eq("property_id", data.propertyId)
+        .eq("tenant_id", userId)
+        .in("status", ["active", "completed"])
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (!completedViewing && !tenancy) {
+      throw new Error(
+        "You can only review a property after completing a viewing or tenancy. Book a viewing first.",
+      );
+    }
+
     const { data: row, error } = await supabase
       .from("property_reviews")
       .insert({

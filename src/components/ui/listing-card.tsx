@@ -21,7 +21,8 @@ type ListingCardProps = { listing: Listing; className?: string } & VariantProps<
 export function ListingCard({ listing, className }: ListingCardProps) {
   return (
     <Link
-      to={`/tenant/property/${listing.id}`}
+      to="/tenant/property/$id"
+      params={{ id: listing.id }}
       className={cn(cardStyles({ className }))}
     >
       <img src={listing.image} alt={listing.title} className="w-full h-48 object-cover" />

@@ -1,0 +1,10 @@
+/*
+  cache-control: public, max-age=3600
+/assets/*
+  cache-control: public, max-age=31536000, immutable
+/*.jpg
+  cache-control: public, max-age=86400
+/*.png
+  cache-control: public, max-age=86400
+/*.webp
+  cache-control: public, max-age=86400

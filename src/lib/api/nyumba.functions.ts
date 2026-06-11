@@ -6,6 +6,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { Property, PropertyType } from "@/lib/properties";
 import { requireRole } from "@/lib/api/_authz";
+import { createPublicClient, PUBLIC_PROPERTY_COLUMNS } from "@/lib/api/public-client";
+import { checkRateLimit } from "@/lib/api/rate-limit";
+import { getRequest } from "@tanstack/react-start/server";
 
 type AuthContext = {
   supabase: SupabaseClient<Database>;
@@ -42,8 +45,25 @@ const listPropertiesSchema = z
     query: z.string().trim().optional(),
     neighborhood: z.string().trim().optional(),
     propertyType: propertyTypeSchema.optional(),
+    minRent: z.number().int().positive().optional(),
     maxRent: z.number().int().positive().optional(),
     verifiedOnly: z.boolean().optional(),
+    minBedrooms: z.number().int().min(0).optional(),
+    parking: z.boolean().optional(),
+    petFriendly: z.boolean().optional(),
+    minAuthenticityScore: z.number().int().min(0).max(100).optional(),
+    // Bounding box for map/polygon search
+    bounds: z
+      .object({
+        minLat: z.number(),
+        maxLat: z.number(),
+        minLng: z.number(),
+        maxLng: z.number(),
+      })
+      .optional(),
+    limit: z.number().int().min(1).max(100).default(50),
+    offset: z.number().int().min(0).default(0),
+    sortBy: z.enum(["newest", "price_asc", "price_desc", "score"]).default("newest"),
   })
   .optional();
 
@@ -103,21 +123,36 @@ async function adminClient() {
 export const listProperties = createServerFn({ method: "POST" })
   .inputValidator(listPropertiesSchema)
   .handler(async ({ data }) => {
-    const supabase = await adminClient();
+    const request = getRequest();
+    checkRateLimit(request?.headers?.get("cf-connecting-ip") ?? "list-properties");
+
+    const supabase = createPublicClient();
+    const limit = data?.limit ?? 50;
+    const offset = data?.offset ?? 0;
+
     let query = supabase
       .from("properties")
-      .select("*")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false });
+      .select(PUBLIC_PROPERTY_COLUMNS, { count: "exact" })
+      .eq("is_active", true);
 
     if (data?.neighborhood && data.neighborhood !== "All") {
       query = query.eq("neighborhood", data.neighborhood);
     }
     if (data?.propertyType) query = query.eq("property_type", data.propertyType);
+    if (data?.minRent) query = query.gte("rent_kes", data.minRent);
     if (data?.maxRent) query = query.lte("rent_kes", data.maxRent);
     if (data?.verifiedOnly) query = query.eq("is_verified", true);
+    if (data?.minBedrooms) query = query.gte("bedrooms", data.minBedrooms);
+    if (data?.minAuthenticityScore)
+      query = query.gte("authenticity_score", data.minAuthenticityScore);
+    if (data?.bounds) {
+      query = query
+        .gte("latitude", data.bounds.minLat)
+        .lte("latitude", data.bounds.maxLat)
+        .gte("longitude", data.bounds.minLng)
+        .lte("longitude", data.bounds.maxLng);
+    }
     if (data?.query) {
-      // Strip PostgREST filter metacharacters to prevent filter injection.
       const term = data.query
         .replaceAll(",", " ")
         .replace(/[()\[\].,:*!%\\]/g, "")
@@ -131,25 +166,51 @@ export const listProperties = createServerFn({ method: "POST" })
       }
     }
 
-    const { data: rows, error } = await query;
+    switch (data?.sortBy ?? "newest") {
+      case "price_asc":
+        query = query.order("rent_kes", { ascending: true });
+        break;
+      case "price_desc":
+        query = query.order("rent_kes", { ascending: false });
+        break;
+      case "score":
+        query = query.order("authenticity_score", { ascending: false });
+        break;
+      default:
+        query = query.order("created_at", { ascending: false });
+    }
+
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: rows, error, count } = await query;
     if (error) throw error;
-    return (rows ?? []) as Property[];
+    return {
+      items: (rows ?? []) as Property[],
+      total: count ?? 0,
+      limit,
+      offset,
+    };
   });
 
 export const getProperty = createServerFn({ method: "POST" })
   .inputValidator(propertyIdSchema)
   .handler(async ({ data }) => {
-    const supabase = await adminClient();
+    const request = getRequest();
+    checkRateLimit(request?.headers?.get("cf-connecting-ip") ?? "get-property");
+
+    const supabase = createPublicClient();
     const { data: property, error } = await supabase
       .from("properties")
-      .select("*")
+      .select(PUBLIC_PROPERTY_COLUMNS)
       .eq("id", data.id)
       .maybeSingle();
 
     if (error) throw error;
     if (!property || !property.is_active) return null;
 
-    await supabase
+    // View recording requires service role (SECURITY DEFINER RPC)
+    const admin = await adminClient();
+    await admin
       .rpc("record_property_view", {
         _property_id: property.id,
         _session_id: data.sessionId ?? undefined,

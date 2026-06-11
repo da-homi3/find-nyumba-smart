@@ -80,6 +80,7 @@
     "@cloudflare/workers-types": "^4.20260605.1",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^2.1.1",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

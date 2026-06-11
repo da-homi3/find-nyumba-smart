@@ -57,7 +57,27 @@ export const prettyType = (t: PropertyType) =>
   })[t];
 
 export async function fetchProperties(): Promise<Property[]> {
-  return listProperties({ data: {} });
+  const result = await listProperties({ data: {} });
+  return result.items;
+}
+
+export type PropertySearchFilters = {
+  query?: string;
+  neighborhood?: string;
+  propertyType?: PropertyType;
+  minRent?: number;
+  maxRent?: number;
+  verifiedOnly?: boolean;
+  minBedrooms?: number;
+  minAuthenticityScore?: number;
+  bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+  limit?: number;
+  offset?: number;
+  sortBy?: "newest" | "price_asc" | "price_desc" | "score";
+};
+
+export async function searchProperties(filters?: PropertySearchFilters) {
+  return listProperties({ data: filters ?? {} });
 }
 
 export async function fetchProperty(id: string): Promise<Property | null> {

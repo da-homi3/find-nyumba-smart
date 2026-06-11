@@ -510,18 +510,27 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
+          name: string;
+          filters: Json;
+          alert_enabled: boolean;
           criteria: Json;
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          criteria: Json;
+          name?: string;
+          filters?: Json;
+          alert_enabled?: boolean;
+          criteria?: Json;
           created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
+          name?: string;
+          filters?: Json;
+          alert_enabled?: boolean;
           criteria?: Json;
           created_at?: string;
         };
@@ -557,6 +566,180 @@ export type Database = {
           status?: string;
           payment_type?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      tenancies: {
+        Row: {
+          id: string;
+          property_id: string;
+          tenant_id: string;
+          start_date: string;
+          end_date: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          property_id: string;
+          tenant_id: string;
+          start_date: string;
+          end_date?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          property_id?: string;
+          tenant_id?: string;
+          start_date?: string;
+          end_date?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      fraud_signals: {
+        Row: {
+          id: string;
+          property_id: string | null;
+          user_id: string | null;
+          signal_type: string;
+          severity: string;
+          details: Json;
+          resolved: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          property_id?: string | null;
+          user_id?: string | null;
+          signal_type: string;
+          severity?: string;
+          details?: Json;
+          resolved?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          property_id?: string | null;
+          user_id?: string | null;
+          signal_type?: string;
+          severity?: string;
+          details?: Json;
+          resolved?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      push_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          platform: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          platform: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          token?: string;
+          platform?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      organizations: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          type: string;
+          logo_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          type?: string;
+          logo_url?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          type?: string;
+          logo_url?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      organization_members: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          role: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          role?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          user_id?: string;
+          role?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      property_attributes: {
+        Row: {
+          property_id: string;
+          water_reliability: number | null;
+          security_rating: number | null;
+          parking: boolean | null;
+          pet_friendly: boolean | null;
+          internet_providers: string[];
+          has_borehole: boolean | null;
+          has_backup_power: boolean | null;
+          updated_at: string;
+        };
+        Insert: {
+          property_id: string;
+          water_reliability?: number | null;
+          security_rating?: number | null;
+          parking?: boolean | null;
+          pet_friendly?: boolean | null;
+          internet_providers?: string[];
+          has_borehole?: boolean | null;
+          has_backup_power?: boolean | null;
+          updated_at?: string;
+        };
+        Update: {
+          property_id?: string;
+          water_reliability?: number | null;
+          security_rating?: number | null;
+          parking?: boolean | null;
+          pet_friendly?: boolean | null;
+          internet_providers?: string[];
+          has_borehole?: boolean | null;
+          has_backup_power?: boolean | null;
+          updated_at?: string;
         };
         Relationships: [];
       };

@@ -42,10 +42,11 @@ function AdminDashboard() {
     queryFn: () => listAdminScamReports(),
   });
 
-  const { data: properties = [], isLoading: propLoading } = useQuery({
+  const { data: propertiesResult, isLoading: propLoading } = useQuery({
     queryKey: ["admin-properties"],
     queryFn: () => listProperties({ data: {} }),
   });
+  const properties = propertiesResult?.items ?? [];
 
   const { data: audits = [], isLoading: auditsLoading } = useQuery({
     queryKey: ["admin-audits"],

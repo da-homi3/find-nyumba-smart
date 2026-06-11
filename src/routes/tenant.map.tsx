@@ -230,7 +230,7 @@ function compactKes(n: number) {
 function TenantMap() {
   const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties"],
-    queryFn: fetchProperties,
+    queryFn: () => fetchProperties(),
   });
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
