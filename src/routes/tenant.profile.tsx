@@ -23,6 +23,10 @@ import { submitVerification } from "@/lib/api/trust.functions";
 import { listMyViewings, updateViewingStatus } from "@/lib/api/booking.functions";
 import { listTransactions } from "@/lib/api/payment.functions";
 
+type TenantViewing = Awaited<ReturnType<typeof listMyViewings>>[number];
+type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
+type VerificationType = "phone" | "identity" | "business" | "ownership";
+
 export const Route = createFileRoute("/tenant/profile")({
   component: Profile,
 });
@@ -63,9 +67,7 @@ function Profile() {
 
   // Verification uploads state
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verType, setVerType] = useState<"phone" | "identity" | "business" | "ownership">(
-    "identity",
-  );
+  const [verType, setVerType] = useState<VerificationType>("identity");
   const [docUrl, setDocUrl] = useState("");
   const [verLoading, setVerLoading] = useState(false);
 
@@ -306,7 +308,7 @@ function Profile() {
                   <span className="text-[10px] text-muted-foreground block mb-1">Select Level</span>
                   <select
                     value={verType}
-                    onChange={(e) => setVerType(e.target.value as any)}
+                    onChange={(e) => setVerType(e.target.value as VerificationType)}
                     className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
                   >
                     <option value="phone">Level 1: Phone Verification</option>
@@ -370,7 +372,7 @@ function Profile() {
               </p>
             ) : (
               <div className="mt-3 space-y-3">
-                {viewings.map((v: any) => (
+                {viewings.map((v: TenantViewing) => (
                   <div
                     key={v.id}
                     className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4"
@@ -417,7 +419,7 @@ function Profile() {
               </p>
             ) : (
               <div className="mt-3 divide-y text-xs">
-                {transactions.map((t: any) => (
+                {transactions.map((t: TenantTransaction) => (
                   <div key={t.id} className="py-2.5 flex justify-between items-center">
                     <div>
                       <strong className="font-semibold block capitalize">

@@ -6,17 +6,15 @@ type StkPushResult = {
 
 function mpesaBaseUrl() {
   const env = process.env.MPESA_ENV ?? "sandbox";
-  return env === "production"
-    ? "https://api.safaricom.co.ke"
-    : "https://sandbox.safaricom.co.ke";
+  return env === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
 }
 
 export function isMpesaConfigured(): boolean {
   return Boolean(
     process.env.MPESA_CONSUMER_KEY &&
-      process.env.MPESA_CONSUMER_SECRET &&
-      process.env.MPESA_SHORTCODE &&
-      process.env.MPESA_PASSKEY,
+    process.env.MPESA_CONSUMER_SECRET &&
+    process.env.MPESA_SHORTCODE &&
+    process.env.MPESA_PASSKEY,
   );
 }
 
@@ -31,10 +29,9 @@ async function getAccessToken(): Promise<string> {
   const key = process.env.MPESA_CONSUMER_KEY!;
   const secret = process.env.MPESA_CONSUMER_SECRET!;
   const auth = Buffer.from(`${key}:${secret}`).toString("base64");
-  const res = await fetch(
-    `${mpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`,
-    { headers: { Authorization: `Basic ${auth}` } },
-  );
+  const res = await fetch(`${mpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`, {
+    headers: { Authorization: `Basic ${auth}` },
+  });
   if (!res.ok) {
     throw new Error(`M-Pesa OAuth failed: ${res.status}`);
   }

@@ -1,14 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  Building2,
-  Home,
-  Briefcase,
-  Users,
-  KeyRound,
-  LogOut,
-  Shield,
-  Clock,
-} from "lucide-react";
+import { Building2, Home, Briefcase, Users, KeyRound, LogOut, Shield, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PORTAL_HOME, type PortalId } from "@/lib/portal-guard";
 
@@ -64,7 +55,11 @@ function SettingsPage() {
     return (
       <div className="mx-auto max-w-md px-6 pt-24 text-center">
         <p className="text-sm text-muted-foreground">Sign in to manage your account and portals.</p>
-        <Link to="/auth" search={{ redirect: "/settings" }} className="mt-4 inline-block font-semibold text-primary">
+        <Link
+          to="/auth"
+          search={{ redirect: "/settings" }}
+          className="mt-4 inline-block font-semibold text-primary"
+        >
           Sign in
         </Link>
       </div>
@@ -94,7 +89,9 @@ function SettingsPage() {
       <p className="text-sm text-muted-foreground">{user.email}</p>
 
       <section className="mt-8">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your portals</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Your portals
+        </h2>
         <div className="mt-3 space-y-2">
           {PORTALS.map((p) => {
             const locked = p.role ? !hasApprovedRole(p.role) : false;
@@ -114,7 +111,9 @@ function SettingsPage() {
                   <p className="font-semibold">{p.label}</p>
                   <p className="text-xs text-muted-foreground">{p.description}</p>
                 </div>
-                {locked && <span className="text-[10px] font-bold text-amber-600">APPROVAL REQUIRED</span>}
+                {locked && (
+                  <span className="text-[10px] font-bold text-amber-600">APPROVAL REQUIRED</span>
+                )}
                 {isActive && !locked && (
                   <span className="text-[10px] font-bold text-primary">ACTIVE</span>
                 )}
@@ -139,17 +138,26 @@ function SettingsPage() {
 
       {(pending.length > 0 || rejected.length > 0) && (
         <section className="mt-8">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Applications</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Applications
+          </h2>
           <div className="mt-3 space-y-2">
             {pending.map((app) => (
-              <div key={app.id} className="flex items-center gap-2 rounded-xl border bg-amber-500/10 px-4 py-3 text-sm">
+              <div
+                key={app.id}
+                className="flex items-center gap-2 rounded-xl border bg-amber-500/10 px-4 py-3 text-sm"
+              >
                 <Clock className="h-4 w-4 text-amber-600" />
                 <span className="capitalize">{app.requested_role}</span> — pending ops review
               </div>
             ))}
             {rejected.map((app) => (
-              <div key={app.id} className="rounded-xl border px-4 py-3 text-sm text-muted-foreground">
-                <span className="capitalize font-medium text-foreground">{app.requested_role}</span> — not approved
+              <div
+                key={app.id}
+                className="rounded-xl border px-4 py-3 text-sm text-muted-foreground"
+              >
+                <span className="capitalize font-medium text-foreground">{app.requested_role}</span>{" "}
+                — not approved
                 {app.rejection_reason && <p className="mt-1 text-xs">{app.rejection_reason}</p>}
               </div>
             ))}

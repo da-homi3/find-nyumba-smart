@@ -28,7 +28,9 @@ function ManagerDashboard() {
     queryFn: () => listLandlordLeads(),
   });
 
-  const vacant = properties.filter((p) => (p as { is_vacant?: boolean }).is_vacant !== false).length;
+  const vacant = properties.filter(
+    (p) => (p as { is_vacant?: boolean }).is_vacant !== false,
+  ).length;
   const occupied = properties.length - vacant;
 
   return (
@@ -36,7 +38,9 @@ function ManagerDashboard() {
       <header className="border-b bg-foreground px-5 py-4 text-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-background/60">Property manager</p>
+            <p className="text-[10px] uppercase tracking-wider text-background/60">
+              Property manager
+            </p>
             <h1 className="font-display text-lg font-semibold">Portfolio overview</h1>
           </div>
           <Link to="/settings" className="text-sm text-gold">
@@ -91,7 +95,10 @@ function ManagerDashboard() {
                     .filter((_, i) => i % PIPELINE.length === ci)
                     .slice(0, 3)
                     .map((p) => (
-                      <div key={p.id} className="rounded-lg bg-secondary px-2 py-1.5 text-xs font-medium">
+                      <div
+                        key={p.id}
+                        className="rounded-lg bg-secondary px-2 py-1.5 text-xs font-medium"
+                      >
                         {p.title}
                       </div>
                     ))}

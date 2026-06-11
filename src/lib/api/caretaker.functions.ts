@@ -62,7 +62,9 @@ export const listCaretakers = createServerFn({ method: "GET" })
     await requireRole(supabase, userId, "landlord");
     const { data, error } = await supabase
       .from("caretakers")
-      .select("id, full_name, phone, is_active, created_at, last_login_at, caretaker_property_assignments(property_id)")
+      .select(
+        "id, full_name, phone, is_active, created_at, last_login_at, caretaker_property_assignments(property_id)",
+      )
       .eq("landlord_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw error;

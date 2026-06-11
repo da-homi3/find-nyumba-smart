@@ -52,6 +52,22 @@ export const listMyPortalApplications = createServerFn({ method: "GET" })
     return (data ?? []) as PortalApplication[];
   });
 
+/** Server-only ops email for privileged signups (avoids bundling SendGrid on the client). */
+export const notifyOpsPortalApplicationEmail = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      applicantName: z.string().trim().min(1),
+      applicantEmail: z.string().email(),
+      role: z.string().trim().min(1),
+      orgName: z.string().trim().optional(),
+      reviewUrl: z.string().url(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await notifyOpsNewApplication(data);
+    return { ok: true as const };
+  });
+
 export const submitPortalApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -81,8 +97,7 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
     const email = userData.user?.email ?? "";
-    const name =
-      userData.user?.user_metadata?.full_name ?? userData.user?.email ?? "Applicant";
+    const name = userData.user?.user_metadata?.full_name ?? userData.user?.email ?? "Applicant";
 
     await notifyOpsNewApplication({
       applicantName: name,

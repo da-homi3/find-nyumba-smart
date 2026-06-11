@@ -173,12 +173,16 @@ function CaretakersPage() {
       ) : (
         <div className="mt-8 space-y-3">
           {caretakers.map((c) => (
-            <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4">
+            <div
+              key={c.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4"
+            >
               <div>
                 <p className="font-semibold">{c.full_name}</p>
                 <p className="text-xs text-muted-foreground">{c.phone}</p>
                 <p className="text-xs text-muted-foreground">
-                  {(c.caretaker_property_assignments as { property_id: string }[] | null)?.length ?? 0}{" "}
+                  {(c.caretaker_property_assignments as { property_id: string }[] | null)?.length ??
+                    0}{" "}
                   properties · {c.is_active ? "Active" : "Revoked"}
                 </p>
               </div>

@@ -139,10 +139,7 @@ async function assertInquiryParticipant(
     return inquiry;
   }
 
-  const { data: roleRows } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const roles = new Set((roleRows ?? []).map((r) => r.role));
   if (roles.has("manager") || roles.has("agency")) {
     const orgId = await getUserOrganizationId(supabase, userId);
@@ -221,7 +218,7 @@ export const listProperties = createServerFn({ method: "POST" })
     if (data?.query) {
       const term = data.query
         .replaceAll(",", " ")
-        .replace(/[()\[\].,:*!%\\]/g, "")
+        .replace(/[()[\].,:*!%\\]/g, "")
         .trim()
         .slice(0, 100);
       if (term) {
@@ -357,7 +354,10 @@ export const createProperty = createServerFn({ method: "POST" })
   .inputValidator(propertyPayloadSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
-    const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    const { data: roleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
     const roles = new Set((roleRows ?? []).map((r) => r.role));
     const isLandlord = roles.has("landlord");
     const isAgency = roles.has("agency");

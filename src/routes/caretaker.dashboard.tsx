@@ -94,7 +94,9 @@ function CaretakerDashboard() {
                     <p className="text-xs text-muted-foreground">{p.neighborhood}</p>
                     <span
                       className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        isVacant ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"
+                        isVacant
+                          ? "bg-amber-500/15 text-amber-700"
+                          : "bg-emerald-500/15 text-emerald-700"
                       }`}
                     >
                       {isVacant ? "Vacant" : "Occupied"}

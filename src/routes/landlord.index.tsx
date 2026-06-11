@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { notifyOpsNewApplication } from "@/lib/api/notify";
+import { notifyOpsPortalApplicationEmail } from "@/lib/api/portal.functions";
 import { Building2, BarChart3, Users, Sparkles, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/landlord/")({
@@ -100,11 +100,13 @@ function LandlordAuthPanel() {
           },
         });
         if (error) throw error;
-        await notifyOpsNewApplication({
-          applicantName: fullName || email,
-          applicantEmail: email,
-          role: "landlord",
-          reviewUrl: `${window.location.origin}/admin?tab=applications`,
+        await notifyOpsPortalApplicationEmail({
+          data: {
+            applicantName: fullName || email,
+            applicantEmail: email,
+            role: "landlord",
+            reviewUrl: `${window.location.origin}/admin?tab=applications`,
+          },
         });
         toast.success("Application submitted — we'll email you when approved.");
         navigate({ to: "/auth/pending" });

@@ -58,10 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const [apps, profile] = await Promise.all([
-        listMyPortalApplications(),
-        getMyProfilePortal(),
-      ]);
+      const [apps, profile] = await Promise.all([listMyPortalApplications(), getMyProfilePortal()]);
       setPendingApplications(apps);
       const portal = (profile?.active_portal as PortalId) ?? "tenant";
       setActivePortalState(portal);

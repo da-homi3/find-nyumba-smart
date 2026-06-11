@@ -1,5 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Building2, Inbox, BarChart3, Settings, LogOut, Plus, KeyRound } from "lucide-react";
+import {
+  LayoutDashboard,
+  Building2,
+  Inbox,
+  BarChart3,
+  Settings,
+  LogOut,
+  Plus,
+  KeyRound,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
 

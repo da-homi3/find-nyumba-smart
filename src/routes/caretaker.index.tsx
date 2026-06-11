@@ -29,7 +29,10 @@ function CaretakerSignIn() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-sm px-6 pt-10">
-        <Link to="/settings" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          to="/settings"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Settings
         </Link>
         <div className="mt-8 grid h-12 w-12 place-items-center rounded-xl bg-primary/10">

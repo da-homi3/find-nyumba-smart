@@ -21,6 +21,8 @@ import { initiateMpesaPayment } from "@/lib/api/payment.functions";
 import { formatKes } from "@/lib/properties";
 import { toast } from "sonner";
 
+type LandlordViewing = Awaited<ReturnType<typeof listMyViewings>>[number];
+
 export const Route = createFileRoute("/landlord/dashboard")({
   component: () => (
     <LandlordShell>
@@ -285,7 +287,7 @@ function Dashboard() {
             </div>
           ) : (
             <div className="mt-4 space-y-3">
-              {viewings.map((v: any) => (
+              {viewings.map((v: LandlordViewing) => (
                 <div key={v.id} className="rounded-2xl border bg-card p-4 shadow-soft">
                   <div className="flex justify-between items-start">
                     <div>

@@ -40,7 +40,11 @@ function Page() {
           {data.map((p) => (
             <div key={p.id} className="rounded-2xl border bg-card p-4">
               {p.images[0] && (
-                <img src={p.images[0]} alt="" className="mb-3 h-32 w-full rounded-lg object-cover" />
+                <img
+                  src={p.images[0]}
+                  alt=""
+                  className="mb-3 h-32 w-full rounded-lg object-cover"
+                />
               )}
               <p className="font-semibold">{p.title}</p>
               <p className="text-xs text-muted-foreground">{p.neighborhood}</p>

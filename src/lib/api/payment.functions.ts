@@ -91,8 +91,7 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
       paymentId: row.id,
       receiptCode,
       mode: "demo" as const,
-      message:
-        "Demo payment completed (configure MPESA_* env vars for live STK Push).",
+      message: "Demo payment completed (configure MPESA_* env vars for live STK Push).",
     };
   });
 

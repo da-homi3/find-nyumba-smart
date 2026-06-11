@@ -24,6 +24,11 @@ import { toast } from "sonner";
 
 type Tab = "verifications" | "scams" | "properties" | "audits" | "applications";
 
+type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
+type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];
+type AdminProperty = NonNullable<Awaited<ReturnType<typeof listProperties>>["items"]>[number];
+type AdminAuditLog = Awaited<ReturnType<typeof listAdminAuditLogs>>[number];
+
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
@@ -67,8 +72,11 @@ function AdminDashboard() {
   });
 
   const reviewApp = useMutation({
-    mutationFn: (payload: { applicationId: string; action: "approve" | "reject"; rejectionReason?: string }) =>
-      reviewPortalApplication({ data: payload }),
+    mutationFn: (payload: {
+      applicationId: string;
+      action: "approve" | "reject";
+      rejectionReason?: string;
+    }) => reviewPortalApplication({ data: payload }),
     onSuccess: () => {
       toast.success("Application updated");
       qc.invalidateQueries({ queryKey: ["admin-applications"] });
@@ -129,12 +137,12 @@ function AdminDashboard() {
             {
               id: "verifications",
               label: "Verification Queue",
-              count: verifications.filter((v: any) => v.status === "pending").length,
+              count: verifications.filter((v) => v.status === "pending").length,
             },
             {
               id: "scams",
               label: "Scam Reports",
-              count: scams.filter((s: any) => s.status === "pending").length,
+              count: scams.filter((s) => s.status === "pending").length,
             },
             { id: "properties", label: "Moderate listings", count: properties.length },
             { id: "audits", label: "Audit Logs", count: audits.length },
@@ -171,7 +179,7 @@ function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {verifications.map((v: any) => (
+                  {verifications.map((v: AdminVerification) => (
                     <div
                       key={v.id}
                       className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
@@ -250,7 +258,7 @@ function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {scams.map((s: any) => (
+                  {scams.map((s: AdminScamReport) => (
                     <div
                       key={s.id}
                       className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
@@ -330,7 +338,7 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {properties.map((p: any) => (
+                      {properties.map((p: AdminProperty) => (
                         <tr key={p.id}>
                           <td className="px-4 py-3 font-medium">
                             <Link
@@ -391,7 +399,7 @@ function AdminDashboard() {
                     <span className="w-1/4">Details</span>
                   </div>
                   <div className="divide-y">
-                    {audits.map((a: any) => (
+                    {audits.map((a: AdminAuditLog) => (
                       <div key={a.id} className="p-3 flex items-center hover:bg-secondary/40">
                         <span className="w-1/4 text-muted-foreground">
                           {new Date(a.created_at).toLocaleString()}
@@ -419,55 +427,57 @@ function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {applications.map((app: {
-                    id: string;
-                    requested_role: string;
-                    organization_name: string | null;
-                    phone: string | null;
-                    created_at: string;
-                    profiles?: { full_name: string | null; phone: string | null };
-                  }) => (
-                    <div
-                      key={app.id}
-                      className="rounded-2xl border bg-card p-5 flex flex-wrap justify-between gap-4"
-                    >
-                      <div>
-                        <p className="font-semibold capitalize">
-                          {app.requested_role} — {app.profiles?.full_name ?? "Applicant"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {app.organization_name && `${app.organization_name} · `}
-                          {app.phone ?? app.profiles?.phone} ·{" "}
-                          {new Date(app.created_at).toLocaleString()}
-                        </p>
+                  {applications.map(
+                    (app: {
+                      id: string;
+                      requested_role: string;
+                      organization_name: string | null;
+                      phone: string | null;
+                      created_at: string;
+                      profiles?: { full_name: string | null; phone: string | null };
+                    }) => (
+                      <div
+                        key={app.id}
+                        className="rounded-2xl border bg-card p-5 flex flex-wrap justify-between gap-4"
+                      >
+                        <div>
+                          <p className="font-semibold capitalize">
+                            {app.requested_role} — {app.profiles?.full_name ?? "Applicant"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {app.organization_name && `${app.organization_name} · `}
+                            {app.phone ?? app.profiles?.phone} ·{" "}
+                            {new Date(app.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              reviewApp.mutate({ applicationId: app.id, action: "approve" })
+                            }
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const reason = prompt("Rejection reason (optional):") ?? undefined;
+                              reviewApp.mutate({
+                                applicationId: app.id,
+                                action: "reject",
+                                rejectionReason: reason,
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-destructive"
+                          >
+                            <XCircle className="h-3.5 w-3.5" /> Reject
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            reviewApp.mutate({ applicationId: app.id, action: "approve" })
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const reason = prompt("Rejection reason (optional):") ?? undefined;
-                            reviewApp.mutate({
-                              applicationId: app.id,
-                              action: "reject",
-                              rejectionReason: reason,
-                            });
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-destructive"
-                        >
-                          <XCircle className="h-3.5 w-3.5" /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               )}
             </div>

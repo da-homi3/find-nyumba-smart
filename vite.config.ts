@@ -14,4 +14,22 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 750,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return;
+            if (id.includes("@supabase")) return "supabase";
+            if (id.includes("@tanstack")) return "tanstack";
+          },
+        },
+      },
+    },
+    ssr: {
+      noExternal: [],
+      external: ["@sendgrid/mail"],
+    },
+  },
 });
