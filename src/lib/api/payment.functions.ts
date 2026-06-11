@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { initiateStkPush, isMpesaConfigured } from "@/lib/api/mpesa";
 
 const initiatePaymentSchema = z.object({
   propertyId: z.string().uuid().optional(),
@@ -48,6 +47,7 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
+    const { initiateStkPush, isMpesaConfigured } = await import("@/lib/api/mpesa");
     if (isMpesaConfigured()) {
       const stk = await initiateStkPush({
         phone254,

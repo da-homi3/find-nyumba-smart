@@ -214,8 +214,3 @@ export function ConversationThread({
     </div>
   );
 }
-
-export function countUnread(messages: Message[] | undefined, userId: string | undefined) {
-  if (!messages || !userId) return 0;
-  return messages.filter((m) => m.sender_id !== userId && !m.read_at).length;
-}

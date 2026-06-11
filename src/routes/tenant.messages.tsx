@@ -4,7 +4,7 @@ import { MessageCircle } from "lucide-react";
 import { listTenantInquiries } from "@/lib/api/nyumba.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
-import { countUnread } from "@/components/ConversationThread";
+import { countUnread } from "@/lib/conversation-utils";
 
 export const Route = createFileRoute("/tenant/messages")({
   component: Messages,

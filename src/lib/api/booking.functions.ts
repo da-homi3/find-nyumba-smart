@@ -30,12 +30,25 @@ export const bookViewing = createServerFn({ method: "POST" })
     const { supabase, userId } = getContext(context);
     await requireRole(supabase, userId, "tenant");
 
+    const { data: property, error: propertyError } = await supabase
+      .from("properties")
+      .select("id, owner_id, is_active")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    if (propertyError) throw propertyError;
+    if (!property?.is_active || !property.owner_id) {
+      throw new Error("This property is not available for viewings");
+    }
+    if (property.owner_id !== data.landlordId) {
+      throw new Error("Invalid landlord for this property");
+    }
+
     const { data: row, error } = await supabase
       .from("viewings")
       .insert({
         property_id: data.propertyId,
         tenant_id: userId,
-        landlord_id: data.landlordId,
+        landlord_id: property.owner_id,
         scheduled_at: data.scheduledAt,
         notes: data.notes ?? null,
         status: "pending",

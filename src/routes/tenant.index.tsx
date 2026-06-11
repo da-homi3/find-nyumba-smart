@@ -5,11 +5,8 @@ import { searchProperties } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { useMemo, useState } from "react";
 import heroImg from "@/assets/hero-nairobi.jpg";
-import {
-  TenantFiltersBar,
-  defaultTenantFilters,
-  type TenantFilters,
-} from "@/components/TenantFiltersBar";
+import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
+import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";

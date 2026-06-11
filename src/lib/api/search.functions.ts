@@ -104,6 +104,19 @@ export const compareProperties = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const setSavedSearchAlertsEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ enabled: z.boolean() }))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getContext(context);
+    const { error } = await supabase
+      .from("saved_searches")
+      .update({ alert_enabled: data.enabled })
+      .eq("user_id", userId);
+    if (error) throw error;
+    return { enabled: data.enabled };
+  });
+
 export const registerPushToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(

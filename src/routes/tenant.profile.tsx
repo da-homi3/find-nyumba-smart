@@ -26,6 +26,7 @@ import {
   type ViewingListItem,
 } from "@/lib/api/booking.functions";
 import { listTransactions } from "@/lib/api/payment.functions";
+import { listSavedSearches, setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
 
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
 type VerificationType = "phone" | "identity" | "business" | "ownership";
@@ -83,6 +84,32 @@ function Profile() {
       .map((part) => part[0]?.toUpperCase())
       .join("");
   }, [fullName, user?.email]);
+
+  const { data: savedSearches = [] } = useQuery({
+    queryKey: ["saved-searches", user?.id],
+    enabled: !!user,
+    queryFn: () => listSavedSearches(),
+  });
+
+  useEffect(() => {
+    if (!user?.id || savedSearches.length === 0) return;
+    const anyAlertsOn = savedSearches.some((s) => s.alert_enabled);
+    setPrefs((prev) => {
+      if (prev.savedAlerts === anyAlertsOn) return prev;
+      const next = { ...prev, savedAlerts: anyAlertsOn };
+      window.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
+      return next;
+    });
+  }, [savedSearches, user?.id]);
+
+  const savedAlertsMutation = useMutation({
+    mutationFn: (enabled: boolean) => setSavedSearchAlertsEnabled({ data: { enabled } }),
+    onSuccess: (_, enabled) => {
+      qc.invalidateQueries({ queryKey: ["saved-searches"] });
+      toast.success(enabled ? "Search alerts enabled" : "Search alerts paused");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["tenant-profile", user?.id],
@@ -456,7 +483,14 @@ function Profile() {
               label="Saved-search alerts"
               hint="Notify me when matching listings appear."
               checked={prefs.savedAlerts}
-              onChange={(checked) => updatePrefs({ ...prefs, savedAlerts: checked })}
+              onChange={(checked) => {
+                const next = { ...prefs, savedAlerts: checked };
+                setPrefs(next);
+                if (user && typeof window !== "undefined") {
+                  window.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
+                }
+                savedAlertsMutation.mutate(checked);
+              }}
             />
             <ToggleRow
               label="Message updates"

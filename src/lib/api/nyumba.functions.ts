@@ -6,7 +6,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { Property, PropertyType } from "@/lib/properties";
 import { ForbiddenError, requireRole } from "@/lib/api/_authz";
-import { createPublicClient, PUBLIC_PROPERTY_COLUMNS } from "@/lib/api/public-client";
+import {
+  createPublicClient,
+  PROPERTY_DETAIL_COLUMNS,
+  PUBLIC_PROPERTY_COLUMNS,
+} from "@/lib/api/public-client";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getRequest } from "@tanstack/react-start/server";
 
@@ -264,7 +268,7 @@ export const getProperty = createServerFn({ method: "POST" })
     const supabase = createPublicClient();
     const { data: property, error } = await supabase
       .from("properties")
-      .select(PUBLIC_PROPERTY_COLUMNS)
+      .select(PROPERTY_DETAIL_COLUMNS)
       .eq("id", data.id)
       .maybeSingle();
 
@@ -415,6 +419,35 @@ export const listAgencyProperties = createServerFn({ method: "GET" })
     const { data, error } = await query.limit(500);
     if (error) throw error;
     return (data ?? []) as Property[];
+  });
+
+export const listAgencyTeamMembers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "agency");
+    const orgId = await getUserOrganizationId(supabase, userId);
+    if (!orgId) return [];
+
+    const { data: members, error } = await supabase
+      .from("organization_members")
+      .select("user_id, role, created_at")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    if (!members?.length) return [];
+
+    const userIds = members.map((m) => m.user_id);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, phone")
+      .in("id", userIds);
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    return members.map((m) => ({
+      ...m,
+      profile: profileMap.get(m.user_id) ?? null,
+    }));
   });
 
 export const listManagerProperties = createServerFn({ method: "GET" })

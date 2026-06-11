@@ -117,20 +117,23 @@ export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
 export const getAIValuation = createServerFn({ method: "POST" })
   .inputValidator(z.object({ propertyId: z.string().uuid() }))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin;
+    const { checkRateLimit } = await import("@/lib/api/rate-limit");
+    checkRateLimit(`ai-valuation:${data.propertyId}`);
 
-    // Fetch the property
-    const { data: property, error: pErr } = await admin
+    const { createPublicClient, PROPERTY_DETAIL_COLUMNS } = await import("@/lib/api/public-client");
+    const supabase = createPublicClient();
+
+    const { data: property, error: pErr } = await supabase
       .from("properties")
-      .select("*")
+      .select(PROPERTY_DETAIL_COLUMNS)
       .eq("id", data.propertyId)
+      .eq("is_active", true)
       .single();
 
     if (pErr || !property) throw new Error("Property not found");
 
     // Fetch neighborhood listings to construct averages
-    const { data: neighborhoodProperties, error: nErr } = await admin
+    const { data: neighborhoodProperties, error: nErr } = await supabase
       .from("properties")
       .select("rent_kes, bedrooms")
       .eq("neighborhood", property.neighborhood)
@@ -339,20 +342,24 @@ export const getAssistantReply = createServerFn({ method: "POST" })
 export const getAIChatResponse = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      message: z.string().trim().min(1),
+      message: z.string().trim().min(1).max(2000),
       propertyId: z.string().uuid().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const admin = supabaseAdmin;
+    const { checkRateLimit } = await import("@/lib/api/rate-limit");
+    checkRateLimit(`ai-chat:${data.propertyId ?? "general"}`);
+
+    const { createPublicClient } = await import("@/lib/api/public-client");
+    const supabase = createPublicClient();
 
     let propertyDetails = "";
     if (data.propertyId) {
-      const { data: property } = await admin
+      const { data: property } = await supabase
         .from("properties")
         .select("title, neighborhood, rent_kes, bedrooms, bathrooms, description, amenities")
         .eq("id", data.propertyId)
+        .eq("is_active", true)
         .maybeSingle();
 
       if (property) {

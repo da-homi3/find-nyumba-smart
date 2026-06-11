@@ -13,6 +13,9 @@ export function createPublicClient() {
   });
 }
 
-/** Safe columns for public property listings — never expose owner internals. */
+/** Safe columns for list/search/map views — no owner_id. */
 export const PUBLIC_PROPERTY_COLUMNS =
-  "id,owner_id,title,property_type,neighborhood,address,latitude,longitude,rent_kes,deposit_kes,bedrooms,bathrooms,area_sqm,description,amenities,images,video_url,tour_url,is_verified,is_active,authenticity_score,health_score,available_from,views,created_at,updated_at" as const;
+  "id,title,property_type,neighborhood,address,latitude,longitude,rent_kes,deposit_kes,bedrooms,bathrooms,area_sqm,description,amenities,images,video_url,tour_url,is_verified,is_active,is_vacant,authenticity_score,health_score,available_from,views,created_at,updated_at" as const;
+
+/** Detail view includes owner_id for booking/inquiry (single-property endpoint only). */
+export const PROPERTY_DETAIL_COLUMNS = `${PUBLIC_PROPERTY_COLUMNS},owner_id` as const;

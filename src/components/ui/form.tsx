@@ -10,7 +10,6 @@ import {
 } from "react-hook-form";
 
 import { cn } from "@/lib/utils";
-/* eslint-disable react-refresh/only-export-components */
 
 import * as React from "react";
 import { Label } from "@/components/ui/label";

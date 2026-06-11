@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LandlordShell } from "@/components/LandlordShell";
-import { ConversationThread, countUnread } from "@/components/ConversationThread";
+import { ConversationThread } from "@/components/ConversationThread";
+import { countUnread } from "@/lib/conversation-utils";
 import { listLandlordLeads, updateInquiryStatus } from "@/lib/api/nyumba.functions";
 import { formatKes } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";

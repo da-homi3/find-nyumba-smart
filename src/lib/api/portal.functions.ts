@@ -6,11 +6,27 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PortalId } from "@/lib/portal-guard";
 import { checkRateLimit } from "@/lib/api/rate-limit";
-import {
-  notifyApplicantApproved,
-  notifyApplicantRejected,
-  notifyOpsNewApplication,
-} from "@/lib/api/notify";
+
+async function sendOpsNewApplication(
+  payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyOpsNewApplication"]>[0],
+) {
+  const { notifyOpsNewApplication } = await import("@/lib/api/notify");
+  await notifyOpsNewApplication(payload);
+}
+
+async function sendApplicantApproved(
+  payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyApplicantApproved"]>[0],
+) {
+  const { notifyApplicantApproved } = await import("@/lib/api/notify");
+  await notifyApplicantApproved(payload);
+}
+
+async function sendApplicantRejected(
+  payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyApplicantRejected"]>[0],
+) {
+  const { notifyApplicantRejected } = await import("@/lib/api/notify");
+  await notifyApplicantRejected(payload);
+}
 
 export type PortalApplication = {
   id: string;
@@ -115,7 +131,7 @@ export const registerPortalApplicationAfterSignup = createServerFn({ method: "PO
       phone: data.phone,
     });
 
-    await notifyOpsNewApplication({
+    await sendOpsNewApplication({
       applicantName: data.applicantName,
       applicantEmail: data.applicantEmail,
       role: data.requestedRole,
@@ -157,7 +173,7 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
     const email = userData.user?.email ?? "";
     const name = userData.user?.user_metadata?.full_name ?? userData.user?.email ?? "Applicant";
 
-    await notifyOpsNewApplication({
+    await sendOpsNewApplication({
       applicantName: name,
       applicantEmail: email,
       role: data.requestedRole,
@@ -231,7 +247,7 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
           updated_at: new Date().toISOString(),
         })
         .eq("id", data.applicationId);
-      await notifyApplicantRejected({
+      await sendApplicantRejected({
         email,
         name,
         role: app.requested_role,
@@ -288,7 +304,7 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
       .update({ active_portal: portalMap[app.requested_role] ?? "tenant" })
       .eq("id", app.user_id);
 
-    await notifyApplicantApproved({ email, name, role: app.requested_role });
+    await sendApplicantApproved({ email, name, role: app.requested_role });
 
     return { status: "approved" as const, organizationId };
   });
