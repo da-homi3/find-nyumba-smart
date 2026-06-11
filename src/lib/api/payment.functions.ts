@@ -21,9 +21,9 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(initiatePaymentSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { userId } = getContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Format phone to 254... format
     let cleanPhone = data.phoneNumber.replace("+", "").trim();
     if (cleanPhone.startsWith("0")) {
       cleanPhone = "254" + cleanPhone.slice(1);
@@ -31,11 +31,9 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
       cleanPhone = "254" + cleanPhone;
     }
 
-    // Generate a unique M-Pesa Transaction ID (in real, safaricom returns this. Here we generate a placeholder)
     const receiptCode = "MPESA" + Math.random().toString(36).substring(2, 9).toUpperCase();
 
-    // Create a pending payment
-    const { data: row, error } = await supabase
+    const { data: row, error } = await supabaseAdmin
       .from("payments")
       .insert({
         user_id: userId,
@@ -50,22 +48,18 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
-    // Simulate callback completion for demo/development purposes after 2 seconds
-    setTimeout(async () => {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin.from("payments").update({ status: "completed" }).eq("id", row.id);
+    // Demo: mark completed immediately (replace with Daraja STK + webhook in production)
+    await supabaseAdmin.from("payments").update({ status: "completed" }).eq("id", row.id);
 
-      // If it is a property boost, set the property to verified or boosted
-      if (
-        data.propertyId &&
-        (data.paymentType === "featured_listing" || data.paymentType === "property_boost")
-      ) {
-        await supabaseAdmin
-          .from("properties")
-          .update({ is_verified: true })
-          .eq("id", data.propertyId);
-      }
-    }, 2000);
+    if (
+      data.propertyId &&
+      (data.paymentType === "featured_listing" || data.paymentType === "property_boost")
+    ) {
+      await supabaseAdmin
+        .from("properties")
+        .update({ is_verified: true })
+        .eq("id", data.propertyId);
+    }
 
     return {
       success: true,
@@ -79,12 +73,13 @@ export const verifyMpesaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ paymentId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
-    const { supabase } = getContext(context);
+    const { supabase, userId } = getContext(context);
 
     const { data: row, error } = await supabase
       .from("payments")
       .select("*")
       .eq("id", data.paymentId)
+      .eq("user_id", userId)
       .single();
 
     if (error) throw error;

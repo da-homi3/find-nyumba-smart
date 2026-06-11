@@ -23,7 +23,7 @@ function LandlordLayout() {
       return;
     }
     if (!isLandlord) {
-      navigate({ to: "/landlord", replace: true });
+      navigate({ to: "/settings", replace: true });
     }
   }, [loading, user, isLandlord, isPublicEntry, pathname, navigate]);
 

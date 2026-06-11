@@ -1,36 +1,55 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchProperties } from "@/lib/properties";
-import { caretakerSignOut, isCaretakerSignedIn } from "./caretaker.index";
-import { Building2, ToggleLeft, Camera, Calendar, MessageCircle } from "lucide-react";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  listCaretakerAssignedProperties,
+  updateCaretakerVacancy,
+  validateCaretakerSession,
+} from "@/lib/api/caretaker.functions";
+import { getCaretakerToken, clearCaretakerToken } from "@/lib/caretaker-session";
+import { Building2, ToggleLeft } from "lucide-react";
 import { toast } from "sonner";
+import type { Property } from "@/lib/properties";
 
 export const Route = createFileRoute("/caretaker/dashboard")({
   head: () => ({ meta: [{ title: "Caretaker dashboard — NyumbaSearch" }] }),
   component: CaretakerDashboard,
 });
 
-const QUICK_REPLIES = [
-  "Property is still available",
-  "Please book a viewing",
-  "Thanks for your interest",
-];
-
 function CaretakerDashboard() {
   const navigate = useNavigate();
-  const [vacant, setVacant] = useState<Record<string, boolean>>({});
+  const qc = useQueryClient();
+  const token = getCaretakerToken();
 
   useEffect(() => {
-    if (!isCaretakerSignedIn()) navigate({ to: "/caretaker" });
-  }, [navigate]);
+    if (!token) {
+      navigate({ to: "/caretaker" });
+      return;
+    }
+    validateCaretakerSession({ data: { token } }).catch(() => {
+      clearCaretakerToken();
+      navigate({ to: "/caretaker" });
+    });
+  }, [navigate, token]);
 
-  const { data: properties = [] } = useQuery({
-    queryKey: ["properties"],
-    queryFn: () => fetchProperties(),
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ["caretaker-properties", token],
+    enabled: !!token,
+    queryFn: async () => {
+      const rows = await listCaretakerAssignedProperties({ data: { token: token! } });
+      return rows as Property[];
+    },
   });
 
-  const managed = properties.slice(0, 4);
+  const toggleVacancy = useMutation({
+    mutationFn: ({ propertyId, isVacant }: { propertyId: string; isVacant: boolean }) =>
+      updateCaretakerVacancy({ data: { token: token!, propertyId, isVacant } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["caretaker-properties"] });
+      toast.success("Vacancy updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="min-h-screen bg-secondary">
@@ -40,7 +59,7 @@ function CaretakerDashboard() {
           <button
             type="button"
             onClick={() => {
-              caretakerSignOut();
+              clearCaretakerToken();
               navigate({ to: "/caretaker" });
             }}
             className="text-xs text-muted-foreground hover:text-foreground"
@@ -51,77 +70,52 @@ function CaretakerDashboard() {
       </header>
       <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
         <p className="text-sm text-muted-foreground">
-          You can update vacancy status and respond to tenants — no pricing or analytics access.
+          Assigned properties only — you cannot change pricing or view analytics.
         </p>
-        {managed.map((p) => {
-          const isVacant = vacant[p.id] ?? true;
-          return (
-            <div key={p.id} className="rounded-2xl border bg-card p-4">
-              <div className="flex items-start gap-3">
-                {p.images[0] ? (
-                  <img src={p.images[0]} alt="" className="h-16 w-20 rounded-lg object-cover" />
-                ) : (
-                  <div className="grid h-16 w-20 place-items-center rounded-lg bg-muted">
-                    <Building2 className="h-6 w-6 text-muted-foreground" />
+        {isLoading ? (
+          <div className="h-24 animate-pulse rounded-2xl bg-muted" />
+        ) : properties.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No properties assigned yet.</p>
+        ) : (
+          properties.map((p) => {
+            const isVacant = (p as Property & { is_vacant?: boolean }).is_vacant !== false;
+            return (
+              <div key={p.id} className="rounded-2xl border bg-card p-4">
+                <div className="flex items-start gap-3">
+                  {p.images[0] ? (
+                    <img src={p.images[0]} alt="" className="h-16 w-20 rounded-lg object-cover" />
+                  ) : (
+                    <div className="grid h-16 w-20 place-items-center rounded-lg bg-muted">
+                      <Building2 className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-semibold">{p.title}</p>
+                    <p className="text-xs text-muted-foreground">{p.neighborhood}</p>
+                    <span
+                      className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        isVacant ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700"
+                      }`}
+                    >
+                      {isVacant ? "Vacant" : "Occupied"}
+                    </span>
                   </div>
-                )}
-                <div className="flex-1">
-                  <p className="font-semibold">{p.title}</p>
-                  <p className="text-xs text-muted-foreground">{p.neighborhood}</p>
-                  <span
-                    className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      isVacant
-                        ? "bg-amber-500/15 text-amber-700"
-                        : "bg-emerald-500/15 text-emerald-700"
-                    }`}
-                  >
-                    {isVacant ? "Vacant" : "Occupied"}
-                  </span>
                 </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     if (confirm(`Mark as ${isVacant ? "occupied" : "vacant"}?`)) {
-                      setVacant((v) => ({ ...v, [p.id]: !isVacant }));
-                      toast.success("Status updated");
+                      toggleVacancy.mutate({ propertyId: p.id, isVacant: !isVacant });
                     }
                   }}
-                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                  className="mt-3 inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"
                 >
                   <ToggleLeft className="h-3.5 w-3.5" /> Toggle vacancy
                 </button>
-                <button
-                  type="button"
-                  onClick={() => toast.success("Photo upload recorded (mock)")}
-                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"
-                >
-                  <Camera className="h-3.5 w-3.5" /> Building update
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold"
-                >
-                  <Calendar className="h-3.5 w-3.5" /> Viewings
-                </button>
               </div>
-              <div className="mt-3 flex flex-wrap gap-1">
-                {QUICK_REPLIES.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => toast.success(`Sent: "${r}"`)}
-                    className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-medium"
-                  >
-                    <MessageCircle className="mr-0.5 inline h-3 w-3" />
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </main>
     </div>
   );

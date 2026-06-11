@@ -47,8 +47,9 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
     await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: row, error } = await supabase
+    const { data: row, error } = await supabaseAdmin
       .from("verifications")
       .update({ status: data.status, notes: data.notes ?? null })
       .eq("id", data.id)
@@ -57,8 +58,7 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
-    // Log admin audit
-    await supabase.from("admin_audit_logs").insert({
+    await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: userId,
       action: `VERIFICATION_${data.status.toUpperCase()}`,
       target_id: data.id,
@@ -106,8 +106,9 @@ export const updateScamReportStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
     await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: row, error } = await supabase
+    const { data: row, error } = await supabaseAdmin
       .from("scam_reports")
       .update({ status: data.status })
       .eq("id", data.id)
@@ -116,8 +117,7 @@ export const updateScamReportStatus = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
-    // Log audit
-    await supabase.from("admin_audit_logs").insert({
+    await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: userId,
       action: `SCAM_REPORT_${data.status.toUpperCase()}`,
       target_id: data.id,

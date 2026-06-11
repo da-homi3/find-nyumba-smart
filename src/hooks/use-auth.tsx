@@ -3,16 +3,32 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listMyPortalApplications,
+  getMyProfilePortal,
+  setActivePortal,
+  type PortalApplication,
+} from "@/lib/api/portal.functions";
+import { clearCaretakerToken } from "@/lib/caretaker-session";
+import type { PortalId } from "@/lib/portal-guard";
 
-export type AppRole = "tenant" | "landlord" | "manager" | "caretaker" | "admin";
+export type AppRole = "tenant" | "landlord" | "manager" | "agency" | "caretaker" | "admin";
 
 interface AuthCtx {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  pendingApplications: PortalApplication[];
+  activePortal: PortalId;
   loading: boolean;
   isLandlord: boolean;
+  isManager: boolean;
+  isAgency: boolean;
+  isAdmin: boolean;
   isTenant: boolean;
+  hasApprovedRole: (role: AppRole) => boolean;
+  setActivePortalChoice: (portal: PortalId) => Promise<void>;
+  refreshPortalState: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -31,7 +47,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [pendingApplications, setPendingApplications] = useState<PortalApplication[]>([]);
+  const [activePortal, setActivePortalState] = useState<PortalId>("tenant");
   const [loading, setLoading] = useState(true);
+
+  const refreshPortalState = async (userId?: string) => {
+    if (!userId) {
+      setPendingApplications([]);
+      setActivePortalState("tenant");
+      return;
+    }
+    try {
+      const [apps, profile] = await Promise.all([
+        listMyPortalApplications(),
+        getMyProfilePortal(),
+      ]);
+      setPendingApplications(apps);
+      const portal = (profile?.active_portal as PortalId) ?? "tenant";
+      setActivePortalState(portal);
+    } catch {
+      setPendingApplications([]);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -43,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!s?.user) {
         setRoles([]);
+        setPendingApplications([]);
+        setActivePortalState("tenant");
         setLoading(false);
         return;
       }
@@ -50,6 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextRoles = await fetchUserRoles(s.user.id);
       if (!active) return;
       setRoles(nextRoles);
+      await refreshPortalState(s.user.id);
+      if (!active) return;
       setLoading(false);
     };
 
@@ -70,8 +111,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const hasApprovedRole = (role: AppRole) => roles.includes(role);
+
+  const setActivePortalChoice = async (portal: PortalId) => {
+    await setActivePortal({ data: { portal } });
+    setActivePortalState(portal);
+  };
+
   const signOut = async () => {
+    clearCaretakerToken();
     await supabase.auth.signOut();
+    window.location.href = "/tenant";
   };
 
   return (
@@ -80,9 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         roles,
+        pendingApplications,
+        activePortal,
         loading,
         isLandlord: roles.includes("landlord"),
+        isManager: roles.includes("manager"),
+        isAgency: roles.includes("agency"),
+        isAdmin: roles.includes("admin"),
         isTenant: roles.includes("tenant") || roles.length === 0,
+        hasApprovedRole,
+        setActivePortalChoice,
+        refreshPortalState: async () => refreshPortalState(user?.id),
         signOut,
       }}
     >

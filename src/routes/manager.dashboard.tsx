@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProperties } from "@/lib/properties";
-import { useAuth } from "@/hooks/use-auth";
+import { listManagerProperties, listLandlordLeads } from "@/lib/api/nyumba.functions";
 import { Building2, Download, Inbox } from "lucide-react";
 import { toast } from "sonner";
+import { formatKes } from "@/lib/properties";
 
 export const Route = createFileRoute("/manager/dashboard")({
   head: () => ({ meta: [{ title: "Property manager — NyumbaSearch" }] }),
@@ -19,54 +19,53 @@ const PIPELINE = [
 ] as const;
 
 function ManagerDashboard() {
-  const { user } = useAuth();
   const { data: properties = [] } = useQuery({
-    queryKey: ["properties"],
-    queryFn: () => fetchProperties(),
+    queryKey: ["manager-properties"],
+    queryFn: () => listManagerProperties(),
+  });
+  const { data: leads = [] } = useQuery({
+    queryKey: ["manager-leads"],
+    queryFn: () => listLandlordLeads(),
   });
 
-  const total = properties.length;
-  const occupied = Math.floor(total * 0.72);
-  const vacant = total - occupied;
+  const vacant = properties.filter((p) => (p as { is_vacant?: boolean }).is_vacant !== false).length;
+  const occupied = properties.length - vacant;
 
   return (
     <div className="min-h-screen bg-secondary">
       <header className="border-b bg-foreground px-5 py-4 text-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-background/60">
-              Property manager
-            </p>
+            <p className="text-[10px] uppercase tracking-wider text-background/60">Property manager</p>
             <h1 className="font-display text-lg font-semibold">Portfolio overview</h1>
           </div>
-          <Link to="/landlord/leads" search={{ thread: undefined }} className="text-sm text-gold">
-            Unified inbox →
+          <Link to="/settings" className="text-sm text-gold">
+            Settings →
           </Link>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl space-y-8 px-5 py-8">
         <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Properties managed" value={String(total)} />
-          <StatCard label="Total units" value={String(total)} />
+          <StatCard label="Properties managed" value={String(properties.length)} />
+          <StatCard label="Vacant units" value={String(vacant)} />
           <StatCard
             label="Occupancy rate"
-            value={`${total ? Math.round((occupied / total) * 100) : 0}%`}
+            value={`${properties.length ? Math.round((occupied / properties.length) * 100) : 0}%`}
           />
         </div>
 
         <section>
-          <h2 className="font-display text-lg font-semibold">Occupancy by property</h2>
+          <h2 className="font-display text-lg font-semibold">Your portfolio</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {properties.slice(0, 6).map((p, i) => (
+            {properties.slice(0, 9).map((p) => (
               <div key={p.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-primary" />
                   <p className="font-semibold text-sm">{p.title}</p>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Vacant: {i % 3 === 0 ? 1 : 0} · Occupied: {i % 3 === 0 ? 2 : 3}
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{p.neighborhood}</p>
+                <p className="mt-2 text-sm font-semibold">{formatKes(p.rent_kes)}</p>
               </div>
             ))}
           </div>
@@ -80,23 +79,20 @@ function ManagerDashboard() {
               onClick={() => toast.success("Vacancy report exported (CSV mock)")}
               className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
             >
-              <Download className="h-3.5 w-3.5" /> Export CSV
+              <Download className="h-3.5 w-3.5" /> Export
             </button>
           </div>
-          <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+          <div className="mt-4 grid gap-3 lg:grid-cols-5">
             {PIPELINE.map((col, ci) => (
-              <div key={col} className="min-w-[160px] shrink-0 rounded-xl border bg-card p-3">
-                <p className="text-xs font-semibold text-muted-foreground">{col}</p>
+              <div key={col} className="rounded-2xl border bg-card p-3">
+                <p className="text-[10px] font-bold uppercase text-muted-foreground">{col}</p>
                 <div className="mt-2 space-y-2">
                   {properties
                     .filter((_, i) => i % PIPELINE.length === ci)
-                    .slice(0, 2)
+                    .slice(0, 3)
                     .map((p) => (
-                      <div
-                        key={p.id}
-                        className="rounded-lg bg-secondary p-2 text-[11px] font-medium"
-                      >
-                        {p.neighborhood} · {p.title.slice(0, 20)}…
+                      <div key={p.id} className="rounded-lg bg-secondary px-2 py-1.5 text-xs font-medium">
+                        {p.title}
                       </div>
                     ))}
                 </div>
@@ -105,22 +101,16 @@ function ManagerDashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-card p-4">
+        <section>
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-            <Inbox className="h-5 w-5 text-primary" />
-            Tenant inquiries
+            <Inbox className="h-5 w-5" /> Leads ({leads.length})
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {user
-              ? "Open the unified inbox to reply across all managed properties."
-              : "Sign in as a property manager to view inquiries."}
-          </p>
           <Link
             to="/landlord/leads"
             search={{ thread: undefined }}
-            className="mt-4 inline-block text-sm font-semibold text-primary"
+            className="mt-3 inline-block text-sm font-semibold text-primary"
           >
-            Go to inbox →
+            Open unified inbox →
           </Link>
         </section>
       </main>
@@ -131,8 +121,8 @@ function ManagerDashboard() {
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border bg-card p-5">
+      <p className="text-2xl font-semibold">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 font-display text-2xl font-semibold">{value}</p>
     </div>
   );
 }

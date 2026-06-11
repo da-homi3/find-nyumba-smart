@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { submitContactMessage } from "@/lib/api/contact.functions";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({ meta: [{ title: "Contact — NyumbaSearch" }] }),
@@ -8,7 +9,9 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
+  const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,10 +27,19 @@ function ContactPage() {
         </p>
         <form
           className="mt-8 space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            toast.success("Message sent — we'll get back to you soon.");
-            setMessage("");
+            setLoading(true);
+            try {
+              await submitContactMessage({ data: { email, message } });
+              toast.success("Message sent — we'll get back to you soon.");
+              setEmail("");
+              setMessage("");
+            } catch (err) {
+              toast.error((err as Error).message);
+            } finally {
+              setLoading(false);
+            }
           }}
         >
           <label className="block text-sm font-medium">
@@ -35,6 +47,8 @@ function ContactPage() {
             <input
               type="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
             />
           </label>
@@ -50,9 +64,10 @@ function ContactPage() {
           </label>
           <button
             type="submit"
-            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            disabled={loading}
+            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Send message
+            {loading ? "Sending…" : "Send message"}
           </button>
         </form>
         <p className="mt-6 text-center text-xs text-muted-foreground">

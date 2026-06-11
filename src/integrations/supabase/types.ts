@@ -95,6 +95,8 @@ export type Database = {
           is_business_verified: boolean;
           is_ownership_verified: boolean;
           phone: string | null;
+          active_portal: string | null;
+          is_portal_active: boolean;
           updated_at: string;
         };
         Insert: {
@@ -102,6 +104,8 @@ export type Database = {
           created_at?: string;
           full_name?: string | null;
           id: string;
+          active_portal?: string | null;
+          is_portal_active?: boolean;
           is_phone_verified?: boolean;
           is_id_verified?: boolean;
           is_business_verified?: boolean;
@@ -119,7 +123,132 @@ export type Database = {
           is_business_verified?: boolean;
           is_ownership_verified?: boolean;
           phone?: string | null;
+          active_portal?: string | null;
+          is_portal_active?: boolean;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      portal_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          requested_role: Database["public"]["Enums"]["app_role"];
+          organization_name: string | null;
+          phone: string | null;
+          notes: string | null;
+          status: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          requested_role: Database["public"]["Enums"]["app_role"];
+          organization_name?: string | null;
+          phone?: string | null;
+          notes?: string | null;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          requested_role?: Database["public"]["Enums"]["app_role"];
+          organization_name?: string | null;
+          phone?: string | null;
+          notes?: string | null;
+          status?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      caretakers: {
+        Row: {
+          id: string;
+          landlord_id: string;
+          full_name: string;
+          phone: string;
+          pin_hash: string;
+          is_active: boolean;
+          created_at: string;
+          last_login_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          landlord_id: string;
+          full_name: string;
+          phone: string;
+          pin_hash: string;
+          is_active?: boolean;
+          created_at?: string;
+          last_login_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          landlord_id?: string;
+          full_name?: string;
+          phone?: string;
+          pin_hash?: string;
+          is_active?: boolean;
+          created_at?: string;
+          last_login_at?: string | null;
+        };
+        Relationships: [];
+      };
+      caretaker_property_assignments: {
+        Row: {
+          id: string;
+          caretaker_id: string;
+          property_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          caretaker_id: string;
+          property_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          caretaker_id?: string;
+          property_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      caretaker_sessions: {
+        Row: {
+          id: string;
+          caretaker_id: string;
+          token_hash: string;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          caretaker_id: string;
+          token_hash: string;
+          expires_at: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          caretaker_id?: string;
+          token_hash?: string;
+          expires_at?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -139,10 +268,12 @@ export type Database = {
           id: string;
           images: string[];
           is_active: boolean;
+          is_vacant: boolean;
           is_verified: boolean;
           latitude: number | null;
           longitude: number | null;
           neighborhood: string;
+          organization_id: string | null;
           owner_id: string | null;
           property_type: Database["public"]["Enums"]["property_type"];
           rent_kes: number;
@@ -816,7 +947,7 @@ export type Database = {
       };
     };
     Enums: {
-      app_role: "tenant" | "landlord" | "manager" | "caretaker" | "admin";
+      app_role: "tenant" | "landlord" | "manager" | "agency" | "caretaker" | "admin";
       property_type:
         | "bedsitter"
         | "single_room"
@@ -953,7 +1084,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["tenant", "landlord", "manager", "caretaker", "admin"],
+      app_role: ["tenant", "landlord", "manager", "agency", "caretaker", "admin"],
       property_type: [
         "bedsitter",
         "single_room",

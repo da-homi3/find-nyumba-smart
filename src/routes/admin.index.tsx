@@ -18,17 +18,24 @@ import {
   updateScamReportStatus,
   listAdminAuditLogs,
 } from "@/lib/api/admin.functions";
+import { listPendingApplications, reviewPortalApplication } from "@/lib/api/portal.functions";
 import { listProperties } from "@/lib/api/nyumba.functions";
 import { toast } from "sonner";
 
+type Tab = "verifications" | "scams" | "properties" | "audits" | "applications";
+
 export const Route = createFileRoute("/admin/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   component: AdminDashboard,
 });
 
-type Tab = "verifications" | "scams" | "properties" | "audits";
-
 function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>("verifications");
+  const { tab: tabFromUrl } = Route.useSearch();
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tabFromUrl === "applications" ? "applications" : "verifications",
+  );
   const qc = useQueryClient();
 
   // Queries
@@ -51,6 +58,22 @@ function AdminDashboard() {
   const { data: audits = [], isLoading: auditsLoading } = useQuery({
     queryKey: ["admin-audits"],
     queryFn: () => listAdminAuditLogs(),
+  });
+
+  const { data: applications = [], isLoading: appsLoading } = useQuery({
+    queryKey: ["admin-applications"],
+    queryFn: () => listPendingApplications(),
+    enabled: activeTab === "applications",
+  });
+
+  const reviewApp = useMutation({
+    mutationFn: (payload: { applicationId: string; action: "approve" | "reject"; rejectionReason?: string }) =>
+      reviewPortalApplication({ data: payload }),
+    onSuccess: () => {
+      toast.success("Application updated");
+      qc.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   // Mutations
@@ -115,6 +138,7 @@ function AdminDashboard() {
             },
             { id: "properties", label: "Moderate listings", count: properties.length },
             { id: "audits", label: "Audit Logs", count: audits.length },
+            { id: "applications", label: "Portal applications", count: applications.length },
           ].map((t) => (
             <button
               key={t.id}
@@ -380,6 +404,70 @@ function AdminDashboard() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "applications" && (
+            <div>
+              {appsLoading ? (
+                <div className="text-sm text-muted-foreground">Loading applications…</div>
+              ) : applications.length === 0 ? (
+                <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+                  No pending portal applications.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {applications.map((app: {
+                    id: string;
+                    requested_role: string;
+                    organization_name: string | null;
+                    phone: string | null;
+                    created_at: string;
+                    profiles?: { full_name: string | null; phone: string | null };
+                  }) => (
+                    <div
+                      key={app.id}
+                      className="rounded-2xl border bg-card p-5 flex flex-wrap justify-between gap-4"
+                    >
+                      <div>
+                        <p className="font-semibold capitalize">
+                          {app.requested_role} — {app.profiles?.full_name ?? "Applicant"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {app.organization_name && `${app.organization_name} · `}
+                          {app.phone ?? app.profiles?.phone} ·{" "}
+                          {new Date(app.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            reviewApp.mutate({ applicationId: app.id, action: "approve" })
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reason = prompt("Rejection reason (optional):") ?? undefined;
+                            reviewApp.mutate({
+                              applicationId: app.id,
+                              action: "reject",
+                              rejectionReason: reason,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-destructive"
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { Property, PropertyType } from "@/lib/properties";
-import { requireRole } from "@/lib/api/_authz";
+import { ForbiddenError, requireRole } from "@/lib/api/_authz";
 import { createPublicClient, PUBLIC_PROPERTY_COLUMNS } from "@/lib/api/public-client";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getRequest } from "@tanstack/react-start/server";
@@ -129,15 +129,30 @@ async function assertInquiryParticipant(
 ) {
   const { data: inquiry, error } = await supabase
     .from("inquiries")
-    .select("*, properties(id,title)")
+    .select("*, properties(id, title, organization_id, owner_id)")
     .eq("id", inquiryId)
     .maybeSingle();
   if (error) throw error;
   if (!inquiry) throw new Error("Conversation not found");
-  if (inquiry.tenant_id !== userId && inquiry.landlord_id !== userId) {
-    throw new Error("Forbidden");
+
+  if (inquiry.tenant_id === userId || inquiry.landlord_id === userId) {
+    return inquiry;
   }
-  return inquiry;
+
+  const { data: roleRows } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  const roles = new Set((roleRows ?? []).map((r) => r.role));
+  if (roles.has("manager") || roles.has("agency")) {
+    const orgId = await getUserOrganizationId(supabase, userId);
+    const property = inquiry.properties as { organization_id?: string | null } | null;
+    if (orgId && property?.organization_id === orgId) {
+      return inquiry;
+    }
+  }
+
+  throw new ForbiddenError("Forbidden: not a participant in this conversation");
 }
 
 async function notifyInquiryParticipant(
@@ -324,17 +339,38 @@ export const toggleSavedProperty = createServerFn({ method: "POST" })
     return { saved: shouldSave };
   });
 
+async function getUserOrganizationId(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  return data?.organization_id ?? null;
+}
+
 export const createProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(propertyPayloadSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
-    await requireRole(supabase, userId, "landlord");
+    const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    const roles = new Set((roleRows ?? []).map((r) => r.role));
+    const isLandlord = roles.has("landlord");
+    const isAgency = roles.has("agency");
+    if (!isLandlord && !isAgency) {
+      throw new ForbiddenError("Forbidden: requires role landlord or agency");
+    }
+    const organizationId = isAgency ? await getUserOrganizationId(supabase, userId) : null;
     const { data: property, error } = await supabase
       .from("properties")
       .insert({
         ...data,
         owner_id: userId,
+        organization_id: organizationId,
         property_type: data.property_type as PropertyType,
       })
       .select("*")
@@ -355,6 +391,49 @@ export const listLandlordProperties = createServerFn({ method: "GET" })
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
 
+    if (error) throw error;
+    return (data ?? []) as Property[];
+  });
+
+export const listAgencyProperties = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "agency");
+    const orgId = await getUserOrganizationId(supabase, userId);
+    let query = supabase.from("properties").select("*").order("created_at", { ascending: false });
+    if (orgId) {
+      query = query.eq("organization_id", orgId);
+    } else {
+      query = query.eq("owner_id", userId);
+    }
+    const { data, error } = await query.limit(500);
+    if (error) throw error;
+    return (data ?? []) as Property[];
+  });
+
+export const listManagerProperties = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, "manager");
+    const orgId = await getUserOrganizationId(supabase, userId);
+    if (orgId) {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as Property[];
+    }
+    const { data, error } = await supabase
+      .from("properties")
+      .select("*")
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (error) throw error;
     return (data ?? []) as Property[];
   });
@@ -450,23 +529,38 @@ export const listLandlordLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
-    await requireRole(supabase, userId, ["landlord", "manager"]);
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
 
     const { data: roleRows } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
     const ownedRoles = new Set((roleRows ?? []).map((r) => r.role));
-    const managerOnly = ownedRoles.has("manager") && !ownedRoles.has("landlord");
+    const portfolioWide =
+      (ownedRoles.has("manager") || ownedRoles.has("agency")) && !ownedRoles.has("landlord");
 
     let query = supabase
       .from("inquiries")
       .select(
-        "*, properties(id,title,neighborhood,rent_kes,images), profiles:tenant_id(id,full_name,phone,avatar_url), inquiry_messages(*)",
+        "*, properties(id,title,neighborhood,rent_kes,images,organization_id), profiles:tenant_id(id,full_name,phone,avatar_url), inquiry_messages(*)",
       )
       .order("updated_at", { ascending: false });
 
-    if (!managerOnly) {
+    if (portfolioWide) {
+      const orgId = await getUserOrganizationId(supabase, userId);
+      if (orgId) {
+        const { data: orgProps, error: orgPropsError } = await supabase
+          .from("properties")
+          .select("id")
+          .eq("organization_id", orgId);
+        if (orgPropsError) throw orgPropsError;
+        const propertyIds = (orgProps ?? []).map((p) => p.id);
+        if (propertyIds.length === 0) return [];
+        query = query.in("property_id", propertyIds);
+      } else {
+        query = query.eq("landlord_id", userId);
+      }
+    } else {
       query = query.eq("landlord_id", userId);
     }
 
@@ -481,12 +575,13 @@ export const updateInquiryStatus = createServerFn({ method: "POST" })
   .inputValidator(updateInquiryStatusSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
-    await requireRole(supabase, userId, "landlord");
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+    await assertInquiryParticipant(supabase, userId, data.inquiryId);
+
     const { data: inquiry, error } = await supabase
       .from("inquiries")
       .update({ status: data.status })
       .eq("id", data.inquiryId)
-      .eq("landlord_id", userId)
       .select("*")
       .single();
 

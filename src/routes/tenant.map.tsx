@@ -24,7 +24,9 @@ const NAIROBI_BOUNDS = {
   minLng: 36.62,
   maxLng: 37.08,
 };
-const BROWSER_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+const BROWSER_KEY =
+  import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY ??
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const TRACKING_ID = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
 
 // Stylish dark-emerald Google Maps style aligned with the Emerald Prestige palette

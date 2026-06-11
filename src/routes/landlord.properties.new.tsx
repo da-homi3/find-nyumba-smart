@@ -12,7 +12,7 @@ import { Image as ImageIcon, Film, Compass, Loader2, X } from "lucide-react";
 export const Route = createFileRoute("/landlord/properties/new")({
   component: () => (
     <LandlordShell>
-      <Page />
+      <PropertyListingWizard />
     </LandlordShell>
   ),
 });
@@ -22,7 +22,7 @@ const MAX_VIDEO_MB = 100;
 
 const STEPS = ["Basics", "Details", "Pricing", "Intelligence", "Photos", "Review"] as const;
 
-function Page() {
+export function PropertyListingWizard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(0);

@@ -211,14 +211,22 @@ function Profile() {
             <p className="text-xs text-muted-foreground">{user ? user.email : "Not signed in"}</p>
           </div>
         </div>
-        {isAdmin && (
+        <div className="flex gap-2">
           <Link
-            to="/admin"
+            to="/settings"
             className="rounded-xl border bg-card px-3.5 py-1.5 text-xs font-semibold text-primary"
           >
-            Admin Panel
+            Settings
           </Link>
-        )}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="rounded-xl border bg-card px-3.5 py-1.5 text-xs font-semibold text-primary"
+            >
+              Admin
+            </Link>
+          )}
+        </div>
       </header>
 
       {!user ? (

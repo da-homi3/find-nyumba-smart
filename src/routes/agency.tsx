@@ -2,17 +2,16 @@ import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/rea
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { canAccessPortal } from "@/lib/portal-guard";
 
-export const Route = createFileRoute("/manager")({
-  component: ManagerLayout,
+export const Route = createFileRoute("/agency")({
+  component: AgencyLayout,
 });
 
-function ManagerLayout() {
-  const { user, loading, isManager } = useAuth();
+function AgencyLayout() {
+  const { user, loading, isAgency } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const isPublicEntry = pathname === "/manager" || pathname === "/manager/";
+  const isPublicEntry = pathname === "/agency" || pathname === "/agency/";
 
   useEffect(() => {
     if (isPublicEntry || loading) return;
@@ -20,21 +19,17 @@ function ManagerLayout() {
       navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
       return;
     }
-    if (!isManager) {
+    if (!isAgency) {
       navigate({ to: "/settings", replace: true });
     }
-  }, [loading, user, isManager, isPublicEntry, pathname, navigate]);
+  }, [loading, user, isAgency, isPublicEntry, pathname, navigate]);
 
-  if (!isPublicEntry && (loading || !user || !isManager)) {
+  if (!isPublicEntry && (loading || !user || !isAgency)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  if (!isPublicEntry && user && !canAccessPortal([], "manager") && isManager) {
-    /* isManager already checked */
   }
 
   return <Outlet />;

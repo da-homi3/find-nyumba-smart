@@ -2,20 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, ArrowLeft } from "lucide-react";
-
-const CARETAKER_KEY = "nyumba_caretaker_session";
-
-export function isCaretakerSignedIn() {
-  return typeof window !== "undefined" && !!localStorage.getItem(CARETAKER_KEY);
-}
-
-export function caretakerSignIn(phone: string) {
-  localStorage.setItem(CARETAKER_KEY, JSON.stringify({ phone, at: Date.now() }));
-}
-
-export function caretakerSignOut() {
-  localStorage.removeItem(CARETAKER_KEY);
-}
+import { verifyCaretakerLogin } from "@/lib/api/caretaker.functions";
+import { setCaretakerToken, clearCaretakerToken, getCaretakerToken } from "@/lib/caretaker-session";
+import { useEffect } from "react";
+import { validateCaretakerSession } from "@/lib/api/caretaker.functions";
 
 export const Route = createFileRoute("/caretaker/")({
   head: () => ({ meta: [{ title: "Caretaker sign in — NyumbaSearch" }] }),
@@ -25,35 +15,49 @@ export const Route = createFileRoute("/caretaker/")({
 function CaretakerSignIn() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = getCaretakerToken();
+    if (!token) return;
+    validateCaretakerSession({ data: { token } })
+      .then(() => navigate({ to: "/caretaker/dashboard" }))
+      .catch(() => clearCaretakerToken());
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-sm px-6 pt-10">
-        <Link
-          to="/landlord"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Landlord portal
+        <Link to="/settings" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" /> Settings
         </Link>
         <div className="mt-8 grid h-12 w-12 place-items-center rounded-xl bg-primary/10">
           <KeyRound className="h-6 w-6 text-primary" />
         </div>
         <h1 className="mt-4 font-display text-2xl font-semibold">Caretaker sign in</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Enter the phone and PIN your landlord assigned you.
+          Enter the phone and 4-digit PIN your landlord gave you.
         </p>
         <form
           className="mt-8 space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             if (pin.length !== 4) {
               toast.error("PIN must be 4 digits");
               return;
             }
-            caretakerSignIn(phone);
-            toast.success("Welcome back");
-            navigate({ to: "/caretaker/dashboard" });
+            setLoading(true);
+            try {
+              const res = await verifyCaretakerLogin({ data: { phone, pin } });
+              setCaretakerToken(res.token);
+              toast.success(`Welcome, ${res.caretakerName}`);
+              navigate({ to: "/caretaker/dashboard" });
+            } catch (err) {
+              toast.error((err as Error).message);
+            } finally {
+              setLoading(false);
+            }
           }}
         >
           <label className="block text-sm font-medium">
@@ -80,9 +84,10 @@ function CaretakerSignIn() {
           </label>
           <button
             type="submit"
-            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            disabled={loading}
+            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Sign in
+            {loading ? "Verifying…" : "Sign in"}
           </button>
         </form>
       </div>

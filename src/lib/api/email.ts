@@ -26,7 +26,7 @@ export async function sendInquiryEmail(inquiry: {
 
   const msg = {
     to: landlordEmail,
-    from: "no-reply@nyumba-search.workers.dev",
+    from: process.env.SENDGRID_FROM_EMAIL ?? "kevinbuluma9@gmail.com",
     subject: `New inquiry for ${listing.title}`,
     text: `You have received a new inquiry from ${inquiry.contactEmail}:
 
