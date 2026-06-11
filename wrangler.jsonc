@@ -11,6 +11,10 @@
     "directory": "dist/client"
   },
   "no_bundle": true,
+  "vars": {
+    "SUPABASE_URL": "https://fnycwcbxorhreidhbers.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZueWN3Y2J4b3JocmVpZGhiZXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNDg3MTQsImV4cCI6MjA5NTkyNDcxNH0.nGqWeqyJKH_tGRXFTc2JsvXBlq2rkDnNrbpwYUOdvdI"
+  },
   "rules": [
     {
       "type": "ESModule",
