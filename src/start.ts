@@ -31,7 +31,9 @@ const seoMiddleware = createMiddleware().server(async ({ request, next }) => {
       const parsed = parseStkCallback(body);
       if (parsed) {
         const { supabaseAdmin } = await import("./integrations/supabase/client.server");
-        const patch: Record<string, unknown> = {
+        type PaymentUpdate =
+          import("./integrations/supabase/types").Database["public"]["Tables"]["payments"]["Update"];
+        const patch: PaymentUpdate = {
           status: parsed.success ? "completed" : "failed",
         };
         if (parsed.mpesaReceipt) patch.mpesa_receipt = parsed.mpesaReceipt;
@@ -40,18 +42,26 @@ const seoMiddleware = createMiddleware().server(async ({ request, next }) => {
           .from("payments")
           .update(patch)
           .eq("mpesa_checkout_id", parsed.checkoutRequestId)
-          .select("property_id, payment_type")
+          .eq("status", "pending")
+          .select("property_id, payment_type, user_id")
           .maybeSingle();
 
-        if (parsed.success && payment?.property_id) {
-          const boost =
-            payment.payment_type === "featured_listing" ||
-            payment.payment_type === "property_boost";
-          if (boost) {
+        if (parsed.success && payment) {
+          if (
+            payment.property_id &&
+            (payment.payment_type === "featured_listing" ||
+              payment.payment_type === "property_boost")
+          ) {
             await supabaseAdmin
               .from("properties")
               .update({ is_verified: true })
               .eq("id", payment.property_id);
+          }
+          if (payment.payment_type === "premium_subscription" && payment.user_id) {
+            await supabaseAdmin
+              .from("profiles")
+              .update({ is_portal_active: true })
+              .eq("id", payment.user_id);
           }
         }
       }

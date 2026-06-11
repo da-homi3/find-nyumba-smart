@@ -11,6 +11,20 @@ function getContext(context: unknown) {
   return c;
 }
 
+async function loadProfilesByIds(userIds: string[]) {
+  if (userIds.length === 0)
+    return new Map<
+      string,
+      { full_name: string | null; phone: string | null; avatar_url: string | null }
+    >();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("id, full_name, phone, avatar_url")
+    .in("id", userIds);
+  return new Map((data ?? []).map((p) => [p.id, p]));
+}
+
 export const listAdminVerifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -19,20 +33,15 @@ export const listAdminVerifications = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("verifications")
-      .select(
-        `
-        *,
-        profiles:user_id (
-          full_name,
-          phone,
-          avatar_url
-        )
-      `,
-      )
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return rows;
+    const profileMap = await loadProfilesByIds([...new Set((rows ?? []).map((r) => r.user_id))]);
+    return (rows ?? []).map((row) => ({
+      ...row,
+      profiles: profileMap.get(row.user_id) ?? null,
+    }));
   });
 
 export const updateVerificationStatus = createServerFn({ method: "POST" })
@@ -73,26 +82,48 @@ export const listAdminScamReports = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = getContext(context);
     await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: rows, error } = await supabase
       .from("scam_reports")
-      .select(
-        `
-        *,
-        properties (
-          title,
-          neighborhood,
-          owner_id
-        ),
-        reporter:reporter_id (
-          full_name
-        )
-      `,
-      )
-      .order("created_at", { ascending: false });
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      });
 
     if (error) throw error;
-    return rows;
+
+    const propertyIds = [
+      ...new Set((rows ?? []).map((r) => r.property_id).filter(Boolean)),
+    ] as string[];
+    const reporterIds = [
+      ...new Set((rows ?? []).map((r) => r.reporter_id).filter(Boolean)),
+    ] as string[];
+
+    const [{ data: properties }, reporterMap] = await Promise.all([
+      propertyIds.length
+        ? supabaseAdmin
+            .from("properties")
+            .select("id, title, neighborhood, owner_id")
+            .in("id", propertyIds)
+        : Promise.resolve({
+            data: [] as {
+              id: string;
+              title: string;
+              neighborhood: string;
+              owner_id: string | null;
+            }[],
+          }),
+      loadProfilesByIds(reporterIds),
+    ]);
+
+    const propertyMap = new Map((properties ?? []).map((p) => [p.id, p]));
+
+    return (rows ?? []).map((row) => ({
+      ...row,
+      properties: propertyMap.get(row.property_id) ?? null,
+      reporter: row.reporter_id ? (reporterMap.get(row.reporter_id) ?? null) : null,
+    }));
   });
 
 export const updateScamReportStatus = createServerFn({ method: "POST" })
@@ -135,16 +166,14 @@ export const listAdminAuditLogs = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("admin_audit_logs")
-      .select(
-        `
-        *,
-        admin:admin_id (
-          full_name
-        )
-      `,
-      )
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return rows;
+    const adminIds = [...new Set((rows ?? []).map((r) => r.admin_id).filter(Boolean))] as string[];
+    const profileMap = await loadProfilesByIds(adminIds);
+    return (rows ?? []).map((row) => ({
+      ...row,
+      admin: row.admin_id ? (profileMap.get(row.admin_id) ?? null) : null,
+    }));
   });

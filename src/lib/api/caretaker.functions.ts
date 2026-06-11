@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -60,15 +61,31 @@ export const listCaretakers = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "landlord");
-    const { data, error } = await supabase
+    const { data: caretakers, error } = await supabase
       .from("caretakers")
-      .select(
-        "id, full_name, phone, is_active, created_at, last_login_at, caretaker_property_assignments(property_id)",
-      )
+      .select("id, full_name, phone, is_active, created_at, last_login_at")
       .eq("landlord_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return data ?? [];
+    if (!caretakers?.length) return [];
+
+    const ids = caretakers.map((c) => c.id);
+    const { data: assignments } = await supabase
+      .from("caretaker_property_assignments")
+      .select("caretaker_id, property_id")
+      .in("caretaker_id", ids);
+
+    const byCaretaker = new Map<string, { property_id: string }[]>();
+    for (const row of assignments ?? []) {
+      const list = byCaretaker.get(row.caretaker_id) ?? [];
+      list.push({ property_id: row.property_id });
+      byCaretaker.set(row.caretaker_id, list);
+    }
+
+    return caretakers.map((c) => ({
+      ...c,
+      caretaker_property_assignments: byCaretaker.get(c.id) ?? [],
+    }));
   });
 
 export const createCaretaker = createServerFn({ method: "POST" })
@@ -161,6 +178,7 @@ export const verifyCaretakerLogin = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    checkRateLimit(`caretaker-pin:${data.phone}`);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const pinHash = await hashValue(data.pin);
     const { data: caretaker } = await supabaseAdmin
@@ -197,9 +215,15 @@ export const listCaretakerAssignedProperties = createServerFn({ method: "POST" }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: assignments } = await supabaseAdmin
       .from("caretaker_property_assignments")
-      .select("property_id, properties(*)")
+      .select("property_id")
       .eq("caretaker_id", caretaker.id);
-    return (assignments ?? []).map((a) => a.properties).filter(Boolean);
+    const propertyIds = (assignments ?? []).map((a) => a.property_id);
+    if (!propertyIds.length) return [];
+    const { data: properties } = await supabaseAdmin
+      .from("properties")
+      .select("*")
+      .in("id", propertyIds);
+    return properties ?? [];
   });
 
 export const updateCaretakerVacancy = createServerFn({ method: "POST" })

@@ -20,10 +20,13 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { submitVerification } from "@/lib/api/trust.functions";
-import { listMyViewings, updateViewingStatus } from "@/lib/api/booking.functions";
+import {
+  listMyViewings,
+  updateViewingStatus,
+  type ViewingListItem,
+} from "@/lib/api/booking.functions";
 import { listTransactions } from "@/lib/api/payment.functions";
 
-type TenantViewing = Awaited<ReturnType<typeof listMyViewings>>[number];
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
 type VerificationType = "phone" | "identity" | "business" | "ownership";
 
@@ -223,6 +226,7 @@ function Profile() {
           {isAdmin && (
             <Link
               to="/admin"
+              search={{ tab: undefined }}
               className="rounded-xl border bg-card px-3.5 py-1.5 text-xs font-semibold text-primary"
             >
               Admin
@@ -372,7 +376,7 @@ function Profile() {
               </p>
             ) : (
               <div className="mt-3 space-y-3">
-                {viewings.map((v: TenantViewing) => (
+                {viewings.map((v: ViewingListItem) => (
                   <div
                     key={v.id}
                     className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4"

@@ -14,9 +14,12 @@ import { z } from "zod";
 
 import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
 
-import { listMyPortalApplications, getMyProfilePortal } from "@/lib/api/portal.functions";
-
-import { notifyOpsPortalApplicationEmail } from "@/lib/api/portal.functions";
+import {
+  getMyProfilePortal,
+  listMyPortalApplications,
+  registerPortalApplicationAfterSignup,
+  submitPortalApplication,
+} from "@/lib/api/portal.functions";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -93,15 +96,29 @@ function TenantAuth() {
         if (error) throw error;
 
         if (PRIVILEGED.includes(role)) {
-          await notifyOpsPortalApplicationEmail({
-            data: {
-              applicantName: fullName || email,
-              applicantEmail: email,
-              role,
-              orgName: organizationName,
-              reviewUrl: `${window.location.origin}/admin?tab=applications`,
-            },
-          });
+          const privilegedRole = role as "landlord" | "manager" | "agency";
+          const reviewUrl = `${window.location.origin}/admin?tab=applications`;
+          const portalPayload = {
+            requestedRole: privilegedRole,
+            organizationName: organizationName.trim() || undefined,
+            phone: phone.trim() || undefined,
+          };
+
+          if (signUpData.session) {
+            await submitPortalApplication({ data: portalPayload });
+          } else if (signUpData.user?.id) {
+            await registerPortalApplicationAfterSignup({
+              data: {
+                userId: signUpData.user.id,
+                applicantName: fullName || email,
+                applicantEmail: email,
+                requestedRole: privilegedRole,
+                organizationName: portalPayload.organizationName,
+                phone: portalPayload.phone,
+                reviewUrl,
+              },
+            });
+          }
 
           toast.success("Application submitted — we'll email you when approved.");
 

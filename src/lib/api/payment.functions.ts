@@ -86,6 +86,10 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
         .eq("id", data.propertyId);
     }
 
+    if (data.paymentType === "premium_subscription") {
+      await supabaseAdmin.from("profiles").update({ is_portal_active: true }).eq("id", userId);
+    }
+
     return {
       success: true,
       paymentId: row.id,

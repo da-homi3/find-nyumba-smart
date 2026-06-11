@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth/reset")({
   head: () => ({ meta: [{ title: "Reset password — NyumbaSearch" }] }),
@@ -9,11 +10,54 @@ export const Route = createFileRoute("/auth/reset")({
 });
 
 function ResetPasswordPage() {
-  const [step, setStep] = useState<"email" | "otp" | "password">("email");
+  const [mode, setMode] = useState<"request" | "update">("request");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery") || hash.includes("access_token=")) {
+      setMode("update");
+    }
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setMode("update");
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  async function requestReset(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/auth/reset`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+      toast.success("Check your email for the password reset link.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function updatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success("Password updated — sign in with your new password");
+      navigate({ to: "/auth" });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,16 +66,14 @@ function ResetPasswordPage() {
           <ArrowLeft className="h-4 w-4" /> Back to sign in
         </Link>
         <h1 className="mt-6 font-display text-3xl font-semibold">Reset password</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {mode === "request"
+            ? "We'll email you a secure link to choose a new password."
+            : "Choose a new password for your account."}
+        </p>
 
-        {step === "email" && (
-          <form
-            className="mt-8 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              toast.success("OTP sent to your email (mock)");
-              setStep("otp");
-            }}
-          >
+        {mode === "request" ? (
+          <form className="mt-8 space-y-4" onSubmit={requestReset}>
             <label className="block text-sm font-medium">
               Email
               <input
@@ -44,54 +86,14 @@ function ResetPasswordPage() {
             </label>
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+              disabled={loading}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
-              Send OTP
+              {loading ? "Sending…" : "Send reset link"}
             </button>
           </form>
-        )}
-
-        {step === "otp" && (
-          <form
-            className="mt-8 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!/^\d{6}$/.test(otp)) {
-                toast.error("Enter a 6-digit OTP");
-                return;
-              }
-              setStep("password");
-            }}
-          >
-            <label className="block text-sm font-medium">
-              6-digit OTP
-              <input
-                inputMode="numeric"
-                maxLength={6}
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm tracking-widest"
-              />
-            </label>
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
-            >
-              Verify OTP
-            </button>
-          </form>
-        )}
-
-        {step === "password" && (
-          <form
-            className="mt-8 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              toast.success("Password updated — sign in with your new password");
-              navigate({ to: "/auth" });
-            }}
-          >
+        ) : (
+          <form className="mt-8 space-y-4" onSubmit={updatePassword}>
             <label className="block text-sm font-medium">
               New password
               <input
@@ -105,9 +107,10 @@ function ResetPasswordPage() {
             </label>
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+              disabled={loading}
+              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
-              Set new password
+              {loading ? "Saving…" : "Set new password"}
             </button>
           </form>
         )}

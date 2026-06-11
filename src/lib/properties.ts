@@ -33,6 +33,8 @@ export interface Property {
   tour_url?: string | null;
   is_verified: boolean;
   is_active: boolean;
+  is_vacant?: boolean;
+  organization_id?: string | null;
   authenticity_score?: number;
   health_score?: number;
   available_from: string | null;

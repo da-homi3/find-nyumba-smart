@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { sendEmailNotification, OPS_EMAIL } from "@/lib/api/notify";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 export const submitContactMessage = createServerFn({ method: "POST" })
   .inputValidator(
@@ -10,6 +11,7 @@ export const submitContactMessage = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    checkRateLimit(`contact:${data.email}`);
     const sent = await sendEmailNotification({
       to: OPS_EMAIL,
       subject: `[NyumbaSearch] Contact form — ${data.email}`,

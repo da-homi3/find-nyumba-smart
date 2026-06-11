@@ -16,12 +16,14 @@ import {
   X,
 } from "lucide-react";
 import { getLandlordDashboard } from "@/lib/api/nyumba.functions";
-import { listMyViewings, updateViewingStatus } from "@/lib/api/booking.functions";
+import {
+  listMyViewings,
+  updateViewingStatus,
+  type ViewingListItem,
+} from "@/lib/api/booking.functions";
 import { initiateMpesaPayment } from "@/lib/api/payment.functions";
 import { formatKes } from "@/lib/properties";
 import { toast } from "sonner";
-
-type LandlordViewing = Awaited<ReturnType<typeof listMyViewings>>[number];
 
 export const Route = createFileRoute("/landlord/dashboard")({
   component: () => (
@@ -287,7 +289,7 @@ function Dashboard() {
             </div>
           ) : (
             <div className="mt-4 space-y-3">
-              {viewings.map((v: LandlordViewing) => (
+              {viewings.map((v: ViewingListItem) => (
                 <div key={v.id} className="rounded-2xl border bg-card p-4 shadow-soft">
                   <div className="flex justify-between items-start">
                     <div>

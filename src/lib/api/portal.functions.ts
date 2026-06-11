@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/api/_authz";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PortalId } from "@/lib/portal-guard";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import {
   notifyApplicantApproved,
   notifyApplicantRejected,
@@ -52,19 +53,76 @@ export const listMyPortalApplications = createServerFn({ method: "GET" })
     return (data ?? []) as PortalApplication[];
   });
 
-/** Server-only ops email for privileged signups (avoids bundling SendGrid on the client). */
-export const notifyOpsPortalApplicationEmail = createServerFn({ method: "POST" })
+const privilegedRoleSchema = z.enum(["landlord", "manager", "agency"]);
+
+async function upsertPendingPortalApplication(input: {
+  userId: string;
+  requestedRole: "landlord" | "manager" | "agency";
+  organizationName?: string;
+  phone?: string;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: existing } = await supabaseAdmin
+    .from("portal_applications")
+    .select("id")
+    .eq("user_id", input.userId)
+    .eq("requested_role", input.requestedRole)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const { data: row, error } = await supabaseAdmin
+    .from("portal_applications")
+    .insert({
+      user_id: input.userId,
+      requested_role: input.requestedRole,
+      organization_name: input.organizationName ?? null,
+      phone: input.phone ?? null,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return row;
+}
+
+/** Persists portal application when signup returns a user id but no session yet. */
+export const registerPortalApplicationAfterSignup = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
+      userId: z.string().uuid(),
       applicantName: z.string().trim().min(1),
       applicantEmail: z.string().email(),
-      role: z.string().trim().min(1),
-      orgName: z.string().trim().optional(),
+      requestedRole: privilegedRoleSchema,
+      organizationName: z.string().trim().max(200).optional(),
+      phone: z.string().trim().max(30).optional(),
       reviewUrl: z.string().url(),
     }),
   )
   .handler(async ({ data }) => {
-    await notifyOpsNewApplication(data);
+    checkRateLimit(`portal-signup:${data.applicantEmail}`);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (userData.user?.email?.toLowerCase() !== data.applicantEmail.toLowerCase()) {
+      throw new Error("Invalid signup reference");
+    }
+
+    await upsertPendingPortalApplication({
+      userId: data.userId,
+      requestedRole: data.requestedRole,
+      organizationName: data.organizationName,
+      phone: data.phone,
+    });
+
+    await notifyOpsNewApplication({
+      applicantName: data.applicantName,
+      applicantEmail: data.applicantEmail,
+      role: data.requestedRole,
+      orgName: data.organizationName,
+      reviewUrl: data.reviewUrl,
+    });
+
     return { ok: true as const };
   });
 
@@ -116,13 +174,25 @@ export const listPendingApplications = createServerFn({ method: "GET" })
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    const { data: apps, error } = await supabaseAdmin
       .from("portal_applications")
-      .select("*, profiles:user_id(full_name, phone)")
+      .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: true });
     if (error) throw error;
-    return data ?? [];
+    if (!apps?.length) return [];
+
+    const userIds = [...new Set(apps.map((a) => a.user_id))];
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, phone")
+      .in("id", userIds);
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    return apps.map((app) => ({
+      ...app,
+      profiles: profileMap.get(app.user_id) ?? null,
+    }));
   });
 
 export const reviewPortalApplication = createServerFn({ method: "POST" })
@@ -254,7 +324,7 @@ export const setActivePortal = createServerFn({ method: "POST" })
       admin: "admin",
     };
     const need = required[data.portal];
-    if (need && !owned.has(need)) {
+    if (need && !(owned as Set<string>).has(need)) {
       throw new Error(`You do not have access to the ${data.portal} portal`);
     }
     const { error } = await supabase

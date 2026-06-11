@@ -3,7 +3,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { notifyOpsPortalApplicationEmail } from "@/lib/api/portal.functions";
+import {
+  getMyProfilePortal,
+  listMyPortalApplications,
+  registerPortalApplicationAfterSignup,
+  submitPortalApplication,
+} from "@/lib/api/portal.functions";
+import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
+import type { User } from "@supabase/supabase-js";
 import { Building2, BarChart3, Users, Sparkles, ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/landlord/")({
@@ -86,12 +93,17 @@ function LandlordAuthPanel() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  async function resolveRoles(user: User): Promise<string[]> {
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    return (data ?? []).map((r) => r.role as string);
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -100,21 +112,55 @@ function LandlordAuthPanel() {
           },
         });
         if (error) throw error;
-        await notifyOpsPortalApplicationEmail({
-          data: {
-            applicantName: fullName || email,
-            applicantEmail: email,
-            role: "landlord",
-            reviewUrl: `${window.location.origin}/admin?tab=applications`,
-          },
-        });
+        const reviewUrl = `${window.location.origin}/admin?tab=applications`;
+        if (signUpData.session) {
+          await submitPortalApplication({
+            data: { requestedRole: "landlord", phone: phone.trim() || undefined },
+          });
+        } else if (signUpData.user?.id) {
+          await registerPortalApplicationAfterSignup({
+            data: {
+              userId: signUpData.user.id,
+              applicantName: fullName || email,
+              applicantEmail: email,
+              requestedRole: "landlord",
+              phone: phone.trim() || undefined,
+              reviewUrl,
+            },
+          });
+        }
         toast.success("Application submitted — we'll email you when approved.");
         navigate({ to: "/auth/pending" });
         return;
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate({ to: "/landlord/dashboard" });
+      if (!data.user) throw new Error("Sign in failed");
+
+      const roles = await resolveRoles(data.user);
+      const apps = await listMyPortalApplications();
+      const hasPendingOnly =
+        apps.some((a) => a.status === "pending") &&
+        !roles.some((r) => ["landlord", "manager", "agency", "admin"].includes(r));
+
+      if (hasPendingOnly) {
+        navigate({ to: "/auth/pending" });
+        return;
+      }
+
+      let activePortal: PortalId = "landlord";
+      try {
+        const profile = await getMyProfilePortal();
+        activePortal = (profile?.active_portal as PortalId) ?? "landlord";
+      } catch {
+        /* profile may not be ready */
+      }
+
+      window.location.href = resolvePostLoginPath(
+        roles as AppRole[],
+        activePortal,
+        "/landlord/dashboard",
+      );
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

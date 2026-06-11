@@ -76,7 +76,7 @@ export const updateSavedSearch = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
-    const patch: Record<string, unknown> = {};
+    const patch: Database["public"]["Tables"]["saved_searches"]["Update"] = {};
     if (data.alertEnabled !== undefined) patch.alert_enabled = data.alertEnabled;
     if (data.name !== undefined) patch.name = data.name;
     const { data: row, error } = await supabase

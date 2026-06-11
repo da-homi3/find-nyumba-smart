@@ -298,10 +298,12 @@ export type Database = {
           id?: string;
           images?: string[];
           is_active?: boolean;
+          is_vacant?: boolean;
           is_verified?: boolean;
           latitude?: number | null;
           longitude?: number | null;
           neighborhood: string;
+          organization_id?: string | null;
           owner_id?: string | null;
           property_type: Database["public"]["Enums"]["property_type"];
           rent_kes: number;
@@ -326,10 +328,12 @@ export type Database = {
           id?: string;
           images?: string[];
           is_active?: boolean;
+          is_vacant?: boolean;
           is_verified?: boolean;
           latitude?: number | null;
           longitude?: number | null;
           neighborhood?: string;
+          organization_id?: string | null;
           owner_id?: string | null;
           property_type?: Database["public"]["Enums"]["property_type"];
           rent_kes?: number;

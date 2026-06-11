@@ -28,6 +28,7 @@ type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[numb
 type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];
 type AdminProperty = NonNullable<Awaited<ReturnType<typeof listProperties>>["items"]>[number];
 type AdminAuditLog = Awaited<ReturnType<typeof listAdminAuditLogs>>[number];
+type PendingApplication = Awaited<ReturnType<typeof listPendingApplications>>[number];
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -406,7 +407,10 @@ function AdminDashboard() {
                         </span>
                         <span className="w-1/4 font-semibold text-primary">{a.action}</span>
                         <span className="w-1/4">{a.admin?.full_name ?? "System"}</span>
-                        <span className="w-1/4 text-muted-foreground truncate" title={a.details}>
+                        <span
+                          className="w-1/4 text-muted-foreground truncate"
+                          title={a.details ?? undefined}
+                        >
                           {a.details}
                         </span>
                       </div>
@@ -427,57 +431,48 @@ function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {applications.map(
-                    (app: {
-                      id: string;
-                      requested_role: string;
-                      organization_name: string | null;
-                      phone: string | null;
-                      created_at: string;
-                      profiles?: { full_name: string | null; phone: string | null };
-                    }) => (
-                      <div
-                        key={app.id}
-                        className="rounded-2xl border bg-card p-5 flex flex-wrap justify-between gap-4"
-                      >
-                        <div>
-                          <p className="font-semibold capitalize">
-                            {app.requested_role} — {app.profiles?.full_name ?? "Applicant"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {app.organization_name && `${app.organization_name} · `}
-                            {app.phone ?? app.profiles?.phone} ·{" "}
-                            {new Date(app.created_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              reviewApp.mutate({ applicationId: app.id, action: "approve" })
-                            }
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const reason = prompt("Rejection reason (optional):") ?? undefined;
-                              reviewApp.mutate({
-                                applicationId: app.id,
-                                action: "reject",
-                                rejectionReason: reason,
-                              });
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-destructive"
-                          >
-                            <XCircle className="h-3.5 w-3.5" /> Reject
-                          </button>
-                        </div>
+                  {applications.map((app: PendingApplication) => (
+                    <div
+                      key={app.id}
+                      className="rounded-2xl border bg-card p-5 flex flex-wrap justify-between gap-4"
+                    >
+                      <div>
+                        <p className="font-semibold capitalize">
+                          {app.requested_role} — {app.profiles?.full_name ?? "Applicant"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {app.organization_name && `${app.organization_name} · `}
+                          {app.phone ?? app.profiles?.phone} ·{" "}
+                          {new Date(app.created_at).toLocaleString()}
+                        </p>
                       </div>
-                    ),
-                  )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            reviewApp.mutate({ applicationId: app.id, action: "approve" })
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reason = prompt("Rejection reason (optional):") ?? undefined;
+                            reviewApp.mutate({
+                              applicationId: app.id,
+                              action: "reject",
+                              rejectionReason: reason,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-destructive"
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

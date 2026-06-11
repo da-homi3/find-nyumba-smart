@@ -28,6 +28,7 @@ export const bookViewing = createServerFn({ method: "POST" })
   .inputValidator(bookViewingSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getContext(context);
+    await requireRole(supabase, userId, "tenant");
 
     const { data: row, error } = await supabase
       .from("viewings")
@@ -77,6 +78,26 @@ export const updateViewingStatus = createServerFn({ method: "POST" })
     return row;
   });
 
+export type ViewingListItem = Database["public"]["Tables"]["viewings"]["Row"] & {
+  properties: {
+    id: string;
+    title: string;
+    neighborhood: string;
+    rent_kes: number;
+    images: string[];
+  } | null;
+  tenant_profile: {
+    full_name: string | null;
+    phone: string | null;
+    avatar_url: string | null;
+  } | null;
+  landlord_profile: {
+    full_name: string | null;
+    phone: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
 export const listMyViewings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -84,23 +105,33 @@ export const listMyViewings = createServerFn({ method: "GET" })
 
     const { data: rows, error } = await supabase
       .from("viewings")
-      .select(
-        `
-        *,
-        properties (
-          id,
-          title,
-          neighborhood,
-          rent_kes,
-          images
-        ),
-        tenant_profile:profiles!viewings_tenant_id_fkey(full_name, phone, avatar_url),
-        landlord_profile:profiles!viewings_landlord_id_fkey(full_name, phone, avatar_url)
-      `,
-      )
+      .select("*")
       .or(`tenant_id.eq.${userId},landlord_id.eq.${userId}`)
       .order("scheduled_at", { ascending: true });
 
     if (error) throw error;
-    return rows;
+    if (!rows?.length) return [] as ViewingListItem[];
+
+    const propertyIds = [...new Set(rows.map((r) => r.property_id))];
+    const profileIds = [
+      ...new Set(rows.flatMap((r) => [r.tenant_id, r.landlord_id].filter(Boolean) as string[])),
+    ];
+
+    const [{ data: properties }, { data: profiles }] = await Promise.all([
+      supabase
+        .from("properties")
+        .select("id, title, neighborhood, rent_kes, images")
+        .in("id", propertyIds),
+      supabase.from("profiles").select("id, full_name, phone, avatar_url").in("id", profileIds),
+    ]);
+
+    const propertyMap = new Map((properties ?? []).map((p) => [p.id, p]));
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    return rows.map((row) => ({
+      ...row,
+      properties: propertyMap.get(row.property_id) ?? null,
+      tenant_profile: profileMap.get(row.tenant_id) ?? null,
+      landlord_profile: row.landlord_id ? (profileMap.get(row.landlord_id) ?? null) : null,
+    })) as ViewingListItem[];
   });
