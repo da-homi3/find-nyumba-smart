@@ -19,12 +19,20 @@ type Message = {
   read_at: string | null;
 };
 
+const LANDLORD_QUICK_REPLIES = [
+  "Property is still available",
+  "Please book a viewing",
+  "Thanks for your interest",
+];
+
 export function ConversationThread({
   inquiryId,
   onBack,
+  showQuickReplies = false,
 }: {
   inquiryId: string;
   onBack?: () => void;
+  showQuickReplies?: boolean;
 }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -158,6 +166,24 @@ export function ConversationThread({
         )}
         <div ref={bottomRef} />
       </div>
+
+      {showQuickReplies && (
+        <div className="flex flex-wrap gap-1.5 border-t px-3 pt-2">
+          {LANDLORD_QUICK_REPLIES.map((text) => (
+            <button
+              key={text}
+              type="button"
+              onClick={() => {
+                setDraft(text);
+                send.mutate(text);
+              }}
+              className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-medium"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form
         className="flex items-end gap-2 border-t p-3"

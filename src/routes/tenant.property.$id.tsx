@@ -18,7 +18,10 @@ import {
   Bot,
   Send,
 } from "lucide-react";
-import { fetchProperty, formatKes, prettyType } from "@/lib/properties";
+import { fetchProperty, formatKes, prettyType, searchProperties } from "@/lib/properties";
+import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
+import { PropertyIntelligencePanel } from "@/components/PropertyIntelligencePanel";
+import { PropertyCard } from "@/components/PropertyCard";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -97,6 +100,7 @@ function PropertyDetail() {
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["property", id],
@@ -112,9 +116,18 @@ function PropertyDetail() {
     },
   });
 
+  const { data: similar = [] } = useQuery({
+    queryKey: ["similar", id, p?.neighborhood],
+    enabled: !!p,
+    queryFn: async () => {
+      const result = await searchProperties({ neighborhood: p!.neighborhood, limit: 4 });
+      return result.items.filter((item) => item.id !== id).slice(0, 3);
+    },
+  });
+
   const { data: landlordProfile } = useQuery({
-    queryKey: ["landlord-profile", p?.owner_id, user?.id],
-    enabled: !!p?.owner_id && !!user,
+    queryKey: ["landlord-profile", p?.owner_id],
+    enabled: !!p?.owner_id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -218,21 +231,18 @@ function PropertyDetail() {
   if (!p) return <div className="p-6">Property not found.</div>;
 
   const score = p.authenticity_score ?? 70;
-  let verificationLevel = 0;
-  if (p.is_verified) {
-    if (score >= 90) verificationLevel = 4;
-    else if (score >= 75) verificationLevel = 3;
-    else if (score >= 60) verificationLevel = 2;
-    else verificationLevel = 1;
-  }
+  const vLevel = verificationLevel(p);
+  const intel = getListingIntel(p);
+  const gallery = p.images.length > 0 ? p.images : [];
+  const activeImage = gallery[galleryIndex] ?? gallery[0];
 
   return (
     <div className="pb-32 bg-background min-h-screen">
       {/* Gallery */}
       <div className="relative">
         <div className="aspect-[4/3] w-full overflow-hidden bg-muted max-h-[500px]">
-          {p.images[0] ? (
-            <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+          {activeImage ? (
+            <img src={activeImage} alt={p.title} className="h-full w-full object-cover" />
           ) : (
             <div className="grid h-full place-items-center text-sm text-muted-foreground">
               No image available
@@ -263,8 +273,17 @@ function PropertyDetail() {
             <Heart className={`h-4 w-4 ${isSaved ? "fill-destructive text-destructive" : ""}`} />
           </button>
         </div>
+        {gallery.length > 1 && (
+          <div className="absolute bottom-4 right-4 flex gap-1.5">
+            {gallery.map((src, i) => (
+              <button key={src} type="button" onClick={() => setGalleryIndex(i)} aria-label={`Photo ${i + 1}`} className={`h-12 w-12 overflow-hidden rounded-lg border-2 ${i === galleryIndex ? "border-primary" : "border-white/80"}`}>
+                <img src={src} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
         <div className="absolute bottom-4 left-4 flex flex-col gap-2">
-          {verificationLevel > 0 && <VerificationBadge level={verificationLevel} />}
+          {vLevel > 0 && <VerificationBadge level={vLevel} />}
           <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur">
             <Flame className="h-3.5 w-3.5 text-orange-400" /> Authenticity Score: {score}%
           </span>
@@ -276,7 +295,7 @@ function PropertyDetail() {
           <div>
             <h1 className="font-display text-2xl font-semibold leading-tight">{p.title}</h1>
             <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" /> {p.neighborhood}
+              <MapPin className="h-4 w-4" /> {p.neighborhood} · {intel.subArea}
               {p.address ? ` · ${p.address}` : ""}
             </p>
           </div>
@@ -304,7 +323,24 @@ function PropertyDetail() {
           <span className="font-medium">Type:</span> {prettyType(p.property_type)} ·{" "}
           <span className="font-medium">Deposit:</span>{" "}
           {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
+          {intel.parking ? " · Parking" : ""}
         </div>
+
+        <PropertyIntelligencePanel intel={intel} />
+
+        <section className="mt-6 rounded-2xl border bg-card p-4">
+          <h2 className="font-display text-lg font-semibold">About this landlord</h2>
+          <div className="mt-3 flex items-start gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/15 font-display text-sm font-bold text-primary">
+              {(landlordProfile?.full_name ?? "L").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="flex-1 text-sm">
+              <p className="font-semibold">{landlordProfile?.full_name ?? "Verified landlord"}</p>
+              {vLevel > 0 && <div className="mt-1"><VerificationBadge level={vLevel} /></div>}
+              <p className="mt-2 text-xs text-muted-foreground">Phone verified · Usually replies within 2 hours</p>
+            </div>
+          </div>
+        </section>
 
         {/* AI Valuation Widget */}
         <section className="mt-6 rounded-2xl border bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-4">
@@ -390,11 +426,18 @@ function PropertyDetail() {
         </section>
 
         {/* Reviews & Neighborhood Quality Ratings */}
-        <PropertyReviewsSection
-          propertyId={id}
-          userId={user?.id}
-          isTenant={!!user}
-        />
+        <PropertyReviewsSection propertyId={id} userId={user?.id} isTenant={!!user} />
+
+        {similar.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-display text-lg font-semibold">Similar homes nearby</h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {similar.map((item) => (
+                <PropertyCard key={item.id} p={item} showSave={false} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Action bar */}
@@ -437,6 +480,8 @@ function PropertyDetail() {
         <BookingModal
           propertyId={p.id}
           landlordId={p.owner_id}
+          propertyTitle={p.title}
+          propertyAddress={p.address ?? p.neighborhood}
           isOpen={isBookingOpen}
           onClose={() => setIsBookingOpen(false)}
         />

@@ -178,6 +178,9 @@ function TenantMap() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Property | null>(null);
   const [showHeat, setShowHeat] = useState(true);
+  const [showWater, setShowWater] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
   const [query, setQuery] = useState("");
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
@@ -455,6 +458,18 @@ function TenantMap() {
     setSelected(null);
   };
 
+  const locateMe = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        mapInstance.current?.panTo(center);
+        mapInstance.current?.setZoom(14);
+      },
+      () => setError("Could not access your location"),
+    );
+  };
+
   const visibleCount = ready && !error ? markerCount : filteredProperties.length;
 
   return (
@@ -502,29 +517,86 @@ function TenantMap() {
             className="flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-muted-foreground"
           />
           <button
+            onClick={locateMe}
+            className="rounded-xl border bg-background p-2 text-foreground"
+            aria-label="Use my location"
+          >
+            <Navigation className="h-4 w-4" />
+          </button>
+          <button
             onClick={recenter}
             className="rounded-xl bg-foreground p-2 text-background transition hover:opacity-90"
             aria-label="Recenter on Nairobi"
           >
-            <Navigation className="h-4 w-4" />
+            <MapPin className="h-4 w-4" />
           </button>
+          <Link to="/tenant" className="rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
+            List view
+          </Link>
         </div>
-        <div className="pointer-events-auto flex items-center gap-2 self-start">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-2 self-start">
           <button
             onClick={() => setShowHeat((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur transition ${
-              showHeat
-                ? "bg-gradient-gold text-gold-foreground"
-                : "bg-background/90 text-foreground"
+              showHeat ? "bg-gradient-gold text-gold-foreground" : "bg-background/90 text-foreground"
             }`}
           >
-            <Flame className="h-3.5 w-3.5" /> Heatmap {showHeat ? "on" : "off"}
+            <Flame className="h-3.5 w-3.5" /> Rent heat
+          </button>
+          <button
+            onClick={() => setShowWater((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur ${
+              showWater ? "bg-blue-500/20 text-blue-700" : "bg-background/90"
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5" /> Water
+          </button>
+          <button
+            onClick={() => setShowSecurity((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur ${
+              showSecurity ? "bg-red-500/15 text-red-700" : "bg-background/90"
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5" /> Security
           </button>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-card backdrop-blur">
-            <Layers className="h-3.5 w-3.5" /> {visibleCount} listings
+            {visibleCount} listings
           </span>
         </div>
       </div>
+
+      {showWater && (
+        <div className="pointer-events-none absolute inset-0 z-[5] bg-blue-500/10 mix-blend-multiply" aria-hidden />
+      )}
+      {showSecurity && (
+        <div className="pointer-events-none absolute inset-0 z-[5] bg-red-500/10 mix-blend-multiply" aria-hidden />
+      )}
+
+      <aside
+        className={`pointer-events-auto absolute bottom-24 left-0 top-24 z-10 hidden w-80 overflow-y-auto border-r bg-background/95 p-3 shadow-card backdrop-blur transition lg:block ${
+          panelOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <button type="button" onClick={() => setPanelOpen((v) => !v)} className="mb-2 text-xs font-semibold text-primary">
+          {panelOpen ? "Hide panel" : "Show"}
+        </button>
+        <div className="space-y-3">
+          {filteredProperties.slice(0, 8).map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setSelected(p)}
+              className="flex w-full gap-2 rounded-xl border p-2 text-left hover:bg-secondary"
+            >
+              {p.images[0] && <img src={p.images[0]} alt="" className="h-14 w-16 rounded-lg object-cover" />}
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold">{p.title}</p>
+                <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </aside>
 
       {/* Bottom property sheet */}
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10">

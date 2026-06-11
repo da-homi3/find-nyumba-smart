@@ -45,7 +45,7 @@ function LeadsPage() {
   if (activeThread) {
     return (
       <div className="px-4 py-6 lg:px-10">
-        <ConversationThread inquiryId={activeThread} onBack={() => setActiveThread(undefined)} />
+        <ConversationThread inquiryId={activeThread} onBack={() => setActiveThread(undefined)} showQuickReplies />
       </div>
     );
   }

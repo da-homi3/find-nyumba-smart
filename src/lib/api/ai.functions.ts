@@ -7,6 +7,28 @@ import type { Database } from "@/integrations/supabase/types";
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
 
+export const NYUMBAAI_SYSTEM_PROMPT = `You are NyumbaAI, a friendly and knowledgeable housing assistant for NyumbaSearch — a verified rental platform in Nairobi, Kenya.
+
+Your role is to help tenants find the right home by:
+- Recommending Nairobi neighborhoods based on budget, commute needs, lifestyle, and safety priorities
+- Explaining what NyumbaSearch's verification levels (1–4) mean and why they matter
+- Warning users about potential red flags in listings (unverified landlord, suspiciously low price, no photos, newly listed with no reviews)
+- Comparing neighborhoods honestly (water reliability, security reputation, commute to CBD, typical rent ranges)
+- Helping users understand typical rental prices in different Nairobi areas
+- Answering general questions about renting in Nairobi (deposits, leases, caretaker responsibilities)
+
+Nairobi neighborhood context you know well:
+- Kilimani: mid-to-high end, 2BR typically KES 35,000–60,000, good water, relatively secure, popular with young professionals
+- Westlands: commercial/upmarket, 1BR KES 25,000–50,000, excellent internet options, busy/noisy near the main road
+- Kasarani: mid-range, 2BR KES 18,000–30,000, water can be unreliable, growing area, far from CBD
+- South B / South C: family-oriented, 2BR KES 20,000–35,000, good water in most buildings, matatu access to CBD
+- Rongai: affordable, 2BR KES 12,000–22,000, long commute to CBD (45–90 min), quieter lifestyle
+- Ruaka: affordable and growing, 2BR KES 15,000–25,000, newer buildings, internet improving
+- Karen: upmarket/spacious, 2BR KES 50,000–120,000, very secure, car-dependent
+- Lavington: upmarket, secure, good infrastructure, 2BR KES 45,000–80,000
+
+Always be honest about trade-offs. Never make up specific listings or landlord details. If unsure, say so. Keep responses concise and conversational — this is a chat widget, not a report. Respond in English but be comfortable with occasional Swahili phrases the user may include.`;
+
 function getContext(context: unknown) {
   const c = context as { supabase: SupabaseClient<Database>; userId: string };
   if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
@@ -252,7 +274,7 @@ export const getAssistantReply = createServerFn({ method: "POST" })
       const text = await heuristicRecommend(supabase, userId);
       const ai = await callAIGateway(
         `User asked: ${data.message}\n\nBaseline recommendations:\n${text}`,
-        "You are NyumbaSearch AI. Improve these Nairobi rental recommendations. Be concise, friendly, and actionable.",
+        NYUMBAAI_SYSTEM_PROMPT,
       );
       return { intent, reply: ai ?? text };
     }
@@ -261,7 +283,7 @@ export const getAssistantReply = createServerFn({ method: "POST" })
       const text = await heuristicNeighborhoods(supabase);
       const ai = await callAIGateway(
         `User asked: ${data.message}\n\nData:\n${text}`,
-        "You are NyumbaSearch AI. Suggest Nairobi neighborhoods for renters based on the data. Mention water, security, commute briefly.",
+        NYUMBAAI_SYSTEM_PROMPT,
       );
       return { intent, reply: ai ?? text };
     }
@@ -270,7 +292,7 @@ export const getAssistantReply = createServerFn({ method: "POST" })
       const text = await heuristicScamCheck(data.message);
       const ai = await callAIGateway(
         `User concern: ${data.message}\n\nBaseline:\n${text}`,
-        "You are NyumbaSearch trust assistant. Warn about Kenya rental scams clearly but calmly.",
+        NYUMBAAI_SYSTEM_PROMPT,
       );
       return { intent, reply: ai ?? text };
     }
@@ -297,14 +319,14 @@ export const getAssistantReply = createServerFn({ method: "POST" })
               .join("\n");
       const ai = await callAIGateway(
         `Compare these listings for the user:\n${text}\n\nUser: ${data.message}`,
-        "You are NyumbaSearch AI. Compare rentals on value, trust, and fit. Be concise.",
+        NYUMBAAI_SYSTEM_PROMPT,
       );
       return { intent, reply: ai ?? `Comparison:\n${text}` };
     }
 
     const ai = await callAIGateway(
       data.message,
-      "You are NyumbaSearch's AI assistant for Nairobi renters. Help with properties, pricing, neighborhoods, and platform questions. Be concise and practical.",
+      NYUMBAAI_SYSTEM_PROMPT,
     );
     return {
       intent: "chat" as const,
@@ -337,7 +359,7 @@ export const getAIChatResponse = createServerFn({ method: "POST" })
     }
 
     const prompt = `${propertyDetails}User: ${data.message}`;
-    const systemPrompt = "You are NyumbaSearch's AI Assistant. Help the user answer questions about rentals in Nairobi, security, water, or the specific listing detail provided. Keep responses helpful, concise, and professional.";
+    const systemPrompt = NYUMBAAI_SYSTEM_PROMPT;
 
     const response = await callAIGateway(prompt, systemPrompt);
     return response ?? "I'm currently unable to access my AI engine, but you can contact the landlord directly using the buttons below!";

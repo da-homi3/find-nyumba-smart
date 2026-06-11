@@ -181,6 +181,16 @@ function LandlordAuthPanel() {
           {mode === "signup" ? "Sign in" : "Create account"}
         </button>
       </p>
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        Property manager?{" "}
+        <Link to="/auth" search={{ redirect: "/manager/dashboard" }} className="font-semibold text-primary">
+          Sign up as manager
+        </Link>
+        {" · "}
+        <Link to="/caretaker" className="font-semibold text-primary">
+          Caretaker sign in
+        </Link>
+      </p>
     </div>
   );
 }

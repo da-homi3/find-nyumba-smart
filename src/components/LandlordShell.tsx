@@ -7,8 +7,9 @@ import { toast } from "sonner";
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/landlord/properties", label: "Properties", icon: Building2 },
-  { to: "/landlord/leads", label: "Leads", icon: Inbox },
+  { to: "/landlord/leads", label: "Messages", icon: Inbox },
   { to: "/landlord/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/landlord/dashboard/plan", label: "Plan", icon: Settings },
 ] as const;
 
 export function LandlordShell({ children }: { children: ReactNode }) {

@@ -3,18 +3,36 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { z } from "zod";
+
+const authSearchSchema = z.object({
+  redirect: z.string().optional(),
+});
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: authSearchSchema,
   component: TenantAuth,
 });
 
+type AccountRole = "tenant" | "landlord" | "manager";
+
 function TenantAuth() {
+  const { redirect } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<AccountRole>("tenant");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const destination = (r: AccountRole) => {
+    if (redirect) return redirect;
+    if (r === "landlord") return "/landlord/dashboard";
+    if (r === "manager") return "/manager/dashboard";
+    return "/tenant";
+  };
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -25,17 +43,19 @@ function TenantAuth() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/tenant`,
-            data: { full_name: fullName, role: "tenant" },
+            emailRedirectTo: `${window.location.origin}${destination(role)}`,
+            data: { full_name: fullName, phone, role },
           },
         });
         if (error) throw error;
         toast.success("Welcome to NyumbaSearch!");
+        localStorage.setItem("nyumba_mock_jwt", "signed-up");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        localStorage.setItem("nyumba_mock_jwt", "signed-in");
       }
-      navigate({ to: "/tenant" });
+      navigate({ to: destination(role) as "/tenant" });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -54,29 +74,51 @@ function TenantAuth() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {mode === "signin"
-            ? "Sign in to save homes and contact landlords."
-            : "Join thousands finding verified homes."}
+            ? "Sign in to save homes and contact landlords — no agents."
+            : "Join thousands finding verified homes in Nairobi."}
         </p>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        <div className="mt-6 flex rounded-xl border bg-secondary p-1">
+          {(["signin", "signup"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
+                mode === m ? "bg-background shadow-sm" : "text-muted-foreground"
+              }`}
+            >
+              {m === "signin" ? "Sign in" : "Sign up"}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
           {mode === "signup" && (
-            <Field label="Full name">
-              <input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                className={inputCls}
-              />
-            </Field>
+            <>
+              <Field label="Full name">
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} required className={inputCls} />
+              </Field>
+              <Field label="Phone (M-Pesa number)">
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="07XX XXX XXX"
+                  required
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Account type">
+                <select value={role} onChange={(e) => setRole(e.target.value as AccountRole)} className={inputCls}>
+                  <option value="tenant">Tenant</option>
+                  <option value="landlord">Landlord</option>
+                  <option value="manager">Property manager</option>
+                </select>
+              </Field>
+            </>
           )}
           <Field label="Email">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={inputCls}
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
           </Field>
           <Field label="Password">
             <input
@@ -88,6 +130,11 @@ function TenantAuth() {
               className={inputCls}
             />
           </Field>
+          {mode === "signin" && (
+            <Link to="/auth/reset" className="block text-right text-xs font-semibold text-primary">
+              Forgot password?
+            </Link>
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -97,20 +144,14 @@ function TenantAuth() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          {mode === "signin" ? "New to NyumbaSearch?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            className="font-semibold text-primary"
-          >
-            {mode === "signin" ? "Sign up" : "Sign in"}
-          </button>
-        </p>
-
         <p className="mt-10 text-center text-xs text-muted-foreground">
           Are you a landlord?{" "}
           <Link to="/landlord" className="font-semibold text-foreground">
-            Landlord access →
+            Landlord portal →
+          </Link>
+          {" · "}
+          <Link to="/caretaker" className="font-semibold text-foreground">
+            Caretaker sign in
           </Link>
         </p>
       </div>

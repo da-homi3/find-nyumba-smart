@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { useCountUp } from "@/hooks/use-count-up";
 import {
   Search,
   ShieldCheck,
   MapPin,
   Sparkles,
+  Droplets,
   ArrowRight,
   Building2,
   Star,
@@ -81,6 +83,7 @@ function Landing() {
       <FeaturedListings verified={verified} />
       <PopularNeighborhoods hoods={popularNeighborhoods} />
       <VerifiedSection />
+      <PropertyIntelSection />
       <WhyNyumba />
       <Testimonials />
       <DownloadApp />
@@ -146,22 +149,34 @@ function SiteNav() {
   );
 }
 
+const HOOD_META: Record<string, { from: number; img: string }> = {
+  Kilimani: { from: 18000, img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
+  Westlands: { from: 25000, img: "https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=400" },
+  Karen: { from: 50000, img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400" },
+  Lavington: { from: 45000, img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400" },
+  Kileleshwa: { from: 35000, img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400" },
+  Kasarani: { from: 12000, img: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=400" },
+  "South B": { from: 20000, img: "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400" },
+  Roysambu: { from: 8000, img: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400" },
+  Rongai: { from: 12000, img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400" },
+  Ruaka: { from: 15000, img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400" },
+};
+
 function Hero({ verifiedCount, hoodCount }: { verifiedCount: number; hoodCount: number }) {
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
   const [hood, setHood] = useState("");
   const [maxRent, setMaxRent] = useState("");
+  const [propType, setPropType] = useState("");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (hood) params.set("hood", hood);
-    if (maxRent) params.set("max", maxRent);
-    const search = params.toString();
     navigate({
       to: "/tenant",
-      search: search ? (Object.fromEntries(params) as never) : ({} as never),
+      search: {
+        ...(hood ? { neighborhood: hood } : {}),
+        ...(maxRent ? { maxPrice: Number(maxRent) } : {}),
+        ...(propType ? { type: propType } : {}),
+      },
     });
   };
 
@@ -198,26 +213,22 @@ function Hero({ verifiedCount, hoodCount }: { verifiedCount: number; hoodCount: 
             onSubmit={submit}
             className="mt-8 rounded-3xl border border-background/15 bg-background/95 p-3 text-foreground shadow-elegant backdrop-blur sm:p-4"
           >
-            <div className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_auto]">
-              <label className="flex items-center gap-2 rounded-2xl border bg-card px-3 py-2.5">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Bedsitter, 2BR, keyword…"
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  aria-label="Search keywords"
-                />
-              </label>
+            <div className="grid gap-2 sm:grid-cols-[1.2fr_1fr_1fr_1fr_auto]">
               <label className="flex items-center gap-2 rounded-2xl border bg-card px-3 py-2.5">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <input
+                  list="hood-suggestions"
                   value={hood}
                   onChange={(e) => setHood(e.target.value)}
                   placeholder="Neighborhood"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   aria-label="Neighborhood"
                 />
+                <datalist id="hood-suggestions">
+                  {Object.keys(HOOD_META).map((n) => (
+                    <option key={n} value={n} />
+                  ))}
+                </datalist>
               </label>
               <label className="flex items-center gap-2 rounded-2xl border bg-card px-3 py-2.5">
                 <span className="text-xs font-semibold text-muted-foreground">KES</span>
@@ -226,10 +237,26 @@ function Hero({ verifiedCount, hoodCount }: { verifiedCount: number; hoodCount: 
                   inputMode="numeric"
                   value={maxRent}
                   onChange={(e) => setMaxRent(e.target.value)}
-                  placeholder="Max rent"
+                  placeholder="Max budget"
                   className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   aria-label="Maximum rent"
                 />
+              </label>
+              <label className="flex items-center gap-2 rounded-2xl border bg-card px-3 py-2.5">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={propType}
+                  onChange={(e) => setPropType(e.target.value)}
+                  className="w-full bg-transparent text-sm outline-none"
+                  aria-label="Property type"
+                >
+                  <option value="">Any type</option>
+                  <option value="bedsitter">Bedsitter</option>
+                  <option value="studio">Studio</option>
+                  <option value="one_bedroom">1 BR</option>
+                  <option value="two_bedroom">2 BR</option>
+                  <option value="three_bedroom">3 BR</option>
+                </select>
               </label>
               <button
                 type="submit"
@@ -277,18 +304,31 @@ function Hero({ verifiedCount, hoodCount }: { verifiedCount: number; hoodCount: 
 }
 
 function TrustStrip() {
+  const ref = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const homes = useCountUp(10000, 1400, visible);
+  const fees = useCountUp(98, 1000, visible);
+  const hours = useCountUp(24, 800, visible);
+  const rating = useCountUp(47, 900, visible);
   const items = [
-    { k: "10k+", v: "Verified homes" },
-    { k: "98%", v: "No agent fees" },
-    { k: "24h", v: "Avg response" },
-    { k: "4.7★", v: "Tenant rating" },
+    { k: `${homes >= 10000 ? "10k+" : homes.toLocaleString()}`, v: "Verified homes" },
+    { k: `${fees}%`, v: "No agent fees" },
+    { k: `${hours}h`, v: "Avg response" },
+    { k: `${(rating / 10).toFixed(1)}★`, v: "Tenant rating" },
   ];
   return (
-    <section aria-label="Trust statistics" className="border-y bg-secondary">
+    <section ref={ref} aria-label="Trust statistics" className="border-y bg-secondary">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-8 sm:grid-cols-4 sm:px-6">
         {items.map((s) => (
           <div key={s.v} className="text-center sm:text-left">
-            <div className="font-display text-2xl font-semibold text-primary sm:text-3xl">
+            <div className="font-display text-2xl font-semibold text-primary sm:text-3xl tabular-nums">
               {s.k}
             </div>
             <div className="text-xs text-muted-foreground">{s.v}</div>
@@ -356,21 +396,32 @@ function PopularNeighborhoods({ hoods }: { hoods: { name: string; count: number 
           </div>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {items.map((h) => (
-            <Link
-              key={h.name}
-              to="/tenant"
-              className="group flex items-center justify-between rounded-2xl border bg-card p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
-            >
-              <div>
-                <div className="font-display text-base font-semibold">{h.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {h.count > 0 ? `${h.count} ${h.count === 1 ? "home" : "homes"}` : "Explore homes"}
+          {items.map((h) => {
+            const meta = HOOD_META[h.name];
+            return (
+              <Link
+                key={h.name}
+                to="/tenant"
+                search={{ neighborhood: h.name }}
+                className="group overflow-hidden rounded-2xl border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
+              >
+                {meta?.img && (
+                  <div className="aspect-[16/9] overflow-hidden bg-muted">
+                    <img src={meta.img} alt="" className="h-full w-full object-cover transition group-hover:scale-105" loading="lazy" />
+                  </div>
+                )}
+                <div className="flex items-center justify-between p-4">
+                  <div>
+                    <div className="font-display text-base font-semibold">{h.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {meta ? `From KES ${meta.from.toLocaleString()}/mo` : h.count > 0 ? `${h.count} homes` : "Explore"}
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
                 </div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -423,6 +474,51 @@ function VerifiedSection() {
               </div>
               <h3 className="mt-4 font-display text-lg font-semibold">{l.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{l.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PropertyIntelSection() {
+  const layers = [
+    {
+      icon: Droplets,
+      title: "Water reliability",
+      desc: "Community-reported supply quality and borehole data before you sign.",
+      stat: "72% of Kilimani listings have borehole backup",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Security",
+      desc: "Gated compounds, guard presence, and neighbourhood safety scores.",
+      stat: "Level 3+ verified homes average 4.2/5 security",
+    },
+    {
+      icon: Sparkles,
+      title: "Internet",
+      desc: "Safaricom, Zuku, and Faiba availability per building.",
+      stat: "89% of Westlands listings report fibre-ready",
+    },
+  ];
+  return (
+    <section className="border-t bg-background">
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Property intelligence</p>
+        <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
+          Know before you visit
+        </h2>
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
+          {layers.map((l) => (
+            <div key={l.title} className="rounded-2xl border bg-card p-6 shadow-soft">
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                <l.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 font-display text-lg font-semibold">{l.title}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{l.desc}</p>
+              <p className="mt-3 text-xs font-semibold text-primary">{l.stat}</p>
             </div>
           ))}
         </div>
@@ -637,15 +733,24 @@ function SiteFooter() {
         <FooterCol
           title="Company"
           links={[
-            { to: "/auth", label: "Sign in" },
-            { to: "/", label: "About" },
-            { to: "/", label: "Contact" },
+            { to: "/about", label: "About" },
+            { to: "/contact", label: "Contact" },
+            { to: "/pricing", label: "Pricing" },
+            { to: "/caretaker", label: "Caretaker" },
+            { to: "/manager/dashboard", label: "Property manager" },
           ]}
         />
       </div>
       <div className="border-t">
-        <div className="mx-auto max-w-7xl px-5 py-6 text-center text-xs text-muted-foreground sm:px-6">
-          © {new Date().getFullYear()} NyumbaSearch · Built for Nairobi.
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 sm:flex-row sm:px-6">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} NyumbaSearch · Made in Nairobi 🇰🇪
+          </p>
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <a href="#" className="hover:text-primary">Twitter</a>
+            <a href="#" className="hover:text-primary">LinkedIn</a>
+            <a href="#" className="hover:text-primary">Instagram</a>
+          </div>
         </div>
       </div>
     </footer>

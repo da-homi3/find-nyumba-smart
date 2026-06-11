@@ -1,74 +1,121 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, MapPin, Sparkles, ShieldCheck } from "lucide-react";
-import { fetchProperties, prettyType, searchProperties } from "@/lib/properties";
+import { searchProperties } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import heroImg from "@/assets/hero-nairobi.jpg";
+import {
+  TenantFiltersBar,
+  defaultTenantFilters,
+  type TenantFilters,
+} from "@/components/TenantFiltersBar";
+import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
+import { useAuth } from "@/hooks/use-auth";
+import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
+import { toast } from "sonner";
+import { z } from "zod";
 import type { PropertyType } from "@/lib/properties";
 
+const tenantSearchSchema = z.object({
+  neighborhood: z.string().optional(),
+  maxPrice: z.coerce.number().optional(),
+  type: z.string().optional(),
+  q: z.string().optional(),
+});
+
 export const Route = createFileRoute("/tenant/")({
+  validateSearch: tenantSearchSchema,
   head: () => ({ meta: [{ title: "Discover homes — NyumbaSearch" }] }),
   component: TenantHome,
 });
 
-const neighborhoods = [
-  "All",
-  "Kilimani",
-  "Westlands",
-  "Karen",
-  "Lavington",
-  "Kileleshwa",
-  "Kasarani",
-  "South B",
-  "Roysambu",
-];
-const propertyTypes: Array<"all" | PropertyType> = [
-  "all",
-  "bedsitter",
-  "single_room",
-  "studio",
-  "one_bedroom",
-  "two_bedroom",
-  "three_bedroom",
-];
-
-function prettyFilterType(type: "all" | PropertyType) {
-  return type === "all"
-    ? "Any type"
-    : type.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const PAGE_SIZE = 12;
 
 function TenantHome() {
-  const [q, setQ] = useState("");
-  const [hood, setHood] = useState("All");
-  const [showFilters, setShowFilters] = useState(false);
-  const [type, setType] = useState<"all" | PropertyType>("all");
-  const [maxRent, setMaxRent] = useState("");
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [minAuthenticity, setMinAuthenticity] = useState(false);
+  const search = Route.useSearch();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [q, setQ] = useState(search.q ?? "");
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<TenantFilters>(() => ({
+    ...defaultTenantFilters,
+    maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
+    neighborhood: search.neighborhood ?? "All",
+    types: search.type ? [search.type as PropertyType] : [],
+  }));
+
   const { data: searchResult, isLoading } = useQuery({
-    queryKey: ["properties", q, hood, type, maxRent, verifiedOnly, minAuthenticity],
+    queryKey: ["properties", q, filters.neighborhood, filters.maxRent, filters.sort],
     queryFn: () =>
       searchProperties({
         query: q || undefined,
-        neighborhood: hood !== "All" ? hood : undefined,
-        propertyType: type !== "all" ? type : undefined,
-        maxRent: maxRent ? Number(maxRent) : undefined,
-        verifiedOnly: verifiedOnly || undefined,
-        minAuthenticityScore: minAuthenticity ? 80 : undefined,
-        limit: 50,
+        neighborhood: filters.neighborhood !== "All" ? filters.neighborhood : undefined,
+        maxRent: filters.maxRent,
+        minRent: filters.minRent,
+        sortBy: filters.sort,
+        limit: 100,
       }),
   });
 
-  const properties = searchResult?.items ?? [];
-  const filtered = properties;
+  const { data: savedList = [] } = useQuery({
+    queryKey: ["saved-properties", user?.id],
+    enabled: !!user,
+    queryFn: () => listSavedProperties(),
+  });
+  const savedIds = useMemo(() => new Set(savedList.map((p) => p.id)), [savedList]);
 
+  const toggleSave = useMutation({
+    mutationFn: async ({ propertyId, saved }: { propertyId: string; saved: boolean }) => {
+      if (!user) throw new Error("Sign in to save properties");
+      await toggleSavedProperty({ data: { propertyId, saved: !saved } });
+    },
+    onSuccess: (_, { saved }) => {
+      qc.invalidateQueries({ queryKey: ["saved-properties"] });
+      toast.success(saved ? "Removed from saved" : "Saved to your list");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const filtered = useMemo(() => {
+    let items = searchResult?.items ?? [];
+    if (filters.types.length > 0) {
+      items = items.filter((p) => filters.types.includes(p.property_type));
+    }
+    if (filters.bedrooms != null) {
+      items = items.filter((p) => p.bedrooms >= filters.bedrooms!);
+    }
+    if (filters.waterGoodOnly) {
+      items = items.filter((p) => {
+        const w = getListingIntel(p).water;
+        return w === "Good" || w === "Excellent";
+      });
+    }
+    if (filters.verifiedLevel2Plus) {
+      items = items.filter((p) => verificationLevel(p) >= 2);
+    }
+    return items;
+  }, [searchResult?.items, filters]);
+
+  const visible = filtered.slice(0, page * PAGE_SIZE);
   const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
+
+  const patchFilters = (patch: Partial<TenantFilters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
+  };
+
+  const handleToggleSave = (propertyId: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error("Sign in to save homes");
+      return;
+    }
+    void toggleSave.mutateAsync({ propertyId, saved: savedIds.has(propertyId) });
+  };
 
   return (
     <div>
-      {/* Hero strip */}
       <header className="relative isolate overflow-hidden px-5 pt-10 pb-20 text-primary-foreground">
         <img
           src={heroImg}
@@ -87,96 +134,26 @@ function TenantHome() {
             <Search className="ml-2 h-5 w-5 text-muted-foreground" />
             <input
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
               placeholder="Neighborhood, type, keyword…"
               className="flex-1 bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
-            <button
-              type="button"
-              onClick={() => setShowFilters((v) => !v)}
-              aria-label="Toggle search filters"
-              aria-expanded={showFilters}
+            <Link
+              to="/tenant/map"
               className="rounded-xl bg-foreground p-2 text-background"
+              aria-label="Open map view"
             >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
+              <MapPin className="h-4 w-4" />
+            </Link>
           </div>
-          {showFilters && (
-            <div className="mt-3 rounded-2xl border border-background/20 bg-background/95 p-3 text-foreground shadow-elegant">
-              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                <label className="block">
-                  <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">
-                    Type
-                  </span>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as "all" | PropertyType)}
-                    className="w-full rounded-xl border bg-card px-3 py-2 text-sm outline-none"
-                  >
-                    {propertyTypes.map((t) => (
-                      <option key={t} value={t}>
-                        {prettyFilterType(t)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">
-                    Max rent
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={maxRent}
-                    onChange={(e) => setMaxRent(e.target.value)}
-                    placeholder="KES"
-                    className="w-full rounded-xl border bg-card px-3 py-2 text-sm outline-none"
-                  />
-                </label>
-                <label className="flex items-end gap-2 pb-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={verifiedOnly}
-                    onChange={(e) => setVerifiedOnly(e.target.checked)}
-                    className="h-4 w-4 accent-primary"
-                  />
-                  Verified
-                </label>
-                <label className="flex items-end gap-2 pb-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={minAuthenticity}
-                    onChange={(e) => setMinAuthenticity(e.target.checked)}
-                    className="h-4 w-4 accent-primary"
-                  />
-                  High trust (80%+)
-                </label>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
-      {/* Chips */}
-      <div className="mx-auto -mt-10 max-w-2xl px-5">
-        <div className="flex gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {neighborhoods.map((n) => (
-            <button
-              key={n}
-              onClick={() => setHood(n)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition ${
-                hood === n
-                  ? "border-transparent bg-foreground text-background"
-                  : "border-border bg-background text-foreground hover:bg-secondary"
-              }`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
+      <TenantFiltersBar filters={filters} onChange={patchFilters} resultCount={filtered.length} />
 
-      {/* Verified strip */}
       {verified.length > 0 && (
         <section className="mx-auto max-w-2xl px-5 pt-6">
           <div className="flex items-center justify-between">
@@ -187,52 +164,80 @@ function TenantHome() {
               Map view →
             </Link>
           </div>
-          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-none">
             {verified.map((p) => (
-              <div key={p.id} className="w-64 shrink-0">
-                <PropertyCard p={p} />
+              <div key={p.id} className="w-72 shrink-0">
+                <PropertyCard
+                  p={p}
+                  saved={savedIds.has(p.id)}
+                  onToggleSave={handleToggleSave(p.id)}
+                />
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* AI assistant teaser */}
       <section className="mx-auto max-w-2xl px-5 pt-6">
         <div className="flex items-start gap-3 rounded-2xl border bg-gradient-to-br from-accent to-secondary p-4">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-gold text-gold-foreground">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-display font-semibold">Ask the NyumbaSearch AI</h3>
+            <h3 className="font-display font-semibold">Ask NyumbaAI</h3>
             <p className="text-xs text-muted-foreground">
-              "Find me a 1BR under 40k near Westlands with reliable water."
+              Tap the chat bubble — no agents, no scams, just honest neighbourhood advice.
             </p>
           </div>
         </div>
       </section>
 
-      {/* All */}
-      <section className="mx-auto max-w-2xl px-5 pt-8">
+      <section className="mx-auto max-w-2xl px-5 pt-8 pb-12">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">
             <MapPin className="mr-1 inline h-4 w-4 text-primary" />
-            {hood === "All" ? "All vacancies" : hood}
+            {filters.neighborhood === "All" ? "All vacancies" : filters.neighborhood}
           </h2>
           <span className="text-xs text-muted-foreground">{filtered.length} results</span>
         </div>
         {isLoading ? (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="aspect-[4/3] animate-pulse rounded-2xl bg-muted" />
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={`sk-${i}`} className="overflow-hidden rounded-2xl border">
+                <div className="aspect-video animate-pulse bg-muted" />
+                <div className="space-y-2 p-4">
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
             ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+            No homes match these filters. Try widening your budget or turning off water filters.
           </div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {filtered.map((p) => (
-              <PropertyCard key={p.id} p={p} />
-            ))}
-          </div>
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {visible.map((p) => (
+                <PropertyCard
+                  key={p.id}
+                  p={p}
+                  saved={savedIds.has(p.id)}
+                  onToggleSave={handleToggleSave(p.id)}
+                />
+              ))}
+            </div>
+            {visible.length < filtered.length && (
+              <button
+                type="button"
+                onClick={() => setPage((n) => n + 1)}
+                className="mt-6 w-full rounded-xl border py-3 text-sm font-semibold hover:bg-secondary"
+              >
+                Load more ({filtered.length - visible.length} remaining)
+              </button>
+            )}
+          </>
         )}
       </section>
     </div>

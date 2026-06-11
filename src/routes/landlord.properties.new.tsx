@@ -20,9 +20,12 @@ export const Route = createFileRoute("/landlord/properties/new")({
 const MAX_IMG_MB = 10;
 const MAX_VIDEO_MB = 100;
 
+const STEPS = ["Basics", "Details", "Pricing", "Intelligence", "Photos", "Review"] as const;
+
 function Page() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -225,12 +228,22 @@ function Page() {
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">Add a property</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Upload photos, a walkthrough video, and an optional 360° tour. We'll auto-score your
-        listing.
+        Step {step + 1} of {STEPS.length}: {STEPS[step]} — no agents, direct to verified tenants.
       </p>
+      <div className="mt-4 flex gap-1">
+        {STEPS.map((label, i) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => setStep(i)}
+            className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`}
+            aria-label={label}
+          />
+        ))}
+      </div>
 
       <form
-        onSubmit={onSubmit}
+        onSubmit={step < STEPS.length - 1 ? (e) => { e.preventDefault(); setStep((s) => Math.min(s + 1, STEPS.length - 1)); } : onSubmit}
         className="mt-8 space-y-5 rounded-2xl border bg-card p-6 shadow-soft"
       >
         <Row>
@@ -459,14 +472,27 @@ function Page() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
-        >
-          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-          {uploading ? "Uploading media…" : loading ? "Publishing…" : "Publish & analyze"}
-        </button>
+        <div className="flex gap-2">
+          {step > 0 && (
+            <button type="button" onClick={() => setStep((s) => s - 1)} className="flex-1 rounded-xl border py-3 text-sm font-semibold">
+              Back
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
+          >
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            {step < STEPS.length - 1
+              ? "Continue"
+              : uploading
+                ? "Uploading media…"
+                : loading
+                  ? "Publishing…"
+                  : "Publish listing"}
+          </button>
+        </div>
       </form>
     </div>
   );
