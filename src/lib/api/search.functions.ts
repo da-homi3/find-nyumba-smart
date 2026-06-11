@@ -65,6 +65,31 @@ export const deleteSavedSearch = createServerFn({ method: "POST" })
     return { deleted: true };
   });
 
+export const updateSavedSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      alertEnabled: z.boolean().optional(),
+      name: z.string().trim().min(1).max(100).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getContext(context);
+    const patch: Record<string, unknown> = {};
+    if (data.alertEnabled !== undefined) patch.alert_enabled = data.alertEnabled;
+    if (data.name !== undefined) patch.name = data.name;
+    const { data: row, error } = await supabase
+      .from("saved_searches")
+      .update(patch)
+      .eq("id", data.id)
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return row;
+  });
+
 export const compareProperties = createServerFn({ method: "POST" })
   .inputValidator(z.object({ ids: z.array(z.string().uuid()).min(2).max(4) }))
   .handler(async ({ data }) => {

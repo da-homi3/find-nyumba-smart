@@ -377,6 +377,11 @@ export const createProperty = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
+
+    void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
+      notifyMatchingSearchAlerts(property as Property),
+    );
+
     return property as Property;
   });
 

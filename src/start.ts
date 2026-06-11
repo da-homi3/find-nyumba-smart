@@ -23,6 +23,50 @@ const isDevelopment = !isProduction;
 
 const seoMiddleware = createMiddleware().server(async ({ request, next }) => {
   const url = new URL(request.url);
+
+  if (url.pathname === "/api/mpesa/callback" && request.method === "POST") {
+    try {
+      const { parseStkCallback } = await import("./lib/api/mpesa");
+      const body = (await request.json()) as import("./lib/api/mpesa").StkCallbackBody;
+      const parsed = parseStkCallback(body);
+      if (parsed) {
+        const { supabaseAdmin } = await import("./integrations/supabase/client.server");
+        const patch: Record<string, unknown> = {
+          status: parsed.success ? "completed" : "failed",
+        };
+        if (parsed.mpesaReceipt) patch.mpesa_receipt = parsed.mpesaReceipt;
+
+        const { data: payment } = await supabaseAdmin
+          .from("payments")
+          .update(patch)
+          .eq("mpesa_checkout_id", parsed.checkoutRequestId)
+          .select("property_id, payment_type")
+          .maybeSingle();
+
+        if (parsed.success && payment?.property_id) {
+          const boost =
+            payment.payment_type === "featured_listing" ||
+            payment.payment_type === "property_boost";
+          if (boost) {
+            await supabaseAdmin
+              .from("properties")
+              .update({ is_verified: true })
+              .eq("id", payment.property_id);
+          }
+        }
+      }
+      return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.error("M-Pesa callback error:", err);
+      return new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   if (url.pathname === "/robots.txt") {
     return new Response(
       `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /landlord/dashboard\n\nSitemap: https://nyumba-search.kevinbuluma1.workers.dev/sitemap.xml\n`,

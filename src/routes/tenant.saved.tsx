@@ -4,16 +4,32 @@ import { Heart, Loader2, Bell, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PropertyCard } from "@/components/PropertyCard";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
-import { useState } from "react";
 import {
-  addSearchAlert,
-  formatAlertLabel,
-  listSearchAlerts,
-  removeSearchAlert,
-  toggleSearchAlert,
-  type SearchAlert,
-} from "@/lib/search-alerts";
+  createSavedSearch,
+  deleteSavedSearch,
+  listSavedSearches,
+  updateSavedSearch,
+} from "@/lib/api/search.functions";
+import { useState } from "react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type SavedSearch = Database["public"]["Tables"]["saved_searches"]["Row"];
+type AlertCriteria = {
+  neighborhood?: string;
+  propertyType?: string;
+  maxBudget?: number;
+  frequency?: string;
+};
+
+function formatAlertLabel(row: SavedSearch) {
+  const c = (row.criteria ?? row.filters ?? {}) as AlertCriteria;
+  const type =
+    !c.propertyType || c.propertyType === "any" ? "Any type" : c.propertyType.replace("_", " ");
+  const hood = c.neighborhood ?? "Any area";
+  const budget = c.maxBudget ? `under KES ${c.maxBudget.toLocaleString()}` : "any budget";
+  return `${type} in ${hood} ${budget}`;
+}
 
 export const Route = createFileRoute("/tenant/saved")({
   component: SavedPage,
@@ -23,13 +39,12 @@ function SavedPage() {
   const { user } = useAuth();
   const location = useLocation();
   const qc = useQueryClient();
-  const [alerts, setAlerts] = useState<SearchAlert[]>(() => listSearchAlerts());
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertForm, setAlertForm] = useState({
     neighborhood: "Kilimani",
     propertyType: "any",
     maxBudget: 40000,
-    frequency: "daily" as SearchAlert["frequency"],
+    frequency: "daily" as "instant" | "daily" | "weekly",
   });
 
   const {
@@ -43,12 +58,46 @@ function SavedPage() {
     queryFn: () => listSavedProperties(),
   });
 
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery({
+    queryKey: ["saved-searches", user?.id],
+    enabled: !!user,
+    queryFn: () => listSavedSearches(),
+  });
+
   const unsave = useMutation({
     mutationFn: (propertyId: string) => toggleSavedProperty({ data: { propertyId, saved: false } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["saved-properties"] });
       toast.success("Removed from saved");
     },
+  });
+
+  const createAlert = useMutation({
+    mutationFn: () =>
+      createSavedSearch({
+        data: {
+          name: `${alertForm.neighborhood} · KES ${alertForm.maxBudget.toLocaleString()}`,
+          filters: alertForm,
+          alertEnabled: true,
+        },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["saved-searches"] });
+      setShowAlertModal(false);
+      toast.success("We'll email you when new listings match this search");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleAlert = useMutation({
+    mutationFn: ({ id, alertEnabled }: { id: string; alertEnabled: boolean }) =>
+      updateSavedSearch({ data: { id, alertEnabled } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
+  });
+
+  const removeAlert = useMutation({
+    mutationFn: (id: string) => deleteSavedSearch({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-searches"] }),
   });
 
   if (!user) {
@@ -137,9 +186,11 @@ function SavedPage() {
             <Plus className="h-3.5 w-3.5" /> Create alert
           </button>
         </div>
-        {alerts.length === 0 ? (
+        {alertsLoading ? (
+          <p className="mt-4 text-sm text-muted-foreground">Loading alerts…</p>
+        ) : alerts.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            No alerts yet — get notified when new listings match.
+            No alerts yet — get emailed when new listings match.
           </p>
         ) : (
           <ul className="mt-4 space-y-2">
@@ -150,26 +201,24 @@ function SavedPage() {
               >
                 <div>
                   <p className="font-medium">{formatAlertLabel(a)}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{a.frequency} alerts</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {((a.criteria ?? a.filters) as AlertCriteria).frequency ?? "daily"} alerts
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-1 text-xs">
                     <input
                       type="checkbox"
-                      checked={a.enabled}
-                      onChange={(e) => {
-                        toggleSearchAlert(a.id, e.target.checked);
-                        setAlerts(listSearchAlerts());
-                      }}
+                      checked={a.alert_enabled}
+                      onChange={(e) =>
+                        toggleAlert.mutate({ id: a.id, alertEnabled: e.target.checked })
+                      }
                     />
                     On
                   </label>
                   <button
                     type="button"
-                    onClick={() => {
-                      removeSearchAlert(a.id);
-                      setAlerts(listSearchAlerts());
-                    }}
+                    onClick={() => removeAlert.mutate(a.id)}
                     aria-label="Delete alert"
                   >
                     <X className="h-4 w-4 text-muted-foreground" />
@@ -187,10 +236,7 @@ function SavedPage() {
             className="w-full max-w-sm rounded-2xl border bg-card p-6"
             onSubmit={(e) => {
               e.preventDefault();
-              addSearchAlert(alertForm);
-              setAlerts(listSearchAlerts());
-              setShowAlertModal(false);
-              toast.success("We'll notify you when new listings match this search");
+              createAlert.mutate();
             }}
           >
             <h3 className="font-display text-lg font-semibold">Create search alert</h3>
@@ -218,7 +264,7 @@ function SavedPage() {
                 onChange={(e) =>
                   setAlertForm((f) => ({
                     ...f,
-                    frequency: e.target.value as SearchAlert["frequency"],
+                    frequency: e.target.value as typeof alertForm.frequency,
                   }))
                 }
                 className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
@@ -238,9 +284,10 @@ function SavedPage() {
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+                disabled={createAlert.isPending}
+                className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
               >
-                Save alert
+                {createAlert.isPending ? "Saving…" : "Save alert"}
               </button>
             </div>
           </form>

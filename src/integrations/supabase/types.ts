@@ -680,6 +680,8 @@ export type Database = {
           property_id: string | null;
           amount_kes: number;
           mpesa_receipt: string | null;
+          mpesa_checkout_id: string | null;
+          mpesa_phone: string | null;
           status: string;
           payment_type: string;
           created_at: string;
@@ -690,6 +692,8 @@ export type Database = {
           property_id?: string | null;
           amount_kes: number;
           mpesa_receipt?: string | null;
+          mpesa_checkout_id?: string | null;
+          mpesa_phone?: string | null;
           status?: string;
           payment_type: string;
           created_at?: string;
@@ -700,6 +704,8 @@ export type Database = {
           property_id?: string | null;
           amount_kes?: number;
           mpesa_receipt?: string | null;
+          mpesa_checkout_id?: string | null;
+          mpesa_phone?: string | null;
           status?: string;
           payment_type?: string;
           created_at?: string;

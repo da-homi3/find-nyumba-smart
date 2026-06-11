@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { initiateStkPush, isMpesaConfigured } from "@/lib/api/mpesa";
 
 const initiatePaymentSchema = z.object({
   propertyId: z.string().uuid().optional(),
@@ -17,21 +18,20 @@ function getContext(context: unknown) {
   return c;
 }
 
+function formatPhone254(phone: string): string {
+  let clean = phone.replace("+", "").trim();
+  if (clean.startsWith("0")) clean = "254" + clean.slice(1);
+  else if (clean.startsWith("7") || clean.startsWith("1")) clean = "254" + clean;
+  return clean;
+}
+
 export const initiateMpesaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(initiatePaymentSchema)
   .handler(async ({ context, data }) => {
     const { userId } = getContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    let cleanPhone = data.phoneNumber.replace("+", "").trim();
-    if (cleanPhone.startsWith("0")) {
-      cleanPhone = "254" + cleanPhone.slice(1);
-    } else if (cleanPhone.startsWith("7") || cleanPhone.startsWith("1")) {
-      cleanPhone = "254" + cleanPhone;
-    }
-
-    const receiptCode = "MPESA" + Math.random().toString(36).substring(2, 9).toUpperCase();
+    const phone254 = formatPhone254(data.phoneNumber);
 
     const { data: row, error } = await supabaseAdmin
       .from("payments")
@@ -39,17 +39,42 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
         user_id: userId,
         property_id: data.propertyId ?? null,
         amount_kes: data.amountKes,
-        mpesa_receipt: receiptCode,
         status: "pending",
         payment_type: data.paymentType,
+        mpesa_phone: phone254,
       })
       .select("*")
       .single();
 
     if (error) throw error;
 
-    // Demo: mark completed immediately (replace with Daraja STK + webhook in production)
-    await supabaseAdmin.from("payments").update({ status: "completed" }).eq("id", row.id);
+    if (isMpesaConfigured()) {
+      const stk = await initiateStkPush({
+        phone254,
+        amountKes: data.amountKes,
+        accountReference: row.id.slice(0, 12),
+        transactionDesc: "NyumbaSearch",
+      });
+
+      await supabaseAdmin
+        .from("payments")
+        .update({ mpesa_checkout_id: stk.checkoutRequestId })
+        .eq("id", row.id);
+
+      return {
+        success: true,
+        paymentId: row.id,
+        mode: "live" as const,
+        message: stk.customerMessage,
+      };
+    }
+
+    // Demo mode when Daraja credentials are not configured
+    const receiptCode = "DEMO" + Math.random().toString(36).substring(2, 9).toUpperCase();
+    await supabaseAdmin
+      .from("payments")
+      .update({ status: "completed", mpesa_receipt: receiptCode })
+      .eq("id", row.id);
 
     if (
       data.propertyId &&
@@ -65,7 +90,9 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
       success: true,
       paymentId: row.id,
       receiptCode,
-      message: "STK Push sent. Please check your phone for the M-Pesa PIN prompt.",
+      mode: "demo" as const,
+      message:
+        "Demo payment completed (configure MPESA_* env vars for live STK Push).",
     };
   });
 
