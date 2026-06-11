@@ -84,33 +84,6 @@ CREATE POLICY "Owners view analytics for their properties"
     )
   );
 
-CREATE POLICY "Inquiry participants view messages"
-  ON public.inquiry_messages
-  FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.inquiries i
-      WHERE i.id = inquiry_messages.inquiry_id
-        AND (i.tenant_id = auth.uid() OR i.landlord_id = auth.uid())
-    )
-  );
-
-CREATE POLICY "Inquiry participants send messages"
-  ON public.inquiry_messages
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    sender_id = auth.uid()
-    AND EXISTS (
-      SELECT 1
-      FROM public.inquiries i
-      WHERE i.id = inquiry_messages.inquiry_id
-        AND (i.tenant_id = auth.uid() OR i.landlord_id = auth.uid())
-    )
-  );
-
 CREATE POLICY "Inquiry participants mark messages read"
   ON public.inquiry_messages
   FOR UPDATE
@@ -130,23 +103,18 @@ CREATE OR REPLACE FUNCTION public.record_property_view(
   _session_id TEXT DEFAULT NULL,
   _source TEXT DEFAULT NULL
 )
-RETURNS INTEGER
+RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  _views INTEGER;
 BEGIN
   INSERT INTO public.property_views (property_id, viewer_id, session_id, source)
   VALUES (_property_id, _viewer_id, _session_id, _source);
 
   UPDATE public.properties
   SET views = views + 1
-  WHERE id = _property_id
-  RETURNING views INTO _views;
-
-  RETURN COALESCE(_views, 0);
+  WHERE id = _property_id;
 END;
 $$;
 
