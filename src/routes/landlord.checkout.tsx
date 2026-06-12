@@ -34,8 +34,14 @@ function LandlordCheckoutPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      const redirect = `/landlord/checkout?plan=${plan ?? "pro"}${product ? `&product=${product}` : ""}${qty ? `&qty=${qty}` : ""}`;
-      navigate({ to: "/auth", search: { redirect } as never, replace: true });
+      const params = new URLSearchParams({ plan: plan ?? "pro" });
+      if (product) params.set("product", product);
+      if (qty) params.set("qty", String(qty));
+      navigate({
+        to: "/auth",
+        search: { redirect: `/landlord/checkout?${params.toString()}` },
+        replace: true,
+      });
     }
   }, [loading, user, navigate, plan, product, qty]);
 

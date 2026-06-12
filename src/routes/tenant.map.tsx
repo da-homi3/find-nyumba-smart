@@ -255,7 +255,10 @@ function TenantMap() {
         });
         setReady(true);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        console.warn("[tenant-map] Google Maps load failed:", e);
+        setError(e instanceof Error ? e.message : "Failed to load map");
+      });
     return () => {
       cancelled = true;
       mapsWindow.gm_authFailure = previousAuthFailure;

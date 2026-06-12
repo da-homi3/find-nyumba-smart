@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
 import { fulfillPayment } from "@/lib/revenue/fulfill-payment";
+import { isKenyanPhone } from "@/lib/phone";
 
 const initiatePaymentSchema = z.object({
   propertyId: z.string().uuid().optional(),
@@ -18,7 +19,7 @@ const initiatePaymentSchema = z.object({
     "invoice",
     "landlord_plan",
   ]),
-  phoneNumber: z.string().regex(/^(?:\+254|0)?(7|1)\d{8}$/, "Invalid Safaricom phone number"),
+  phoneNumber: z.string().refine(isKenyanPhone, "Invalid Safaricom phone number"),
   plan: z.string().optional(),
   boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
   billingCycle: z.enum(["monthly", "quarterly"]).optional(),

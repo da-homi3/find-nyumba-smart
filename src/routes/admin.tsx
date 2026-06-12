@@ -8,9 +8,8 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const { user, roles, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = roles.includes("admin");
 
   useEffect(() => {
     if (loading) return;

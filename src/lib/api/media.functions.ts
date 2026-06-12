@@ -27,6 +27,12 @@ function scoreGrade(score: number): string {
   return "F";
 }
 
+function formatMediaSummary(images: number, hasVideo: boolean, hasTour: boolean): string {
+  const videoLabel = hasVideo ? "video" : "no video";
+  const tourLabel = hasTour ? "360 tour" : "no tour";
+  return `Baseline listing analysis — ${images} photos, ${videoLabel}, ${tourLabel}.`;
+}
+
 function fallbackScore(p: {
   title?: string | null;
   description?: string | null;
@@ -77,7 +83,7 @@ function fallbackScore(p: {
   return {
     score,
     grade,
-    summary: `Baseline listing analysis — ${images} photos, ${hasVideo ? "video" : "no video"}, ${hasTour ? "360 tour" : "no tour"}.`,
+    summary: formatMediaSummary(images, hasVideo, hasTour),
     strengths,
     improvements,
   };

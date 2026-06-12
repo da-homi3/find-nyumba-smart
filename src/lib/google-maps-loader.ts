@@ -11,7 +11,7 @@ export type GoogleMapsWindow = Window &
   };
 
 export function getGoogleMapsWindow(): GoogleMapsWindow {
-  return window as GoogleMapsWindow;
+  return globalThis as GoogleMapsWindow;
 }
 
 export type LoadGoogleMapsOptions = {
@@ -23,9 +23,13 @@ export type LoadGoogleMapsOptions = {
 
 let loaderPromise: Promise<typeof google> | null = null;
 
+function getDocument(): Document | undefined {
+  return globalThis.document;
+}
+
 /** Load Google Maps JS API once with timeout and auth-failure handling. */
 export function loadGoogleMaps(opts: LoadGoogleMapsOptions): Promise<typeof google> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
+  if (globalThis.window === undefined) return Promise.reject(new Error("SSR"));
   const mapsWindow = getGoogleMapsWindow();
   if (mapsWindow.google?.maps) return Promise.resolve(mapsWindow.google);
   if (loaderPromise) return loaderPromise;
@@ -39,7 +43,7 @@ export function loadGoogleMaps(opts: LoadGoogleMapsOptions): Promise<typeof goog
     const finish = (fn: () => void) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(timer);
+      globalThis.clearTimeout(timer);
       fn();
     };
 
@@ -65,7 +69,7 @@ export function loadGoogleMaps(opts: LoadGoogleMapsOptions): Promise<typeof goog
       });
     };
 
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       finish(() => {
         loaderPromise = null;
         reject(new Error("Network is too slow to load the map. Showing offline view."));
@@ -80,14 +84,21 @@ export function loadGoogleMaps(opts: LoadGoogleMapsOptions): Promise<typeof goog
       ...(opts.trackingId ? { channel: opts.trackingId } : {}),
     });
 
-    const existing = document.querySelector<HTMLScriptElement>(
+    const doc = getDocument();
+    if (!doc) {
+      loaderPromise = null;
+      reject(new Error("Document not available"));
+      return;
+    }
+
+    const existing = doc.querySelector<HTMLScriptElement>(
       'script[src*="maps.googleapis.com/maps/api/js"]',
     );
     if (existing) {
       existing.remove();
     }
 
-    const script = document.createElement("script");
+    const script = doc.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?${params}`;
     script.async = true;
     script.onerror = () =>
@@ -95,7 +106,7 @@ export function loadGoogleMaps(opts: LoadGoogleMapsOptions): Promise<typeof goog
         loaderPromise = null;
         reject(new Error("Failed to load Google Maps. Check your connection and API key."));
       });
-    document.head.appendChild(script);
+    doc.head.appendChild(script);
   });
 
   return loaderPromise;

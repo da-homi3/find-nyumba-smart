@@ -236,7 +236,7 @@ function PropertyDetail() {
     }
   };
 
-  const handleSendChat = async (e: React.FormEvent) => {
+  const handleSendChat = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!chatInput.trim() || chatLoading) return;
 
@@ -316,6 +316,7 @@ function PropertyDetail() {
         </div>
         <Link
           to="/tenant"
+          aria-label="Back to search"
           className="absolute top-4 left-4 grid h-10 w-10 place-items-center rounded-full bg-background/95 shadow-soft backdrop-blur"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -503,12 +504,14 @@ function PropertyDetail() {
             <input
               type="text"
               placeholder="Ask about water supply, safety, noise..."
+              aria-label="Message to AI assistant"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               className="flex-1 rounded-xl border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
             />
             <button
               type="submit"
+              aria-label="Send message"
               className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground hover:opacity-95"
             >
               <Send className="h-3.5 w-3.5" />

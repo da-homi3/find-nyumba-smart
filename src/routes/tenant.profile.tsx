@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Bell,
   Building2,
@@ -64,7 +64,7 @@ function readPrefs(userId?: string): TenantNotificationPrefs {
 }
 
 function Profile() {
-  const { user, signOut, roles } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -188,7 +188,7 @@ function Profile() {
     },
   });
 
-  async function saveProfile(e: FormEvent) {
+  async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
@@ -218,7 +218,7 @@ function Profile() {
     }
   }
 
-  async function handleUploadVerification(e: FormEvent) {
+  async function handleUploadVerification(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!docUrl.trim()) {
       toast.error("Please enter a document URL link");
@@ -250,8 +250,6 @@ function Profile() {
       toast.success("Notification preferences saved");
     }
   }
-
-  const isAdmin = roles?.includes("admin");
 
   return (
     <div className="mx-auto max-w-2xl px-5 pt-10 pb-20">
@@ -356,7 +354,11 @@ function Profile() {
               <form onSubmit={handleUploadVerification} className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold">Verify Identity / Business</span>
-                  <button type="button" onClick={() => setIsVerifying(false)}>
+                  <button
+                    type="button"
+                    aria-label="Close verification form"
+                    onClick={() => setIsVerifying(false)}
+                  >
                     <X className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>

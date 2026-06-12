@@ -1,0 +1,218 @@
+import { Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
+import { useCountUp } from "@/hooks/use-count-up";
+import type { Property } from "@/lib/properties";
+import { PropertyCard } from "@/components/PropertyCard";
+import { AdUnit } from "@/components/AdUnit";
+import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
+import { HOOD_META } from "@/components/landing/hood-meta";
+
+export function TrustStrip() {
+  const ref = useRef<HTMLElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), {
+      threshold: 0.3,
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const homes = useCountUp(10000, 1400, visible);
+  const fees = useCountUp(98, 1000, visible);
+  const hours = useCountUp(24, 800, visible);
+  const rating = useCountUp(47, 900, visible);
+  const items = [
+    { k: `${homes >= 10000 ? "10k+" : homes.toLocaleString()}`, v: "Verified homes" },
+    { k: `${fees}%`, v: "No agent fees" },
+    { k: `${hours}h`, v: "Avg response" },
+    { k: `${(rating / 10).toFixed(1)}★`, v: "Tenant rating" },
+  ];
+  return (
+    <section ref={ref} aria-label="Trust statistics" className="border-y bg-secondary">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-8 sm:grid-cols-4 sm:px-6">
+        {items.map((s) => (
+          <div key={s.v} className="text-center sm:text-left">
+            <div className="font-display text-2xl font-semibold text-primary sm:text-3xl tabular-nums">
+              {s.k}
+            </div>
+            <div className="text-xs text-muted-foreground">{s.v}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function FeaturedListings({
+  featured,
+  isBoosted,
+}: Readonly<{ featured: Property[]; isBoosted: boolean }>) {
+  if (!featured.length) return null;
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+            {isBoosted ? "Featured listings" : "Featured"}
+          </p>
+          <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
+            {isBoosted ? "Boosted homes, top of search" : "Verified homes, ready to view"}
+          </h2>
+        </div>
+        <Link
+          to="/tenant"
+          className="hidden text-sm font-semibold text-primary hover:underline sm:inline"
+        >
+          See all →
+        </Link>
+      </div>
+      <div className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+        {featured.map((p) => (
+          <div key={p.id} className="w-72 shrink-0 sm:w-auto">
+            <PropertyCard p={p} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function PopularNeighborhoods({
+  hoods,
+}: Readonly<{ hoods: { name: string; count: number }[] }>) {
+  const fallback = [
+    "Kilimani",
+    "Westlands",
+    "Karen",
+    "Lavington",
+    "Kileleshwa",
+    "Kasarani",
+    "South B",
+    "Roysambu",
+  ];
+  const items = hoods.length ? hoods : fallback.map((name) => ({ name, count: 0 }));
+
+  return (
+    <section className="border-t bg-secondary/40">
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+              Where Nairobi lives
+            </p>
+            <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
+              Popular neighborhoods
+            </h2>
+          </div>
+        </div>
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {items.map((h) => {
+            const meta = HOOD_META[h.name];
+            return (
+              <Link
+                key={h.name}
+                to="/tenant"
+                search={{ neighborhood: h.name }}
+                className="group overflow-hidden rounded-2xl border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
+              >
+                {meta?.img && (
+                  <div className="aspect-[16/9] overflow-hidden bg-muted">
+                    <img
+                      src={meta.img}
+                      alt=""
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center justify-between p-4">
+                  <div>
+                    <div className="font-display text-base font-semibold">{h.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {meta
+                        ? `From KES ${meta.from.toLocaleString()}/mo`
+                        : h.count > 0
+                          ? `${h.count} homes`
+                          : "Explore"}
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+        <div className="mt-8">
+          <AdUnit
+            variant="banner"
+            label="Partner"
+            title="Advertise on NyumbaSearch"
+            body="Reach verified tenants searching for homes in Nairobi."
+            href="/advertise"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ServiceTeaserRow() {
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Services</p>
+          <h2 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
+            Everything after you move in
+          </h2>
+        </div>
+        <Link to="/services" className="text-sm font-semibold text-primary hover:underline">
+          View all →
+        </Link>
+      </div>
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        {SERVICE_CATEGORIES.slice(0, 8).map((c) => (
+          <Link
+            key={c.id}
+            to="/services/$category"
+            params={{ category: c.id }}
+            className="rounded-2xl border bg-card p-4 text-center text-xs font-semibold hover:border-primary/30"
+          >
+            <span className="text-2xl">{c.emoji}</span>
+            <p className="mt-2">{c.label}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function AgencyLogosSection() {
+  const agencies = ["Sunrise Realty", "Nairobi Homes Co.", "Prime Estates", "Urban Nest Agency"];
+  return (
+    <section className="border-y bg-secondary/30 py-10">
+      <div className="mx-auto max-w-7xl px-5 text-center sm:px-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Trusted agency partners
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-8 opacity-80">
+          {agencies.map((name) => (
+            <span key={name} className="font-display text-sm font-semibold text-foreground/70">
+              {name}
+            </span>
+          ))}
+        </div>
+        <Link
+          to="/pricing"
+          hash="agencies"
+          className="mt-4 inline-block text-xs font-semibold text-primary"
+        >
+          Agency plans →
+        </Link>
+      </div>
+    </section>
+  );
+}

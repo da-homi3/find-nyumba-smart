@@ -195,6 +195,7 @@ export function AiAssistant() {
             <button
               type="submit"
               disabled={!input.trim() || ask.isPending}
+              aria-label="Send message"
               className="rounded-xl bg-primary p-2 text-primary-foreground disabled:opacity-50"
             >
               <Send className="h-4 w-4" />

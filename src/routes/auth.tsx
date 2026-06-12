@@ -1,20 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-
-import { useState, type FormEvent } from "react";
-
+import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
-
 import { supabase } from "@/integrations/supabase/client";
-
 import { toast } from "sonner";
-
 import { ArrowLeft } from "lucide-react";
-
 import { z } from "zod";
-
 import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
+import {
+  type AccountRole,
+  DASHBOARD_APPROVAL_ROLES,
+  isPrivilegedAccountRole,
+  ORG_REQUIRED_ROLES,
+} from "@/lib/account-roles";
+import { isKenyanPhone } from "@/lib/phone";
+import { validatePasswordPair } from "@/lib/validate-password";
 import { authSubmitLabel, errorMessage } from "@/lib/utils";
-
 import {
   getMyProfilePortal,
   listMyPortalApplications,
@@ -28,146 +28,122 @@ const authSearchSchema = z.object({
 
 export const Route = createFileRoute("/auth")({
   validateSearch: authSearchSchema,
-
   component: TenantAuth,
 });
 
-type AccountRole = "tenant" | "landlord" | "manager" | "agency";
-
-const PRIVILEGED: AccountRole[] = ["landlord", "manager", "agency"];
+async function resolveRoles(user: User): Promise<string[]> {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+  return (data ?? []).map((r) => r.role as string);
+}
 
 function TenantAuth() {
   const { redirect } = Route.useSearch();
-
   const navigate = useNavigate();
-
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-
   const [email, setEmail] = useState("");
-
   const [password, setPassword] = useState("");
-
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
-
   const [phone, setPhone] = useState("");
-
   const [organizationName, setOrganizationName] = useState("");
-
   const [role, setRole] = useState<AccountRole>("tenant");
-
   const [loading, setLoading] = useState(false);
 
-  async function resolveRoles(user: User): Promise<string[]> {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+  async function handleSignup() {
+    if (ORG_REQUIRED_ROLES.has(role) && !organizationName.trim()) {
+      throw new Error("Organization name is required for this account type");
+    }
+    if (!isKenyanPhone(phone)) {
+      throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
+    }
+    const passwordError = validatePasswordPair(password, confirmPassword);
+    if (passwordError) throw new Error(passwordError);
 
-    return (data ?? []).map((r) => r.role as string);
-  }
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${globalThis.location.origin}/tenant`,
+        data: {
+          full_name: fullName,
+          phone,
+          role,
+          organization_name: organizationName.trim() || undefined,
+        },
+      },
+    });
+    if (error) throw error;
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+    if (isPrivilegedAccountRole(role)) {
+      const privilegedRole = role as "landlord" | "manager" | "agency";
+      const reviewUrl = `${globalThis.location.origin}/admin?tab=applications`;
+      const portalPayload = {
+        requestedRole: privilegedRole,
+        organizationName: organizationName.trim() || undefined,
+        phone: phone.trim() || undefined,
+      };
 
-    setLoading(true);
-
-    try {
-      if (mode === "signup") {
-        if ((role === "agency" || role === "manager") && !organizationName.trim()) {
-          throw new Error("Organization name is required for this account type");
-        }
-
-        const { data: signUpData, error } = await supabase.auth.signUp({
-          email,
-
-          password,
-
-          options: {
-            emailRedirectTo: `${globalThis.location.origin}/tenant`,
-
-            data: {
-              full_name: fullName,
-
-              phone,
-
-              role,
-
-              organization_name: organizationName.trim() || undefined,
-            },
+      if (signUpData.session) {
+        await submitPortalApplication({ data: portalPayload });
+      } else if (signUpData.user?.id) {
+        await registerPortalApplicationAfterSignup({
+          data: {
+            userId: signUpData.user.id,
+            applicantName: fullName || email,
+            applicantEmail: email,
+            requestedRole: privilegedRole,
+            organizationName: portalPayload.organizationName,
+            phone: portalPayload.phone,
+            reviewUrl,
           },
         });
-
-        if (error) throw error;
-
-        if (PRIVILEGED.includes(role)) {
-          const privilegedRole = role as "landlord" | "manager" | "agency";
-          const reviewUrl = `${globalThis.location.origin}/admin?tab=applications`;
-          const portalPayload = {
-            requestedRole: privilegedRole,
-            organizationName: organizationName.trim() || undefined,
-            phone: phone.trim() || undefined,
-          };
-
-          if (signUpData.session) {
-            await submitPortalApplication({ data: portalPayload });
-          } else if (signUpData.user?.id) {
-            await registerPortalApplicationAfterSignup({
-              data: {
-                userId: signUpData.user.id,
-                applicantName: fullName || email,
-                applicantEmail: email,
-                requestedRole: privilegedRole,
-                organizationName: portalPayload.organizationName,
-                phone: portalPayload.phone,
-                reviewUrl,
-              },
-            });
-          }
-
-          toast.success("Application submitted — we'll email you when approved.");
-
-          navigate({ to: "/auth/pending" });
-
-          return;
-        }
-
-        toast.success("Welcome to NyumbaSearch!");
-
-        globalThis.location.href = "/tenant";
-
-        return;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      toast.success("Application submitted — we'll email you when approved.");
+      navigate({ to: "/auth/pending" });
+      return;
+    }
 
-      if (error) throw error;
+    toast.success("Welcome to NyumbaSearch!");
+    globalThis.location.href = "/tenant";
+  }
 
-      if (!data.user) throw new Error("Sign in failed");
+  async function handleSignin() {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    if (!data.user) throw new Error("Sign in failed");
 
-      const roles = await resolveRoles(data.user);
+    const roles = await resolveRoles(data.user);
+    const apps = await listMyPortalApplications();
+    const hasPendingOnly =
+      apps.some((a) => a.status === "pending") &&
+      !roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
 
-      const apps = await listMyPortalApplications();
+    if (hasPendingOnly) {
+      navigate({ to: "/auth/pending" });
+      return;
+    }
 
-      const hasPendingOnly =
-        apps.some((a) => a.status === "pending") &&
-        !roles.some((r) => ["landlord", "manager", "agency", "admin"].includes(r));
+    let activePortal: PortalId = "tenant";
+    try {
+      const profile = await getMyProfilePortal();
+      activePortal = (profile?.active_portal as PortalId) ?? "tenant";
+    } catch (err) {
+      console.debug("[auth] Profile portal not ready after login:", err);
+    }
 
-      if (hasPendingOnly) {
-        navigate({ to: "/auth/pending" });
+    globalThis.location.href = resolvePostLoginPath(roles as AppRole[], activePortal, redirect);
+  }
 
-        return;
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        await handleSignup();
+      } else {
+        await handleSignin();
       }
-
-      let activePortal: PortalId = "tenant";
-
-      try {
-        const profile = await getMyProfilePortal();
-
-        activePortal = (profile?.active_portal as PortalId) ?? "tenant";
-      } catch (err) {
-        console.debug("[auth] Profile portal not ready after login:", err);
-      }
-
-      const target = resolvePostLoginPath(roles as AppRole[], activePortal, redirect);
-
-      globalThis.location.href = target;
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -238,16 +214,13 @@ function TenantAuth() {
                   className={inputCls}
                 >
                   <option value="tenant">Tenant</option>
-
                   <option value="landlord">Landlord</option>
-
                   <option value="manager">Property manager</option>
-
                   <option value="agency">Real estate agency</option>
                 </select>
               </Field>
 
-              {(role === "agency" || role === "manager") && (
+              {ORG_REQUIRED_ROLES.has(role) && (
                 <Field label="Organization name">
                   <input
                     value={organizationName}
@@ -259,7 +232,7 @@ function TenantAuth() {
                 </Field>
               )}
 
-              {PRIVILEGED.includes(role) && (
+              {isPrivilegedAccountRole(role) && (
                 <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
                   Landlord, property manager, and agency accounts are reviewed by NyumbaSearch
                   operations before dashboard access is granted.
@@ -284,13 +257,30 @@ function TenantAuth() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={mode === "signup" ? 8 : 6}
               className={inputCls}
             />
           </Field>
 
+          {mode === "signup" && (
+            <Field label="Confirm password">
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                className={inputCls}
+              />
+            </Field>
+          )}
+
           {mode === "signin" && (
-            <Link to="/auth/reset" className="block text-right text-xs font-semibold text-primary">
+            <Link
+              to="/auth/reset"
+              search={{ email: email || undefined }}
+              className="block text-right text-xs font-semibold text-primary"
+            >
               Forgot password?
             </Link>
           )}
@@ -308,9 +298,7 @@ function TenantAuth() {
           <Link to="/settings" className="font-semibold text-foreground">
             Settings & portals
           </Link>
-
           {" · "}
-
           <Link to="/caretaker" className="font-semibold text-foreground">
             Caretaker PIN sign in
           </Link>
@@ -327,7 +315,6 @@ function Field({ label, children }: Readonly<{ label: string; children: React.Re
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
-
       {children}
     </label>
   );

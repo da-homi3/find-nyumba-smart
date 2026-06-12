@@ -28,7 +28,7 @@ export function PropertyReviewsSection({
   userId,
   isTenant,
   showFormInitially = false,
-}: PropertyReviewsSectionProps) {
+}: Readonly<PropertyReviewsSectionProps>) {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(showFormInitially);
 

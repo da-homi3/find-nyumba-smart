@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -43,7 +43,7 @@ async function fetchUserRoles(userId: string): Promise<AppRole[]> {
   return (data ?? []).map((r) => r.role as AppRole);
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -113,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const hasApprovedRole = (role: AppRole) => roles.includes(role);
+  const roleSet = useMemo(() => new Set(roles), [roles]);
+  const hasApprovedRole = (role: AppRole) => roleSet.has(role);
 
   const setActivePortalChoice = async (portal: PortalId) => {
     await setActivePortal({ data: { portal } });
@@ -135,11 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         pendingApplications,
         activePortal,
         loading,
-        isLandlord: roles.includes("landlord"),
-        isManager: roles.includes("manager"),
-        isAgency: roles.includes("agency"),
-        isAdmin: roles.includes("admin"),
-        isTenant: roles.includes("tenant") || roles.length === 0,
+        isLandlord: roleSet.has("landlord"),
+        isManager: roleSet.has("manager"),
+        isAgency: roleSet.has("agency"),
+        isAdmin: roleSet.has("admin"),
+        isTenant: roleSet.has("tenant") || roles.length === 0,
         hasApprovedRole,
         setActivePortalChoice,
         refreshPortalState: async () => refreshPortalState(user?.id),

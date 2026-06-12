@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LandlordShell } from "@/components/LandlordShell";
 import { createProperty } from "@/lib/api/nyumba.functions";
 import { analyzePropertyQuality, createSignedMediaUrls } from "@/lib/api/media.functions";
-import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/utils";
 import type { PropertyType } from "@/lib/properties";
@@ -170,7 +170,7 @@ export function PropertyListingWizard({
     }
   }
 
-  async function onSubmit(e: FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) {
       toast.error("Sign in to list a property");
@@ -248,7 +248,7 @@ export function PropertyListingWizard({
     return true;
   }
 
-  function goNext(e: FormEvent) {
+  function goNext(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateStep(step)) return;
     setStep((s) => Math.min(s + 1, STEPS.length - 1));

@@ -25,15 +25,17 @@ const LANDLORD_QUICK_REPLIES = [
   "Thanks for your interest",
 ];
 
+type ConversationThreadProps = {
+  inquiryId: string;
+  onBack?: () => void;
+  showQuickReplies?: boolean;
+};
+
 export function ConversationThread({
   inquiryId,
   onBack,
   showQuickReplies = false,
-}: {
-  inquiryId: string;
-  onBack?: () => void;
-  showQuickReplies?: boolean;
-}) {
+}: Readonly<ConversationThreadProps>) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);

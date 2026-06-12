@@ -1,16 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
-import {
-  ShieldAlert,
-  CheckCircle2,
-  XCircle,
-  ListFilter,
-  Building2,
-  UserCheck,
-  History,
-  ArrowLeft,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import {
   listAdminVerifications,
   updateVerificationStatus,
@@ -21,58 +12,12 @@ import {
 import { listPendingApplications, reviewPortalApplication } from "@/lib/api/portal.functions";
 import { listProperties } from "@/lib/api/nyumba.functions";
 import { toast } from "sonner";
-
-type Tab = "verifications" | "scams" | "properties" | "audits" | "applications";
-
-type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
-type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];
-type AdminProperty = NonNullable<Awaited<ReturnType<typeof listProperties>>["items"]>[number];
-type AdminAuditLog = Awaited<ReturnType<typeof listAdminAuditLogs>>[number];
-type PendingApplication = Awaited<ReturnType<typeof listPendingApplications>>[number];
-
-const VERIFICATION_STATUS_CLASS: Record<string, string> = {
-  approved: "bg-emerald-500/10 text-emerald-600",
-  rejected: "bg-red-500/10 text-red-600",
-  pending: "bg-amber-500/10 text-amber-600",
-};
-
-const SCAM_STATUS_CLASS: Record<string, string> = {
-  reviewed: "bg-emerald-500/10 text-emerald-600",
-  pending: "bg-amber-500/10 text-amber-600",
-};
-
-function StatusBadge({
-  status,
-  classMap,
-  fallbackClass,
-}: Readonly<{
-  status: string;
-  classMap: Record<string, string>;
-  fallbackClass: string;
-}>) {
-  const tone = classMap[status] ?? fallbackClass;
-  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tone}`}>{status}</span>;
-}
-
-function AdminAsyncPanel({
-  loading,
-  loadingMessage,
-  empty,
-  isEmpty,
-  children,
-}: Readonly<{
-  loading: boolean;
-  loadingMessage: string;
-  empty: ReactNode;
-  isEmpty: boolean;
-  children: ReactNode;
-}>) {
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">{loadingMessage}</div>;
-  }
-  if (isEmpty) return empty;
-  return children;
-}
+import type { AdminTab } from "@/components/admin/admin-shared";
+import { AdminApplicationsTab } from "@/components/admin/AdminApplicationsTab";
+import { AdminAuditsTab } from "@/components/admin/AdminAuditsTab";
+import { AdminPropertiesTab } from "@/components/admin/AdminPropertiesTab";
+import { AdminScamsTab } from "@/components/admin/AdminScamsTab";
+import { AdminVerificationsTab } from "@/components/admin/AdminVerificationsTab";
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -83,12 +28,11 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const { tab: tabFromUrl } = Route.useSearch();
-  const [activeTab, setActiveTab] = useState<Tab>(
+  const [activeTab, setActiveTab] = useState<AdminTab>(
     tabFromUrl === "applications" ? "applications" : "verifications",
   );
   const qc = useQueryClient();
 
-  // Queries
   const { data: verifications = [], isLoading: verLoading } = useQuery({
     queryKey: ["admin-verifications"],
     queryFn: () => listAdminVerifications(),
@@ -129,7 +73,6 @@ function AdminDashboard() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Mutations
   const approveVerification = useMutation({
     mutationFn: async (id: string) => {
       await updateVerificationStatus({ data: { id, status: "approved" } });
@@ -160,13 +103,32 @@ function AdminDashboard() {
     },
   });
 
+  const tabs = [
+    {
+      id: "verifications" as const,
+      label: "Verification Queue",
+      count: verifications.filter((v) => v.status === "pending").length,
+    },
+    {
+      id: "scams" as const,
+      label: "Scam Reports",
+      count: scams.filter((s) => s.status === "pending").length,
+    },
+    { id: "properties" as const, label: "Moderate listings", count: properties.length },
+    { id: "audits" as const, label: "Audit Logs", count: audits.length },
+    { id: "applications" as const, label: "Portal applications", count: applications.length },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-12">
-      {/* Admin header */}
       <header className="border-b bg-card py-4 px-6">
         <div className="mx-auto max-w-6xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link to="/tenant" className="p-1.5 rounded-full hover:bg-secondary">
+            <Link
+              to="/tenant"
+              aria-label="Back to tenant home"
+              className="p-1.5 rounded-full hover:bg-secondary"
+            >
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
             <h1 className="font-display text-xl font-bold">Admin Control Center</h1>
@@ -175,28 +137,13 @@ function AdminDashboard() {
         </div>
       </header>
 
-      {/* Tabs list */}
       <div className="mx-auto max-w-6xl px-6 mt-6">
         <div className="flex border-b text-xs font-semibold">
-          {[
-            {
-              id: "verifications",
-              label: "Verification Queue",
-              count: verifications.filter((v) => v.status === "pending").length,
-            },
-            {
-              id: "scams",
-              label: "Scam Reports",
-              count: scams.filter((s) => s.status === "pending").length,
-            },
-            { id: "properties", label: "Moderate listings", count: properties.length },
-            { id: "audits", label: "Audit Logs", count: audits.length },
-            { id: "applications", label: "Portal applications", count: applications.length },
-          ].map((t) => (
+          {tabs.map((t) => (
             <button
               type="button"
               key={t.id}
-              onClick={() => setActiveTab(t.id as Tab)}
+              onClick={() => setActiveTab(t.id)}
               className={`pb-3 px-4 -mb-px border-b-2 transition ${
                 activeTab === t.id
                   ? "border-primary text-primary"
@@ -213,320 +160,28 @@ function AdminDashboard() {
           ))}
         </div>
 
-        {/* Tab contents */}
         <div className="mt-6">
           {activeTab === "verifications" && (
-            <div>
-              <AdminAsyncPanel
-                loading={verLoading}
-                loadingMessage="Loading queue..."
-                isEmpty={verifications.length === 0}
-                empty={
-                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                    Verification queue is clean! No pending requests.
-                  </div>
-                }
-              >
-                <div className="space-y-4">
-                  {verifications.map((v: AdminVerification) => (
-                    <div
-                      key={v.id}
-                      className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <strong className="text-sm font-semibold">
-                            {v.profiles?.full_name ?? "Unknown User"}
-                          </strong>
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase font-bold text-secondary-foreground">
-                            {v.verification_type}
-                          </span>
-                          <StatusBadge
-                            status={v.status}
-                            classMap={VERIFICATION_STATUS_CLASS}
-                            fallbackClass="bg-amber-500/10 text-amber-600"
-                          />
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Submitted on: {new Date(v.created_at).toLocaleString()}
-                        </div>
-                        {v.documents && v.documents.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            <span className="text-xs font-semibold block">Attached Documents:</span>
-                            {v.documents.map((doc: string) => (
-                              <a
-                                key={doc}
-                                href={doc}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs text-primary hover:underline block truncate max-w-sm"
-                              >
-                                View document
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {v.status === "pending" && (
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => rejectVerification.mutate(v.id)}
-                            className="rounded-xl border border-red-500/30 text-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-500/10"
-                          >
-                            Reject
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => approveVerification.mutate(v.id)}
-                            className="rounded-xl bg-gradient-emerald text-primary-foreground px-3 py-1.5 text-xs font-semibold shadow-soft hover:opacity-90"
-                          >
-                            Approve
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </AdminAsyncPanel>
-            </div>
+            <AdminVerificationsTab
+              verifications={verifications}
+              loading={verLoading}
+              approve={approveVerification}
+              reject={rejectVerification}
+            />
           )}
-
           {activeTab === "scams" && (
-            <div>
-              <AdminAsyncPanel
-                loading={scamsLoading}
-                loadingMessage="Loading reports..."
-                isEmpty={scams.length === 0}
-                empty={
-                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                    No scam reports. Platform is fully clear!
-                  </div>
-                }
-              >
-                <div className="space-y-4">
-                  {scams.map((s: AdminScamReport) => (
-                    <div
-                      key={s.id}
-                      className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <strong className="text-sm font-semibold">
-                            Report #{s.id.slice(0, 8)}
-                          </strong>
-                          <StatusBadge
-                            status={s.status}
-                            classMap={SCAM_STATUS_CLASS}
-                            fallbackClass="bg-amber-500/10 text-amber-600"
-                          />
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Property:{" "}
-                          <Link
-                            to="/tenant/property/$id"
-                            params={{ id: s.property_id }}
-                            className="text-primary hover:underline"
-                          >
-                            {s.properties?.title}
-                          </Link>
-                        </div>
-                        <p className="mt-2 text-xs leading-relaxed">
-                          <strong className="text-foreground/80">Reason:</strong> {s.reason}
-                        </p>
-                        {s.details && (
-                          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                            {s.details}
-                          </p>
-                        )}
-                      </div>
-
-                      {s.status === "pending" && (
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => resolveScam.mutate({ id: s.id, status: "dismissed" })}
-                            className="rounded-xl border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
-                          >
-                            Dismiss
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => resolveScam.mutate({ id: s.id, status: "reviewed" })}
-                            className="rounded-xl bg-gradient-emerald text-primary-foreground px-3 py-1.5 text-xs font-semibold shadow-soft hover:opacity-90"
-                          >
-                            Mark Reviewed
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </AdminAsyncPanel>
-            </div>
+            <AdminScamsTab scams={scams} loading={scamsLoading} resolve={resolveScam} />
           )}
-
           {activeTab === "properties" && (
-            <div>
-              {propLoading ? (
-                <div className="text-sm text-muted-foreground">Loading listings...</div>
-              ) : (
-                <div className="overflow-hidden rounded-2xl border bg-card">
-                  <table className="w-full text-sm">
-                    <thead className="bg-secondary text-xs uppercase text-muted-foreground">
-                      <tr>
-                        <th className="px-4 py-3 text-left">Property</th>
-                        <th className="px-4 py-3 text-left">Location</th>
-                        <th className="px-4 py-3 text-left">Verification Status</th>
-                        <th className="px-4 py-3 text-left">Auth Score</th>
-                        <th className="px-4 py-3 text-left">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {properties.map((p: AdminProperty) => (
-                        <tr key={p.id}>
-                          <td className="px-4 py-3 font-medium">
-                            <Link
-                              to="/tenant/property/$id"
-                              params={{ id: p.id }}
-                              className="hover:underline"
-                            >
-                              {p.title}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">{p.neighborhood}</td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
-                                p.is_verified
-                                  ? "bg-emerald-500/10 text-emerald-600"
-                                  : "bg-gray-500/10 text-gray-600"
-                              }`}
-                            >
-                              {p.is_verified ? "Verified" : "Unverified"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 font-semibold">{p.authenticity_score ?? 70}%</td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-xs ${
-                                p.is_active
-                                  ? "bg-success/15 text-success"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {p.is_active ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            <AdminPropertiesTab properties={properties} loading={propLoading} />
           )}
-
-          {activeTab === "audits" && (
-            <div>
-              <AdminAsyncPanel
-                loading={auditsLoading}
-                loadingMessage="Loading audit logs..."
-                isEmpty={audits.length === 0}
-                empty={
-                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                    No audit logs recorded yet.
-                  </div>
-                }
-              >
-                <div className="overflow-hidden rounded-2xl border bg-card text-xs">
-                  <div className="bg-secondary p-3 font-semibold text-muted-foreground uppercase flex">
-                    <span className="w-1/4">Date</span>
-                    <span className="w-1/4">Action</span>
-                    <span className="w-1/4">Admin</span>
-                    <span className="w-1/4">Details</span>
-                  </div>
-                  <div className="divide-y">
-                    {audits.map((a: AdminAuditLog) => (
-                      <div key={a.id} className="p-3 flex items-center hover:bg-secondary/40">
-                        <span className="w-1/4 text-muted-foreground">
-                          {new Date(a.created_at).toLocaleString()}
-                        </span>
-                        <span className="w-1/4 font-semibold text-primary">{a.action}</span>
-                        <span className="w-1/4">{a.admin?.full_name ?? "System"}</span>
-                        <span
-                          className="w-1/4 text-muted-foreground truncate"
-                          title={a.details ?? undefined}
-                        >
-                          {a.details}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </AdminAsyncPanel>
-            </div>
-          )}
-
+          {activeTab === "audits" && <AdminAuditsTab audits={audits} loading={auditsLoading} />}
           {activeTab === "applications" && (
-            <div>
-              <AdminAsyncPanel
-                loading={appsLoading}
-                loadingMessage="Loading applications…"
-                isEmpty={applications.length === 0}
-                empty={
-                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                    No pending portal applications.
-                  </div>
-                }
-              >
-                <div className="space-y-4">
-                  {applications.map((app: PendingApplication) => (
-                    <div
-                      key={app.id}
-                      className="rounded-2xl border bg-card p-5 flex flex-wrap justify-between gap-4"
-                    >
-                      <div>
-                        <p className="font-semibold capitalize">
-                          {app.requested_role} — {app.profiles?.full_name ?? "Applicant"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {app.organization_name && `${app.organization_name} · `}
-                          {app.phone ?? app.profiles?.phone} ·{" "}
-                          {new Date(app.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            reviewApp.mutate({ applicationId: app.id, action: "approve" })
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Approve
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const reason = prompt("Rejection reason (optional):") ?? undefined;
-                            reviewApp.mutate({
-                              applicationId: app.id,
-                              action: "reject",
-                              rejectionReason: reason,
-                            });
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold text-destructive"
-                        >
-                          <XCircle className="h-3.5 w-3.5" /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </AdminAsyncPanel>
-            </div>
+            <AdminApplicationsTab
+              applications={applications}
+              loading={appsLoading}
+              review={reviewApp}
+            />
           )}
         </div>
       </div>
