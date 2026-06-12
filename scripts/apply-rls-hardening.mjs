@@ -46,4 +46,6 @@ if (!res.ok) {
   process.exit(1);
 }
 
-console.log("✓ RLS hardening migration applied (verification_requests, profiles, property_attributes)");
+console.log(
+  "✓ RLS hardening migration applied (verification_requests, profiles, property_attributes)",
+);
