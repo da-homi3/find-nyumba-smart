@@ -6,9 +6,20 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi", "src/routeTree.gen.ts"] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      "src/routeTree.gen.ts",
+      "src/components/ui/**",
+      "src/integrations/supabase/types.ts",
+      "tmp_*.js",
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -37,8 +48,15 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/components/ui/**"],
-    rules: { "react-refresh/only-export-components": "off" },
+    files: ["scripts/**"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+    },
   },
   eslintPluginPrettier,
 );
