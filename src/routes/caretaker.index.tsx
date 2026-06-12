@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, ArrowLeft } from "lucide-react";
-import { verifyCaretakerLogin } from "@/lib/api/caretaker.functions";
+import { verifyCaretakerLogin, validateCaretakerSession } from "@/lib/api/caretaker.functions";
 import { setCaretakerToken, clearCaretakerToken, getCaretakerToken } from "@/lib/caretaker-session";
-import { useEffect } from "react";
-import { validateCaretakerSession } from "@/lib/api/caretaker.functions";
+import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/caretaker/")({
   head: () => ({ meta: [{ title: "Caretaker sign in — NyumbaSearch" }] }),
@@ -57,7 +56,7 @@ function CaretakerSignIn() {
               toast.success(`Welcome, ${res.caretakerName}`);
               navigate({ to: "/caretaker/dashboard" });
             } catch (err) {
-              toast.error((err as Error).message);
+              toast.error(errorMessage(err));
             } finally {
               setLoading(false);
             }
@@ -81,7 +80,7 @@ function CaretakerSignIn() {
               maxLength={4}
               required
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setPin(e.target.value.replaceAll(/\D/g, ""))}
               className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm tracking-[0.5em]"
             />
           </label>

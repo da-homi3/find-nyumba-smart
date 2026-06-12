@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth/reset")({
   head: () => ({ meta: [{ title: "Reset password — NyumbaSearch" }] }),
@@ -13,11 +14,12 @@ function ResetPasswordPage() {
   const [mode, setMode] = useState<"request" | "update">("request");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hash = window.location.hash;
+    const hash = globalThis.location.hash;
     if (hash.includes("type=recovery") || hash.includes("access_token=")) {
       setMode("update");
     }
@@ -33,12 +35,12 @@ function ResetPasswordPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/reset`;
+      const redirectTo = `${globalThis.location.origin}/auth/reset`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) throw error;
       toast.success("Check your email for the password reset link.");
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -46,6 +48,14 @@ function ResetPasswordPage() {
 
   async function updatePassword(e: React.FormEvent) {
     e.preventDefault();
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
@@ -53,7 +63,7 @@ function ResetPasswordPage() {
       toast.success("Password updated — sign in with your new password");
       navigate({ to: "/auth" });
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -102,6 +112,17 @@ function ResetPasswordPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Confirm password
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="mt-1 w-full rounded-xl border px-3 py-2.5 text-sm"
               />
             </label>

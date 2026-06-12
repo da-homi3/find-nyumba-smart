@@ -8,6 +8,7 @@ import {
   LogOut,
   Plus,
   KeyRound,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
@@ -19,6 +20,7 @@ const nav = [
   { to: "/landlord/caretakers", label: "Caretakers", icon: KeyRound },
   { to: "/landlord/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/landlord/dashboard/plan", label: "Plan", icon: Settings },
+  { to: "/landlord/dashboard/billing", label: "Billing", icon: CreditCard },
 ] as const;
 
 export function LandlordShell({ children }: { children: ReactNode }) {

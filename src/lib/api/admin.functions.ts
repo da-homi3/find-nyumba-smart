@@ -2,14 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
-
-function getContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
+import { getAuthContext, profileFromMap } from "@/lib/api/server-context";
 
 async function loadProfilesByIds(userIds: string[]) {
   if (userIds.length === 0)
@@ -28,7 +21,7 @@ async function loadProfilesByIds(userIds: string[]) {
 export const listAdminVerifications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
 
     const { data: rows, error } = await supabase
@@ -54,7 +47,7 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -80,7 +73,7 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
 export const listAdminScamReports = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -122,7 +115,7 @@ export const listAdminScamReports = createServerFn({ method: "GET" })
     return (rows ?? []).map((row) => ({
       ...row,
       properties: propertyMap.get(row.property_id) ?? null,
-      reporter: row.reporter_id ? (reporterMap.get(row.reporter_id) ?? null) : null,
+      reporter: profileFromMap(row.reporter_id, reporterMap),
     }));
   });
 
@@ -135,7 +128,7 @@ export const updateScamReportStatus = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -161,7 +154,7 @@ export const updateScamReportStatus = createServerFn({ method: "POST" })
 export const listAdminAuditLogs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
 
     const { data: rows, error } = await supabase
@@ -174,6 +167,6 @@ export const listAdminAuditLogs = createServerFn({ method: "GET" })
     const profileMap = await loadProfilesByIds(adminIds);
     return (rows ?? []).map((row) => ({
       ...row,
-      admin: row.admin_id ? (profileMap.get(row.admin_id) ?? null) : null,
+      admin: profileFromMap(row.admin_id, profileMap),
     }));
   });

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   BedDouble,
@@ -17,23 +17,29 @@ import {
   Sparkles,
   Bot,
   Send,
+  Flag,
 } from "lucide-react";
 import { fetchProperty, formatKes, prettyType, searchProperties } from "@/lib/properties";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { PropertyIntelligencePanel } from "@/components/PropertyIntelligencePanel";
 import { PropertyCard } from "@/components/PropertyCard";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import {
   createInquiry,
   listSavedProperties,
   toggleSavedProperty,
+  getPropertyOwnerContact,
 } from "@/lib/api/nyumba.functions";
 import { getAIValuation, getAIChatResponse } from "@/lib/api/ai.functions";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { BookingModal } from "@/components/BookingModal";
 import { PropertyReviewsSection } from "@/components/PropertyReviewsSection";
+import { isDemoListingId } from "@/data/mockListings";
+import { reportScam } from "@/lib/api/trust.functions";
 import { toast } from "sonner";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { recordTenantLead } from "@/lib/api/revenue.functions";
+import { PropertyRevenueBlocks } from "@/components/PropertyRevenueBlocks";
 
 export const Route = createFileRoute("/tenant/property/$id")({
   loader: async ({ params }) => {
@@ -93,12 +99,24 @@ function PropertyDetail() {
   const location = useLocation();
   const authSearch = { redirect: location.pathname + location.search };
   const { user } = useAuth();
+  const { isPlus } = useEntitlements();
   const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user || isDemoListingId(id)) return;
+    const timer = window.setTimeout(() => {
+      void recordTenantLead({ data: { listingId: id, source: "view" } });
+    }, 30_000);
+    return () => window.clearTimeout(timer);
+  }, [user, id]);
 
   // Booking & Chat States
   const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
+  const [chatMessages, setChatMessages] = useState<
+    { id: string; role: "user" | "assistant"; text: string }[]
+  >([
     {
+      id: "welcome",
       role: "assistant",
       text: "Habari! I am your NyumbaSearch AI Assistant. Ask me anything about this property, the location, or security.",
     },
@@ -130,19 +148,10 @@ function PropertyDetail() {
     },
   });
 
-  const { data: landlordProfile } = useQuery({
-    queryKey: ["landlord-profile", p?.owner_id],
-    enabled: !!p?.owner_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("phone, full_name")
-        .eq("id", p!.owner_id!)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
+  const { data: landlordContact } = useQuery({
+    queryKey: ["landlord-contact", p?.owner_id, id, user?.id],
+    enabled: !!p?.owner_id && !!user && !isDemoListingId(id),
+    queryFn: () => getPropertyOwnerContact({ data: { propertyId: id } }),
   });
 
   // AI Valuation query
@@ -154,6 +163,9 @@ function PropertyDetail() {
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to save properties");
+      if (isDemoListingId(id)) {
+        throw new Error("Demo listings cannot be saved. Browse live listings from landlords.");
+      }
       await toggleSavedProperty({ data: { propertyId: id, saved: !isSaved } });
     },
     onSuccess: () => {
@@ -169,16 +181,22 @@ function PropertyDetail() {
   const messageLandlord = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to message landlords");
+      if (isDemoListingId(id)) {
+        throw new Error("Demo listings cannot be messaged. Try a live landlord listing.");
+      }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
 
-      await createInquiry({
+      return createInquiry({
         data: {
           propertyId: id,
           message: `Hi, I'm interested in ${p.title}. Is it still available?`,
         },
       });
     },
-    onSuccess: () => toast.success("Message sent to the landlord"),
+    onSuccess: (inquiry) => {
+      toast.success("Message sent to the landlord");
+      navigate({ to: "/tenant/messages/$id", params: { id: inquiry.id } });
+    },
     onError: (e: Error) => {
       if (e.message.includes("Sign in")) {
         toast.error(e.message);
@@ -190,16 +208,21 @@ function PropertyDetail() {
   });
 
   const handleCall = () => {
-    const phone = landlordProfile?.phone?.trim();
-    if (!phone) {
-      toast.info("Phone contact is not available yet. Try sending a message.");
+    if (!user) {
+      toast.error("Sign in to call the landlord");
+      navigate({ to: "/auth", search: authSearch });
       return;
     }
-    window.location.href = `tel:${phone}`;
+    const phone = landlordContact?.phone?.trim();
+    if (!phone) {
+      toast.info("Phone not on file — send a message to reach the landlord.");
+      return;
+    }
+    globalThis.location.href = `tel:${phone}`;
   };
 
   const handleShare = async () => {
-    const shareUrl = window.location.href;
+    const shareUrl = globalThis.location.href;
     try {
       if (navigator.share) {
         await navigator.share({ title: p?.title ?? "NyumbaSearch listing", url: shareUrl });
@@ -218,17 +241,47 @@ function PropertyDetail() {
     if (!chatInput.trim() || chatLoading) return;
 
     const userMsg = chatInput.trim();
-    setChatMessages((prev) => [...prev, { role: "user", text: userMsg }]);
+    setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", text: userMsg }]);
     setChatInput("");
     setChatLoading(true);
 
     try {
       const response = await getAIChatResponse({ data: { message: userMsg, propertyId: id } });
-      setChatMessages((prev) => [...prev, { role: "assistant", text: response }]);
+      setChatMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role: "assistant", text: response },
+      ]);
     } catch (err) {
       toast.error("AI assistant offline. Please try again.");
     } finally {
       setChatLoading(false);
+    }
+  };
+
+  const handleReportScam = async () => {
+    if (!user) {
+      toast.error("Sign in to report a listing");
+      navigate({ to: "/auth", search: authSearch });
+      return;
+    }
+    if (isDemoListingId(id)) {
+      toast.info("Demo listings are sample data — nothing to report.");
+      return;
+    }
+    const reason = globalThis.prompt("Why are you reporting this listing?", "Suspicious listing");
+    if (!reason?.trim()) return;
+    const details = globalThis.prompt("Any extra details? (optional)") ?? undefined;
+    try {
+      const result = await reportScam({
+        data: { propertyId: id, reason: reason.trim(), details: details?.trim() || undefined },
+      });
+      toast.success(
+        result.autoFlagged
+          ? "Report submitted. This listing was flagged for review."
+          : "Thanks — our team will review your report.",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not submit report");
     }
   };
 
@@ -240,9 +293,16 @@ function PropertyDetail() {
   const intel = getListingIntel(p);
   const gallery = p.images.length > 0 ? p.images : [];
   const activeImage = gallery[galleryIndex] ?? gallery[0];
+  const isDemo = isDemoListingId(id);
 
   return (
     <div className="pb-32 bg-background min-h-screen">
+      {isDemo && (
+        <div className="border-b border-amber-500/30 bg-amber-500/10 px-5 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
+          Demo listing — browse photos and AI tools here. Save, message, and book viewings on live
+          listings from verified landlords.
+        </div>
+      )}
       {/* Gallery */}
       <div className="relative">
         <div className="aspect-[4/3] w-full overflow-hidden bg-muted max-h-[500px]">
@@ -343,10 +403,10 @@ function PropertyDetail() {
           <h2 className="font-display text-lg font-semibold">About this landlord</h2>
           <div className="mt-3 flex items-start gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-full bg-primary/15 font-display text-sm font-bold text-primary">
-              {(landlordProfile?.full_name ?? "L").slice(0, 1).toUpperCase()}
+              {(landlordContact?.fullName ?? "L").slice(0, 1).toUpperCase()}
             </div>
             <div className="flex-1 text-sm">
-              <p className="font-semibold">{landlordProfile?.full_name ?? "Verified landlord"}</p>
+              <p className="font-semibold">{landlordContact?.fullName ?? "Verified landlord"}</p>
               {vLevel > 0 && (
                 <div className="mt-1">
                   <VerificationBadge level={vLevel} />
@@ -421,9 +481,9 @@ function PropertyDetail() {
             Ask the AI Assistant
           </h3>
           <div className="mt-3 max-h-48 overflow-y-auto space-y-2 border-b pb-3 text-xs">
-            {chatMessages.map((msg, i) => (
+            {chatMessages.map((msg) => (
               <div
-                key={i}
+                key={msg.id}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
@@ -456,8 +516,21 @@ function PropertyDetail() {
           </form>
         </section>
 
+        <PropertyRevenueBlocks property={p} isPlus={isPlus} />
+
         {/* Reviews & Neighborhood Quality Ratings */}
         <PropertyReviewsSection propertyId={id} userId={user?.id} isTenant={!!user} />
+
+        {!isDemo && (
+          <button
+            type="button"
+            onClick={() => void handleReportScam()}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/5"
+          >
+            <Flag className="h-3.5 w-3.5" />
+            Report suspicious listing
+          </button>
+        )}
 
         {similar.length > 0 && (
           <section className="mt-8">
@@ -497,6 +570,12 @@ function PropertyDetail() {
                 navigate({ to: "/auth", search: authSearch });
                 return;
               }
+              if (isDemo) {
+                toast.info(
+                  "Demo listings cannot be booked. Find a live listing to schedule a viewing.",
+                );
+                return;
+              }
               setIsBookingOpen(true);
             }}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-95"
@@ -525,11 +604,11 @@ function Stat({
   icon: Icon,
   label,
   value,
-}: {
+}: Readonly<{
   icon: typeof BedDouble;
   label: string;
   value: string;
-}) {
+}>) {
   return (
     <div className="text-center">
       <Icon className="mx-auto h-4 w-4 text-primary" />

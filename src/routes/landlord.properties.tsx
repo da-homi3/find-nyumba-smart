@@ -3,10 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LandlordShell } from "@/components/LandlordShell";
 import { useAuth } from "@/hooks/use-auth";
 import { listLandlordProperties } from "@/lib/api/nyumba.functions";
+import { markPropertyRented } from "@/lib/api/revenue.functions";
 import { analyzePropertyQuality } from "@/lib/api/media.functions";
 import { formatKes, prettyType } from "@/lib/properties";
 import { PropertyMediaManager } from "@/components/PropertyMediaManager";
-import { Plus, Building2, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Building2, Sparkles, Loader2, TrendingUp, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -62,6 +63,21 @@ function Page() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  const markRented = useMutation({
+    mutationFn: (args: { propertyId: string; rentAmountKes: number }) =>
+      markPropertyRented({ data: args }),
+    onSuccess: (res) => {
+      toast.success(`Marked as rented. Platform fee: ${formatKes(res.platformFeeKes)}`);
+      qc.invalidateQueries({ queryKey: ["my-properties-list", user?.id] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const handleMarkRented = (propertyId: string, rentKes: number) => {
+    if (!globalThis.confirm("Mark this listing as rented? It will be deactivated.")) return;
+    markRented.mutate({ propertyId, rentAmountKes: rentKes });
+  };
 
   return (
     <div className="px-6 py-8 lg:px-10">
@@ -131,6 +147,25 @@ function Page() {
                       {rep.summary}
                     </p>
                   )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      to="/landlord/boost"
+                      search={{ propertyId: p.id }}
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+                    >
+                      <TrendingUp className="h-3 w-3" /> Boost
+                    </Link>
+                    {p.is_active && (
+                      <button
+                        type="button"
+                        disabled={markRented.isPending}
+                        onClick={() => handleMarkRented(p.id, p.rent_kes)}
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="h-3 w-3" /> Rented
+                      </button>
+                    )}
+                  </div>
                   <PropertyMediaManager property={p} />
                 </div>
               </div>

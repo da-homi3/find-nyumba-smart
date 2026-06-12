@@ -2,7 +2,6 @@ import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/rea
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { canAccessPortal } from "@/lib/portal-guard";
 
 export const Route = createFileRoute("/manager")({
   component: ManagerLayout,
@@ -31,10 +30,6 @@ function ManagerLayout() {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
-  }
-
-  if (!isPublicEntry && user && !canAccessPortal([], "manager") && isManager) {
-    /* isManager already checked */
   }
 
   return <Outlet />;

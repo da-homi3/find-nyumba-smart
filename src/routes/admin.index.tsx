@@ -150,6 +150,7 @@ function AdminDashboard() {
             { id: "applications", label: "Portal applications", count: applications.length },
           ].map((t) => (
             <button
+              type="button"
               key={t.id}
               onClick={() => setActiveTab(t.id as Tab)}
               className={`pb-3 px-4 -mb-px border-b-2 transition ${
@@ -211,15 +212,15 @@ function AdminDashboard() {
                         {v.documents && v.documents.length > 0 && (
                           <div className="mt-3 space-y-1">
                             <span className="text-xs font-semibold block">Attached Documents:</span>
-                            {v.documents.map((doc: string, idx: number) => (
+                            {v.documents.map((doc: string) => (
                               <a
-                                key={idx}
+                                key={doc}
                                 href={doc}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="text-xs text-primary hover:underline block truncate max-w-sm"
                               >
-                                View Document #{idx + 1}
+                                View document
                               </a>
                             ))}
                           </div>
@@ -229,12 +230,14 @@ function AdminDashboard() {
                       {v.status === "pending" && (
                         <div className="flex gap-2">
                           <button
+                            type="button"
                             onClick={() => rejectVerification.mutate(v.id)}
                             className="rounded-xl border border-red-500/30 text-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-500/10"
                           >
                             Reject
                           </button>
                           <button
+                            type="button"
                             onClick={() => approveVerification.mutate(v.id)}
                             className="rounded-xl bg-gradient-emerald text-primary-foreground px-3 py-1.5 text-xs font-semibold shadow-soft hover:opacity-90"
                           >
@@ -302,12 +305,14 @@ function AdminDashboard() {
                       {s.status === "pending" && (
                         <div className="flex gap-2">
                           <button
+                            type="button"
                             onClick={() => resolveScam.mutate({ id: s.id, status: "dismissed" })}
                             className="rounded-xl border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
                           >
                             Dismiss
                           </button>
                           <button
+                            type="button"
                             onClick={() => resolveScam.mutate({ id: s.id, status: "reviewed" })}
                             className="rounded-xl bg-gradient-emerald text-primary-foreground px-3 py-1.5 text-xs font-semibold shadow-soft hover:opacity-90"
                           >

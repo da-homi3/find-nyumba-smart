@@ -30,7 +30,7 @@ function ThreadPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <ConversationThread inquiryId={id} onBack={() => window.history.back()} />
+      <ConversationThread inquiryId={id} onBack={() => globalThis.history.back()} />
     </div>
   );
 }

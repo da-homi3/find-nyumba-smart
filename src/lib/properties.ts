@@ -41,6 +41,9 @@ export interface Property {
   views: number;
   created_at: string;
   updated_at: string;
+  featured_until?: string | null;
+  boost_package?: string | null;
+  nyumba_verified_at?: string | null;
 }
 
 export const formatKes = (n: number) => "KES " + n.toLocaleString("en-KE");

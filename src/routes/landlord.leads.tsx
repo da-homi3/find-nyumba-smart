@@ -82,8 +82,8 @@ function LeadsPage() {
 
       {isLoading ? (
         <div className="mt-8 grid gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted" />
+          {["lead-sk-1", "lead-sk-2", "lead-sk-3"].map((id) => (
+            <div key={id} className="h-32 animate-pulse rounded-2xl bg-muted" />
           ))}
         </div>
       ) : leads.length === 0 ? (

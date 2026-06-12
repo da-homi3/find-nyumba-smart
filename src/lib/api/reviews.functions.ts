@@ -2,8 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { getAuthContext } from "@/lib/api/server-context";
 
 const propertyReviewSchema = z.object({
   propertyId: z.string().uuid(),
@@ -27,21 +26,18 @@ const neighborhoodReviewSchema = z.object({
   comment: z.string().trim().max(1000).optional(),
 });
 
-function getContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
-
 export const createPropertyReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(propertyReviewSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { userId } = getAuthContext(context);
 
-    // Occupancy gate: user must have completed viewing or active tenancy
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin;
+
+    // Occupancy gate: user must have completed viewing or active tenancy (admin read — RLS-safe)
     const [{ data: completedViewing }, { data: tenancy }] = await Promise.all([
-      supabase
+      admin
         .from("viewings")
         .select("id")
         .eq("property_id", data.propertyId)
@@ -49,7 +45,7 @@ export const createPropertyReview = createServerFn({ method: "POST" })
         .eq("status", "completed")
         .limit(1)
         .maybeSingle(),
-      supabase
+      admin
         .from("tenancies")
         .select("id")
         .eq("property_id", data.propertyId)
@@ -65,7 +61,7 @@ export const createPropertyReview = createServerFn({ method: "POST" })
       );
     }
 
-    const { data: row, error } = await supabase
+    const { data: row, error } = await admin
       .from("property_reviews")
       .insert({
         property_id: data.propertyId,
@@ -90,7 +86,7 @@ export const createNeighborhoodReview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(neighborhoodReviewSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
 
     const { data: row, error } = await supabase
       .from("neighborhood_reviews")

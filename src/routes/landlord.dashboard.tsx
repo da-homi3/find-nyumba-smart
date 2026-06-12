@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { LandlordShell } from "@/components/LandlordShell";
 import {
@@ -10,7 +9,6 @@ import {
   TrendingUp,
   Plus,
   Calendar,
-  Sparkles,
   Smartphone,
   Check,
   X,
@@ -21,8 +19,8 @@ import {
   updateViewingStatus,
   type ViewingListItem,
 } from "@/lib/api/booking.functions";
-import { initiateMpesaPayment } from "@/lib/api/payment.functions";
 import { formatKes } from "@/lib/properties";
+import { viewingStatusTone } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/landlord/dashboard")({
@@ -36,9 +34,6 @@ export const Route = createFileRoute("/landlord/dashboard")({
 function Dashboard() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [phoneToBoost, setPhoneToBoost] = useState("");
-  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
-  const [boosting, setBoosting] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["landlord-dashboard", user?.id],
@@ -54,7 +49,13 @@ function Dashboard() {
   });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "confirmed" | "cancelled" }) => {
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: "confirmed" | "cancelled" | "completed";
+    }) => {
       await updateViewingStatus({ data: { viewingId: id, status } });
     },
     onSuccess: () => {
@@ -66,36 +67,6 @@ function Dashboard() {
       toast.error(e.message);
     },
   });
-
-  const handleBoostListing = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPropId || !phoneToBoost.trim()) {
-      toast.error("Please enter a valid Safaricom phone number");
-      return;
-    }
-    setBoosting(true);
-    try {
-      const res = await initiateMpesaPayment({
-        data: {
-          propertyId: selectedPropId,
-          amountKes: 1000, // standard boost fee
-          paymentType: "property_boost",
-          phoneNumber: phoneToBoost.trim(),
-        },
-      });
-      toast.success(res.message);
-      setSelectedPropId(null);
-      setPhoneToBoost("");
-      // Refresh dashboard properties after 2.5s (simulation delay)
-      setTimeout(() => {
-        qc.invalidateQueries({ queryKey: ["landlord-dashboard"] });
-      }, 2500);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setBoosting(false);
-    }
-  };
 
   const properties = data?.properties ?? [];
   const stats = data?.stats ?? {
@@ -151,53 +122,6 @@ function Dashboard() {
           hint="potential"
         />
       </div>
-
-      {/* Boost Modal dialog */}
-      {selectedPropId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/85 backdrop-blur-sm">
-          <div className="relative w-full max-w-sm rounded-2xl border bg-card p-6 shadow-elegant animate-in zoom-in duration-200">
-            <h3 className="font-display text-base font-semibold flex items-center gap-1">
-              <Sparkles className="h-5 w-5 text-amber-500 fill-amber-500" />
-              Boost Your Listing
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-              Featuring your property puts it at the top of the feed, marks it as Level 2 Verified,
-              and raises the Authenticity Score. Costs KES 1,000.
-            </p>
-            <form onSubmit={handleBoostListing} className="mt-4 space-y-3">
-              <label className="block">
-                <span className="text-[10px] text-muted-foreground block mb-1">
-                  M-Pesa Phone Number
-                </span>
-                <input
-                  type="tel"
-                  placeholder="0712345678"
-                  value={phoneToBoost}
-                  onChange={(e) => setPhoneToBoost(e.target.value)}
-                  className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
-                  required
-                />
-              </label>
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedPropId(null)}
-                  className="rounded-xl border px-3 py-2 text-xs font-semibold hover:bg-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={boosting}
-                  className="rounded-xl bg-gradient-emerald text-primary-foreground text-xs font-semibold px-4 py-2 shadow-soft"
-                >
-                  {boosting ? "Processing..." : "Pay KES 1,000"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Main Grid */}
       <div className="mt-10 grid gap-8 lg:grid-cols-3">
@@ -260,13 +184,14 @@ function Dashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {!p.is_verified && (
-                          <button
-                            onClick={() => setSelectedPropId(p.id)}
+                        {p.is_active && (
+                          <Link
+                            to="/landlord/boost"
+                            search={{ propertyId: p.id }}
                             className="rounded-lg bg-gradient-gold text-gold-foreground px-2 py-1 text-[10px] font-bold shadow-soft"
                           >
                             Boost
-                          </button>
+                          </Link>
                         )}
                       </td>
                     </tr>
@@ -301,13 +226,7 @@ function Dashboard() {
                         Schedule: {new Date(v.scheduled_at).toLocaleString()}
                       </span>
                       <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
-                          v.status === "confirmed"
-                            ? "bg-emerald-500/10 text-emerald-600"
-                            : v.status === "cancelled"
-                              ? "bg-red-500/10 text-red-600"
-                              : "bg-amber-500/10 text-amber-600"
-                        }`}
+                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${viewingStatusTone(v.status)}`}
                       >
                         {v.status.toUpperCase()}
                       </span>
@@ -316,6 +235,7 @@ function Dashboard() {
                   {v.status === "pending" && (
                     <div className="mt-3 flex gap-2 justify-end">
                       <button
+                        type="button"
                         onClick={() => updateStatus.mutate({ id: v.id, status: "cancelled" })}
                         className="rounded-lg border border-red-500/20 text-red-500 p-1 hover:bg-red-500/10"
                         title="Decline"
@@ -323,11 +243,23 @@ function Dashboard() {
                         <X className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => updateStatus.mutate({ id: v.id, status: "confirmed" })}
                         className="rounded-lg bg-gradient-emerald text-primary-foreground p-1 shadow-soft hover:opacity-90"
                         title="Accept"
                       >
                         <Check className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  {v.status === "confirmed" && (
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => updateStatus.mutate({ id: v.id, status: "completed" })}
+                        className="rounded-lg border px-2 py-1 text-[10px] font-semibold hover:bg-secondary"
+                      >
+                        Mark viewing completed
                       </button>
                     </div>
                   )}
@@ -346,12 +278,12 @@ function Kpi({
   label,
   value,
   hint,
-}: {
+}: Readonly<{
   icon: typeof Building2;
   label: string;
   value: string;
   hint: string;
-}) {
+}>) {
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-soft">
       <div className="flex items-center justify-between">

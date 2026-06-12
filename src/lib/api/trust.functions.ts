@@ -2,8 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { getAuthContext } from "@/lib/api/server-context";
 
 const submitVerificationSchema = z.object({
   verificationType: z.enum(["phone", "identity", "business", "ownership"]),
@@ -22,17 +21,11 @@ async function adminClient() {
   return supabaseAdmin;
 }
 
-function getContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
-
 export const submitVerification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(submitVerificationSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
 
     const { data: row, error } = await supabase
       .from("verifications")
@@ -54,7 +47,7 @@ export const reportScam = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(reportScamSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
 
     // Auto-moderation check: flag if keywords include typical rental scams
     const lowercaseDetails = (data.details ?? "").toLowerCase();
@@ -105,7 +98,7 @@ export const checkListingDuplicates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ propertyId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
-    const { supabase } = getContext(context);
+    const { supabase } = getAuthContext(context);
 
     // Fetch property details
     const { data: property, error: pErr } = await supabase

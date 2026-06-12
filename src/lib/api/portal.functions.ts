@@ -2,10 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
-import type { PortalId } from "@/lib/portal-guard";
 import { checkRateLimit } from "@/lib/api/rate-limit";
+import { getAuthContext } from "@/lib/api/server-context";
+import type { PortalId } from "@/lib/portal-guard";
 
 async function sendOpsNewApplication(
   payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyOpsNewApplication"]>[0],
@@ -42,24 +41,18 @@ export type PortalApplication = {
   created_at: string;
 };
 
-function authContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
-
 function slugify(name: string) {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-|-$/g, "")
     .slice(0, 48);
 }
 
 export const listMyPortalApplications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = authContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data, error } = await supabase
       .from("portal_applications")
       .select("*")
@@ -153,7 +146,7 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = authContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data: row, error } = await supabase
       .from("portal_applications")
       .insert({
@@ -178,7 +171,7 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
       applicantEmail: email,
       role: data.requestedRole,
       orgName: data.organizationName,
-      reviewUrl: `${process.env.SITE_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev"}/admin?tab=applications`,
+      reviewUrl: `${(await import("@/lib/site")).getSiteUrl()}/admin?tab=applications`,
     });
 
     return row as PortalApplication;
@@ -187,7 +180,7 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
 export const listPendingApplications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = authContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: apps, error } = await supabaseAdmin
@@ -221,7 +214,7 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = authContext(context);
+    const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -262,6 +255,13 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
       .select()
       .maybeSingle();
 
+    // Everyone can browse/save as tenant when switching portals in settings.
+    await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: app.user_id, role: "tenant" })
+      .select()
+      .maybeSingle();
+
     let organizationId: string | null = null;
     if (app.requested_role === "agency" && app.organization_name) {
       const slug = `${slugify(app.organization_name)}-${app.user_id.slice(0, 8)}`;
@@ -271,6 +271,26 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
           name: app.organization_name,
           slug,
           type: "agency",
+        })
+        .select("id")
+        .single();
+      organizationId = org?.id ?? null;
+      if (organizationId) {
+        await supabaseAdmin.from("organization_members").insert({
+          organization_id: organizationId,
+          user_id: app.user_id,
+          role: "owner",
+        });
+      }
+    }
+    if (app.requested_role === "manager" && app.organization_name) {
+      const slug = `${slugify(app.organization_name)}-${app.user_id.slice(0, 8)}`;
+      const { data: org } = await supabaseAdmin
+        .from("organizations")
+        .insert({
+          name: app.organization_name,
+          slug,
+          type: "property_manager",
         })
         .select("id")
         .single();
@@ -312,7 +332,7 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
 export const getMyProfilePortal = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = authContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data, error } = await supabase
       .from("profiles")
       .select("active_portal, is_portal_active, full_name, phone")
@@ -330,7 +350,7 @@ export const setActivePortal = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = authContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
     const owned = new Set((roles ?? []).map((r) => r.role));
     const required: Record<string, string> = {

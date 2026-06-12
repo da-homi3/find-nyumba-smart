@@ -3,7 +3,11 @@ import type { Database } from "@/integrations/supabase/types";
 
 export type AppRole = Database["public"]["Enums"]["app_role"];
 
-const PRIVILEGED_ROLES: AppRole[] = ["landlord", "manager", "agency", "caretaker", "admin"];
+type RequiredRoles = AppRole | AppRole[];
+
+const PRIVILEGED_ROLES = new Set<AppRole>(["landlord", "manager", "agency", "caretaker", "admin"]);
+
+const ALL_ROLES = new Set<AppRole>(["tenant", ...PRIVILEGED_ROLES]);
 
 export class ForbiddenError extends Error {
   status = 403;
@@ -13,13 +17,17 @@ export class ForbiddenError extends Error {
   }
 }
 
+function isAppRole(role: string): role is AppRole {
+  return ALL_ROLES.has(role as AppRole);
+}
+
 async function loadUserRoles(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<Set<AppRole>> {
   const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) throw error;
-  return new Set((data ?? []).map((r) => r.role as AppRole));
+  return new Set((data ?? []).map((r) => r.role).filter(isAppRole));
 }
 
 /**
@@ -32,14 +40,14 @@ async function loadUserRoles(
 export async function requireRole(
   supabase: SupabaseClient<Database>,
   userId: string,
-  roles: AppRole | AppRole[],
+  roles: RequiredRoles,
 ): Promise<void> {
   const required = Array.isArray(roles) ? roles : [roles];
   const owned = await loadUserRoles(supabase, userId);
 
   if (required.length === 1 && required[0] === "tenant") {
     if (owned.has("tenant")) return;
-    const hasPrivileged = [...owned].some((r) => PRIVILEGED_ROLES.includes(r));
+    const hasPrivileged = [...owned].some((r) => PRIVILEGED_ROLES.has(r));
     if (!hasPrivileged) return;
     throw new ForbiddenError("Forbidden: requires role tenant");
   }

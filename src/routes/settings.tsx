@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Building2, Home, Briefcase, Users, KeyRound, LogOut, Shield, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { PORTAL_HOME, type PortalId } from "@/lib/portal-guard";
 
 export const Route = createFileRoute("/settings")({
@@ -50,6 +51,7 @@ function SettingsPage() {
     setActivePortalChoice,
     signOut,
   } = useAuth();
+  const { isPlus, entitlements } = useEntitlements();
 
   if (!user) {
     return (
@@ -87,6 +89,31 @@ function SettingsPage() {
       </Link>
       <h1 className="mt-4 font-display text-2xl font-semibold">Settings</h1>
       <p className="text-sm text-muted-foreground">{user.email}</p>
+
+      <section className="mt-8 rounded-2xl border bg-card p-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          NyumbaSearch Plus
+        </h2>
+        <p className="mt-2 text-sm">
+          {isPlus ? (
+            <>
+              Active until{" "}
+              {entitlements.plusExpiresAt
+                ? new Date(entitlements.plusExpiresAt).toLocaleDateString()
+                : "renewal"}
+            </>
+          ) : (
+            "Free plan — upgrade for early listing access and scam scores."
+          )}
+        </p>
+        <Link
+          to={isPlus ? "/tenant/profile" : "/tenant/checkout"}
+          search={isPlus ? undefined : { plan: "plus" }}
+          className="mt-3 inline-block text-sm font-semibold text-primary"
+        >
+          {isPlus ? "Manage membership →" : "Upgrade to Plus →"}
+        </Link>
+      </section>
 
       <section className="mt-8">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

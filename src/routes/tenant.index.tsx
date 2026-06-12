@@ -1,18 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, MapPin, Sparkles, ShieldCheck } from "lucide-react";
-import { searchProperties } from "@/lib/properties";
+import { searchProperties, type PropertyType } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
 import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
+import { isDemoListingId } from "@/data/mockListings";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
+import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
+import { AdUnit } from "@/components/AdUnit";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { PropertyType } from "@/lib/properties";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
@@ -27,11 +30,13 @@ export const Route = createFileRoute("/tenant/")({
   component: TenantHome,
 });
 
+const LISTING_SKELETON_KEYS = ["a", "b", "c", "d", "e", "f"] as const;
 const PAGE_SIZE = 12;
 
 function TenantHome() {
   const search = Route.useSearch();
   const { user } = useAuth();
+  const { isPlus } = useEntitlements();
   const qc = useQueryClient();
   const [q, setQ] = useState(search.q ?? "");
   const [page, setPage] = useState(1);
@@ -42,7 +47,23 @@ function TenantHome() {
     types: search.type ? [search.type as PropertyType] : [],
   }));
 
-  const { data: searchResult, isLoading } = useQuery({
+  useEffect(() => {
+    setQ(search.q ?? "");
+    setPage(1);
+    setFilters((f) => ({
+      ...f,
+      maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
+      neighborhood: search.neighborhood ?? "All",
+      types: search.type ? [search.type as PropertyType] : [],
+    }));
+  }, [search.q, search.maxPrice, search.neighborhood, search.type]);
+
+  const {
+    data: searchResult,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["properties", q, filters.neighborhood, filters.maxRent, filters.sort],
     queryFn: () =>
       searchProperties({
@@ -96,6 +117,11 @@ function TenantHome() {
 
   const visible = filtered.slice(0, page * PAGE_SIZE);
   const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
+  const boostedPool = useMemo(
+    () =>
+      filtered.filter((p) => p.featured_until && new Date(p.featured_until).getTime() > Date.now()),
+    [filtered],
+  );
 
   const patchFilters = (patch: Partial<TenantFilters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -106,6 +132,10 @@ function TenantHome() {
     e.preventDefault();
     if (!user) {
       toast.error("Sign in to save homes");
+      return;
+    }
+    if (isDemoListingId(propertyId)) {
+      toast.info("Demo listings cannot be saved. Save live listings from verified landlords.");
       return;
     }
     void toggleSave.mutateAsync({ propertyId, saved: savedIds.has(propertyId) });
@@ -151,6 +181,12 @@ function TenantHome() {
 
       <TenantFiltersBar filters={filters} onChange={patchFilters} resultCount={filtered.length} />
 
+      {!isPlus && (
+        <div className="mx-auto max-w-2xl px-5 pt-4">
+          <PlusUpsellBanner dismissKey="tenant-browse-top" />
+        </div>
+      )}
+
       {verified.length > 0 && (
         <section className="mx-auto max-w-2xl px-5 pt-6">
           <div className="flex items-center justify-between">
@@ -167,6 +203,7 @@ function TenantHome() {
                 <PropertyCard
                   p={p}
                   saved={savedIds.has(p.id)}
+                  plusMember={isPlus}
                   onToggleSave={handleToggleSave(p.id)}
                 />
               </div>
@@ -198,9 +235,9 @@ function TenantHome() {
           <span className="text-xs text-muted-foreground">{filtered.length} results</span>
         </div>
         {isLoading ? (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={`sk-${i}`} className="overflow-hidden rounded-2xl border">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {LISTING_SKELETON_KEYS.map((id) => (
+              <div key={id} className="overflow-hidden rounded-2xl border">
                 <div className="aspect-video animate-pulse bg-muted" />
                 <div className="space-y-2 p-4">
                   <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
@@ -209,21 +246,54 @@ function TenantHome() {
               </div>
             ))}
           </div>
+        ) : isError ? (
+          <div className="mt-8 rounded-2xl border border-destructive/30 p-10 text-center">
+            <p className="text-sm font-medium text-destructive">Couldn&apos;t load listings</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
+            >
+              Try again
+            </button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
             No homes match these filters. Try widening your budget or turning off water filters.
           </div>
         ) : (
           <>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {visible.map((p) => (
-                <PropertyCard
-                  key={p.id}
-                  p={p}
-                  saved={savedIds.has(p.id)}
-                  onToggleSave={handleToggleSave(p.id)}
-                />
-              ))}
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((p, index) => {
+                const slot = index + 1;
+                const boosted = boostedPool.length ? boostedPool[slot % boostedPool.length] : null;
+                return (
+                  <div key={p.id} className="contents">
+                    <PropertyCard
+                      p={p}
+                      saved={savedIds.has(p.id)}
+                      plusMember={isPlus}
+                      onToggleSave={handleToggleSave(p.id)}
+                    />
+                    {slot % 6 === 0 &&
+                      (boosted ? (
+                        <div>
+                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gold">
+                            Featured listing
+                          </p>
+                          <PropertyCard p={boosted} plusMember={isPlus} showSave={false} />
+                        </div>
+                      ) : (
+                        <AdUnit
+                          label="Partner"
+                          title="Advertise on NyumbaSearch"
+                          body="Reach verified tenants searching for homes in Nairobi."
+                          href="/advertise"
+                        />
+                      ))}
+                  </div>
+                );
+              })}
             </div>
             {visible.length < filtered.length && (
               <button

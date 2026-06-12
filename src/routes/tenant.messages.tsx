@@ -5,6 +5,9 @@ import { listTenantInquiries } from "@/lib/api/nyumba.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
 import { countUnread } from "@/lib/conversation-utils";
+import { errorMessage } from "@/lib/utils";
+import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 export const Route = createFileRoute("/tenant/messages")({
   component: Messages,
@@ -12,6 +15,7 @@ export const Route = createFileRoute("/tenant/messages")({
 
 function Messages() {
   const { user } = useAuth();
+  const { isPlus } = useEntitlements();
   const location = useLocation();
   const {
     data: inquiries = [],
@@ -48,17 +52,27 @@ function Messages() {
       <h1 className="font-display text-2xl font-semibold">Messages</h1>
       <p className="text-sm text-muted-foreground">{inquiries.length} conversations</p>
 
+      {!isPlus && inquiries.length >= 3 && (
+        <div className="mt-4">
+          <PlusUpsellBanner
+            dismissKey="messages-3"
+            title="Plus: priority landlord replies"
+            compact
+          />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="mt-8 grid gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-muted" />
+          {["msg-sk-1", "msg-sk-2", "msg-sk-3"].map((id) => (
+            <div key={id} className="h-28 animate-pulse rounded-2xl bg-muted" />
           ))}
         </div>
       ) : error ? (
         <div className="mt-10 rounded-2xl border border-destructive/30 p-6 text-center">
           <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground" />
           <p className="mt-3 text-sm font-medium text-destructive">Messages did not load.</p>
-          <p className="mt-1 text-xs text-muted-foreground">{(error as Error).message}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{errorMessage(error)}</p>
           <button
             type="button"
             onClick={() => void refetch()}

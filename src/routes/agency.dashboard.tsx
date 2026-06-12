@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AgencyShell } from "@/components/AgencyShell";
-import { listAgencyProperties } from "@/lib/api/nyumba.functions";
-import { listLandlordLeads } from "@/lib/api/nyumba.functions";
+import { listAgencyProperties, listLandlordLeads } from "@/lib/api/nyumba.functions";
 import { Building2, Inbox } from "lucide-react";
 
 export const Route = createFileRoute("/agency/dashboard")({
@@ -56,11 +55,11 @@ function Stat({
   label,
   value,
   icon: Icon,
-}: {
+}: Readonly<{
   label: string;
   value: string;
   icon: typeof Building2;
-}) {
+}>) {
   return (
     <div className="rounded-2xl border bg-card p-5">
       <Icon className="h-5 w-5 text-primary" />

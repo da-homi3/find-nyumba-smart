@@ -30,7 +30,8 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
 
   if (error || !searches?.length) return;
 
-  const baseUrl = process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+  const { getSiteUrl } = await import("@/lib/site");
+  const baseUrl = getSiteUrl();
   const propertyUrl = `${baseUrl}/tenant/property/${property.id}`;
 
   for (const search of searches) {

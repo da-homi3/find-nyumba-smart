@@ -68,10 +68,44 @@ function CaretakerDashboard() {
           </button>
         </div>
       </header>
-      <main className="mx-auto max-w-2xl space-y-4 px-5 py-6">
+      <main className="mx-auto max-w-2xl space-y-6 px-5 py-6">
         <p className="text-sm text-muted-foreground">
           Assigned properties only — you cannot change pricing or view analytics.
         </p>
+
+        <section className="rounded-2xl border bg-card p-4">
+          <h2 className="font-display text-sm font-semibold">Upcoming viewings</h2>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Viewing requests from tenants appear here once bookings are scheduled.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border bg-card p-4">
+          <h2 className="font-display text-sm font-semibold">Quick replies</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tap to copy a reply for tenant inquiries.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              "Still available — please book a viewing.",
+              "Please book a viewing on NyumbaSearch.",
+              "Contact the landlord directly for urgent matters.",
+            ].map((text) => (
+              <button
+                key={text}
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard.writeText(text);
+                  toast.success("Reply copied");
+                }}
+                className="rounded-full border px-3 py-2 text-xs font-medium hover:bg-secondary"
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        </section>
+
         {isLoading ? (
           <div className="h-24 animate-pulse rounded-2xl bg-muted" />
         ) : properties.length === 0 ? (

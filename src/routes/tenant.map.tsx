@@ -24,10 +24,8 @@ const NAIROBI_BOUNDS = {
   minLng: 36.62,
   maxLng: 37.08,
 };
-const BROWSER_KEY =
-  import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY ??
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-const TRACKING_ID = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
+const BROWSER_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const TRACKING_ID = import.meta.env.VITE_GOOGLE_MAPS_TRACKING_ID;
 
 // Stylish dark-emerald Google Maps style aligned with the Emerald Prestige palette
 const MAP_STYLE: google.maps.MapTypeStyle[] = [
@@ -95,12 +93,12 @@ function FallbackMap({
   selected,
   showHeat,
   onSelect,
-}: {
+}: Readonly<{
   properties: Property[];
   selected: Property | null;
   showHeat: boolean;
   onSelect: (property: Property) => void;
-}) {
+}>) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#0e1a14]">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(201,168,76,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(201,168,76,0.08)_1px,transparent_1px)] bg-[size:56px_56px]" />
@@ -139,6 +137,7 @@ function FallbackMap({
         const active = selected?.id === p.id;
         return (
           <button
+            type="button"
             key={p.id}
             onClick={() => onSelect(p)}
             className={`absolute -translate-x-1/2 -translate-y-full rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-elegant transition ${
@@ -173,7 +172,7 @@ function TenantMap() {
   const clusterer = useRef<MarkerClustererType | null>(null);
   const heatmap = useRef<google.maps.Circle[]>([]);
   const allHeatCircles = useRef<google.maps.Circle[]>([]);
-  const rebuildTimer = useRef<number | null>(null);
+  const rebuildTimer = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const cullRaf = useRef<number | null>(null);
   const markers = useRef<google.maps.Marker[]>([]);
   const [ready, setReady] = useState(false);
@@ -190,7 +189,7 @@ function TenantMap() {
 
   // Track connectivity so we can degrade gracefully and auto-retry on reconnect.
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof globalThis.document === "undefined") return;
     const handleOnline = () => {
       setIsOnline(true);
       // If maps failed earlier (likely network), clear the error so the init
@@ -206,12 +205,12 @@ function TenantMap() {
         setError((prev) => prev ?? "You're offline. Showing cached listings.");
       }
     };
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    globalThis.addEventListener("online", handleOnline);
+    globalThis.addEventListener("offline", handleOffline);
     if (!navigator.onLine) handleOffline();
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      globalThis.removeEventListener("online", handleOnline);
+      globalThis.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -266,8 +265,8 @@ function TenantMap() {
   // Render markers + clusters + heatmap whenever data or filters change (throttled)
   useEffect(() => {
     if (!ready || !mapInstance.current) return;
-    if (rebuildTimer.current) window.clearTimeout(rebuildTimer.current);
-    rebuildTimer.current = window.setTimeout(() => {
+    if (rebuildTimer.current) globalThis.clearTimeout(rebuildTimer.current);
+    rebuildTimer.current = globalThis.setTimeout(() => {
       void rebuild();
     }, 150);
 
@@ -475,7 +474,7 @@ function TenantMap() {
   const visibleCount = ready && !error ? markerCount : filteredProperties.length;
 
   return (
-    <div className="relative h-[calc(100vh-5.5rem)] overflow-hidden bg-secondary">
+    <div className="relative min-h-[calc(100vh-5.5rem)] h-[calc(100vh-5.5rem)] overflow-hidden bg-secondary">
       {error ? (
         <FallbackMap
           properties={filteredProperties}
@@ -519,6 +518,7 @@ function TenantMap() {
             className="flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-muted-foreground"
           />
           <button
+            type="button"
             onClick={locateMe}
             className="rounded-xl border bg-background p-2 text-foreground"
             aria-label="Use my location"
@@ -526,6 +526,7 @@ function TenantMap() {
             <Navigation className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={recenter}
             className="rounded-xl bg-foreground p-2 text-background transition hover:opacity-90"
             aria-label="Recenter on Nairobi"
@@ -541,6 +542,7 @@ function TenantMap() {
         </div>
         <div className="pointer-events-auto flex flex-wrap items-center gap-2 self-start">
           <button
+            type="button"
             onClick={() => setShowHeat((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur transition ${
               showHeat
@@ -551,6 +553,7 @@ function TenantMap() {
             <Flame className="h-3.5 w-3.5" /> Rent heat
           </button>
           <button
+            type="button"
             onClick={() => setShowWater((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur ${
               showWater ? "bg-blue-500/20 text-blue-700" : "bg-background/90"
@@ -559,6 +562,7 @@ function TenantMap() {
             <Layers className="h-3.5 w-3.5" /> Water
           </button>
           <button
+            type="button"
             onClick={() => setShowSecurity((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur ${
               showSecurity ? "bg-red-500/15 text-red-700" : "bg-background/90"
@@ -622,6 +626,7 @@ function TenantMap() {
         {selected ? (
           <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
             <button
+              type="button"
               onClick={() => setSelected(null)}
               className="absolute right-2 top-2 rounded-full bg-secondary p-1 text-muted-foreground hover:text-foreground"
               aria-label="Close"

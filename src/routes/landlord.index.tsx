@@ -10,8 +10,12 @@ import {
   submitPortalApplication,
 } from "@/lib/api/portal.functions";
 import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
+import { errorMessage, landlordSubmitLabel } from "@/lib/utils";
+import { isValidKenyanPhone } from "@/lib/format-kes";
 import type { User } from "@supabase/supabase-js";
 import { Building2, BarChart3, Users, Sparkles, ArrowLeft } from "lucide-react";
+import { LANDLORD_PLANS } from "@/lib/revenue/plans";
+import { formatKes } from "@/lib/properties";
 
 export const Route = createFileRoute("/landlord/")({
   head: () => ({ meta: [{ title: "Landlord Portal — NyumbaSearch" }] }),
@@ -72,6 +76,27 @@ function LandlordEntry() {
                 </div>
               ))}
             </div>
+
+            <div className="mt-10 rounded-2xl border border-background/15 bg-background/5 p-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gold">Plans</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                {LANDLORD_PLANS.map((plan) => (
+                  <div key={plan.id} className="rounded-xl border border-background/10 p-3 text-sm">
+                    <p className="font-semibold">{plan.name}</p>
+                    <p className="text-gold">
+                      {plan.priceKes === 0 ? "Free" : formatKes(plan.priceKes)}
+                      {plan.period}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <Link
+                to="/pricing"
+                className="mt-4 inline-block text-xs font-semibold text-gold hover:underline"
+              >
+                Compare plans & boosts →
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -88,6 +113,7 @@ function LandlordAuthPanel() {
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
@@ -100,6 +126,20 @@ function LandlordAuthPanel() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (mode === "signup") {
+      if (password.length < 8) {
+        toast.error("Password must be at least 8 characters");
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+      if (phone.trim() && !isValidKenyanPhone(phone)) {
+        toast.error("Enter a valid Kenyan phone (07xxxxxxxx or +2547xxxxxxxx)");
+        return;
+      }
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -107,12 +147,12 @@ function LandlordAuthPanel() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/pending`,
+            emailRedirectTo: `${globalThis.location.origin}/auth/pending`,
             data: { full_name: fullName, phone, role: "landlord" },
           },
         });
         if (error) throw error;
-        const reviewUrl = `${window.location.origin}/admin?tab=applications`;
+        const reviewUrl = `${globalThis.location.origin}/admin?tab=applications`;
         if (signUpData.session) {
           await submitPortalApplication({
             data: { requestedRole: "landlord", phone: phone.trim() || undefined },
@@ -156,17 +196,19 @@ function LandlordAuthPanel() {
         /* profile may not be ready */
       }
 
-      window.location.href = resolvePostLoginPath(
+      globalThis.location.href = resolvePostLoginPath(
         roles as AppRole[],
         activePortal,
         "/landlord/dashboard",
       );
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     } finally {
       setLoading(false);
     }
   }
+
+  const submitLabel = landlordSubmitLabel(loading, mode);
 
   return (
     <div className="w-full rounded-3xl border border-background/15 bg-background p-8 text-foreground shadow-elegant">
@@ -194,7 +236,9 @@ function LandlordAuthPanel() {
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+254 7…"
+                placeholder="0712 345 678"
+                inputMode="numeric"
+                required
                 className={inputCls}
               />
             </Field>
@@ -215,22 +259,35 @@ function LandlordAuthPanel() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             className={inputCls}
           />
         </Field>
+        {mode === "signup" && (
+          <Field label="Confirm password">
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              className={inputCls}
+            />
+          </Field>
+        )}
         <button
           type="submit"
           disabled={loading}
           className="w-full rounded-xl bg-foreground px-6 py-3 text-sm font-semibold text-background disabled:opacity-60"
         >
-          {loading ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
+          {submitLabel}
         </button>
       </form>
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
         {mode === "signup" ? "Already a landlord?" : "New here?"}{" "}
         <button
+          type="button"
           onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
           className="font-semibold text-primary"
         >
@@ -258,7 +315,7 @@ function LandlordAuthPanel() {
 const inputCls =
   "w-full rounded-xl border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>

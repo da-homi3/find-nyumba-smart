@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAuthContext } from "@/lib/api/server-context";
 import type { Database } from "@/integrations/supabase/types";
 
 type Json = Database["public"]["Tables"]["saved_searches"]["Insert"]["criteria"];
@@ -12,17 +12,27 @@ const savedSearchSchema = z.object({
   alertEnabled: z.boolean().default(true),
 });
 
-function getContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
-
 export const createSavedSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(savedSearchSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
+
+    const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
+    const plus = await getTenantPlusStatus(supabase, userId);
+    const isPlus = plus.tenantPlan === "plus";
+
+    if (data.alertEnabled && !isPlus) {
+      const { count } = await supabase
+        .from("saved_searches")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("alert_enabled", true);
+      if ((count ?? 0) >= 1) {
+        throw new Error("Free plan allows 1 search alert. Upgrade to Plus for unlimited alerts.");
+      }
+    }
+
     const { data: row, error } = await supabase
       .from("saved_searches")
       .insert({
@@ -41,7 +51,7 @@ export const createSavedSearch = createServerFn({ method: "POST" })
 export const listSavedSearches = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data, error } = await supabase
       .from("saved_searches")
       .select("*")
@@ -55,7 +65,7 @@ export const deleteSavedSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ id: z.string().uuid() }))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { error } = await supabase
       .from("saved_searches")
       .delete()
@@ -75,7 +85,7 @@ export const updateSavedSearch = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const patch: Database["public"]["Tables"]["saved_searches"]["Update"] = {};
     if (data.alertEnabled !== undefined) patch.alert_enabled = data.alertEnabled;
     if (data.name !== undefined) patch.name = data.name;
@@ -108,7 +118,7 @@ export const setSavedSearchAlertsEnabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ enabled: z.boolean() }))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { error } = await supabase
       .from("saved_searches")
       .update({ alert_enabled: data.enabled })
@@ -126,7 +136,7 @@ export const registerPushToken = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const { error } = await supabase
       .from("push_tokens")
       .upsert(

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { submitContactMessage } from "@/lib/api/contact.functions";
+import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({ meta: [{ title: "Contact — NyumbaSearch" }] }),
@@ -36,7 +37,7 @@ function ContactPage() {
               setEmail("");
               setMessage("");
             } catch (err) {
-              toast.error((err as Error).message);
+              toast.error(errorMessage(err));
             } finally {
               setLoading(false);
             }

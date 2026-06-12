@@ -13,6 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 
 import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
+import { authSubmitLabel, errorMessage } from "@/lib/utils";
 
 import {
   getMyProfilePortal,
@@ -79,7 +80,7 @@ function TenantAuth() {
           password,
 
           options: {
-            emailRedirectTo: `${window.location.origin}/tenant`,
+            emailRedirectTo: `${globalThis.location.origin}/tenant`,
 
             data: {
               full_name: fullName,
@@ -97,7 +98,7 @@ function TenantAuth() {
 
         if (PRIVILEGED.includes(role)) {
           const privilegedRole = role as "landlord" | "manager" | "agency";
-          const reviewUrl = `${window.location.origin}/admin?tab=applications`;
+          const reviewUrl = `${globalThis.location.origin}/admin?tab=applications`;
           const portalPayload = {
             requestedRole: privilegedRole,
             organizationName: organizationName.trim() || undefined,
@@ -129,7 +130,7 @@ function TenantAuth() {
 
         toast.success("Welcome to NyumbaSearch!");
 
-        window.location.href = "/tenant";
+        globalThis.location.href = "/tenant";
 
         return;
       }
@@ -166,13 +167,15 @@ function TenantAuth() {
 
       const target = resolvePostLoginPath(roles as AppRole[], activePortal, redirect);
 
-      window.location.href = target;
+      globalThis.location.href = target;
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     } finally {
       setLoading(false);
     }
   }
+
+  const submitLabel = authSubmitLabel(loading, mode);
 
   return (
     <div className="min-h-screen bg-background">
@@ -297,7 +300,7 @@ function TenantAuth() {
             disabled={loading}
             className="w-full rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
           >
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
+            {submitLabel}
           </button>
         </form>
 
@@ -320,7 +323,7 @@ function TenantAuth() {
 const inputCls =
   "w-full rounded-xl border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>

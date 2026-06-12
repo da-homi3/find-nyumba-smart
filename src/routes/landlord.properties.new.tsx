@@ -4,6 +4,7 @@ import { createProperty } from "@/lib/api/nyumba.functions";
 import { analyzePropertyQuality, createSignedMediaUrls } from "@/lib/api/media.functions";
 import { useState, type FormEvent, type ChangeEvent } from "react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/utils";
 import type { PropertyType } from "@/lib/properties";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,9 +23,11 @@ const MAX_VIDEO_MB = 100;
 
 const STEPS = ["Basics", "Details", "Pricing", "Intelligence", "Photos", "Review"] as const;
 
-export function PropertyListingWizard() {
+export function PropertyListingWizard({
+  portalLabel = "Landlord",
+}: Readonly<{ portalLabel?: string }>) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAgency, isManager } = useAuth();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -170,7 +173,7 @@ export function PropertyListingWizard() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!user) {
-      toast.error("Sign in as a landlord first");
+      toast.error("Sign in to list a property");
       return;
     }
     setLoading(true);
@@ -209,12 +212,17 @@ export function PropertyListingWizard() {
           duration: 8000,
         });
       } catch (err) {
-        toast.warning("Quality analysis failed", { description: (err as Error).message });
+        toast.warning("Quality analysis failed", { description: errorMessage(err) });
       }
 
-      navigate({ to: "/landlord/properties" });
+      const listPath = isAgency
+        ? "/agency/properties"
+        : isManager
+          ? "/manager/dashboard"
+          : "/landlord/properties";
+      navigate({ to: listPath });
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -430,7 +438,7 @@ export function PropertyListingWizard() {
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {imageFiles.map((f, i) => (
                     <div
-                      key={i}
+                      key={`${f.name}-${f.size}-${f.lastModified}`}
                       className="group relative aspect-square overflow-hidden rounded-lg border bg-background"
                     >
                       <img
@@ -565,7 +573,7 @@ export function PropertyListingWizard() {
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-function Row({ children }: { children: React.ReactNode }) {
+function Row({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 [&>label:only-child]:col-span-full">
       {children}
@@ -577,11 +585,11 @@ function Field({
   label,
   children,
   full,
-}: {
+}: Readonly<{
   label: React.ReactNode;
   children: React.ReactNode;
   full?: boolean;
-}) {
+}>) {
   return (
     <label className={`block ${full ? "sm:col-span-2 md:col-span-3" : ""}`}>
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
