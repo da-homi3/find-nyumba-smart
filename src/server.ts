@@ -2,13 +2,18 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { setWorkerBindings } from "./lib/worker-bindings";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
 function attachRuntimeEnv(env: unknown) {
-  if (!env || typeof env !== "object" || typeof process === "undefined") return;
+  if (!env || typeof env !== "object") return;
+
+  setWorkerBindings(env as Record<string, unknown>);
+
+  if (typeof process === "undefined") return;
 
   for (const [key, value] of Object.entries(env)) {
     if (typeof value === "string" && process.env[key] === undefined) {

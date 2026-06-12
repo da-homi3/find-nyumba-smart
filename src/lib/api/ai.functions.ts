@@ -1,11 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  firstRegexMatch,
+  getAuthContext,
+  JSON_ARRAY_RE,
+  JSON_OBJECT_RE,
+} from "@/lib/api/server-context";
 
-const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+import { callGeminiChat } from "@/lib/api/ai-client";
 
 export const NYUMBAAI_SYSTEM_PROMPT = `You are NyumbaAI, a friendly and knowledgeable housing assistant for NyumbaSearch — a verified rental platform in Nairobi, Kenya.
 
@@ -29,42 +34,10 @@ Nairobi neighborhood context you know well:
 
 Always be honest about trade-offs. Never make up specific listings or landlord details. If unsure, say so. Keep responses concise and conversational — this is a chat widget, not a report. Respond in English but be comfortable with occasional Swahili phrases the user may include.`;
 
-function getContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
-
-async function callAIGateway(prompt: string, systemPrompt: string): Promise<string | null> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) return null;
-  try {
-    const res = await fetch(AI_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    return json.choices?.[0]?.message?.content ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase } = getAuthContext(context);
 
     // 1) Fetch saved properties
     const { data: saved, error: sErr } = await supabase
@@ -92,14 +65,14 @@ export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
     const systemPrompt =
       'You are a real estate recommender bot. Reply ONLY with a strict JSON array of property IDs (strings), e.g. ["uuid1", "uuid2"]. No markdown.';
 
-    const aiRes = await callAIGateway(prompt, systemPrompt);
+    const aiRes = await callGeminiChat(systemPrompt, prompt);
     let recommendedIds: string[] = [];
 
     if (aiRes) {
       try {
-        const match = aiRes.match(/\[[\s\S]*\]/);
-        if (match) {
-          recommendedIds = JSON.parse(match[0]);
+        const jsonText = firstRegexMatch(aiRes, JSON_ARRAY_RE);
+        if (jsonText) {
+          recommendedIds = JSON.parse(jsonText);
         }
       } catch (e) {
         console.error("AI Recommendation parsing error:", e);
@@ -149,13 +122,13 @@ export const getAIValuation = createServerFn({ method: "POST" })
     const systemPrompt =
       'You are a Kenyan property valuer. Evaluate the rent and return a JSON object: {"estimatedRentRange": "string", "valuationGrade": "Fair Value | Overpriced | Good Deal", "details": "string"}. No markdown.';
 
-    const aiRes = await callAIGateway(prompt, systemPrompt);
+    const aiRes = await callGeminiChat(systemPrompt, prompt);
 
     if (aiRes) {
       try {
-        const match = aiRes.match(/\{[\s\S]*\}/);
-        if (match) {
-          return JSON.parse(match[0]);
+        const jsonText = firstRegexMatch(aiRes, JSON_OBJECT_RE);
+        if (jsonText) {
+          return JSON.parse(jsonText);
         }
       } catch (e) {
         console.error("AI Valuation parsing error:", e);
@@ -164,14 +137,19 @@ export const getAIValuation = createServerFn({ method: "POST" })
 
     // Heuristic Fallback
     const diff = property.rent_kes - avgRent;
-    const valuationGrade =
-      diff > avgRent * 0.1 ? "Overpriced" : diff < -avgRent * 0.1 ? "Good Deal" : "Fair Value";
+    const valuationGrade = valuationGradeFromDiff(diff, avgRent);
     return {
       estimatedRentRange: `KES ${(avgRent * 0.9).toLocaleString()} - KES ${(avgRent * 1.1).toLocaleString()}`,
       valuationGrade,
       details: `Based on ${neighborhoodProperties?.length ?? 1} neighborhood properties. This beds/baths configuration typical rent is KES ${Math.round(avgRent).toLocaleString()}.`,
     };
   });
+
+function valuationGradeFromDiff(diff: number, avgRent: number): string {
+  if (diff > avgRent * 0.1) return "Overpriced";
+  if (diff < -avgRent * 0.1) return "Good Deal";
+  return "Fair Value";
+}
 
 type AssistantIntent = "recommend" | "compare" | "neighborhoods" | "scam" | "chat";
 
@@ -189,7 +167,7 @@ async function heuristicRecommend(
   userId: string,
 ): Promise<string> {
   const { data: saved } = await supabase.from("saved_properties").select("property_id");
-  const savedIds = (saved ?? []).map((s) => s.property_id);
+  const savedIds = new Set((saved ?? []).map((s) => s.property_id));
   const { data: properties } = await supabase
     .from("properties")
     .select("id, title, neighborhood, rent_kes, bedrooms, is_verified, authenticity_score")
@@ -201,7 +179,7 @@ async function heuristicRecommend(
   const scored = list
     .map((p) => {
       let score = p.authenticity_score ?? 50;
-      if (savedIds.includes(p.id)) score += 30;
+      if (savedIds.has(p.id)) score += 30;
       if (p.is_verified) score += 15;
       return { ...p, score };
     })
@@ -274,32 +252,32 @@ export const getAssistantReply = createServerFn({ method: "POST" })
     const request = getRequest();
     checkRateLimit(request?.headers?.get("cf-connecting-ip") ?? "ai-assistant");
 
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
     const intent = detectIntent(data.message);
 
     if (intent === "recommend") {
       const text = await heuristicRecommend(supabase, userId);
-      const ai = await callAIGateway(
-        `User asked: ${data.message}\n\nBaseline recommendations:\n${text}`,
+      const ai = await callGeminiChat(
         NYUMBAAI_SYSTEM_PROMPT,
+        `User asked: ${data.message}\n\nBaseline recommendations:\n${text}`,
       );
       return { intent, reply: ai ?? text };
     }
 
     if (intent === "neighborhoods") {
       const text = await heuristicNeighborhoods(supabase);
-      const ai = await callAIGateway(
-        `User asked: ${data.message}\n\nData:\n${text}`,
+      const ai = await callGeminiChat(
         NYUMBAAI_SYSTEM_PROMPT,
+        `User asked: ${data.message}\n\nData:\n${text}`,
       );
       return { intent, reply: ai ?? text };
     }
 
     if (intent === "scam") {
       const text = await heuristicScamCheck(data.message);
-      const ai = await callAIGateway(
-        `User concern: ${data.message}\n\nBaseline:\n${text}`,
+      const ai = await callGeminiChat(
         NYUMBAAI_SYSTEM_PROMPT,
+        `User concern: ${data.message}\n\nBaseline:\n${text}`,
       );
       return { intent, reply: ai ?? text };
     }
@@ -323,14 +301,14 @@ export const getAssistantReply = createServerFn({ method: "POST" })
                   `• ${p.title} (${p.neighborhood}): KES ${p.rent_kes.toLocaleString()}, ${p.bedrooms}BR, trust ${p.authenticity_score ?? "n/a"}%`,
               )
               .join("\n");
-      const ai = await callAIGateway(
-        `Compare these listings for the user:\n${text}\n\nUser: ${data.message}`,
+      const ai = await callGeminiChat(
         NYUMBAAI_SYSTEM_PROMPT,
+        `Compare these listings for the user:\n${text}\n\nUser: ${data.message}`,
       );
       return { intent, reply: ai ?? `Comparison:\n${text}` };
     }
 
-    const ai = await callAIGateway(data.message, NYUMBAAI_SYSTEM_PROMPT);
+    const ai = await callGeminiChat(NYUMBAAI_SYSTEM_PROMPT, data.message);
     return {
       intent: "chat" as const,
       reply:
@@ -370,7 +348,7 @@ export const getAIChatResponse = createServerFn({ method: "POST" })
     const prompt = `${propertyDetails}User: ${data.message}`;
     const systemPrompt = NYUMBAAI_SYSTEM_PROMPT;
 
-    const response = await callAIGateway(prompt, systemPrompt);
+    const response = await callGeminiChat(systemPrompt, prompt);
     return (
       response ??
       "I'm currently unable to access my AI engine, but you can contact the landlord directly using the buttons below!"

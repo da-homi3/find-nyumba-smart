@@ -1,4 +1,5 @@
 import sgMail from "@sendgrid/mail";
+import { getSiteUrl } from "@/lib/site";
 
 type EmailPayload = {
   to: string;
@@ -20,7 +21,7 @@ export async function sendEmailNotification(payload: EmailPayload): Promise<bool
       from,
       subject: payload.subject,
       text: payload.text,
-      html: payload.html ?? payload.text.replace(/\n/g, "<br>"),
+      html: payload.html ?? payload.text.replaceAll("\n", "<br>"),
     });
     return true;
   } catch (err) {
@@ -53,7 +54,7 @@ Review in admin: ${opts.reviewUrl}`;
 export async function notifyApplicantApproved(opts: { email: string; name: string; role: string }) {
   if (!opts.email) return false;
   const subject = `Your NyumbaSearch ${opts.role} account is approved`;
-  const text = `Hi ${opts.name},\n\nYour application to join NyumbaSearch as a ${opts.role} has been approved. Sign in and open Settings to enter your dashboard.\n\nhttps://nyumba-search.kevinbuluma1.workers.dev/auth`;
+  const text = `Hi ${opts.name},\n\nYour application to join NyumbaSearch as a ${opts.role} has been approved. Sign in and open Settings to enter your dashboard.\n\n${getSiteUrl()}/auth`;
   return sendEmailNotification({ to: opts.email, subject, text });
 }
 

@@ -1,3 +1,5 @@
+import { getSiteUrl } from "@/lib/site";
+
 type StkPushResult = {
   checkoutRequestId: string;
   merchantRequestId: string;
@@ -19,10 +21,8 @@ export function isMpesaConfigured(): boolean {
 }
 
 export function mpesaCallbackUrl(): string {
-  return (
-    process.env.MPESA_CALLBACK_URL ??
-    `${process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev"}/api/mpesa/callback`
-  );
+  if (process.env.MPESA_CALLBACK_URL) return process.env.MPESA_CALLBACK_URL;
+  return `${getSiteUrl()}/api/mpesa/callback`;
 }
 
 async function getAccessToken(): Promise<string> {
@@ -35,18 +35,19 @@ async function getAccessToken(): Promise<string> {
   if (!res.ok) {
     throw new Error(`M-Pesa OAuth failed: ${res.status}`);
   }
-  const json = (await res.json()) as { access_token?: string };
-  if (!json.access_token) throw new Error("M-Pesa OAuth missing access_token");
-  return json.access_token;
+  const json: unknown = await res.json();
+  const token =
+    typeof json === "object" && json !== null && "access_token" in json
+      ? String((json as { access_token: unknown }).access_token)
+      : "";
+  if (!token) throw new Error("M-Pesa OAuth missing access_token");
+  return token;
 }
 
 function stkPassword(): { password: string; timestamp: string } {
   const shortcode = process.env.MPESA_SHORTCODE!;
   const passkey = process.env.MPESA_PASSKEY!;
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[^0-9]/g, "")
-    .slice(0, 14);
+  const timestamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64");
   return { password, timestamp };
 }

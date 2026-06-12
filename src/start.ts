@@ -2,6 +2,7 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { attachSupabaseAuth } from "./integrations/supabase/auth-attacher";
 import { renderErrorPage } from "./lib/error-page";
+import { getSiteUrl } from "./lib/site";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -47,16 +48,20 @@ const seoMiddleware = createMiddleware().server(async ({ request, next }) => {
           .maybeSingle();
 
         if (parsed.success && payment) {
-          if (
-            payment.property_id &&
-            (payment.payment_type === "featured_listing" ||
-              payment.payment_type === "property_boost")
-          ) {
-            await supabaseAdmin
-              .from("properties")
-              .update({ is_verified: true })
-              .eq("id", payment.property_id);
-          }
+          const { fulfillPayment } = await import("./lib/revenue/fulfill-payment");
+          const { data: fullPayment } = await supabaseAdmin
+            .from("payments")
+            .select("amount_kes")
+            .eq("mpesa_checkout_id", parsed.checkoutRequestId)
+            .maybeSingle();
+
+          await fulfillPayment(supabaseAdmin, {
+            userId: payment.user_id,
+            propertyId: payment.property_id,
+            paymentType: payment.payment_type,
+            amountKes: fullPayment?.amount_kes ?? 0,
+          });
+
           if (payment.payment_type === "premium_subscription" && payment.user_id) {
             await supabaseAdmin
               .from("profiles")
@@ -77,9 +82,43 @@ const seoMiddleware = createMiddleware().server(async ({ request, next }) => {
     }
   }
 
+  if (url.pathname === "/api/health/connections" && request.method === "GET") {
+    try {
+      const { checkConnections } = await import("./lib/api/connections-health");
+      const connections = await checkConnections();
+      const healthy = connections.every((c) => c.status !== "missing");
+      return new Response(JSON.stringify({ healthy, connections }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.error("Connections health error:", err);
+      return new Response(JSON.stringify({ healthy: false, connections: [] }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  if (url.pathname === "/api/ai/probe" && request.method === "GET") {
+    try {
+      const { probeNyumbaAi } = await import("./lib/api/ai-client");
+      const result = await probeNyumbaAi();
+      return new Response(JSON.stringify(result), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.error("AI probe error:", err);
+      return new Response(JSON.stringify({ live: false, provider: "error", sample: "" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
   if (url.pathname === "/robots.txt") {
+    const site = getSiteUrl();
     return new Response(
-      `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /landlord/dashboard\n\nSitemap: https://nyumba-search.kevinbuluma1.workers.dev/sitemap.xml\n`,
+      `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /landlord/dashboard\n\nSitemap: ${site}/sitemap.xml\n`,
       { headers: { "Content-Type": "text/plain; charset=utf-8" } },
     );
   }
@@ -93,7 +132,7 @@ const seoMiddleware = createMiddleware().server(async ({ request, next }) => {
         .eq("is_active", true)
         .order("updated_at", { ascending: false })
         .limit(5000);
-      const base = "https://nyumba-search.kevinbuluma1.workers.dev";
+      const base = getSiteUrl();
       const staticPages = ["", "/tenant", "/tenant/map", "/auth", "/landlord"];
       const urls = [
         ...staticPages.map(
@@ -152,7 +191,7 @@ if (isDevelopment) {
         const exp = url.searchParams.get("export") || "";
         const payload = { file, export: exp };
         const b = Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
-        const id = b.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const id = b.replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
         return new Response(JSON.stringify({ id, payload }), {
           headers: { "Content-Type": "application/json" },
         });

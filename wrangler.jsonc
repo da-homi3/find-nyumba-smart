@@ -9,6 +9,10 @@
 
   "compatibility_flags": ["nodejs_compat"],
 
+  "ai": {
+    "binding": "AI",
+  },
+
   "account_id": "2f9ae70dfb228529cc5e91d230ab2cfc",
 
   "vars": {
