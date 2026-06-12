@@ -1,0 +1,612 @@
+{
+  "summary": {
+    "auditedAt": "2026-06-12T14:52:11.311Z",
+    "baseUrl": "https://nyumba-search.kevinbuluma1.workers.dev",
+    "total": 60,
+    "passed": 60,
+    "failed": 0,
+    "byIssue": {}
+  },
+  "routes": [
+    {
+      "path": "/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/",
+      "status": 200,
+      "bodyBytes": 55608,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/about",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/about",
+      "status": 200,
+      "bodyBytes": 10273,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/admin",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/admin",
+      "status": 200,
+      "bodyBytes": 4000,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/advertise",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/advertise",
+      "status": 200,
+      "bodyBytes": 10385,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency",
+      "status": 200,
+      "bodyBytes": 4154,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/auth",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/auth",
+      "status": 200,
+      "bodyBytes": 5816,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/caretaker",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/caretaker",
+      "status": 200,
+      "bodyBytes": 5593,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/contact",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/contact",
+      "status": 200,
+      "bodyBytes": 4402,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/finance",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/finance",
+      "status": 200,
+      "bodyBytes": 9215,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/insurance",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/insurance",
+      "status": 200,
+      "bodyBytes": 9750,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord",
+      "status": 200,
+      "bodyBytes": 11514,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/manager",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/manager",
+      "status": 200,
+      "bodyBytes": 4276,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/pricing",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/pricing",
+      "status": 200,
+      "bodyBytes": 29106,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/reports",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/reports",
+      "status": 200,
+      "bodyBytes": 10159,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/services",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/services",
+      "status": 200,
+      "bodyBytes": 10062,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/settings",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/settings",
+      "status": 200,
+      "bodyBytes": 4575,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant",
+      "status": 200,
+      "bodyBytes": 21303,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/verify",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/verify",
+      "status": 200,
+      "bodyBytes": 11454,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/admin/revenue",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/admin/revenue",
+      "status": 200,
+      "bodyBytes": 4333,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency/dashboard",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency/dashboard",
+      "status": 200,
+      "bodyBytes": 4154,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency/leads",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency/leads",
+      "status": 200,
+      "bodyBytes": 4251,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency/properties",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency/properties",
+      "status": 200,
+      "bodyBytes": 4172,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency/team",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency/team",
+      "status": 200,
+      "bodyBytes": 4114,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/auth/pending",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/auth/pending",
+      "status": 200,
+      "bodyBytes": 6052,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/auth/reset",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/auth/reset",
+      "status": 200,
+      "bodyBytes": 6185,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/caretaker/dashboard",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/caretaker/dashboard",
+      "status": 200,
+      "bodyBytes": 5348,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/analytics",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/analytics",
+      "status": 200,
+      "bodyBytes": 4593,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/boost",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/boost",
+      "status": 200,
+      "bodyBytes": 4467,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/caretakers",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/caretakers",
+      "status": 200,
+      "bodyBytes": 4316,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/checkout",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/checkout",
+      "status": 200,
+      "bodyBytes": 4488,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/dashboard",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/dashboard",
+      "status": 200,
+      "bodyBytes": 4305,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/leads",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/leads",
+      "status": 200,
+      "bodyBytes": 4393,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/properties",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/properties",
+      "status": 200,
+      "bodyBytes": 4312,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/manager/dashboard",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/manager/dashboard",
+      "status": 200,
+      "bodyBytes": 4276,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/manager/leads",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/manager/leads",
+      "status": 200,
+      "bodyBytes": 4160,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/manager/properties",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/manager/properties",
+      "status": 200,
+      "bodyBytes": 4085,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/services/$category",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/services/movers",
+      "status": 200,
+      "bodyBytes": 10528,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/services/register",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/services/register",
+      "status": 200,
+      "bodyBytes": 10479,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/checkout",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/checkout",
+      "status": 200,
+      "bodyBytes": 8326,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/compare",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/compare",
+      "status": 200,
+      "bodyBytes": 10651,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/map",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/map",
+      "status": 200,
+      "bodyBytes": 13133,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/messages",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/messages",
+      "status": 200,
+      "bodyBytes": 3779,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/profile",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/profile",
+      "status": 200,
+      "bodyBytes": 9409,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/saved",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/saved",
+      "status": 200,
+      "bodyBytes": 11122,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/verify/request",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/verify/request",
+      "status": 200,
+      "bodyBytes": 11962,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/admin/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/admin",
+      "status": 200,
+      "bodyBytes": 4000,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency",
+      "status": 200,
+      "bodyBytes": 4154,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/caretaker/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/caretaker",
+      "status": 200,
+      "bodyBytes": 5593,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord",
+      "status": 200,
+      "bodyBytes": 11514,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/manager/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/manager",
+      "status": 200,
+      "bodyBytes": 4276,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant",
+      "status": 200,
+      "bodyBytes": 21303,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/agency/properties/new",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/agency/properties/new",
+      "status": 200,
+      "bodyBytes": 4445,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/dashboard/billing",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/dashboard/billing",
+      "status": 200,
+      "bodyBytes": 4811,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/dashboard/plan",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/dashboard/plan",
+      "status": 200,
+      "bodyBytes": 4774,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/landlord/properties/new",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/landlord/properties/new",
+      "status": 200,
+      "bodyBytes": 4595,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/manager/properties/new",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/manager/properties/new",
+      "status": 200,
+      "bodyBytes": 4365,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/services/provider/$id",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/services/provider/5926862a-ca0b-41be-bec9-7843348efdb3",
+      "status": 200,
+      "bodyBytes": 10525,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/messages/$id",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/messages/5926862a-ca0b-41be-bec9-7843348efdb3",
+      "status": 200,
+      "bodyBytes": 4222,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/property/$id",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/property/5926862a-ca0b-41be-bec9-7843348efdb3",
+      "status": 200,
+      "bodyBytes": 5947,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    },
+    {
+      "path": "/tenant/review/$propertyId",
+      "url": "https://nyumba-search.kevinbuluma1.workers.dev/tenant/review/5926862a-ca0b-41be-bec9-7843348efdb3",
+      "status": 200,
+      "bodyBytes": 9540,
+      "hasLoader": false,
+      "issues": [],
+      "error": null,
+      "ok": true
+    }
+  ]
+}

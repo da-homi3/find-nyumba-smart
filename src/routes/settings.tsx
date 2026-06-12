@@ -29,6 +29,7 @@ import {
 import { scorePassword } from "@/lib/password-strength";
 import { validatePasswordPair } from "@/lib/validate-password";
 import { setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
+import { useTheme, type ThemeMode } from "@/hooks/use-theme";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — NyumbaSearch" }] }),
@@ -88,6 +89,7 @@ function SettingsPage() {
     signOut,
   } = useAuth();
   const { isPlus, entitlements } = useEntitlements();
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
   const [tab, setTab] = useState<Tab>("profile");
   const [fullName, setFullName] = useState("");
@@ -324,6 +326,24 @@ function SettingsPage() {
             checked={prefs.viewingReminders}
             onChange={(v) => updatePref("viewingReminders", v)}
           />
+          <div className="border-t pt-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Appearance
+            </p>
+            <label className="mt-2 block text-sm font-medium" htmlFor="theme-mode">
+              Theme
+            </label>
+            <select
+              id="theme-mode"
+              value={themeMode}
+              onChange={(e) => setThemeMode(e.target.value as ThemeMode)}
+              className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm"
+            >
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
         </section>
       )}
 

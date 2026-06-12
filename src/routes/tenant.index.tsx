@@ -3,7 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, MapPin, Sparkles, ShieldCheck } from "lucide-react";
 import { searchProperties, type PropertyType } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { recordSearchEvent } from "@/lib/api/analytics.functions";
+import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
 import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
@@ -40,7 +43,9 @@ function TenantHome() {
   const { isPlus } = useEntitlements();
   const qc = useQueryClient();
   const [q, setQ] = useState(search.q ?? "");
+  const debouncedQ = useDebouncedValue(q, 400);
   const [page, setPage] = useState(1);
+  const lastAnalyticsKey = useRef("");
   const [filters, setFilters] = useState<TenantFilters>(() => ({
     ...defaultTenantFilters,
     maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
@@ -65,10 +70,10 @@ function TenantHome() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["properties", q, filters.neighborhood, filters.maxRent, filters.sort],
+    queryKey: ["properties", debouncedQ, filters.neighborhood, filters.maxRent, filters.sort],
     queryFn: () =>
       searchProperties({
-        query: q || undefined,
+        query: debouncedQ || undefined,
         neighborhood: filters.neighborhood !== "All" ? filters.neighborhood : undefined,
         maxRent: filters.maxRent,
         minRent: filters.minRent,
@@ -116,6 +121,29 @@ function TenantHome() {
     }
     return items;
   }, [searchResult?.items, filters]);
+
+  useEffect(() => {
+    if (isLoading || isError) return;
+    const key = `${debouncedQ}|${filters.neighborhood}|${filtered.length}`;
+    if (key === lastAnalyticsKey.current) return;
+    lastAnalyticsKey.current = key;
+    void recordSearchEvent({
+      data: {
+        query: debouncedQ || undefined,
+        neighborhood: filters.neighborhood !== "All" ? filters.neighborhood : undefined,
+        resultCount: filtered.length,
+        sessionId:
+          typeof globalThis.sessionStorage !== "undefined"
+            ? (globalThis.sessionStorage.getItem("nyumba_sid") ??
+              (() => {
+                const sid = crypto.randomUUID();
+                globalThis.sessionStorage.setItem("nyumba_sid", sid);
+                return sid;
+              })())
+            : undefined,
+      },
+    });
+  }, [debouncedQ, filters.neighborhood, filtered.length, isLoading, isError]);
 
   const visible = filtered.slice(0, page * PAGE_SIZE);
   const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
@@ -183,6 +211,8 @@ function TenantHome() {
       </header>
 
       <TenantFiltersBar filters={filters} onChange={patchFilters} resultCount={filtered.length} />
+
+      <RecentlyViewedStrip />
 
       {!isPlus && (
         <div className="mx-auto max-w-2xl px-5 pt-4">

@@ -63,6 +63,7 @@ async function main() {
     "/",
     "/tenant",
     "/tenant/map",
+    "/tenant/compare",
     "/auth",
     "/pricing",
     "/contact",

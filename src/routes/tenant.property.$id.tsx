@@ -14,7 +14,7 @@ export const Route = createFileRoute("/tenant/property/$id")({
     const p = await fetchProperty(params.id);
     return { property: p };
   },
-  head: ({ loaderData }) => buildPropertyDetailHead(loaderData?.property),
+  head: ({ loaderData }) => buildPropertyDetailHead(loaderData?.property ?? undefined),
   component: PropertyDetail,
 });
 

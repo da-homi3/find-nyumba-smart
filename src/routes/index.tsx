@@ -20,6 +20,7 @@ import {
 } from "@/components/landing/LandingMarketingSections";
 import { getSiteUrl } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
+import { getPublicStats } from "@/lib/api/stats.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,8 +48,15 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const { data: properties = [] } = useQuery({
-    queryKey: ["properties"],
+    queryKey: ["properties", "homepage-featured"],
     queryFn: () => fetchProperties(),
+    staleTime: 60_000,
+  });
+
+  const { data: publicStats } = useQuery({
+    queryKey: ["public-stats"],
+    queryFn: () => getPublicStats(),
+    staleTime: 120_000,
   });
 
   const featured = useMemo(() => {
@@ -72,10 +80,17 @@ function Landing() {
   }, [properties]);
 
   const stats = useMemo(() => {
+    if (publicStats) {
+      return {
+        verifiedCount: publicStats.verifiedListings,
+        hoods: publicStats.neighborhoodCount,
+        activeListings: publicStats.activeListings,
+      };
+    }
     const verifiedCount = properties.filter((p) => p.is_verified).length;
     const hoods = new Set(properties.map((p) => p.neighborhood)).size;
-    return { verifiedCount, hoods };
-  }, [properties]);
+    return { verifiedCount, hoods, activeListings: properties.length };
+  }, [properties, publicStats]);
 
   return (
     <div className="min-h-screen bg-background">

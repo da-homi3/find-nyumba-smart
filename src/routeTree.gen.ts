@@ -38,6 +38,7 @@ import { Route as TenantSavedRouteImport } from './routes/tenant.saved'
 import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
 import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
 import { Route as TenantMapRouteImport } from './routes/tenant.map'
+import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
 import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
 import { Route as ServicesRegisterRouteImport } from './routes/services.register'
 import { Route as ServicesCategoryRouteImport } from './routes/services.$category'
@@ -212,6 +213,11 @@ const TenantMessagesRoute = TenantMessagesRouteImport.update({
 const TenantMapRoute = TenantMapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantCompareRoute = TenantCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
   getParentRoute: () => TenantRoute,
 } as any)
 const TenantCheckoutRoute = TenantCheckoutRouteImport.update({
@@ -406,6 +412,7 @@ export interface FileRoutesByFullPath {
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
+  '/tenant/compare': typeof TenantCompareRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByTo {
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
+  '/tenant/compare': typeof TenantCompareRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
@@ -523,6 +531,7 @@ export interface FileRoutesById {
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
+  '/tenant/compare': typeof TenantCompareRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
+    | '/tenant/compare'
     | '/tenant/map'
     | '/tenant/messages'
     | '/tenant/profile'
@@ -641,6 +651,7 @@ export interface FileRouteTypes {
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
+    | '/tenant/compare'
     | '/tenant/map'
     | '/tenant/messages'
     | '/tenant/profile'
@@ -702,6 +713,7 @@ export interface FileRouteTypes {
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
+    | '/tenant/compare'
     | '/tenant/map'
     | '/tenant/messages'
     | '/tenant/profile'
@@ -948,6 +960,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/tenant/map'
       preLoaderRoute: typeof TenantMapRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/compare': {
+      id: '/tenant/compare'
+      path: '/compare'
+      fullPath: '/tenant/compare'
+      preLoaderRoute: typeof TenantCompareRouteImport
       parentRoute: typeof TenantRoute
     }
     '/tenant/checkout': {
@@ -1339,6 +1358,7 @@ const TenantMessagesRouteWithChildren = TenantMessagesRoute._addFileChildren(
 
 interface TenantRouteChildren {
   TenantCheckoutRoute: typeof TenantCheckoutRoute
+  TenantCompareRoute: typeof TenantCompareRoute
   TenantMapRoute: typeof TenantMapRoute
   TenantMessagesRoute: typeof TenantMessagesRouteWithChildren
   TenantProfileRoute: typeof TenantProfileRoute
@@ -1350,6 +1370,7 @@ interface TenantRouteChildren {
 
 const TenantRouteChildren: TenantRouteChildren = {
   TenantCheckoutRoute: TenantCheckoutRoute,
+  TenantCompareRoute: TenantCompareRoute,
   TenantMapRoute: TenantMapRoute,
   TenantMessagesRoute: TenantMessagesRouteWithChildren,
   TenantProfileRoute: TenantProfileRoute,

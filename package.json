@@ -15,6 +15,8 @@
     "db:migrate:columns": "node scripts/apply-revenue-columns-api.mjs",
     "db:migrate:partnership": "node scripts/apply-partnership-migration.mjs",
     "db:migrate:rls": "node scripts/apply-rls-hardening.mjs",
+    "db:migrate:revenue-rls": "node scripts/apply-revenue-rls.mjs",
+    "db:migrate:foundation-rls": "node scripts/apply-foundation-rls.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",
@@ -27,11 +29,15 @@
     "ai:test": "node scripts/test-gemini.mjs",
     "rotate:gemini": "node scripts/rotate-gemini-key.mjs",
     "deploy:full": "npm run build && node scripts/sync-wrangler-env.mjs --deploy",
+    "test:routes": "node scripts/route-audit.mjs",
+    "test:unit": "vitest run",
+    "test:unit:coverage": "vitest run --coverage",
+    "test:playwright": "playwright test",
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:e2e": "node scripts/e2e-auth-test.mjs",
     "test:portals": "node scripts/e2e-all-portals.mjs",
     "test:dashboards": "node scripts/dashboard-full-e2e.mjs",
-    "test": "npm run test:smoke && npm run test:e2e && npm run test:portals && npm run test:dashboards"
+    "test": "npm run test:unit && npm run test:routes && npm run test:smoke && npm run test:e2e && npm run test:portals && npm run test:dashboards"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^2.1.0",
@@ -113,6 +119,9 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.3",
-    "wrangler": "^4.98.0"
+    "wrangler": "^4.98.0",
+    "@playwright/test": "^1.55.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "vitest": "^3.2.4"
   }
 }

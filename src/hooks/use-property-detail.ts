@@ -14,6 +14,7 @@ import { recordTenantLead } from "@/lib/api/revenue.functions";
 import { reportScam } from "@/lib/api/trust.functions";
 import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
+import { pushRecentlyViewed } from "@/lib/recently-viewed";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
 
@@ -52,6 +53,18 @@ export function usePropertyDetail(id: string) {
     queryKey: ["property", id],
     queryFn: () => fetchProperty(id),
   });
+
+  useEffect(() => {
+    if (!p) return;
+    pushRecentlyViewed({
+      id: p.id,
+      title: p.title,
+      neighborhood: p.neighborhood,
+      rent_kes: p.rent_kes,
+      images: p.images,
+      property_type: p.property_type,
+    });
+  }, [p]);
 
   const { data: isSaved } = useQuery({
     queryKey: ["saved", id, user?.id],
