@@ -35,7 +35,9 @@ export function normalizePropertyImages(
   images: string[] | null | undefined,
   propertyId: string,
 ): string[] {
-  const raw = (images ?? []).map((u) => u?.trim()).filter(Boolean) as string[];
+  const raw = (images ?? [])
+    .map((u) => (typeof u === "string" ? u.trim() : ""))
+    .filter(Boolean);
   if (raw.length === 0) return [listingPlaceholderUrl(propertyId)];
   return raw.map((url, i) => normalizeListingImageUrl(url, `${propertyId}-${i}`));
 }

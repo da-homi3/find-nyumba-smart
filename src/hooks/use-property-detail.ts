@@ -15,6 +15,7 @@ import { reportScam } from "@/lib/api/trust.functions";
 import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
+import { currentRedirectPath } from "@/lib/navigation";
 import type { Property } from "@/lib/properties";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
@@ -22,7 +23,7 @@ type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
 export function usePropertyDetail(id: string, initialProperty?: Property | null) {
   const navigate = useNavigate();
   const location = useLocation();
-  const authSearch = { redirect: location.pathname + location.search };
+  const authSearch = { redirect: currentRedirectPath(location) };
   const { user } = useAuth();
   const qc = useQueryClient();
 
