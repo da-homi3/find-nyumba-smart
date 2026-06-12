@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { callGeminiChat } from "@/lib/api/ai-client";
+import { getAuthContext, JSON_OBJECT_RE } from "@/lib/api/server-context";
 
 const QUALITY_AI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
 
@@ -18,10 +19,12 @@ type QualityResult = {
   improvements: string[];
 };
 
-function ctx(context: unknown) {
-  const c = context as { supabase: SupabaseClient; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
+function scoreGrade(score: number): string {
+  if (score >= 85) return "A";
+  if (score >= 70) return "B";
+  if (score >= 55) return "C";
+  if (score >= 40) return "D";
+  return "F";
 }
 
 function fallbackScore(p: {
@@ -70,7 +73,7 @@ function fallbackScore(p: {
   } else improvements.push("List more amenities (WiFi, parking, security, water, etc.)");
 
   score = Math.min(100, score);
-  const grade = score >= 85 ? "A" : score >= 70 ? "B" : score >= 55 ? "C" : score >= 40 ? "D" : "F";
+  const grade = scoreGrade(score);
   return {
     score,
     grade,
@@ -86,9 +89,9 @@ async function callAI(prompt: string): Promise<QualityResult | null> {
       'You are an expert real-estate listing reviewer for Nairobi rentals. Reply ONLY with strict JSON: {"score":0-100,"grade":"A|B|C|D|F","summary":string,"strengths":string[],"improvements":string[]}. No markdown.';
     const text = await callGeminiChat(systemPrompt, prompt);
     if (!text) return null;
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
-    const parsed = JSON.parse(match[0]) as Partial<QualityResult>;
+    const jsonText = JSON_OBJECT_RE.exec(text)?.[0];
+    if (!jsonText) return null;
+    const parsed = JSON.parse(jsonText) as Partial<QualityResult>;
     if (typeof parsed.score !== "number") return null;
     return {
       score: Math.max(0, Math.min(100, Math.round(parsed.score))),
@@ -99,16 +102,13 @@ async function callAI(prompt: string): Promise<QualityResult | null> {
         ? parsed.improvements.slice(0, 8).map(String)
         : [],
     };
-  } catch {
+  } catch (err) {
+    console.warn("[media] AI quality parse failed:", err);
     return null;
   }
 }
 
-async function runQualityAnalysis(
-  supabase: ReturnType<typeof ctx>["supabase"],
-  userId: string,
-  propertyId: string,
-) {
+async function runQualityAnalysis(supabase: SupabaseClient, userId: string, propertyId: string) {
   const { data: property, error } = await supabase
     .from("properties")
     .select("*")
@@ -162,7 +162,7 @@ export const analyzePropertyQuality = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(propertyIdSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = ctx(context);
+    const { supabase, userId } = getAuthContext(context);
     return runQualityAnalysis(supabase, userId, data.propertyId);
   });
 
@@ -170,7 +170,7 @@ export const listPropertyQualityReports = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(propertyIdSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = ctx(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data: rows, error } = await supabase
       .from("property_quality_reports")
       .select("*")
@@ -196,7 +196,7 @@ export const createSignedMediaUrls = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(signSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = ctx(context);
+    const { supabase, userId } = getAuthContext(context);
     // ensure paths belong to the user
     for (const p of data.paths) {
       if (!p.startsWith(`${userId}/`)) throw new Error("Forbidden path");
@@ -222,7 +222,7 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(updateMediaSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = ctx(context);
+    const { supabase, userId } = getAuthContext(context);
     const { data: existing, error: fetchErr } = await supabase
       .from("properties")
       .select("id, images, video_url, tour_url")
@@ -239,16 +239,14 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
       images = images.filter((u) => !remove.has(u));
     }
 
-    const patch: Record<string, unknown> = {
-      images,
-      updated_at: new Date().toISOString(),
-    };
-    if (data.video_url !== undefined) patch.video_url = data.video_url;
-    if (data.tour_url !== undefined) patch.tour_url = data.tour_url;
-
     const { data: property, error } = await supabase
       .from("properties")
-      .update(patch)
+      .update({
+        images,
+        updated_at: new Date().toISOString(),
+        ...(data.video_url !== undefined ? { video_url: data.video_url } : {}),
+        ...(data.tour_url !== undefined ? { tour_url: data.tour_url } : {}),
+      })
       .eq("id", data.propertyId)
       .eq("owner_id", userId)
       .select("*")
@@ -259,7 +257,8 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
     if (data.runQualityAnalysis) {
       try {
         qualityReport = await runQualityAnalysis(supabase, userId, data.propertyId);
-      } catch {
+      } catch (err) {
+        console.warn("[media] Post-upload quality analysis failed:", err);
         qualityReport = null;
       }
     }

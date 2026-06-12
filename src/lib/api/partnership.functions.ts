@@ -13,6 +13,28 @@ const inquirySchema = z.object({
   metadata: z.record(z.string()).optional(),
 });
 
+type InquiryPayload = z.infer<typeof inquirySchema>;
+
+function formatInquiryEmail(data: InquiryPayload): string {
+  const metaLines = data.metadata
+    ? Object.entries(data.metadata)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join("\n")
+    : "";
+  const metaBlock = metaLines ? `\n---\n${metaLines}` : "";
+  return (
+    [
+      `Type: ${data.inquiryType}`,
+      `Name: ${data.name}`,
+      `Phone: ${data.phone}`,
+      `Email: ${data.email || "—"}`,
+      `Company: ${data.company || "—"}`,
+      "",
+      data.message,
+    ].join("\n") + metaBlock
+  );
+}
+
 export const submitPartnershipInquiry = createServerFn({ method: "POST" })
   .inputValidator(inquirySchema)
   .handler(async ({ data }) => {
@@ -34,24 +56,10 @@ export const submitPartnershipInquiry = createServerFn({ method: "POST" })
 
     const { error: dbError } = await supabaseAdmin.from("partnership_inquiries").insert(payload);
 
-    const metaLines = data.metadata
-      ? Object.entries(data.metadata)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join("\n")
-      : "";
-    const metaBlock = metaLines ? `\n---\n${metaLines}` : "";
-    const text = `Type: ${data.inquiryType}
-Name: ${data.name}
-Phone: ${data.phone}
-Email: ${data.email || "—"}
-Company: ${data.company || "—"}
-
-${data.message}${metaBlock}`;
-
     const sent = await sendEmailNotification({
       to: OPS_EMAIL,
       subject: `[NyumbaSearch] ${data.subject}`,
-      text,
+      text: formatInquiryEmail(data),
     });
 
     if (dbError && !sent) {

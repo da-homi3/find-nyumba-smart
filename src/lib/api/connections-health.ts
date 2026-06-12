@@ -7,6 +7,34 @@ export type ConnectionStatus = {
   detail: string;
 };
 
+function aiProviderDetail(gemini: boolean, workersAi: boolean): string {
+  if (gemini) return "Gemini API";
+  if (workersAi) return "Cloudflare Workers AI";
+  return "No AI provider";
+}
+
+async function checkSupabaseDb(supabaseUrl: string): Promise<ConnectionStatus | null> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+    });
+    const { error } = await admin.from("properties").select("id").limit(1);
+    return {
+      name: "supabase_db",
+      status: error ? "degraded" : "ok",
+      detail: error?.message ?? "properties table reachable",
+    };
+  } catch (e) {
+    return {
+      name: "supabase_db",
+      status: "degraded",
+      detail: e instanceof Error ? e.message : "DB check failed",
+    };
+  }
+}
+
 export async function checkConnections(): Promise<ConnectionStatus[]> {
   const results: ConnectionStatus[] = [];
 
@@ -19,25 +47,9 @@ export async function checkConnections(): Promise<ConnectionStatus[]> {
     detail: supabaseUrl && supabaseKey ? "URL + anon key configured" : "Set SUPABASE_URL and keys",
   });
 
-  if (supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const admin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false },
-      });
-      const { error } = await admin.from("properties").select("id").limit(1);
-      results.push({
-        name: "supabase_db",
-        status: error ? "degraded" : "ok",
-        detail: error?.message ?? "properties table reachable",
-      });
-    } catch (e) {
-      results.push({
-        name: "supabase_db",
-        status: "degraded",
-        detail: e instanceof Error ? e.message : "DB check failed",
-      });
-    }
+  if (supabaseUrl) {
+    const dbStatus = await checkSupabaseDb(supabaseUrl);
+    if (dbStatus) results.push(dbStatus);
   }
 
   const gemini = Boolean(process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY);
@@ -45,7 +57,7 @@ export async function checkConnections(): Promise<ConnectionStatus[]> {
   results.push({
     name: "nyumba_ai",
     status: gemini || workersAi ? "ok" : "missing",
-    detail: gemini ? "Gemini API" : workersAi ? "Cloudflare Workers AI" : "No AI provider",
+    detail: aiProviderDetail(gemini, workersAi),
   });
 
   results.push({

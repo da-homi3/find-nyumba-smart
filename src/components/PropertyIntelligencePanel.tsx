@@ -1,7 +1,7 @@
 import { Droplets, Shield, Wifi, Volume2, Bus } from "lucide-react";
 import type { ListingIntel } from "@/lib/listing-intel";
 
-export function PropertyIntelligencePanel({ intel }: { intel: ListingIntel }) {
+export function PropertyIntelligencePanel({ intel }: Readonly<{ intel: ListingIntel }>) {
   return (
     <section className="mt-6 rounded-2xl border bg-card p-4">
       <h2 className="font-display text-lg font-semibold">Property intelligence</h2>

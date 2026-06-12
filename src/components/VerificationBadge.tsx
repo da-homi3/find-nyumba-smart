@@ -5,7 +5,7 @@ interface VerificationBadgeProps {
   showText?: boolean;
 }
 
-export function VerificationBadge({ level, showText = true }: VerificationBadgeProps) {
+export function VerificationBadge({ level, showText = true }: Readonly<VerificationBadgeProps>) {
   if (level <= 0) return null;
 
   const config = {

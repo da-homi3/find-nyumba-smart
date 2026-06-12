@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ShieldAlert,
   CheckCircle2,
@@ -29,6 +29,50 @@ type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];
 type AdminProperty = NonNullable<Awaited<ReturnType<typeof listProperties>>["items"]>[number];
 type AdminAuditLog = Awaited<ReturnType<typeof listAdminAuditLogs>>[number];
 type PendingApplication = Awaited<ReturnType<typeof listPendingApplications>>[number];
+
+const VERIFICATION_STATUS_CLASS: Record<string, string> = {
+  approved: "bg-emerald-500/10 text-emerald-600",
+  rejected: "bg-red-500/10 text-red-600",
+  pending: "bg-amber-500/10 text-amber-600",
+};
+
+const SCAM_STATUS_CLASS: Record<string, string> = {
+  reviewed: "bg-emerald-500/10 text-emerald-600",
+  pending: "bg-amber-500/10 text-amber-600",
+};
+
+function StatusBadge({
+  status,
+  classMap,
+  fallbackClass,
+}: Readonly<{
+  status: string;
+  classMap: Record<string, string>;
+  fallbackClass: string;
+}>) {
+  const tone = classMap[status] ?? fallbackClass;
+  return <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tone}`}>{status}</span>;
+}
+
+function AdminAsyncPanel({
+  loading,
+  loadingMessage,
+  empty,
+  isEmpty,
+  children,
+}: Readonly<{
+  loading: boolean;
+  loadingMessage: string;
+  empty: ReactNode;
+  isEmpty: boolean;
+  children: ReactNode;
+}>) {
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">{loadingMessage}</div>;
+  }
+  if (isEmpty) return empty;
+  return children;
+}
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -173,13 +217,16 @@ function AdminDashboard() {
         <div className="mt-6">
           {activeTab === "verifications" && (
             <div>
-              {verLoading ? (
-                <div className="text-sm text-muted-foreground">Loading queue...</div>
-              ) : verifications.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                  Verification queue is clean! No pending requests.
-                </div>
-              ) : (
+              <AdminAsyncPanel
+                loading={verLoading}
+                loadingMessage="Loading queue..."
+                isEmpty={verifications.length === 0}
+                empty={
+                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+                    Verification queue is clean! No pending requests.
+                  </div>
+                }
+              >
                 <div className="space-y-4">
                   {verifications.map((v: AdminVerification) => (
                     <div
@@ -194,17 +241,11 @@ function AdminDashboard() {
                           <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] uppercase font-bold text-secondary-foreground">
                             {v.verification_type}
                           </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              v.status === "approved"
-                                ? "bg-emerald-500/10 text-emerald-600"
-                                : v.status === "rejected"
-                                  ? "bg-red-500/10 text-red-600"
-                                  : "bg-amber-500/10 text-amber-600"
-                            }`}
-                          >
-                            {v.status}
-                          </span>
+                          <StatusBadge
+                            status={v.status}
+                            classMap={VERIFICATION_STATUS_CLASS}
+                            fallbackClass="bg-amber-500/10 text-amber-600"
+                          />
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Submitted on: {new Date(v.created_at).toLocaleString()}
@@ -248,19 +289,22 @@ function AdminDashboard() {
                     </div>
                   ))}
                 </div>
-              )}
+              </AdminAsyncPanel>
             </div>
           )}
 
           {activeTab === "scams" && (
             <div>
-              {scamsLoading ? (
-                <div className="text-sm text-muted-foreground">Loading reports...</div>
-              ) : scams.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                  No scam reports. Platform is fully clear!
-                </div>
-              ) : (
+              <AdminAsyncPanel
+                loading={scamsLoading}
+                loadingMessage="Loading reports..."
+                isEmpty={scams.length === 0}
+                empty={
+                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+                    No scam reports. Platform is fully clear!
+                  </div>
+                }
+              >
                 <div className="space-y-4">
                   {scams.map((s: AdminScamReport) => (
                     <div
@@ -272,15 +316,11 @@ function AdminDashboard() {
                           <strong className="text-sm font-semibold">
                             Report #{s.id.slice(0, 8)}
                           </strong>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              s.status === "reviewed"
-                                ? "bg-emerald-500/10 text-emerald-600"
-                                : "bg-amber-500/10 text-amber-600"
-                            }`}
-                          >
-                            {s.status}
-                          </span>
+                          <StatusBadge
+                            status={s.status}
+                            classMap={SCAM_STATUS_CLASS}
+                            fallbackClass="bg-amber-500/10 text-amber-600"
+                          />
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           Property:{" "}
@@ -323,7 +363,7 @@ function AdminDashboard() {
                     </div>
                   ))}
                 </div>
-              )}
+              </AdminAsyncPanel>
             </div>
           )}
 
@@ -390,13 +430,16 @@ function AdminDashboard() {
 
           {activeTab === "audits" && (
             <div>
-              {auditsLoading ? (
-                <div className="text-sm text-muted-foreground">Loading audit logs...</div>
-              ) : audits.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                  No audit logs recorded yet.
-                </div>
-              ) : (
+              <AdminAsyncPanel
+                loading={auditsLoading}
+                loadingMessage="Loading audit logs..."
+                isEmpty={audits.length === 0}
+                empty={
+                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+                    No audit logs recorded yet.
+                  </div>
+                }
+              >
                 <div className="overflow-hidden rounded-2xl border bg-card text-xs">
                   <div className="bg-secondary p-3 font-semibold text-muted-foreground uppercase flex">
                     <span className="w-1/4">Date</span>
@@ -422,19 +465,22 @@ function AdminDashboard() {
                     ))}
                   </div>
                 </div>
-              )}
+              </AdminAsyncPanel>
             </div>
           )}
 
           {activeTab === "applications" && (
             <div>
-              {appsLoading ? (
-                <div className="text-sm text-muted-foreground">Loading applications…</div>
-              ) : applications.length === 0 ? (
-                <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-                  No pending portal applications.
-                </div>
-              ) : (
+              <AdminAsyncPanel
+                loading={appsLoading}
+                loadingMessage="Loading applications…"
+                isEmpty={applications.length === 0}
+                empty={
+                  <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+                    No pending portal applications.
+                  </div>
+                }
+              >
                 <div className="space-y-4">
                   {applications.map((app: PendingApplication) => (
                     <div
@@ -479,7 +525,7 @@ function AdminDashboard() {
                     </div>
                   ))}
                 </div>
-              )}
+              </AdminAsyncPanel>
             </div>
           )}
         </div>

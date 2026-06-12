@@ -161,8 +161,8 @@ function TenantAuth() {
         const profile = await getMyProfilePortal();
 
         activePortal = (profile?.active_portal as PortalId) ?? "tenant";
-      } catch {
-        /* profile may not be ready */
+      } catch (err) {
+        console.debug("[auth] Profile portal not ready after login:", err);
       }
 
       const target = resolvePostLoginPath(roles as AppRole[], activePortal, redirect);

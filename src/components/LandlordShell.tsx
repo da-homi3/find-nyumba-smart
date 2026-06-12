@@ -23,7 +23,7 @@ const nav = [
   { to: "/landlord/dashboard/billing", label: "Billing", icon: CreditCard },
 ] as const;
 
-export function LandlordShell({ children }: { children: ReactNode }) {
+export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
   const { user, isLandlord, loading, signOut } = useAuth();
   const navigate = useNavigate();
 

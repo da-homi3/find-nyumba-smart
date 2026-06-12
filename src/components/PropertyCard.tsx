@@ -25,7 +25,7 @@ export function PropertyCard({
   onToggleSave,
   showSave = true,
   plusMember = false,
-}: Props) {
+}: Readonly<Props>) {
   const score = p.authenticity_score ?? 70;
   const level = verificationLevel(p);
   const intel = getListingIntel(p);

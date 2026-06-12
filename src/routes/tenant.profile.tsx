@@ -57,7 +57,8 @@ function readPrefs(userId?: string): TenantNotificationPrefs {
   try {
     const raw = globalThis.localStorage.getItem(getPrefsKey(userId));
     return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : DEFAULT_PREFS;
-  } catch {
+  } catch (err) {
+    console.warn("[tenant-profile] Could not read notification prefs:", err);
     return DEFAULT_PREFS;
   }
 }
@@ -479,7 +480,7 @@ function Profile() {
                   <div key={t.id} className="py-2.5 flex justify-between items-center">
                     <div>
                       <strong className="font-semibold block capitalize">
-                        {t.payment_type.replace("_", " ")}
+                        {t.payment_type.replaceAll("_", " ")}
                       </strong>
                       <span className="text-[10px] text-muted-foreground">
                         Receipt: {t.mpesa_receipt} · {new Date(t.created_at).toLocaleDateString()}

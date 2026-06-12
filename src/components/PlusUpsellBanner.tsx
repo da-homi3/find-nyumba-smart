@@ -16,9 +16,10 @@ export function PlusUpsellBanner({
   compact = false,
 }: Readonly<Props>) {
   const storageKey = dismissKey ? `plus-banner-dismiss:${dismissKey}` : null;
-  const [dismissed, setDismissed] = useState(() =>
-    storageKey ? localStorage.getItem(storageKey) === "1" : false,
-  );
+  const [dismissed, setDismissed] = useState(() => {
+    if (!storageKey || globalThis.localStorage === undefined) return false;
+    return globalThis.localStorage.getItem(storageKey) === "1";
+  });
 
   if (dismissed) return null;
 
@@ -31,7 +32,7 @@ export function PlusUpsellBanner({
           type="button"
           aria-label="Dismiss"
           onClick={() => {
-            localStorage.setItem(storageKey, "1");
+            globalThis.localStorage?.setItem(storageKey, "1");
             setDismissed(true);
           }}
           className="absolute right-2 top-2 rounded-lg p-1 text-muted-foreground hover:bg-background/50"

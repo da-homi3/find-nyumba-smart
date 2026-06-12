@@ -10,7 +10,7 @@ const nav = [
   { to: "/agency/team", label: "Team", icon: Users },
 ] as const;
 
-export function AgencyShell({ children }: { children: ReactNode }) {
+export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
 

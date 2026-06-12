@@ -43,7 +43,7 @@ type Props = {
   resultCount: number;
 };
 
-export function TenantFiltersBar({ filters, onChange, resultCount }: Props) {
+export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Props>) {
   return (
     <div className="sticky top-0 z-20 border-b bg-background/95 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex max-w-2xl flex-wrap items-end gap-3">

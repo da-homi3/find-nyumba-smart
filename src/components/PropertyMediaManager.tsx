@@ -10,7 +10,7 @@ import { toast } from "sonner";
 const MAX_IMG_MB = 10;
 const MAX_VIDEO_MB = 100;
 
-export function PropertyMediaManager({ property }: { property: Property }) {
+export function PropertyMediaManager({ property }: Readonly<{ property: Property }>) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [images, setImages] = useState<string[]>(property.images ?? []);
@@ -57,7 +57,8 @@ export function PropertyMediaManager({ property }: { property: Property }) {
 
       for (const file of files) {
         const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
-        const prefix = kind === "video" ? "video" : kind === "tour" ? "tour360" : "img";
+        const prefixByKind = { image: "img", video: "video", tour: "tour360" } as const;
+        const prefix = prefixByKind[kind];
         const path = `${user.id}/${property.id}/${prefix}-${crypto.randomUUID()}.${ext}`;
         const { error } = await supabase.storage.from("property-media").upload(path, file, {
           cacheControl: "31536000",

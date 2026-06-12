@@ -38,7 +38,7 @@ export function BookingModal({
   propertyAddress,
   isOpen,
   onClose,
-}: BookingModalProps) {
+}: Readonly<BookingModalProps>) {
   const [step, setStep] = useState(1);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
