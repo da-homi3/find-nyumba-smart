@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/public-client";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getRequest } from "@tanstack/react-start/server";
+import { filterMockListings, getMockProperty, mockListingsEnabled } from "@/data/mockListings";
 
 type AuthContext = {
   supabase: SupabaseClient<Database>;
@@ -251,9 +252,34 @@ export const listProperties = createServerFn({ method: "POST" })
 
     const { data: rows, error, count } = await query;
     if (error) throw error;
+
+    let items = (rows ?? []) as Property[];
+    let total = count ?? items.length;
+
+    if (mockListingsEnabled()) {
+      const mockResult = filterMockListings({
+        neighborhood: data?.neighborhood,
+        propertyType: data?.propertyType,
+        minRent: data?.minRent,
+        maxRent: data?.maxRent,
+        verifiedOnly: data?.verifiedOnly,
+        minBedrooms: data?.minBedrooms,
+        minAuthenticityScore: data?.minAuthenticityScore,
+        bounds: data?.bounds,
+        query: data?.query,
+        sortBy: data?.sortBy,
+        limit,
+        offset,
+      });
+      const liveIds = new Set(items.map((item) => item.id));
+      const extras = mockResult.items.filter((item) => !liveIds.has(item.id));
+      items = [...items, ...extras];
+      total = items.length;
+    }
+
     return {
-      items: (rows ?? []) as Property[],
-      total: count ?? 0,
+      items,
+      total,
       limit,
       offset,
     };
@@ -273,7 +299,10 @@ export const getProperty = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (error) throw error;
-    if (!property || !property.is_active) return null;
+    if (!property || !property.is_active) {
+      if (mockListingsEnabled()) return getMockProperty(data.id);
+      return null;
+    }
 
     // View recording requires service role (SECURITY DEFINER RPC)
     const admin = await adminClient();

@@ -199,6 +199,14 @@ export function SiteFooter() {
             { to: "/advertise", label: "Advertise with us" },
           ]}
         />
+        <FooterCol
+          title="Company"
+          links={[
+            { to: "/about", label: "About" },
+            { to: "/contact", label: "Contact" },
+            { to: "/caretaker", label: "Caretaker sign in" },
+          ]}
+        />
       </div>
       <div className="border-t py-6 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} NyumbaSearch · Made in Nairobi

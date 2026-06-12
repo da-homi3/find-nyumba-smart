@@ -1,0 +1,15 @@
+{
+  "sonarlint.excludedFromAnalysis": [
+    "src/components/ui/**",
+    "**/integrations/supabase/types.ts",
+    "src/routeTree.gen.ts",
+    "dist/**",
+    "scripts/**",
+    "**/AppData/Local/Temp/**"
+  ],
+  "sonarlint.rules": {
+    "javascript:S7785": { "level": "off" },
+    "typescript:S6571": { "level": "off" },
+    "typescript:S4325": { "level": "off" }
+  }
+}

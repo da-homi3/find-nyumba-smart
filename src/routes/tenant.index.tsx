@@ -14,6 +14,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { AdUnit } from "@/components/AdUnit";
+import { SiteNav } from "@/components/SiteNav";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -143,7 +144,8 @@ function TenantHome() {
 
   return (
     <div>
-      <header className="relative isolate overflow-hidden px-5 pt-10 pb-20 text-primary-foreground">
+      <SiteNav variant="light" />
+      <header className="relative isolate overflow-hidden px-5 pt-6 pb-20 text-primary-foreground">
         <img
           src={heroImg}
           alt="Aerial view of a leafy Nairobi neighbourhood at golden hour"

@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [pendingApplications, setPendingApplications] = useState<PortalApplication[]>([]);
   const [activePortal, setActivePortalState] = useState<PortalId>("tenant");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const refreshPortalState = async (userId?: string) => {
     if (!userId) {
@@ -93,13 +93,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_e, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "TOKEN_REFRESHED") {
+        void syncSession(s);
+        return;
+      }
       setLoading(true);
       setTimeout(() => {
         void syncSession(s);
       }, 0);
     });
 
+    setLoading(true);
     supabase.auth.getSession().then(({ data: { session: s } }) => void syncSession(s));
 
     return () => {
@@ -118,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     clearCaretakerToken();
     await supabase.auth.signOut();
-    window.location.href = "/tenant";
+    globalThis.location.href = "/tenant";
   };
 
   return (
