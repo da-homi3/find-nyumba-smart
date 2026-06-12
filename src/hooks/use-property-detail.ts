@@ -15,10 +15,11 @@ import { reportScam } from "@/lib/api/trust.functions";
 import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
+import type { Property } from "@/lib/properties";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
 
-export function usePropertyDetail(id: string) {
+export function usePropertyDetail(id: string, initialProperty?: Property | null) {
   const navigate = useNavigate();
   const location = useLocation();
   const authSearch = { redirect: location.pathname + location.search };
@@ -49,9 +50,11 @@ export function usePropertyDetail(id: string) {
     return () => globalThis.clearTimeout(timer);
   }, [user, id]);
 
-  const { data: p, isLoading } = useQuery({
+  const { data: p, isLoading, isError, refetch } = useQuery({
     queryKey: ["property", id],
     queryFn: () => fetchProperty(id),
+    initialData: initialProperty ?? undefined,
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -248,6 +251,8 @@ export function usePropertyDetail(id: string) {
     user,
     p,
     isLoading,
+    isError,
+    refetch,
     isSaved,
     similar,
     landlordContact,

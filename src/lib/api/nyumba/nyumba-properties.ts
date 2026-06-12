@@ -139,15 +139,18 @@ export const getProperty = createServerFn({ method: "POST" })
       return null;
     }
 
-    // View recording requires service role (SECURITY DEFINER RPC)
-    const admin = await adminClient();
-    await admin
-      .rpc("record_property_view", {
+    // View recording requires service role (SECURITY DEFINER RPC) — non-fatal
+    try {
+      const admin = await adminClient();
+      const { error: viewError } = await admin.rpc("record_property_view", {
         _property_id: property.id,
         _session_id: data.sessionId ?? undefined,
         _source: data.source ?? "property-detail",
-      })
-      .throwOnError();
+      });
+      if (viewError) console.warn("record_property_view:", viewError.message);
+    } catch (viewErr) {
+      console.warn("record_property_view failed:", viewErr);
+    }
 
     return mapPropertyRow(property);
   });

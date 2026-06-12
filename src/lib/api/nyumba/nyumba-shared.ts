@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import type { Property } from "@/lib/properties";
 import { ForbiddenError } from "@/lib/api/_authz";
 import { getSiteUrl } from "@/lib/site";
+import { normalizePropertyImages } from "@/lib/property-images";
 
 export type AuthContext = {
   supabase: SupabaseClient<Database>;
@@ -130,7 +131,7 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     area_sqm: row.area_sqm,
     description: row.description,
     amenities: row.amenities ?? [],
-    images: row.images ?? [],
+    images: normalizePropertyImages(row.images, row.id),
     video_url: row.video_url,
     tour_url: row.tour_url,
     is_verified: row.is_verified,

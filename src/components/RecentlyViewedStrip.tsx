@@ -3,6 +3,7 @@ import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatKes } from "@/lib/properties";
 import { readRecentlyViewed, type RecentProperty } from "@/lib/recently-viewed";
+import { PropertyImage } from "@/components/PropertyImage";
 
 export function RecentlyViewedStrip() {
   const [items, setItems] = useState<RecentProperty[]>([]);
@@ -41,7 +42,12 @@ export function RecentlyViewedStrip() {
             className="w-56 shrink-0 rounded-xl border bg-card p-2 hover:bg-secondary"
           >
             {p.images[0] ? (
-              <img src={p.images[0]} alt="" className="h-24 w-full rounded-lg object-cover" />
+              <PropertyImage
+                src={p.images[0]}
+                seed={p.id}
+                alt=""
+                className="h-24 w-full rounded-lg object-cover"
+              />
             ) : (
               <div className="grid h-24 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">
                 No photo

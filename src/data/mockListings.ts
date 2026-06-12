@@ -1,7 +1,7 @@
 import type { Property, PropertySearchFilters } from "@/lib/properties";
+import { listingPlaceholderUrl } from "@/lib/property-images";
 
-const IMG = (seed: number) =>
-  `https://images.unsplash.com/photo-${1545324418 + seed}-cc1a3fa10c00?w=800&h=500&fit=crop`;
+const IMG = (seed: number) => listingPlaceholderUrl(seed);
 
 const now = new Date().toISOString();
 

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
+import { PropertyImage } from "@/components/PropertyImage";
 import { Flame, Layers, MapPin, Navigation, WifiOff, X } from "lucide-react";
 
 type TenantMapChromeProps = Readonly<{
@@ -185,8 +186,9 @@ export function TenantMapChrome({
               <X className="h-3.5 w-3.5" />
             </button>
             {selected.images[0] ? (
-              <img
+              <PropertyImage
                 src={selected.images[0]}
+                seed={selected.id}
                 alt={selected.title}
                 className="h-20 w-24 shrink-0 rounded-xl object-cover"
               />

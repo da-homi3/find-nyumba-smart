@@ -10,9 +10,12 @@ import { usePropertyDetail } from "@/hooks/use-property-detail";
 import { useEntitlements } from "@/hooks/use-entitlements";
 
 export const Route = createFileRoute("/tenant/property/$id")({
-  loader: async ({ params }) => {
-    const p = await fetchProperty(params.id);
-    return { property: p };
+  loader: async ({ params, context }) => {
+    const property = await fetchProperty(params.id);
+    if (property) {
+      context.queryClient.setQueryData(["property", params.id], property);
+    }
+    return { property };
   },
   head: ({ loaderData }) => buildPropertyDetailHead(loaderData?.property ?? undefined),
   component: PropertyDetail,
@@ -20,14 +23,30 @@ export const Route = createFileRoute("/tenant/property/$id")({
 
 function PropertyDetail() {
   const { id } = useParams({ from: "/tenant/property/$id" });
+  const { property: loaderProperty } = Route.useLoaderData();
   const { isPlus } = useEntitlements();
-  const detail = usePropertyDetail(id);
+  const detail = usePropertyDetail(id, loaderProperty);
 
-  if (detail.isLoading) {
+  if (detail.isLoading && !detail.p) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   }
   if (!detail.p) {
-    return <div className="p-6">Property not found.</div>;
+    return (
+      <div className="p-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          {detail.isError ? "Could not load this listing." : "Property not found."}
+        </p>
+        {detail.isError && (
+          <button
+            type="button"
+            onClick={() => detail.refetch()}
+            className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
+          >
+            Try again
+          </button>
+        )}
+      </div>
+    );
   }
 
   const p = detail.p;

@@ -9,6 +9,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
+import {
+  isBrokenListingImageUrl,
+  listingPlaceholderUrl,
+  normalizePropertyImages,
+} from "./listing-placeholders.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -41,8 +46,7 @@ function loadEnv() {
   return env;
 }
 
-const IMG = (seed) =>
-  `https://images.unsplash.com/photo-${1545324418 + seed}-cc1a3fa10c00?w=800&h=500&fit=crop`;
+const IMG = (seed) => listingPlaceholderUrl(seed);
 
 const now = new Date().toISOString();
 
@@ -263,13 +267,25 @@ async function main() {
 
   const { data: existingProps } = await admin
     .from("properties")
-    .select("id, title, neighborhood")
+    .select("id, title, neighborhood, images")
     .eq("owner_id", landlordId);
 
   const existingKeys = new Set((existingProps ?? []).map((p) => `${p.title}::${p.neighborhood}`));
 
   let inserted = 0;
   let skipped = 0;
+  let imagesFixed = 0;
+
+  for (const row of (
+    await admin.from("properties").select("id, title, images").eq("is_active", true)
+  ).data ?? []) {
+    const needsFix = (row.images ?? []).some((url) => isBrokenListingImageUrl(url));
+    if (!needsFix) continue;
+    const images = normalizePropertyImages(row.images, row.id);
+    const { error: fixErr } = await admin.from("properties").update({ images }).eq("id", row.id);
+    if (fixErr) console.warn(`Image fix "${row.title}":`, fixErr.message);
+    else imagesFixed++;
+  }
 
   for (const listing of LISTINGS) {
     const key = `${listing.title}::${listing.neighborhood}`;
@@ -332,7 +348,9 @@ async function main() {
     console.log(`Assigned ${orphanCount} orphan listing(s) to demo landlord.`);
   }
 
-  console.log(`Done. Inserted ${inserted}, skipped ${skipped} (already seeded).`);
+  console.log(
+    `Done. Inserted ${inserted}, skipped ${skipped} (already seeded), fixed ${imagesFixed} broken image set(s).`,
+  );
   console.log(`Active listings in DB: ${count ?? "?"}`);
 }
 
