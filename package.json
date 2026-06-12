@@ -14,6 +14,7 @@
     "db:migrate:push": "node scripts/apply-revenue-migration.mjs",
     "db:migrate:columns": "node scripts/apply-revenue-columns-api.mjs",
     "db:migrate:partnership": "node scripts/apply-partnership-migration.mjs",
+    "db:migrate:rls": "node scripts/apply-rls-hardening.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",

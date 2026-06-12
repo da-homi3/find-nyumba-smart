@@ -49,7 +49,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [pendingApplications, setPendingApplications] = useState<PortalApplication[]>([]);
   const [activePortal, setActivePortalState] = useState<PortalId>("tenant");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const refreshPortalState = async (userId?: string) => {
     if (!userId) {
@@ -62,7 +62,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setPendingApplications(apps);
       const portal = (profile?.active_portal as PortalId) ?? "tenant";
       setActivePortalState(portal);
-    } catch {
+    } catch (err) {
+      console.warn("[use-auth] Could not refresh portal state:", err);
       setPendingApplications([]);
     }
   };

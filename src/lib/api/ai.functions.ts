@@ -164,7 +164,7 @@ function detectIntent(message: string): AssistantIntent {
 
 async function heuristicRecommend(
   supabase: SupabaseClient<Database>,
-  userId: string,
+  _userId: string,
 ): Promise<string> {
   const { data: saved } = await supabase.from("saved_properties").select("property_id");
   const savedIds = new Set((saved ?? []).map((s) => s.property_id));

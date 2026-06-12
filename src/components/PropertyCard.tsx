@@ -6,11 +6,11 @@ import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/lis
 import { isListingEarlyAccess } from "@/lib/revenue/entitlements";
 
 type Props = {
-  p: Property;
-  saved?: boolean;
-  onToggleSave?: (e: React.MouseEvent) => void;
-  showSave?: boolean;
-  plusMember?: boolean;
+  readonly p: Property;
+  readonly saved?: boolean;
+  readonly onToggleSave?: (e: React.MouseEvent) => void;
+  readonly showSave?: boolean;
+  readonly plusMember?: boolean;
 };
 
 function intelColor(label: string) {

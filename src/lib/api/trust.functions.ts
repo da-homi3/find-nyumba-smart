@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
 
 const submitVerificationSchema = z.object({

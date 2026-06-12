@@ -17,10 +17,10 @@ interface PropertyReview {
 }
 
 interface PropertyReviewsSectionProps {
-  propertyId: string;
-  userId?: string;
-  isTenant: boolean;
-  showFormInitially?: boolean;
+  readonly propertyId: string;
+  readonly userId?: string;
+  readonly isTenant: boolean;
+  readonly showFormInitially?: boolean;
 }
 
 export function PropertyReviewsSection({
@@ -98,6 +98,7 @@ export function PropertyReviewsSection({
         </h2>
         {isTenant && !showForm && (
           <button
+            type="button"
             onClick={() => {
               if (!userId) {
                 toast.error("Please sign in to leave a review");
@@ -159,6 +160,7 @@ export function PropertyReviewsSection({
                     <button
                       key={star}
                       type="button"
+                      aria-label={`Rate ${metric.label} ${star} stars`}
                       onClick={() => metric.set(star)}
                       className="p-0.5 hover:scale-110"
                     >
@@ -187,12 +189,14 @@ export function PropertyReviewsSection({
 
           <div className="mt-4 flex justify-end gap-2">
             <button
+              type="button"
               onClick={() => setShowForm(false)}
               className="rounded-xl border px-4 py-2 text-xs font-semibold hover:bg-secondary"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={() => submitReview.mutate()}
               disabled={submitReview.isPending}
               className="rounded-xl bg-gradient-emerald px-4 py-2 text-xs font-semibold text-primary-foreground shadow-soft hover:opacity-90 disabled:opacity-70"
@@ -205,13 +209,14 @@ export function PropertyReviewsSection({
 
       {/* Reviews list */}
       <div className="mt-6 space-y-4">
-        {isLoading ? (
-          <div className="text-xs text-muted-foreground">Loading reviews...</div>
-        ) : reviews.length === 0 ? (
+        {isLoading && <div className="text-xs text-muted-foreground">Loading reviews...</div>}
+        {!isLoading && reviews.length === 0 && (
           <div className="rounded-2xl border border-dashed p-6 text-center text-xs text-muted-foreground">
             No reviews yet. Be the first to share an experience!
           </div>
-        ) : (
+        )}
+        {!isLoading &&
+          reviews.length > 0 &&
           typedReviews.map((r) => (
             <div key={r.id} className="rounded-2xl border bg-card p-4 shadow-soft">
               <div className="flex items-start justify-between gap-3">
@@ -244,8 +249,7 @@ export function PropertyReviewsSection({
                 <p className="mt-3 text-xs leading-relaxed text-foreground/80">{r.comment}</p>
               )}
             </div>
-          ))
-        )}
+          ))}
       </div>
     </section>
   );

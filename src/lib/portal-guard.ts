@@ -27,11 +27,13 @@ export function portalForRole(role: AppRole): PortalId | null {
   return null;
 }
 
+const POST_LOGIN_ROLE_PRIORITY: AppRole[] = ["landlord", "agency", "manager", "admin"];
+
 export function canAccessPortal(roles: AppRole[], portal: PortalId): boolean {
   if (portal === "tenant") return true;
   if (portal === "caretaker") return true;
   const required = PORTAL_REQUIRED_ROLE[portal];
-  return required ? roles.includes(required) : false;
+  return required ? new Set(roles).has(required) : false;
 }
 
 export function resolvePostLoginPath(
@@ -43,10 +45,9 @@ export function resolvePostLoginPath(
   if (activePortal && canAccessPortal(roles, activePortal)) {
     return PORTAL_HOME[activePortal];
   }
-  if (roles.includes("landlord")) return PORTAL_HOME.landlord;
-  if (roles.includes("agency")) return PORTAL_HOME.agency;
-  if (roles.includes("manager")) return PORTAL_HOME.manager;
-  if (roles.includes("admin")) return PORTAL_HOME.admin;
+  const roleSet = new Set(roles);
+  const matched = POST_LOGIN_ROLE_PRIORITY.find((role) => roleSet.has(role));
+  if (matched) return PORTAL_HOME[matched];
   return PORTAL_HOME.tenant;
 }
 

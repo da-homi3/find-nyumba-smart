@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, MapPin, Sparkles, ShieldCheck } from "lucide-react";
+import { Search, MapPin, Sparkles, ShieldCheck } from "lucide-react";
 import { searchProperties, type PropertyType } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { useMemo, useState, useEffect } from "react";
@@ -99,7 +99,8 @@ function TenantHome() {
   const filtered = useMemo(() => {
     let items = searchResult?.items ?? [];
     if (filters.types.length > 0) {
-      items = items.filter((p) => filters.types.includes(p.property_type));
+      const typeSet = new Set(filters.types);
+      items = items.filter((p) => typeSet.has(p.property_type));
     }
     if (filters.bedrooms != null) {
       items = items.filter((p) => p.bedrooms >= filters.bedrooms!);
@@ -283,7 +284,7 @@ function TenantHome() {
                           <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gold">
                             Featured listing
                           </p>
-                          <PropertyCard p={boosted} plusMember={isPlus} showSave={false} />
+                          <PropertyCard p={boosted} plusMember={isPlus} />
                         </div>
                       ) : (
                         <AdUnit

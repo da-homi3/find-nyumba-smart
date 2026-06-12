@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
-import { VERIFICATION_STATUS_CLASS, SCAM_STATUS_CLASS } from "@/components/admin/admin-types";
 
-export { VERIFICATION_STATUS_CLASS, SCAM_STATUS_CLASS };
+export { VERIFICATION_STATUS_CLASS, SCAM_STATUS_CLASS } from "@/components/admin/admin-types";
 export type {
   AdminTab,
   AdminVerification,
@@ -27,19 +26,19 @@ export function StatusBadge({
 export function AdminAsyncPanel({
   loading,
   loadingMessage,
-  empty,
+  emptyContent,
   isEmpty,
   children,
 }: Readonly<{
   loading: boolean;
   loadingMessage: string;
-  empty: ReactNode;
+  emptyContent: ReactNode;
   isEmpty: boolean;
   children: ReactNode;
 }>) {
   if (loading) {
     return <div className="text-sm text-muted-foreground">{loadingMessage}</div>;
   }
-  if (isEmpty) return empty;
+  if (isEmpty) return emptyContent;
   return children;
 }

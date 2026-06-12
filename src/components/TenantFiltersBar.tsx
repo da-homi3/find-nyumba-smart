@@ -139,13 +139,14 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Pr
 
       <div className="mx-auto mt-2 flex max-w-2xl flex-wrap gap-1.5">
         {ALL_TYPES.map((t) => {
-          const on = filters.types.length === 0 || filters.types.includes(t);
+          const selectedTypes = new Set(filters.types);
+          const on = filters.types.length === 0 || selectedTypes.has(t);
           return (
             <button
               key={t}
               type="button"
               onClick={() => {
-                const next = filters.types.includes(t)
+                const next = selectedTypes.has(t)
                   ? filters.types.filter((x) => x !== t)
                   : [...filters.types, t];
                 onChange({ types: next });
@@ -154,7 +155,7 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Pr
                 on ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"
               }`}
             >
-              {t.replace("_", " ")}
+              {t.replaceAll("_", " ")}
             </button>
           );
         })}

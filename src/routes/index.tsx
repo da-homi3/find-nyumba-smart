@@ -72,7 +72,6 @@ function Landing() {
   }, [properties]);
 
   const stats = useMemo(() => {
-    const total = properties.length;
     const verifiedCount = properties.filter((p) => p.is_verified).length;
     const hoods = new Set(properties.map((p) => p.neighborhood)).size;
     return { verifiedCount, hoods };

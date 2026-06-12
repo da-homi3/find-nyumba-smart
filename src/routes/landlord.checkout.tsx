@@ -45,7 +45,14 @@ function LandlordCheckoutPage() {
     }
   }, [loading, user, navigate, plan, product, qty]);
 
-  if (loading || !user) return null;
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-lg px-6 py-10">
+        <div className="h-48 animate-pulse rounded-2xl bg-muted" />
+      </div>
+    );
+  }
+  if (!user) return null;
 
   const planId = resolveLandlordPlan(plan);
   const allPlans = [...LANDLORD_PLANS, ...AGENCY_PLANS];

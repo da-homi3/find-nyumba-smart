@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LandlordShell } from "@/components/LandlordShell";
 import { createProperty } from "@/lib/api/nyumba.functions";
 import { analyzePropertyQuality, createSignedMediaUrls } from "@/lib/api/media.functions";
-import { useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/utils";
 import type { PropertyType } from "@/lib/properties";
@@ -24,7 +24,7 @@ const MAX_VIDEO_MB = 100;
 const STEPS = ["Basics", "Details", "Pricing", "Intelligence", "Photos", "Review"] as const;
 
 export function PropertyListingWizard({
-  portalLabel = "Landlord",
+  portalLabel: _portalLabel = "Landlord",
 }: Readonly<{ portalLabel?: string }>) {
   const navigate = useNavigate();
   const { user, isAgency, isManager } = useAuth();
@@ -170,7 +170,7 @@ export function PropertyListingWizard({
     }
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) {
       toast.error("Sign in to list a property");
@@ -248,7 +248,7 @@ export function PropertyListingWizard({
     return true;
   }
 
-  function goNext(e: React.FormEvent<HTMLFormElement>) {
+  function goNext(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateStep(step)) return;
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -311,7 +311,7 @@ export function PropertyListingWizard({
                     ] as PropertyType[]
                   ).map((t) => (
                     <option key={t} value={t}>
-                      {t.replace("_", " ")}
+                      {t.replaceAll("_", " ")}
                     </option>
                   ))}
                 </select>

@@ -11,7 +11,7 @@ export function AdminAuditsTab({ audits, loading }: Props) {
       loading={loading}
       loadingMessage="Loading audit logs..."
       isEmpty={audits.length === 0}
-      empty={
+      emptyContent={
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           No audit logs recorded yet.
         </div>

@@ -24,7 +24,7 @@ export function AdminScamsTab({ scams, loading, resolve }: Props) {
       loading={loading}
       loadingMessage="Loading reports..."
       isEmpty={scams.length === 0}
-      empty={
+      emptyContent={
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           No scam reports. Platform is fully clear!
         </div>

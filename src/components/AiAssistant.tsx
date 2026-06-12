@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 import { Bot, Loader2, Send, Sparkles, X } from "lucide-react";
 
-type Turn = { role: "user" | "assistant"; text: string };
+type Turn = { id: string; role: "user" | "assistant"; text: string };
 
 const QUICK = [
   { label: "Recommend homes", message: "Recommend properties for my budget", authOnly: true },
@@ -75,11 +75,11 @@ export function AiAssistant() {
     },
 
     onSuccess: (res) => {
-      setTurns((t) => [...t, { role: "assistant", text: res.reply }]);
+      setTurns((t) => [...t, { id: crypto.randomUUID(), role: "assistant", text: res.reply }]);
     },
 
     onError: (err: Error) => {
-      setTurns((t) => [...t, { role: "assistant", text: err.message }]);
+      setTurns((t) => [...t, { id: crypto.randomUUID(), role: "assistant", text: err.message }]);
     },
   });
 
@@ -88,7 +88,7 @@ export function AiAssistant() {
 
     if (!trimmed || ask.isPending) return;
 
-    setTurns((t) => [...t, { role: "user", text: trimmed }]);
+    setTurns((t) => [...t, { id: crypto.randomUUID(), role: "user", text: trimmed }]);
 
     setInput("");
 
@@ -127,12 +127,10 @@ export function AiAssistant() {
                   if (q.authOnly && !user) {
                     setTurns((t) => [
                       ...t,
-
-                      { role: "user", text: q.message },
-
+                      { id: crypto.randomUUID(), role: "user", text: q.message },
                       {
+                        id: crypto.randomUUID(),
                         role: "assistant",
-
                         text: "Sign in to get personalized recommendations and compare saved listings.",
                       },
                     ]);
@@ -157,9 +155,9 @@ export function AiAssistant() {
               </p>
             )}
 
-            {turns.map((t, i) => (
+            {turns.map((t) => (
               <div
-                key={i}
+                key={t.id}
                 className={`rounded-xl px-3 py-2 text-sm ${
                   t.role === "user"
                     ? "ml-6 bg-primary text-primary-foreground"

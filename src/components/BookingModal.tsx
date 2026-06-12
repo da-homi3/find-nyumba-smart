@@ -59,7 +59,7 @@ export function BookingModal({
           notes: notes.trim() || undefined,
         },
       });
-      const shortId = row.id.replace(/-/g, "").slice(0, 8).toUpperCase();
+      const shortId = row.id.replaceAll("-", "").slice(0, 8).toUpperCase();
       return `NV-${shortId}`;
     },
     onSuccess: (bookingRef) => {
@@ -86,6 +86,7 @@ export function BookingModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
       <div className="relative w-full max-w-md rounded-2xl border bg-card p-6 shadow-elegant">
         <button
+          type="button"
           onClick={reset}
           className="absolute top-4 right-4 rounded-full p-1 hover:bg-secondary text-muted-foreground"
           aria-label="Close modal"

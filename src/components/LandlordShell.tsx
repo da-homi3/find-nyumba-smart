@@ -69,6 +69,7 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
             <Settings className="h-4 w-4" /> Settings
           </Link>
           <button
+            type="button"
             onClick={signOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10"
           >

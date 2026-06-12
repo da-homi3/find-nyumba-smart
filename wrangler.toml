@@ -1,25 +1,17 @@
+# LEGACY — not used for production deploy.
+#
+# NyumbaSearch ships via Nitro + TanStack Start:
+#   npm run build  → dist/server/wrangler.json (generated)
+#   npm run deploy → wrangler deploy --config dist/server/wrangler.json
+#
+# Source-of-truth for local env sync: wrangler.jsonc + scripts/sync-wrangler-env.mjs
+# Secrets (service role, Gemini, etc.) live in Cloudflare dashboard / .env — not here.
+#
+# This file is kept for reference only (pre-Nitro KV/JWT prototype). Do not edit
+# placeholder IDs below expecting them to affect Workers production.
+
 name = "nyumba-search"
 compatibility_date = "2026-05-31"
 account_id = "2f9ae70dfb228529cc5e91d230ab2cfc"
-
-# Workers configuration
 main = "dist/server/index.mjs"
 workers_dev = true
-
-# KV namespaces
-kv_namespaces = [
-  { binding = "NYUMBA_USERS", id = "<YOUR_USERS_KV_ID>" },
-  { binding = "NYUMBA_LISTINGS", id = "<YOUR_LISTINGS_KV_ID>" },
-  { binding = "NYUMBA_CHATS", id = "<YOUR_CHATS_KV_ID>" }
-]
-
-# Environment variables (set in Cloudflare dashboard)
-[vars]
-SENDGRID_API_KEY = "<YOUR_SENDGRID_API_KEY>"
-GOOGLE_MAPS_API_KEY = "<YOUR_GOOGLE_MAPS_API_KEY>"
-JWT_SECRET = "<YOUR_RANDOM_JWT_SECRET>"
-
-# Site configuration for static assets
-[site]
-bucket = "./dist/client"
-entry-point = "workers-site"

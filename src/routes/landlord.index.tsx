@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import {
   registerPortalApplicationAfterSignup,
   submitPortalApplication,
 } from "@/lib/api/portal.functions";
+import { DASHBOARD_APPROVAL_ROLES } from "@/lib/account-roles";
 import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
 import { errorMessage, landlordSubmitLabel } from "@/lib/utils";
 import { isValidKenyanPhone } from "@/lib/format-kes";
@@ -124,7 +125,7 @@ function LandlordAuthPanel() {
     return (data ?? []).map((r) => r.role as string);
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (mode === "signup") {
       if (password.length < 8) {
@@ -181,7 +182,7 @@ function LandlordAuthPanel() {
       const apps = await listMyPortalApplications();
       const hasPendingOnly =
         apps.some((a) => a.status === "pending") &&
-        !roles.some((r) => ["landlord", "manager", "agency", "admin"].includes(r));
+        !roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
 
       if (hasPendingOnly) {
         navigate({ to: "/auth/pending" });
@@ -192,8 +193,8 @@ function LandlordAuthPanel() {
       try {
         const profile = await getMyProfilePortal();
         activePortal = (profile?.active_portal as PortalId) ?? "landlord";
-      } catch {
-        /* profile may not be ready */
+      } catch (err) {
+        console.debug("profile portal not ready after landlord sign-in", err);
       }
 
       globalThis.location.href = resolvePostLoginPath(

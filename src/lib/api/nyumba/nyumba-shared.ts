@@ -107,10 +107,99 @@ export const sendInquiryMessageSchema = z.object({
 
 export const inquiryIdSchema = z.object({ inquiryId: z.string().uuid() });
 
+type PropertyRow = Database["public"]["Tables"]["properties"]["Row"];
+type PropertyRowInput = Omit<PropertyRow, "organization_id" | "owner_id"> & {
+  organization_id?: string | null;
+  owner_id?: string | null;
+};
+
+export function mapPropertyRow(row: PropertyRowInput): Property {
+  return {
+    id: row.id,
+    owner_id: row.owner_id ?? null,
+    title: row.title,
+    property_type: propertyTypeSchema.parse(row.property_type),
+    neighborhood: row.neighborhood,
+    address: row.address,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    rent_kes: row.rent_kes,
+    deposit_kes: row.deposit_kes,
+    bedrooms: row.bedrooms,
+    bathrooms: row.bathrooms,
+    area_sqm: row.area_sqm,
+    description: row.description,
+    amenities: row.amenities ?? [],
+    images: row.images ?? [],
+    video_url: row.video_url,
+    tour_url: row.tour_url,
+    is_verified: row.is_verified,
+    is_active: row.is_active,
+    is_vacant: row.is_vacant ?? undefined,
+    organization_id: row.organization_id ?? null,
+    authenticity_score: row.authenticity_score ?? undefined,
+    health_score: row.health_score ?? undefined,
+    available_from: row.available_from,
+    views: row.views,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    featured_until: row.featured_until ?? undefined,
+    boost_package: row.boost_package ?? undefined,
+    nyumba_verified_at: row.nyumba_verified_at ?? undefined,
+  };
+}
+
+export function mapPropertyRows(rows: PropertyRowInput[]): Property[] {
+  return rows.map(mapPropertyRow);
+}
+
+type InquiryPropertyJoin = Pick<
+  Property,
+  "id" | "title" | "neighborhood" | "rent_kes" | "images"
+> & {
+  organization_id?: string | null;
+  owner_id?: string | null;
+};
+
+export function mapInquiryWithDetails(
+  row: InquiryRecord & Record<string, unknown>,
+): InquiryWithDetails {
+  const properties = row.properties as
+    | InquiryPropertyJoin
+    | InquiryPropertyJoin[]
+    | null
+    | undefined;
+  const normalizedProperties = Array.isArray(properties) ? properties[0] : properties;
+  return {
+    ...row,
+    properties: normalizedProperties ?? null,
+    profiles: (row.profiles as InquiryWithDetails["profiles"]) ?? null,
+    inquiry_messages: (row.inquiry_messages as InquiryMessageRecord[] | undefined) ?? [],
+  };
+}
+
+function isAuthContext(ctx: unknown): ctx is AuthContext {
+  return (
+    typeof ctx === "object" &&
+    ctx !== null &&
+    "supabase" in ctx &&
+    "userId" in ctx &&
+    typeof (ctx as AuthContext).userId === "string" &&
+    (ctx as AuthContext).supabase != null
+  );
+}
+
 export function authContext(context: unknown): AuthContext {
-  const ctx = context as Partial<AuthContext>;
-  if (!ctx.supabase || !ctx.userId) throw new Error("Unauthorized");
-  return { supabase: ctx.supabase, userId: ctx.userId };
+  if (!isAuthContext(context)) throw new Error("Unauthorized");
+  return context;
+}
+
+function inquiryPropertyOrgId(property: unknown): string | null | undefined {
+  if (!property || typeof property !== "object" || !("organization_id" in property)) {
+    return undefined;
+  }
+  const orgId = (property as { organization_id?: string | null }).organization_id;
+  return orgId ?? null;
 }
 
 export async function adminClient() {
@@ -152,8 +241,8 @@ export async function assertInquiryParticipant(
   const roles = new Set((roleRows ?? []).map((r) => r.role));
   if (roles.has("manager") || roles.has("agency")) {
     const orgId = await getUserOrganizationId(supabase, userId);
-    const property = inquiry.properties as { organization_id?: string | null } | null;
-    if (orgId && property?.organization_id === orgId) {
+    const propertyOrgId = inquiryPropertyOrgId(inquiry.properties);
+    if (orgId && propertyOrgId === orgId) {
       return inquiry;
     }
   }

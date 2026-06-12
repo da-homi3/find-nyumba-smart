@@ -1,13 +1,12 @@
 import { createFileRoute, Link, useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowLeft,
   BedDouble,
   Bath,
   Square,
   MapPin,
-  ShieldCheck,
   Phone,
   MessageCircle,
   Heart,
@@ -104,10 +103,10 @@ function PropertyDetail() {
 
   useEffect(() => {
     if (!user || isDemoListingId(id)) return;
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       void recordTenantLead({ data: { listingId: id, source: "view" } });
     }, 30_000);
-    return () => window.clearTimeout(timer);
+    return () => globalThis.clearTimeout(timer);
   }, [user, id]);
 
   // Booking & Chat States
@@ -124,6 +123,10 @@ function PropertyDetail() {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("Suspicious listing");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const { data: p, isLoading } = useQuery({
     queryKey: ["property", id],
@@ -236,7 +239,7 @@ function PropertyDetail() {
     }
   };
 
-  const handleSendChat = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendChat = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!chatInput.trim() || chatLoading) return;
 
@@ -251,14 +254,14 @@ function PropertyDetail() {
         ...prev,
         { id: crypto.randomUUID(), role: "assistant", text: response },
       ]);
-    } catch (err) {
+    } catch {
       toast.error("AI assistant offline. Please try again.");
     } finally {
       setChatLoading(false);
     }
   };
 
-  const handleReportScam = async () => {
+  const openReportForm = () => {
     if (!user) {
       toast.error("Sign in to report a listing");
       navigate({ to: "/auth", search: authSearch });
@@ -268,20 +271,34 @@ function PropertyDetail() {
       toast.info("Demo listings are sample data — nothing to report.");
       return;
     }
-    const reason = globalThis.prompt("Why are you reporting this listing?", "Suspicious listing");
-    if (!reason?.trim()) return;
-    const details = globalThis.prompt("Any extra details? (optional)") ?? undefined;
+    setReportOpen(true);
+  };
+
+  const submitReport = async () => {
+    if (!reportReason.trim()) {
+      toast.error("Please provide a reason for your report.");
+      return;
+    }
+    setReportSubmitting(true);
     try {
       const result = await reportScam({
-        data: { propertyId: id, reason: reason.trim(), details: details?.trim() || undefined },
+        data: {
+          propertyId: id,
+          reason: reportReason.trim(),
+          details: reportDetails.trim() || undefined,
+        },
       });
       toast.success(
         result.autoFlagged
           ? "Report submitted. This listing was flagged for review."
           : "Thanks — our team will review your report.",
       );
+      setReportOpen(false);
+      setReportDetails("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit report");
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -524,10 +541,10 @@ function PropertyDetail() {
         {/* Reviews & Neighborhood Quality Ratings */}
         <PropertyReviewsSection propertyId={id} userId={user?.id} isTenant={!!user} />
 
-        {!isDemo && (
+        {!isDemo && !reportOpen && (
           <button
             type="button"
-            onClick={() => void handleReportScam()}
+            onClick={openReportForm}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/5"
           >
             <Flag className="h-3.5 w-3.5" />
@@ -535,12 +552,53 @@ function PropertyDetail() {
           </button>
         )}
 
+        {!isDemo && reportOpen && (
+          <div className="mt-6 rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
+            <p className="text-sm font-semibold text-destructive">Report suspicious listing</p>
+            <label className="block text-xs font-semibold">
+              Reason
+              <input
+                type="text"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-xs font-semibold">
+              Extra details (optional)
+              <textarea
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                rows={3}
+                className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void submitReport()}
+                disabled={reportSubmitting}
+                className="rounded-lg bg-destructive px-4 py-2 text-xs font-semibold text-destructive-foreground disabled:opacity-70"
+              >
+                {reportSubmitting ? "Submitting…" : "Submit report"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportOpen(false)}
+                className="rounded-lg border px-4 py-2 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {similar.length > 0 && (
           <section className="mt-8">
             <h2 className="font-display text-lg font-semibold">Similar homes nearby</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {similar.map((item) => (
-                <PropertyCard key={item.id} p={item} showSave={false} />
+                <PropertyCard key={item.id} p={item} />
               ))}
             </div>
           </section>

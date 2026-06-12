@@ -17,7 +17,7 @@ export function OtpInput({ value, onChange, length = 6 }: Readonly<Props>) {
   }
 
   function handleChange(index: number, raw: string) {
-    const char = raw.replace(/\D/g, "").slice(-1);
+    const char = raw.replaceAll(/\D/g, "").slice(-1);
     updateAt(index, char);
     if (char && index < length - 1) inputsRef.current[index + 1]?.focus();
   }
@@ -30,7 +30,7 @@ export function OtpInput({ value, onChange, length = 6 }: Readonly<Props>) {
 
   function handlePaste(e: ClipboardEvent<HTMLInputElement>) {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
+    const pasted = e.clipboardData.getData("text").replaceAll(/\D/g, "").slice(0, length);
     if (!pasted) return;
     onChange(pasted);
     const focusIndex = Math.min(pasted.length, length - 1);
@@ -41,7 +41,7 @@ export function OtpInput({ value, onChange, length = 6 }: Readonly<Props>) {
     <div className="flex justify-between gap-2">
       {digits.map((digit, index) => (
         <input
-          key={index}
+          key={`otp-slot-${index}`}
           ref={(el) => {
             inputsRef.current[index] = el;
           }}

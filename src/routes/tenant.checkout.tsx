@@ -29,7 +29,14 @@ function TenantCheckoutPage() {
     }
   }, [loading, user, navigate]);
 
-  if (loading || !user) return null;
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-lg px-5 pt-16">
+        <div className="h-48 animate-pulse rounded-2xl bg-muted" />
+      </div>
+    );
+  }
+  if (!user) return null;
 
   if (done) {
     return (

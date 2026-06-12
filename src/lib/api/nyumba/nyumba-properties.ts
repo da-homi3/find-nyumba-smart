@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Property, PropertyType } from "@/lib/properties";
+import type { Property } from "@/lib/properties";
 import { ForbiddenError, requireRole } from "@/lib/api/_authz";
 import {
   createPublicClient,
@@ -17,9 +17,10 @@ import {
   authContext,
   getUserOrganizationId,
   listPropertiesSchema,
+  mapPropertyRow,
+  mapPropertyRows,
   propertyIdSchema,
   propertyPayloadSchema,
-  type InquiryRecord,
 } from "@/lib/api/nyumba/nyumba-shared";
 
 export const listProperties = createServerFn({ method: "POST" })
@@ -87,7 +88,7 @@ export const listProperties = createServerFn({ method: "POST" })
     const { data: rows, error, count } = await query;
     if (error) throw error;
 
-    let items = (rows ?? []) as Property[];
+    let items = mapPropertyRows(rows ?? []);
     let total = count ?? items.length;
 
     if (mockListingsEnabled()) {
@@ -148,7 +149,7 @@ export const getProperty = createServerFn({ method: "POST" })
       })
       .throwOnError();
 
-    return property as Property;
+    return mapPropertyRow(property);
   });
 
 export const listSavedProperties = createServerFn({ method: "GET" })
@@ -164,8 +165,8 @@ export const listSavedProperties = createServerFn({ method: "GET" })
 
     if (error) throw error;
     return (data ?? [])
-      .map((row) => row.properties as unknown as Property | null)
-      .filter((property): property is Property => Boolean(property));
+      .map((row) => (row.properties ? mapPropertyRow(row.properties) : null))
+      .filter((property): property is Property => property !== null);
   });
 
 export const toggleSavedProperty = createServerFn({ method: "POST" })
@@ -225,18 +226,19 @@ export const createProperty = createServerFn({ method: "POST" })
         ...data,
         owner_id: userId,
         organization_id: organizationId,
-        property_type: data.property_type as PropertyType,
+        property_type: data.property_type,
       })
       .select("*")
       .single();
 
     if (error) throw error;
 
+    const mapped = mapPropertyRow(property);
     void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
-      notifyMatchingSearchAlerts(property as Property),
+      notifyMatchingSearchAlerts(mapped),
     );
 
-    return property as Property;
+    return mapped;
   });
 
 export const listLandlordProperties = createServerFn({ method: "GET" })
@@ -251,7 +253,7 @@ export const listLandlordProperties = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return (data ?? []) as Property[];
+    return mapPropertyRows(data ?? []);
   });
 
 export const listAgencyProperties = createServerFn({ method: "GET" })
@@ -268,7 +270,7 @@ export const listAgencyProperties = createServerFn({ method: "GET" })
     }
     const { data, error } = await query.limit(500);
     if (error) throw error;
-    return (data ?? []) as Property[];
+    return mapPropertyRows(data ?? []);
   });
 
 export const listAgencyTeamMembers = createServerFn({ method: "GET" })
@@ -314,7 +316,7 @@ export const listManagerProperties = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []) as Property[];
+      return mapPropertyRows(data ?? []);
     }
     const { data, error } = await supabase
       .from("properties")
@@ -323,7 +325,7 @@ export const listManagerProperties = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw error;
-    return (data ?? []) as Property[];
+    return mapPropertyRows(data ?? []);
   });
 
 export const getPropertyOwnerContact = createServerFn({ method: "POST" })
@@ -338,7 +340,7 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .maybeSingle();
     if (propertyError) throw propertyError;
     if (!property?.owner_id || !property.is_active) {
-      return { phone: null as string | null, fullName: null as string | null };
+      return { phone: null, fullName: null };
     }
     const { data: profile, error: profileError } = await admin
       .from("profiles")
@@ -392,7 +394,7 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw error;
-    return updated as Property;
+    return mapPropertyRow(updated);
   });
 
 export const getLandlordDashboard = createServerFn({ method: "GET" })
@@ -409,8 +411,8 @@ export const getLandlordDashboard = createServerFn({ method: "GET" })
     if (propertiesError) throw propertiesError;
     if (leadsError) throw leadsError;
 
-    const propertyRows = (properties ?? []) as Property[];
-    const leadRows = (leads ?? []) as InquiryRecord[];
+    const propertyRows = mapPropertyRows(properties ?? []);
+    const leadRows = leads ?? [];
     const activeProperties = propertyRows.filter((p) => p.is_active);
     const totalViews = propertyRows.reduce((sum, p) => sum + p.views, 0);
     const potentialRevenue = activeProperties.reduce((sum, p) => sum + p.rent_kes, 0);

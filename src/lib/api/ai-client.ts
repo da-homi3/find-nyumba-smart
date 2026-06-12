@@ -3,7 +3,6 @@ import { getWorkersAi } from "@/lib/worker-bindings";
 const GEMINI_OPENAI_BASE =
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite";
 const GEMINI_MODEL_FALLBACKS = [
   "gemini-2.5-flash-lite",
   "gemini-2.0-flash-lite",

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useId, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useId, type FormEvent, type ReactNode } from "react";
 import {
   Building2,
   Home,
@@ -152,7 +152,7 @@ function SettingsPage() {
     navigate({ to: PORTAL_HOME[portal] as "/tenant" });
   }
 
-  async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
+  async function saveProfile(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     if (phone.trim() && !isKenyanPhone(phone)) {
@@ -199,7 +199,7 @@ function SettingsPage() {
     }
   }
 
-  async function changePassword(e: React.FormEvent<HTMLFormElement>) {
+  async function changePassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const passwordError = validatePasswordPair(newPassword, confirmPassword);
     if (passwordError) {

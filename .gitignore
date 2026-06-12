@@ -34,3 +34,8 @@ dist-ssr
 
 .env
 sendgrid.env
+
+# Vite/TanStack dev artifacts (repo root)
+tmp_*.js
+tmp_*.ts
+tmp_*.html

@@ -19,7 +19,7 @@ export function AdminVerificationsTab({ verifications, loading, approve, reject 
       loading={loading}
       loadingMessage="Loading queue..."
       isEmpty={verifications.length === 0}
-      empty={
+      emptyContent={
         <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
           Verification queue is clean! No pending requests.
         </div>

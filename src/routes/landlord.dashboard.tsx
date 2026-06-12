@@ -2,17 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { LandlordShell } from "@/components/LandlordShell";
-import {
-  Building2,
-  Eye,
-  Users,
-  TrendingUp,
-  Plus,
-  Calendar,
-  Smartphone,
-  Check,
-  X,
-} from "lucide-react";
+import { Building2, Eye, Users, TrendingUp, Plus, Calendar, Check, X } from "lucide-react";
 import { getLandlordDashboard } from "@/lib/api/nyumba.functions";
 import {
   listMyViewings,
@@ -238,7 +228,7 @@ function Dashboard() {
                         type="button"
                         onClick={() => updateStatus.mutate({ id: v.id, status: "cancelled" })}
                         className="rounded-lg border border-red-500/20 text-red-500 p-1 hover:bg-red-500/10"
-                        title="Decline"
+                        aria-label="Decline viewing"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -246,7 +236,7 @@ function Dashboard() {
                         type="button"
                         onClick={() => updateStatus.mutate({ id: v.id, status: "confirmed" })}
                         className="rounded-lg bg-gradient-emerald text-primary-foreground p-1 shadow-soft hover:opacity-90"
-                        title="Accept"
+                        aria-label="Accept viewing"
                       >
                         <Check className="h-4 w-4" />
                       </button>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,12 +73,12 @@ function ResetPasswordPage() {
     }
   }
 
-  async function requestReset(e: React.FormEvent<HTMLFormElement>) {
+  async function requestReset(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await sendResetEmail();
   }
 
-  function verifyOtp(e: React.FormEvent<HTMLFormElement>) {
+  function verifyOtp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!OTP_PATTERN.test(otp)) {
       toast.error("Enter the 6-digit code");
@@ -88,7 +88,7 @@ function ResetPasswordPage() {
     toast.success("Code accepted — set your new password.");
   }
 
-  async function updatePassword(e: React.FormEvent<HTMLFormElement>) {
+  async function updatePassword(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const passwordError = validatePasswordPair(password, confirmPassword);
     if (passwordError) {

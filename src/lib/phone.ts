@@ -2,7 +2,7 @@
 export const KENYAN_MOBILE = /^(?:\+?254|0)?[17]\d{8}$/;
 
 export function isKenyanPhone(value: string): boolean {
-  const normalized = value.replace(/[\s-]/g, "");
+  const normalized = value.replaceAll(/[\s-]/g, "");
   return KENYAN_MOBILE.test(normalized);
 }
 

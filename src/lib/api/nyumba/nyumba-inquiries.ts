@@ -8,12 +8,11 @@ import {
   createInquirySchema,
   getUserOrganizationId,
   inquiryIdSchema,
+  mapInquiryWithDetails,
   notifyInquiryParticipant,
   sendInquiryMessageSchema,
   updateInquiryStatusSchema,
-  type InquiryMessageRecord,
   type InquiryRecord,
-  type InquiryWithDetails,
 } from "@/lib/api/nyumba/nyumba-shared";
 
 export const createInquiry = createServerFn({ method: "POST" })
@@ -43,7 +42,7 @@ export const createInquiry = createServerFn({ method: "POST" })
 
     if (existingError) throw existingError;
 
-    let inquiry = existingInquiry as InquiryRecord | null;
+    let inquiry: InquiryRecord | null = existingInquiry;
 
     if (!inquiry) {
       const { data: insertedInquiry, error: insertError } = await supabase
@@ -58,7 +57,7 @@ export const createInquiry = createServerFn({ method: "POST" })
         .single();
 
       if (insertError) throw insertError;
-      inquiry = insertedInquiry as InquiryRecord;
+      inquiry = insertedInquiry;
     }
 
     if (!inquiry) {
@@ -83,7 +82,7 @@ export const createInquiry = createServerFn({ method: "POST" })
       data.message,
     );
 
-    return inquiry as InquiryRecord;
+    return inquiry;
   });
 
 export const listTenantInquiries = createServerFn({ method: "GET" })
@@ -100,7 +99,7 @@ export const listTenantInquiries = createServerFn({ method: "GET" })
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
-    return (data ?? []) as unknown as InquiryWithDetails[];
+    return (data ?? []).map(mapInquiryWithDetails);
   });
 
 export const listLandlordLeads = createServerFn({ method: "GET" })
@@ -145,7 +144,7 @@ export const listLandlordLeads = createServerFn({ method: "GET" })
     const { data, error } = await query;
 
     if (error) throw error;
-    return (data ?? []) as unknown as InquiryWithDetails[];
+    return (data ?? []).map(mapInquiryWithDetails);
   });
 
 export const updateInquiryStatus = createServerFn({ method: "POST" })
@@ -164,7 +163,7 @@ export const updateInquiryStatus = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
-    return inquiry as InquiryRecord;
+    return inquiry;
   });
 
 export const listInquiryMessages = createServerFn({ method: "POST" })
@@ -236,5 +235,5 @@ export const sendInquiryMessage = createServerFn({ method: "POST" })
 
     void notifyInquiryParticipant(inquiry, userId, data.body);
 
-    return message as InquiryMessageRecord;
+    return message;
   });

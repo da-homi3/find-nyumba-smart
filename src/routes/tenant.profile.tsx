@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import {
   Bell,
   Building2,
@@ -11,9 +11,7 @@ import {
   User,
   Calendar,
   X,
-  Upload,
   CreditCard,
-  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -188,7 +186,7 @@ function Profile() {
     },
   });
 
-  async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
+  async function saveProfile(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
@@ -218,7 +216,7 @@ function Profile() {
     }
   }
 
-  async function handleUploadVerification(e: React.FormEvent<HTMLFormElement>) {
+  async function handleUploadVerification(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!docUrl.trim()) {
       toast.error("Please enter a document URL link");

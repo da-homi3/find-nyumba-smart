@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { LayoutDashboard, Building2, Inbox, Users, Settings, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import type { ReactNode } from "react";
@@ -12,7 +12,6 @@ const nav = [
 
 export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
   const { signOut } = useAuth();
-  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen bg-secondary">

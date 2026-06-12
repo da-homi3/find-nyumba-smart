@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { fetchProperty } from "@/lib/properties";
 import { PropertyReviewsSection } from "@/components/PropertyReviewsSection";

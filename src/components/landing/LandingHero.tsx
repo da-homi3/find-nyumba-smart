@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Search, ShieldCheck, MapPin, ArrowRight } from "lucide-react";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { HOOD_META } from "@/components/landing/hood-meta";
@@ -13,7 +13,7 @@ export function LandingHero({
   const [maxRent, setMaxRent] = useState("");
   const [propType, setPropType] = useState("");
 
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     navigate({
       to: "/tenant",
