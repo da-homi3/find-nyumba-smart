@@ -699,6 +699,75 @@ export const sendInquiryMessage = createServerFn({ method: "POST" })
     return message as InquiryMessageRecord;
   });
 
+export const getPropertyOwnerContact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ propertyId: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    const admin = await adminClient();
+    const { data: property, error: propertyError } = await admin
+      .from("properties")
+      .select("owner_id, is_active")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    if (propertyError) throw propertyError;
+    if (!property?.owner_id || !property.is_active) {
+      return { phone: null as string | null, fullName: null as string | null };
+    }
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("phone, full_name")
+      .eq("id", property.owner_id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    return {
+      phone: profile?.phone?.trim() || null,
+      fullName: profile?.full_name ?? null,
+    };
+  });
+
+export const updatePropertyVacancy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      propertyId: z.string().uuid(),
+      isVacant: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+
+    const admin = await adminClient();
+    const { data: property, error: fetchError } = await admin
+      .from("properties")
+      .select("id, owner_id, organization_id")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+    if (!property) throw new Error("Property not found");
+
+    const { data: roleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = new Set((roleRows ?? []).map((r) => r.role));
+    let allowed = property.owner_id === userId;
+    if (!allowed && (roles.has("manager") || roles.has("agency")) && property.organization_id) {
+      const orgId = await getUserOrganizationId(supabase, userId);
+      allowed = orgId === property.organization_id;
+    }
+    if (!allowed) throw new ForbiddenError("You cannot update this property");
+
+    const { data: updated, error } = await admin
+      .from("properties")
+      .update({ is_vacant: data.isVacant, updated_at: new Date().toISOString() })
+      .eq("id", data.propertyId)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return updated as Property;
+  });
+
 export const getLandlordDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

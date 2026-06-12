@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useCountUp } from "@/hooks/use-count-up";
+import { SiteNav, SiteFooter } from "@/components/SiteNav";
 import {
   Search,
   ShieldCheck,
@@ -14,15 +15,17 @@ import {
   Smartphone,
   Apple,
   PlayCircle,
-  Eye,
   BadgeCheck,
   Camera,
   Bot,
   TrendingUp,
 } from "lucide-react";
 import heroImg from "@/assets/hero-nairobi.jpg";
+import { getSiteUrl } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
+import { AdUnit } from "@/components/AdUnit";
+import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,7 +57,14 @@ function Landing() {
     queryFn: () => fetchProperties(),
   });
 
-  const verified = useMemo(() => properties.filter((p) => p.is_verified).slice(0, 8), [properties]);
+  const featured = useMemo(() => {
+    const now = Date.now();
+    const boosted = properties.filter(
+      (p) => p.featured_until && new Date(p.featured_until).getTime() > now,
+    );
+    const pool = boosted.length > 0 ? boosted : properties.filter((p) => p.is_verified);
+    return { items: pool.slice(0, 8), isBoosted: boosted.length > 0 };
+  }, [properties]);
 
   const popularNeighborhoods = useMemo(() => {
     const counts = new Map<string, number>();
@@ -77,11 +87,13 @@ function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SiteNav />
+      <SiteNav variant="hero" />
       <Hero verifiedCount={stats.verifiedCount} hoodCount={stats.hoods} />
       <TrustStrip />
-      <FeaturedListings verified={verified} />
+      <FeaturedListings featured={featured.items} isBoosted={featured.isBoosted} />
       <PopularNeighborhoods hoods={popularNeighborhoods} />
+      <ServiceTeaserRow />
+      <AgencyLogosSection />
       <VerifiedSection />
       <PropertyIntelSection />
       <WhyNyumba />
@@ -99,7 +111,7 @@ function Landing() {
             "@type": "RealEstateAgent",
             name: "NyumbaSearch",
             areaServed: "Nairobi, Kenya",
-            url: "https://find-nyumba-smart.lovable.app",
+            url: getSiteUrl(),
             description:
               "Verified vacant homes across Nairobi with map-first search, real reviews, and direct landlord contact.",
           }),
@@ -110,43 +122,6 @@ function Landing() {
 }
 
 /* ----------------------------- Sections ----------------------------- */
-
-function SiteNav() {
-  return (
-    <header className="absolute top-0 inset-x-0 z-30">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 text-background">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
-            N
-          </div>
-          <span className="font-display text-xl font-semibold tracking-tight">NyumbaSearch</span>
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex">
-          {[
-            { to: "/tenant", label: "Browse" },
-            { to: "/tenant/map", label: "Map" },
-            { to: "/landlord", label: "Landlords" },
-          ].map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className="rounded-full px-4 py-2 text-sm font-medium text-background/85 hover:bg-background/10 hover:text-background"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <Link
-          to="/auth"
-          search={{ redirect: "/tenant" } as never}
-          className="rounded-full border border-background/30 bg-background/10 px-4 py-2 text-sm font-medium text-background backdrop-blur hover:bg-background/20"
-        >
-          Sign in
-        </Link>
-      </div>
-    </header>
-  );
-}
 
 const HOOD_META: Record<string, { from: number; img: string }> = {
   Kilimani: { from: 18000, img: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400" },
@@ -176,7 +151,10 @@ const HOOD_META: Record<string, { from: number; img: string }> = {
   Ruaka: { from: 15000, img: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400" },
 };
 
-function Hero({ verifiedCount, hoodCount }: { verifiedCount: number; hoodCount: number }) {
+function Hero({
+  verifiedCount,
+  hoodCount,
+}: Readonly<{ verifiedCount: number; hoodCount: number }>) {
   const navigate = useNavigate();
   const [hood, setHood] = useState("");
   const [maxRent, setMaxRent] = useState("");
@@ -355,15 +333,20 @@ function TrustStrip() {
   );
 }
 
-function FeaturedListings({ verified }: { verified: import("@/lib/properties").Property[] }) {
-  if (!verified.length) return null;
+function FeaturedListings({
+  featured,
+  isBoosted,
+}: Readonly<{ featured: import("@/lib/properties").Property[]; isBoosted: boolean }>) {
+  if (!featured.length) return null;
   return (
     <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Featured</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+            {isBoosted ? "Featured listings" : "Featured"}
+          </p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
-            Verified homes, ready to view
+            {isBoosted ? "Boosted homes, top of search" : "Verified homes, ready to view"}
           </h2>
         </div>
         <Link
@@ -375,7 +358,7 @@ function FeaturedListings({ verified }: { verified: import("@/lib/properties").P
       </div>
 
       <div className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
-        {verified.map((p) => (
+        {featured.map((p) => (
           <div key={p.id} className="w-72 shrink-0 sm:w-auto">
             <PropertyCard p={p} />
           </div>
@@ -385,7 +368,7 @@ function FeaturedListings({ verified }: { verified: import("@/lib/properties").P
   );
 }
 
-function PopularNeighborhoods({ hoods }: { hoods: { name: string; count: number }[] }) {
+function PopularNeighborhoods({ hoods }: Readonly<{ hoods: { name: string; count: number }[] }>) {
   const fallback = [
     "Kilimani",
     "Westlands",
@@ -448,6 +431,73 @@ function PopularNeighborhoods({ hoods }: { hoods: { name: string; count: number 
             );
           })}
         </div>
+        <div className="mt-8">
+          <AdUnit
+            variant="banner"
+            label="Partner"
+            title="Advertise on NyumbaSearch"
+            body="Reach verified tenants searching for homes in Nairobi."
+            href="/advertise"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ServiceTeaserRow() {
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Services</p>
+          <h2 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
+            Everything after you move in
+          </h2>
+        </div>
+        <Link to="/services" className="text-sm font-semibold text-primary hover:underline">
+          View all →
+        </Link>
+      </div>
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        {SERVICE_CATEGORIES.slice(0, 8).map((c) => (
+          <Link
+            key={c.id}
+            to="/services/$category"
+            params={{ category: c.id }}
+            className="rounded-2xl border bg-card p-4 text-center text-xs font-semibold hover:border-primary/30"
+          >
+            <span className="text-2xl">{c.emoji}</span>
+            <p className="mt-2">{c.label}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AgencyLogosSection() {
+  const agencies = ["Sunrise Realty", "Nairobi Homes Co.", "Prime Estates", "Urban Nest Agency"];
+  return (
+    <section className="border-y bg-secondary/30 py-10">
+      <div className="mx-auto max-w-7xl px-5 text-center sm:px-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Trusted agency partners
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-8 opacity-80">
+          {agencies.map((name) => (
+            <span key={name} className="font-display text-sm font-semibold text-foreground/70">
+              {name}
+            </span>
+          ))}
+        </div>
+        <Link
+          to="/pricing"
+          hash="agencies"
+          className="mt-4 inline-block text-xs font-semibold text-primary"
+        >
+          Agency plans →
+        </Link>
       </div>
     </section>
   );
@@ -572,9 +622,10 @@ function WhyNyumba() {
       body: "Recommends neighborhoods, warns about red flags, compares like a friend.",
     },
     {
-      icon: Eye,
-      title: "Real reviews",
-      body: "Honest ratings from past tenants on security, water and landlord.",
+      icon: ShieldCheck,
+      title: "NyumbaSearch Verified",
+      body: "On-site inspection, ownership checks, and vacancy confirmation before you pay a deposit.",
+      link: "/verify",
     },
   ];
   return (
@@ -589,15 +640,30 @@ function WhyNyumba() {
           </h2>
         </div>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {items.map((f) => (
-            <div key={f.title} className="rounded-2xl border bg-card p-6 shadow-soft">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-emerald text-primary-foreground">
-                <f.icon className="h-5 w-5" />
+          {items.map((f) => {
+            const inner = (
+              <>
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-emerald text-primary-foreground">
+                  <f.icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-5 font-display text-lg font-semibold">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+              </>
+            );
+            return "link" in f && f.link ? (
+              <Link
+                key={f.title}
+                to={f.link}
+                className="rounded-2xl border bg-card p-6 shadow-soft transition hover:border-primary/30"
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={f.title} className="rounded-2xl border bg-card p-6 shadow-soft">
+                {inner}
               </div>
-              <h3 className="mt-5 font-display text-lg font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -639,8 +705,8 @@ function Testimonials() {
             className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-soft"
           >
             <div className="flex gap-0.5 text-gold">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-current" />
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={`${t.name}-${star}`} className="h-4 w-4 fill-current" />
               ))}
             </div>
             <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-foreground/85">
@@ -722,87 +788,5 @@ function LandlordBand() {
         </Link>
       </div>
     </section>
-  );
-}
-
-function SiteFooter() {
-  return (
-    <footer className="border-t bg-secondary/40">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:px-6 sm:grid-cols-2 md:grid-cols-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
-              N
-            </div>
-            <span className="font-display text-lg font-semibold">NyumbaSearch</span>
-          </div>
-          <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            The trusted way to find a home in Nairobi. Built for tenants and landlords, free of
-            brokers.
-          </p>
-        </div>
-        <FooterCol
-          title="Tenants"
-          links={[
-            { to: "/tenant", label: "Browse homes" },
-            { to: "/tenant/map", label: "Map view" },
-            { to: "/tenant/saved", label: "Saved" },
-          ]}
-        />
-        <FooterCol
-          title="Landlords"
-          links={[
-            { to: "/landlord", label: "Landlord portal" },
-            { to: "/landlord/dashboard", label: "Dashboard" },
-            { to: "/landlord/properties/new", label: "List a property" },
-          ]}
-        />
-        <FooterCol
-          title="Company"
-          links={[
-            { to: "/about", label: "About" },
-            { to: "/contact", label: "Contact" },
-            { to: "/pricing", label: "Pricing" },
-            { to: "/caretaker", label: "Caretaker" },
-            { to: "/manager/dashboard", label: "Property manager" },
-          ]}
-        />
-      </div>
-      <div className="border-t">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 sm:flex-row sm:px-6">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} NyumbaSearch · Made in Nairobi 🇰🇪
-          </p>
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <a href="#" className="hover:text-primary">
-              Twitter
-            </a>
-            <a href="#" className="hover:text-primary">
-              LinkedIn
-            </a>
-            <a href="#" className="hover:text-primary">
-              Instagram
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-function FooterCol({ title, links }: { title: string; links: { to: string; label: string }[] }) {
-  return (
-    <div>
-      <div className="font-display text-sm font-semibold">{title}</div>
-      <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-        {links.map((l) => (
-          <li key={l.label}>
-            <Link to={l.to} className="hover:text-primary">
-              {l.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

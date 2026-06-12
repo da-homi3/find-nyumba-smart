@@ -4,8 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+import { callGeminiChat } from "@/lib/api/ai-client";
+
+const QUALITY_AI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
 
 const propertyIdSchema = z.object({ propertyId: z.string().uuid() });
 
@@ -80,30 +81,11 @@ function fallbackScore(p: {
 }
 
 async function callAI(prompt: string): Promise<QualityResult | null> {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) return null;
   try {
-    const res = await fetch(AI_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              'You are an expert real-estate listing reviewer for Nairobi rentals. Reply ONLY with strict JSON: {"score":0-100,"grade":"A|B|C|D|F","summary":string,"strengths":string[],"improvements":string[]}. No markdown.',
-          },
-          { role: "user", content: prompt },
-        ],
-      }),
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = json.choices?.[0]?.message?.content ?? "";
+    const systemPrompt =
+      'You are an expert real-estate listing reviewer for Nairobi rentals. Reply ONLY with strict JSON: {"score":0-100,"grade":"A|B|C|D|F","summary":string,"strengths":string[],"improvements":string[]}. No markdown.';
+    const text = await callGeminiChat(systemPrompt, prompt);
+    if (!text) return null;
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return null;
     const parsed = JSON.parse(match[0]) as Partial<QualityResult>;
@@ -168,7 +150,7 @@ Score 0-100. Be concrete and actionable.`;
       strengths: result.strengths,
       improvements: result.improvements,
       media_count: mediaCount,
-      model: ai ? MODEL : "heuristic",
+      model: ai ? QUALITY_AI_MODEL : "heuristic",
     })
     .select("*")
     .single();

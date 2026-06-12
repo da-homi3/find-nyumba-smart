@@ -27,6 +27,7 @@ import {
 } from "@/lib/api/booking.functions";
 import { listTransactions } from "@/lib/api/payment.functions";
 import { listSavedSearches, setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
+import { errorMessage } from "@/lib/utils";
 
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
 type VerificationType = "phone" | "identity" | "business" | "ownership";
@@ -52,9 +53,9 @@ function getPrefsKey(userId: string) {
 }
 
 function readPrefs(userId?: string): TenantNotificationPrefs {
-  if (!userId || typeof window === "undefined") return DEFAULT_PREFS;
+  if (!userId || globalThis.localStorage === undefined) return DEFAULT_PREFS;
   try {
-    const raw = window.localStorage.getItem(getPrefsKey(userId));
+    const raw = globalThis.localStorage.getItem(getPrefsKey(userId));
     return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : DEFAULT_PREFS;
   } catch {
     return DEFAULT_PREFS;
@@ -97,7 +98,7 @@ function Profile() {
     setPrefs((prev) => {
       if (prev.savedAlerts === anyAlertsOn) return prev;
       const next = { ...prev, savedAlerts: anyAlertsOn };
-      window.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
+      globalThis.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
       return next;
     });
   }, [savedSearches, user?.id]);
@@ -117,9 +118,7 @@ function Profile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select(
-          "full_name, phone, is_phone_verified, is_id_verified, is_business_verified, is_ownership_verified",
-        )
+        .select("full_name, phone")
         .eq("id", user!.id)
         .maybeSingle();
 
@@ -127,6 +126,30 @@ function Profile() {
       return data;
     },
   });
+
+  const { data: verifications = [] } = useQuery({
+    queryKey: ["tenant-verifications", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("verifications")
+        .select("verification_type, status")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const verificationStatus = useMemo(() => {
+    const approved = (type: string) =>
+      verifications.some((v) => v.verification_type === type && v.status === "approved");
+    return {
+      is_phone_verified: approved("phone"),
+      is_id_verified: approved("identity"),
+      is_business_verified: approved("business"),
+      is_ownership_verified: approved("ownership"),
+    };
+  }, [verifications]);
 
   // Fetch tenant viewings
   const { data: viewings = [] } = useQuery({
@@ -188,7 +211,7 @@ function Profile() {
 
       toast.success("Profile updated");
     } catch (error) {
-      toast.error((error as Error).message);
+      toast.error(errorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -213,7 +236,7 @@ function Profile() {
       setIsVerifying(false);
       setDocUrl("");
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(errorMessage(err));
     } finally {
       setVerLoading(false);
     }
@@ -221,8 +244,8 @@ function Profile() {
 
   function updatePrefs(next: TenantNotificationPrefs) {
     setPrefs(next);
-    if (user && typeof window !== "undefined") {
-      window.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
+    if (user && globalThis.localStorage !== undefined) {
+      globalThis.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
       toast.success("Notification preferences saved");
     }
   }
@@ -319,6 +342,7 @@ function Profile() {
               </h2>
               {!isVerifying && (
                 <button
+                  type="button"
                   onClick={() => setIsVerifying(true)}
                   className="text-xs text-primary font-semibold hover:underline"
                 >
@@ -371,10 +395,10 @@ function Profile() {
             ) : (
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 {[
-                  { label: "Phone", status: profile?.is_phone_verified },
-                  { label: "Identity", status: profile?.is_id_verified },
-                  { label: "Business", status: profile?.is_business_verified },
-                  { label: "Ownership", status: profile?.is_ownership_verified },
+                  { label: "Phone", status: verificationStatus.is_phone_verified },
+                  { label: "Identity", status: verificationStatus.is_id_verified },
+                  { label: "Business", status: verificationStatus.is_business_verified },
+                  { label: "Ownership", status: verificationStatus.is_ownership_verified },
                 ].map((l) => (
                   <div
                     key={l.label}
@@ -427,6 +451,7 @@ function Profile() {
                     </div>
                     {v.status === "pending" && (
                       <button
+                        type="button"
                         onClick={() => handleCancelViewing.mutate(v.id)}
                         className="rounded-lg border border-red-500/20 text-red-500 px-2 py-1 text-[10px] font-semibold hover:bg-red-500/15"
                       >
@@ -486,8 +511,8 @@ function Profile() {
               onChange={(checked) => {
                 const next = { ...prefs, savedAlerts: checked };
                 setPrefs(next);
-                if (user && typeof window !== "undefined") {
-                  window.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
+                if (user && globalThis.localStorage !== undefined) {
+                  globalThis.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
                 }
                 savedAlertsMutation.mutate(checked);
               }}
@@ -530,7 +555,7 @@ function Profile() {
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60";
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
@@ -544,12 +569,12 @@ function ToggleRow({
   hint,
   checked,
   onChange,
-}: {
+}: Readonly<{
   label: string;
   hint: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
-}) {
+}>) {
   return (
     <label className="flex items-center gap-4 px-4 py-4">
       <div className="flex-1">
@@ -570,11 +595,11 @@ function SettingsRow({
   icon: Icon,
   label,
   hint,
-}: {
+}: Readonly<{
   icon: typeof ShieldCheck;
   label: string;
   hint: string;
-}) {
+}>) {
   return (
     <div className="flex items-center gap-4 px-4 py-4">
       <div className="grid h-9 w-9 place-items-center rounded-lg bg-secondary">
