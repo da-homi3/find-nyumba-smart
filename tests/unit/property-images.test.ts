@@ -8,9 +8,7 @@ import {
 describe("property-images", () => {
   it("detects broken seed URLs", () => {
     expect(
-      isBrokenListingImageUrl(
-        "https://images.unsplash.com/photo-1545324419-cc1a3fa10c00?w=800",
-      ),
+      isBrokenListingImageUrl("https://images.unsplash.com/photo-1545324419-cc1a3fa10c00?w=800"),
     ).toBe(true);
     expect(
       isBrokenListingImageUrl("https://images.unsplash.com/photo-1484154218962-a197022b5858"),

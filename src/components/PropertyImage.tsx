@@ -21,13 +21,7 @@ function initialSrc(src: string | null | undefined, seed: string): string {
   return trimmed;
 }
 
-export function PropertyImage({
-  src,
-  alt,
-  className,
-  seed,
-  loading = "lazy",
-}: PropertyImageProps) {
+export function PropertyImage({ src, alt, className, seed, loading = "lazy" }: PropertyImageProps) {
   const [current, setCurrent] = useState(() => initialSrc(src, seed));
 
   useEffect(() => {

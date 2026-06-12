@@ -50,7 +50,12 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     return () => globalThis.clearTimeout(timer);
   }, [user, id]);
 
-  const { data: p, isLoading, isError, refetch } = useQuery({
+  const {
+    data: p,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["property", id],
     queryFn: () => fetchProperty(id),
     initialData: initialProperty ?? undefined,
