@@ -3,12 +3,14 @@ import { BedDouble, Bath, MapPin, Flame, Heart, Droplets, Shield, Wifi, Car } fr
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/listing-intel";
+import { isListingEarlyAccess } from "@/lib/revenue/entitlements";
 
 type Props = {
   p: Property;
   saved?: boolean;
   onToggleSave?: (e: React.MouseEvent) => void;
   showSave?: boolean;
+  plusMember?: boolean;
 };
 
 function intelColor(label: string) {
@@ -17,13 +19,23 @@ function intelColor(label: string) {
   return "text-red-600";
 }
 
-export function PropertyCard({ p, saved, onToggleSave, showSave = true }: Props) {
+export function PropertyCard({
+  p,
+  saved,
+  onToggleSave,
+  showSave = true,
+  plusMember = false,
+}: Props) {
   const score = p.authenticity_score ?? 70;
   const level = verificationLevel(p);
   const intel = getListingIntel(p);
+  const isFeatured = p.featured_until && new Date(p.featured_until) > new Date();
+  const earlyAccess = isListingEarlyAccess(p.created_at, plusMember);
 
   return (
-    <article className="group overflow-hidden rounded-2xl border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-card">
+    <article
+      className={`group overflow-hidden rounded-2xl border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-card ${isFeatured ? "ring-2 ring-gold/40" : ""}`}
+    >
       <div className="relative aspect-video overflow-hidden bg-muted">
         <Link to="/tenant/property/$id" params={{ id: p.id }} className="block h-full">
           {p.images[0] ? (
@@ -38,10 +50,36 @@ export function PropertyCard({ p, saved, onToggleSave, showSave = true }: Props)
           )}
         </Link>
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {isFeatured && (
+            <span className="inline-flex rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
+              Featured
+            </span>
+          )}
+          {p.nyumba_verified_at && (
+            <span className="inline-flex rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              NyumbaSearch Verified ✓
+            </span>
+          )}
           {level > 0 && <VerificationBadge level={level} />}
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
-            <Flame className="h-3 w-3 text-orange-400" aria-hidden /> {score}%
-          </span>
+          {plusMember ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
+              <Flame className="h-3 w-3 text-orange-400" aria-hidden /> Scam risk {100 - score}%
+            </span>
+          ) : (
+            <Link
+              to="/tenant/checkout"
+              search={{ plan: "plus" }}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur"
+            >
+              <Flame className="h-3 w-3 text-orange-400" aria-hidden /> Plus: scam score
+            </Link>
+          )}
+          {earlyAccess && (
+            <span className="inline-flex rounded-full bg-violet-600/90 px-2 py-0.5 text-[10px] font-bold text-white">
+              Plus early access
+            </span>
+          )}
         </div>
         {showSave && onToggleSave && (
           <button

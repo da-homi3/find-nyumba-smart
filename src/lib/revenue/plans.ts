@@ -1,0 +1,225 @@
+import { formatKes } from "@/lib/properties";
+import type { BoostPackage, LandlordPlan, VerificationTier } from "@/lib/revenue/types";
+
+export type PlanCardDef = {
+  id: string;
+  name: string;
+  priceKes: number;
+  priceLabel?: string;
+  period: string;
+  desc: string;
+  features: string[];
+  cta: string;
+  ctaTo: string;
+  highlighted?: boolean;
+  badge?: string;
+};
+
+export const LANDLORD_PLANS: PlanCardDef[] = [
+  {
+    id: "free",
+    name: "Free",
+    priceKes: 0,
+    period: "/ month",
+    desc: "One verified listing to get started.",
+    features: [
+      "1 active listing",
+      "Basic analytics (views only)",
+      "Manual verification (Level 1)",
+      "Standard search placement",
+    ],
+    cta: "Get started free",
+    ctaTo: "/landlord",
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    priceKes: 999,
+    period: "/ month",
+    desc: "For active landlords with multiple units.",
+    features: [
+      "Up to 10 active listings",
+      "Full analytics (views, saves, inquiries)",
+      "Priority verification (Level 2 within 48hrs)",
+      "1 featured search slot included",
+      "Direct tenant messaging",
+      "Vacancy status management",
+    ],
+    cta: "Start Pro",
+    ctaTo: "/landlord/checkout?plan=pro",
+    highlighted: true,
+    badge: "Most popular",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    priceKes: 2999,
+    period: "/ month",
+    desc: "Scale with AI insights and homepage visibility.",
+    features: [
+      "Up to 30 active listings",
+      "Everything in Pro",
+      "AI pricing suggestions",
+      "Homepage featured slot (1/month)",
+      "Dedicated WhatsApp support",
+    ],
+    cta: "Start Premium",
+    ctaTo: "/landlord/checkout?plan=premium",
+  },
+];
+
+export const AGENCY_PLANS: PlanCardDef[] = [
+  {
+    id: "agency-starter",
+    name: "Starter Agency",
+    priceKes: 5000,
+    period: "/ month",
+    desc: "Small agencies getting started on NyumbaSearch.",
+    features: [
+      "Up to 20 listings",
+      "Team access (2 users)",
+      "Agency profile page",
+      "Lead management dashboard",
+    ],
+    cta: "Start Starter",
+    ctaTo: "/landlord/checkout?plan=agency-starter",
+  },
+  {
+    id: "agency-pro",
+    name: "Professional Agency",
+    priceKes: 15000,
+    period: "/ month",
+    desc: "Growing portfolios with priority placement.",
+    features: [
+      "Up to 100 listings",
+      "Team access (10 users)",
+      "Everything in Starter",
+      "Priority search placement",
+      "Weekly performance reports",
+    ],
+    cta: "Go Professional",
+    ctaTo: "/landlord/checkout?plan=agency-pro",
+    highlighted: true,
+  },
+  {
+    id: "agency-enterprise",
+    name: "Enterprise Agency",
+    priceKes: 30000,
+    priceLabel: "KES 30,000+",
+    period: "/ month",
+    desc: "Unlimited scale with dedicated support.",
+    features: [
+      "Unlimited listings",
+      "Unlimited team users",
+      "Everything in Professional",
+      "Dedicated account manager",
+      "Custom integrations",
+      "White-label options",
+    ],
+    cta: "Contact us",
+    ctaTo: "/contact?subject=enterprise",
+  },
+];
+
+export const BOOST_PACKAGES: {
+  id: BoostPackage;
+  name: string;
+  placement: string;
+  durationDays: number;
+  priceKes: number;
+  priceRange?: string;
+}[] = [
+  {
+    id: "spotlight",
+    name: "Spotlight",
+    placement: "Top of neighborhood search results",
+    durationDays: 7,
+    priceKes: 2000,
+  },
+  {
+    id: "homepage",
+    name: "Homepage Feature",
+    placement: "Homepage featured properties section",
+    durationDays: 14,
+    priceKes: 5000,
+  },
+  {
+    id: "campaign",
+    name: "Campaign",
+    placement: "Homepage + email newsletter + push notification",
+    durationDays: 30,
+    priceKes: 20000,
+    priceRange: "KES 20,000 – 100,000",
+  },
+];
+
+export const PLUS_PLAN = {
+  monthlyKes: 500,
+  quarterlyKes: 1500,
+  features: [
+    "Early access: new listings 24hrs before public",
+    "Scam alert notifications for saved searches",
+    "Unlimited saved searches with instant alerts",
+    "Monthly market report by neighborhood",
+    "Priority support response",
+  ],
+};
+
+export const LEAD_PACKS = [
+  { qty: 10, priceKes: 1800, label: "10 rental leads" },
+  { qty: 25, priceKes: 4000, label: "25 rental leads" },
+  { qty: 50, priceKes: 7500, label: "50 rental leads" },
+];
+
+export const VERIFICATION_TIERS: {
+  id: VerificationTier;
+  name: string;
+  priceKes: number;
+  turnaround: string;
+}[] = [
+  { id: "basic", name: "Basic verification", priceKes: 1000, turnaround: "3 business days" },
+  { id: "standard", name: "Standard verification", priceKes: 2500, turnaround: "48 hours" },
+  { id: "express", name: "Express verification", priceKes: 5000, turnaround: "24 hours" },
+];
+
+export const LISTING_LIMITS: Record<LandlordPlan, number> = {
+  free: 1,
+  pro: 10,
+  premium: 30,
+  "agency-starter": 20,
+  "agency-pro": 100,
+  "agency-enterprise": 9999,
+};
+
+export function planPriceLabel(plan: PlanCardDef): string {
+  if (plan.priceLabel) return plan.priceLabel;
+  return formatKes(plan.priceKes);
+}
+
+export function resolveLandlordPlan(planId: string | undefined): LandlordPlan {
+  const valid: LandlordPlan[] = [
+    "free",
+    "pro",
+    "premium",
+    "agency-starter",
+    "agency-pro",
+    "agency-enterprise",
+  ];
+  return valid.includes(planId as LandlordPlan) ? (planId as LandlordPlan) : "pro";
+}
+
+export function planMonthlyPrice(planId: LandlordPlan, cycle: "monthly" | "quarterly"): number {
+  const all = [...LANDLORD_PLANS, ...AGENCY_PLANS];
+  const plan = all.find((p) => p.id === planId);
+  const base = plan?.priceKes ?? 999;
+  if (cycle === "quarterly") return Math.round(base * 3 * 0.9);
+  return base;
+}
+
+export function boostPrice(packageId: BoostPackage): number {
+  return BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 2000;
+}
+
+export function transactionReference(): string {
+  return `NS-${Math.floor(10000000 + Math.random() * 90000000)}`;
+}

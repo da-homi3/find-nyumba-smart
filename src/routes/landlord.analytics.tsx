@@ -1,9 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { LandlordShell } from "@/components/LandlordShell";
 import { getLandlordDashboard } from "@/lib/api/nyumba.functions";
+import { getUserEntitlements, listLandlordLeadsPanel } from "@/lib/api/revenue.functions";
+import { canViewLeadDetails } from "@/lib/revenue/entitlements";
+import { LEAD_PACKS } from "@/lib/revenue/plans";
 import { useAuth } from "@/hooks/use-auth";
-import { BarChart3, Eye, Home, Users } from "lucide-react";
+import { formatKes } from "@/lib/properties";
+import { BarChart3, Download, Eye, Home, Lock, Users } from "lucide-react";
+import { downloadCsv } from "@/lib/csv-export";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/landlord/analytics")({
   component: () => (
@@ -13,6 +19,8 @@ export const Route = createFileRoute("/landlord/analytics")({
   ),
 });
 
+type LeadRow = Awaited<ReturnType<typeof listLandlordLeadsPanel>>[number];
+
 function AnalyticsPage() {
   const { user } = useAuth();
   const { data } = useQuery({
@@ -20,23 +28,112 @@ function AnalyticsPage() {
     enabled: !!user,
     queryFn: () => getLandlordDashboard(),
   });
+  const { data: entitlements } = useQuery({
+    queryKey: ["entitlements", user?.id],
+    enabled: !!user,
+    queryFn: () => getUserEntitlements(),
+  });
+  const { data: leads = [] } = useQuery({
+    queryKey: ["landlord-leads-panel", user?.id],
+    enabled: !!user,
+    queryFn: () => listLandlordLeadsPanel(),
+  });
 
   const properties = data?.properties ?? [];
   const stats = data?.stats;
   const maxViews = Math.max(1, ...properties.map((property) => property.views));
+  const plan = entitlements?.landlordPlan ?? "free";
+  const showLeadDetails = canViewLeadDetails(plan);
+
+  const exportAnalytics = () => {
+    if (properties.length === 0) {
+      toast.error("No listings to export");
+      return;
+    }
+    downloadCsv(
+      `listing-analytics-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["Property", "Neighborhood", "Rent (KES)", "Views", "Active", "Verified"],
+      properties.map((p) => [
+        p.title,
+        p.neighborhood,
+        String(p.rent_kes),
+        String(p.views),
+        p.is_active ? "Yes" : "No",
+        p.is_verified ? "Yes" : "No",
+      ]),
+    );
+    toast.success("Analytics report downloaded");
+  };
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <h1 className="font-display text-3xl font-semibold">Analytics</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Real listing performance from tenant views and inquiries.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold">Analytics</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Real listing performance from tenant views and inquiries.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={exportAnalytics}
+          className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-secondary"
+        >
+          <Download className="h-4 w-4" /> Export CSV
+        </button>
+      </div>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
         <MetricCard icon={Eye} label="Total views" value={stats?.totalViews ?? 0} />
-        <MetricCard icon={Users} label="Tenant leads" value={stats?.totalLeads ?? 0} />
+        <MetricCard icon={Users} label="Tenant leads" value={stats?.totalLeads ?? leads.length} />
         <MetricCard icon={Home} label="Active listings" value={stats?.activeProperties ?? 0} />
       </div>
+
+      <section className="mt-8 rounded-2xl border bg-card p-6 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold">Lead inbox</h2>
+          {!showLeadDetails && (
+            <Link
+              to="/landlord/checkout"
+              search={{ plan: "pro" }}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+            >
+              <Lock className="h-3.5 w-3.5" /> Upgrade to view contacts
+            </Link>
+          )}
+        </div>
+        {leads.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Leads appear when tenants inquire on your listings.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {leads.slice(0, 8).map((lead) => (
+              <LeadRowItem key={lead.id} lead={lead} blurred={!showLeadDetails} />
+            ))}
+          </ul>
+        )}
+        {!showLeadDetails && (
+          <div className="mt-6 rounded-xl border border-dashed bg-secondary/40 p-4">
+            <p className="text-sm font-medium">Buy lead packs</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pro includes lead details. Or purchase packs à la carte.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {LEAD_PACKS.map((pack) => (
+                <Link
+                  key={pack.qty}
+                  to="/landlord/checkout"
+                  search={{ product: "leads", qty: pack.qty }}
+                  className="rounded-lg border bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40"
+                >
+                  {pack.label} — {formatKes(pack.priceKes)}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       <section className="mt-8 rounded-2xl border bg-card p-6 shadow-soft">
         <div className="flex items-center justify-between">
@@ -70,15 +167,33 @@ function AnalyticsPage() {
   );
 }
 
+function LeadRowItem({ lead, blurred }: Readonly<{ lead: LeadRow; blurred: boolean }>) {
+  const property = lead.properties as { title?: string; neighborhood?: string } | null;
+  const tenant = lead.profiles as { full_name?: string; phone?: string } | null;
+  return (
+    <li
+      className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm ${blurred ? "select-none blur-[3px]" : ""}`}
+    >
+      <div>
+        <p className="font-medium">{property?.title ?? "Listing"}</p>
+        <p className="text-xs text-muted-foreground">
+          {tenant?.full_name ?? "Tenant"} · {lead.source ?? "inquiry"}
+        </p>
+      </div>
+      <span className="text-xs text-muted-foreground">Score {lead.quality_score ?? "—"}</span>
+    </li>
+  );
+}
+
 function MetricCard({
   icon: Icon,
   label,
   value,
-}: {
+}: Readonly<{
   icon: typeof Eye;
   label: string;
   value: number;
-}) {
+}>) {
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-soft">
       <div className="flex items-center justify-between">

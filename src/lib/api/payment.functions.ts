@@ -1,34 +1,69 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { getAuthContext } from "@/lib/api/server-context";
+import { fulfillPayment } from "@/lib/revenue/fulfill-payment";
 
 const initiatePaymentSchema = z.object({
   propertyId: z.string().uuid().optional(),
   amountKes: z.number().int().positive(),
-  paymentType: z.enum(["featured_listing", "premium_subscription", "property_boost"]),
+  paymentType: z.enum([
+    "featured_listing",
+    "premium_subscription",
+    "property_boost",
+    "tenant_plus",
+    "lead_pack",
+    "verification",
+    "report",
+    "invoice",
+    "landlord_plan",
+  ]),
   phoneNumber: z.string().regex(/^(?:\+254|0)?(7|1)\d{8}$/, "Invalid Safaricom phone number"),
+  plan: z.string().optional(),
+  boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
+  billingCycle: z.enum(["monthly", "quarterly"]).optional(),
+  paymentMethod: z.enum(["mpesa", "card"]).optional(),
 });
 
-function getContext(context: unknown) {
-  const c = context as { supabase: SupabaseClient<Database>; userId: string };
-  if (!c?.supabase || !c?.userId) throw new Error("Unauthorized");
-  return c;
-}
-
 function formatPhone254(phone: string): string {
-  let clean = phone.replace("+", "").trim();
+  let clean = phone.replaceAll("+", "").trim();
   if (clean.startsWith("0")) clean = "254" + clean.slice(1);
   else if (clean.startsWith("7") || clean.startsWith("1")) clean = "254" + clean;
   return clean;
+}
+
+async function runFulfillment(
+  userId: string,
+  propertyId: string | null,
+  paymentType: string,
+  amountKes: number,
+  meta: {
+    plan?: string;
+    boostPackage?: string;
+    billingCycle?: string;
+    paymentMethod?: string;
+  },
+) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await fulfillPayment(supabaseAdmin, {
+    userId,
+    propertyId,
+    paymentType,
+    amountKes,
+    metadata: {
+      plan: meta.plan,
+      boostPackage: meta.boostPackage,
+      billingCycle: meta.billingCycle,
+      paymentMethod: meta.paymentMethod,
+    },
+  });
 }
 
 export const initiateMpesaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(initiatePaymentSchema)
   .handler(async ({ context, data }) => {
-    const { userId } = getContext(context);
+    const { userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const phone254 = formatPhone254(data.phoneNumber);
 
@@ -48,7 +83,7 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
     if (error) throw error;
 
     const { initiateStkPush, isMpesaConfigured } = await import("@/lib/api/mpesa");
-    if (isMpesaConfigured()) {
+    if (isMpesaConfigured() && data.paymentMethod !== "card") {
       const stk = await initiateStkPush({
         phone254,
         amountKes: data.amountKes,
@@ -69,22 +104,18 @@ export const initiateMpesaPayment = createServerFn({ method: "POST" })
       };
     }
 
-    // Demo mode when Daraja credentials are not configured
     const receiptCode = "DEMO" + Math.random().toString(36).substring(2, 9).toUpperCase();
     await supabaseAdmin
       .from("payments")
       .update({ status: "completed", mpesa_receipt: receiptCode })
       .eq("id", row.id);
 
-    if (
-      data.propertyId &&
-      (data.paymentType === "featured_listing" || data.paymentType === "property_boost")
-    ) {
-      await supabaseAdmin
-        .from("properties")
-        .update({ is_verified: true })
-        .eq("id", data.propertyId);
-    }
+    await runFulfillment(userId, data.propertyId ?? null, data.paymentType, data.amountKes, {
+      plan: data.plan,
+      boostPackage: data.boostPackage,
+      billingCycle: data.billingCycle,
+      paymentMethod: data.paymentMethod,
+    });
 
     if (data.paymentType === "premium_subscription") {
       await supabaseAdmin.from("profiles").update({ is_portal_active: true }).eq("id", userId);
@@ -103,7 +134,7 @@ export const verifyMpesaPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ paymentId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
 
     const { data: row, error } = await supabase
       .from("payments")
@@ -122,7 +153,7 @@ export const verifyMpesaPayment = createServerFn({ method: "POST" })
 export const listTransactions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getContext(context);
+    const { supabase, userId } = getAuthContext(context);
 
     const { data: rows, error } = await supabase
       .from("payments")
