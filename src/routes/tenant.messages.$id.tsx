@@ -31,10 +31,7 @@ function ThreadPage() {
 
   return (
     <div className="mx-auto max-w-2xl pt-4">
-      <ConversationThread
-        inquiryId={id}
-        backTo="/tenant/messages"
-      />
+      <ConversationThread inquiryId={id} backTo="/tenant/messages" />
     </div>
   );
 }

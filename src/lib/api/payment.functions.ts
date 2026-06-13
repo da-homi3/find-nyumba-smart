@@ -220,10 +220,7 @@ export const createStripeCheckoutSession = createServerFn({ method: "POST" })
 
     if (!session.url) throw new Error("Could not start card checkout");
 
-    await supabaseAdmin
-      .from("payments")
-      .update({ mpesa_checkout_id: session.id })
-      .eq("id", row.id);
+    await supabaseAdmin.from("payments").update({ mpesa_checkout_id: session.id }).eq("id", row.id);
 
     return { url: session.url, paymentId: row.id };
   });

@@ -106,10 +106,7 @@ async function uploadListingMedia(
   };
 }
 
-function ImagePreview({
-  file,
-  onRemove,
-}: Readonly<{ file: File; onRemove: () => void }>) {
+function ImagePreview({ file, onRemove }: Readonly<{ file: File; onRemove: () => void }>) {
   return (
     <div className="group relative aspect-square overflow-hidden rounded-lg border bg-background">
       <img src={URL.createObjectURL(file)} alt={file.name} className="h-full w-full object-cover" />

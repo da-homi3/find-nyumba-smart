@@ -38,10 +38,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const qc = useQueryClient();
   const isDemo = isDemoListingId(id);
 
-  const authSearch = useMemo(
-    () => ({ redirect: currentRedirectPath(location) }),
-    [location],
-  );
+  const authSearch = useMemo(() => ({ redirect: currentRedirectPath(location) }), [location]);
 
   const redirectToAuth = useCallback(() => {
     navigate({ to: "/auth", search: authSearch });
@@ -76,7 +73,12 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     return () => globalThis.clearTimeout(timer);
   }, [user, id, isDemo]);
 
-  const { data: p, isLoading, isError, refetch } = useQuery({
+  const {
+    data: p,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["property", id],
     queryFn: () => fetchProperty(id),
     initialData: initialProperty ?? undefined,
