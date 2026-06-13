@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { ORG_REQUIRED_ROLES } from "@/lib/account-roles";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { checkRateLimit } from "@/lib/api/rate-limit";
@@ -69,6 +70,7 @@ async function upsertPendingPortalApplication(input: {
   requestedRole: "landlord" | "manager" | "agency";
   organizationName?: string;
   phone?: string;
+  notes?: string;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: existing } = await supabaseAdmin
@@ -88,11 +90,25 @@ async function upsertPendingPortalApplication(input: {
       requested_role: input.requestedRole,
       organization_name: input.organizationName ?? null,
       phone: input.phone ?? null,
+      notes: input.notes ?? null,
       status: "pending",
     })
     .select("id")
     .single();
-  if (error) throw error;
+  if (error) {
+    // DB trigger may have created the row first — treat as success
+    if (error.code === "23505") {
+      const { data: retry } = await supabaseAdmin
+        .from("portal_applications")
+        .select("id")
+        .eq("user_id", input.userId)
+        .eq("requested_role", input.requestedRole)
+        .eq("status", "pending")
+        .maybeSingle();
+      if (retry) return retry;
+    }
+    throw error;
+  }
   return row;
 }
 
@@ -111,6 +127,18 @@ export const registerPortalApplicationAfterSignup = createServerFn({ method: "PO
   )
   .handler(async ({ data }) => {
     checkRateLimit(`portal-signup:${data.applicantEmail}`);
+
+    if (!data.phone?.trim()) {
+      throw new Error("A verified M-Pesa phone number is required for this application");
+    }
+    if (ORG_REQUIRED_ROLES.has(data.requestedRole) && !data.organizationName?.trim()) {
+      throw new Error(
+        data.requestedRole === "landlord"
+          ? "Portfolio or business name is required for landlord applications"
+          : "Organization name is required for this account type",
+      );
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     if (userData.user?.email?.toLowerCase() !== data.applicantEmail.toLowerCase()) {
@@ -147,19 +175,37 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    const { data: row, error } = await supabase
+
+    if (!data.phone?.trim()) {
+      throw new Error("A verified M-Pesa phone number is required for this application");
+    }
+    if (ORG_REQUIRED_ROLES.has(data.requestedRole) && !data.organizationName?.trim()) {
+      throw new Error(
+        data.requestedRole === "landlord"
+          ? "Portfolio or business name is required for landlord applications"
+          : "Organization name is required for this account type",
+      );
+    }
+
+    await upsertPendingPortalApplication({
+      userId,
+      requestedRole: data.requestedRole,
+      organizationName: data.organizationName,
+      phone: data.phone,
+      notes: data.notes,
+    });
+
+    const { data: row, error: fetchErr } = await supabase
       .from("portal_applications")
-      .insert({
-        user_id: userId,
-        requested_role: data.requestedRole,
-        organization_name: data.organizationName ?? null,
-        phone: data.phone ?? null,
-        notes: data.notes ?? null,
-        status: "pending",
-      })
       .select("*")
-      .single();
-    if (error) throw error;
+      .eq("user_id", userId)
+      .eq("requested_role", data.requestedRole)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!row) throw new Error("Could not save your application. Please try again.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
@@ -251,16 +297,18 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: app.user_id, role: app.requested_role })
-      .select()
-      .maybeSingle();
+      .upsert(
+        { user_id: app.user_id, role: app.requested_role },
+        { onConflict: "user_id,role", ignoreDuplicates: false },
+      );
 
     // Everyone can browse/save as tenant when switching portals in settings.
     await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: app.user_id, role: "tenant" })
-      .select()
-      .maybeSingle();
+      .upsert(
+        { user_id: app.user_id, role: "tenant" },
+        { onConflict: "user_id,role", ignoreDuplicates: true },
+      );
 
     let organizationId: string | null = null;
     if (app.requested_role === "agency" && app.organization_name) {
@@ -362,6 +410,10 @@ export const setActivePortal = createServerFn({ method: "POST" })
     const need = required[data.portal];
     if (need && !(owned as Set<string>).has(need)) {
       throw new Error(`You do not have access to the ${data.portal} portal`);
+    }
+    // Admin portal is role-gated only; profiles.active_portal check constraint omits admin.
+    if (data.portal === "admin") {
+      return { portal: data.portal };
     }
     const { error } = await supabase
       .from("profiles")

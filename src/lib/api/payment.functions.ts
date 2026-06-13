@@ -151,6 +151,141 @@ export const verifyMpesaPayment = createServerFn({ method: "POST" })
     };
   });
 
+const stripeCheckoutSchema = z.object({
+  amountKes: z.number().int().positive(),
+  paymentType: initiatePaymentSchema.shape.paymentType,
+  propertyId: z.string().uuid().optional(),
+  plan: z.string().optional(),
+  boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
+  billingCycle: z.enum(["monthly", "quarterly"]).optional(),
+  successPath: z.string().min(1),
+  cancelPath: z.string().min(1),
+  title: z.string().trim().min(1).max(120),
+});
+
+export const createStripeCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(stripeCheckoutSchema)
+  .handler(async ({ context, data }) => {
+    const { userId } = getAuthContext(context);
+    const { getStripe, isStripeConfigured } = await import("@/lib/api/stripe");
+    if (!isStripeConfigured()) {
+      throw new Error("Card payments are not available yet. Use M-Pesa or try again later.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getSiteUrl } = await import("@/lib/site");
+
+    const { data: row, error } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: userId,
+        property_id: data.propertyId ?? null,
+        amount_kes: data.amountKes,
+        status: "pending",
+        payment_type: data.paymentType,
+        mpesa_phone: null,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    const siteUrl = getSiteUrl();
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      currency: "kes",
+      line_items: [
+        {
+          price_data: {
+            currency: "kes",
+            unit_amount: data.amountKes,
+            product_data: { name: data.title },
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${siteUrl}${data.successPath}?stripe=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}${data.cancelPath}?stripe=cancelled`,
+      metadata: {
+        payment_id: row.id,
+        user_id: userId,
+        payment_type: data.paymentType,
+        plan: data.plan ?? "",
+        boost_package: data.boostPackage ?? "",
+        billing_cycle: data.billingCycle ?? "",
+        property_id: data.propertyId ?? "",
+      },
+    });
+
+    if (!session.url) throw new Error("Could not start card checkout");
+
+    await supabaseAdmin
+      .from("payments")
+      .update({ mpesa_checkout_id: session.id })
+      .eq("id", row.id);
+
+    return { url: session.url, paymentId: row.id };
+  });
+
+export const verifyStripeCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ sessionId: z.string().min(1) }))
+  .handler(async ({ context, data }) => {
+    const { userId } = getAuthContext(context);
+    const { getStripe, isStripeConfigured } = await import("@/lib/api/stripe");
+    if (!isStripeConfigured()) throw new Error("Stripe is not configured");
+
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(data.sessionId);
+    if (session.metadata?.user_id !== userId) {
+      throw new Error("Invalid checkout session");
+    }
+
+    const paymentId = session.metadata?.payment_id;
+    if (!paymentId) throw new Error("Missing payment reference");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("id", paymentId)
+      .eq("user_id", userId)
+      .single();
+    if (error || !row) throw new Error("Payment not found");
+
+    if (row.status === "completed") {
+      return { status: "completed" as const, paymentId: row.id };
+    }
+
+    if (session.payment_status !== "paid") {
+      return { status: "pending" as const, paymentId: row.id };
+    }
+
+    const receipt =
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : (session.payment_intent?.id ?? session.id);
+
+    await supabaseAdmin
+      .from("payments")
+      .update({ status: "completed", mpesa_receipt: receipt })
+      .eq("id", row.id);
+
+    await runFulfillment(userId, row.property_id, row.payment_type, row.amount_kes, {
+      plan: session.metadata?.plan || undefined,
+      boostPackage: session.metadata?.boost_package || undefined,
+      billingCycle: session.metadata?.billing_cycle || undefined,
+      paymentMethod: "card",
+    });
+
+    if (row.payment_type === "premium_subscription") {
+      await supabaseAdmin.from("profiles").update({ is_portal_active: true }).eq("id", userId);
+    }
+
+    return { status: "completed" as const, paymentId: row.id };
+  });
+
 export const listTransactions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

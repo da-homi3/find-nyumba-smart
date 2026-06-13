@@ -134,7 +134,7 @@ export const getProperty = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (error) throw error;
-    if (!property || !property.is_active) {
+    if (!property?.is_active) {
       if (mockListingsEnabled()) return getMockProperty(data.id);
       return null;
     }
@@ -219,10 +219,12 @@ export const createProperty = createServerFn({ method: "POST" })
     const roles = new Set((roleRows ?? []).map((r) => r.role));
     const isLandlord = roles.has("landlord");
     const isAgency = roles.has("agency");
-    if (!isLandlord && !isAgency) {
-      throw new ForbiddenError("Forbidden: requires role landlord or agency");
+    const isManager = roles.has("manager");
+    if (!isLandlord && !isAgency && !isManager) {
+      throw new ForbiddenError("Forbidden: requires role landlord, manager, or agency");
     }
-    const organizationId = isAgency ? await getUserOrganizationId(supabase, userId) : null;
+    const organizationId =
+      isAgency || isManager ? await getUserOrganizationId(supabase, userId) : null;
     const { data: property, error } = await supabase
       .from("properties")
       .insert({

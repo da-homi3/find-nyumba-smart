@@ -8,8 +8,7 @@ import { requireRole } from "@/lib/api/_authz";
 
 const bookViewingSchema = z.object({
   propertyId: z.string().uuid(),
-  landlordId: z.string().uuid(),
-  scheduledAt: z.string(),
+  scheduledAt: z.string().datetime({ offset: true }),
   notes: z.string().trim().max(500).optional(),
 });
 
@@ -23,14 +22,28 @@ export const bookViewing = createServerFn({ method: "POST" })
   .inputValidator(bookViewingSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, "tenant");
+
+    const scheduledAt = new Date(data.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new Error("Invalid viewing date or time");
+    }
+    if (scheduledAt.getTime() <= Date.now()) {
+      throw new Error("Please choose a future date and time for your viewing");
+    }
+    const eatWeekday = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Africa/Nairobi",
+      weekday: "short",
+    }).format(scheduledAt);
+    if (eatWeekday === "Sun") {
+      throw new Error("Viewings are not available on Sundays");
+    }
 
     const { data: property, error: propertyError } = await supabase
       .from("properties")
       .select("id, owner_id, is_active")
       .eq("id", data.propertyId)
       .maybeSingle();
-    if (propertyError) throw propertyError;
+    if (propertyError) throw new Error(propertyError.message);
     if (!property?.is_active || !property.owner_id) {
       if (getMockProperty(data.propertyId)) {
         throw new Error(
@@ -39,9 +52,6 @@ export const bookViewing = createServerFn({ method: "POST" })
       }
       throw new Error("This property is not available for viewings");
     }
-    if (property.owner_id !== data.landlordId) {
-      throw new Error("Invalid landlord for this property");
-    }
 
     const { data: row, error } = await supabase
       .from("viewings")
@@ -49,14 +59,14 @@ export const bookViewing = createServerFn({ method: "POST" })
         property_id: data.propertyId,
         tenant_id: userId,
         landlord_id: property.owner_id,
-        scheduled_at: data.scheduledAt,
+        scheduled_at: scheduledAt.toISOString(),
         notes: data.notes ?? null,
         status: "pending",
       })
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) throw new Error(error.message || "Could not book this viewing");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { recordLead } = await import("@/lib/revenue/record-lead");

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { fetchProperty, searchProperties } from "@/lib/properties";
 import { getAIChatResponse, getAIValuation } from "@/lib/api/ai.functions";
@@ -16,25 +16,39 @@ import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
 import { currentRedirectPath } from "@/lib/navigation";
+import { errorMessage } from "@/lib/utils";
 import type { Property } from "@/lib/properties";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
 
+const WELCOME_MESSAGE: ChatMessage = {
+  id: "welcome",
+  role: "assistant",
+  text: "Habari! I am your NyumbaSearch AI Assistant. Ask me anything about this property, the location, or security.",
+};
+
+function isAuthRequiredMessage(message: string): boolean {
+  return /sign in|unauthorized|log in/i.test(message);
+}
+
 export function usePropertyDetail(id: string, initialProperty?: Property | null) {
   const navigate = useNavigate();
   const location = useLocation();
-  const authSearch = { redirect: currentRedirectPath(location) };
   const { user } = useAuth();
   const qc = useQueryClient();
+  const isDemo = isDemoListingId(id);
+
+  const authSearch = useMemo(
+    () => ({ redirect: currentRedirectPath(location) }),
+    [location],
+  );
+
+  const redirectToAuth = useCallback(() => {
+    navigate({ to: "/auth", search: authSearch });
+  }, [navigate, authSearch]);
 
   const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      text: "Habari! I am your NyumbaSearch AI Assistant. Ask me anything about this property, the location, or security.",
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -44,12 +58,23 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!user || isDemoListingId(id)) return;
+    setGalleryIndex(0);
+    setChatMessages([WELCOME_MESSAGE]);
+    setChatInput("");
+    setChatLoading(false);
+    setIsBookingOpen(false);
+    setReportOpen(false);
+    setReportDetails("");
+    setReportReason("Suspicious listing");
+  }, [id]);
+
+  useEffect(() => {
+    if (!user || isDemo) return;
     const timer = globalThis.setTimeout(() => {
       void recordTenantLead({ data: { listingId: id, source: "view" } });
     }, 30_000);
     return () => globalThis.clearTimeout(timer);
-  }, [user, id]);
+  }, [user, id, isDemo]);
 
   const { data: p, isLoading, isError, refetch } = useQuery({
     queryKey: ["property", id],
@@ -70,9 +95,18 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     });
   }, [p]);
 
+  useEffect(() => {
+    const imageCount = p?.images.length ?? 0;
+    if (imageCount === 0) {
+      setGalleryIndex(0);
+      return;
+    }
+    setGalleryIndex((index) => Math.min(index, imageCount - 1));
+  }, [p?.images.length, id]);
+
   const { data: isSaved } = useQuery({
     queryKey: ["saved", id, user?.id],
-    enabled: !!user,
+    enabled: !!user && !isDemo,
     queryFn: async () => {
       const saved = await listSavedProperties();
       return saved.some((property) => property.id === id);
@@ -88,21 +122,22 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     },
   });
 
-  const { data: landlordContact } = useQuery({
+  const { data: landlordContact, isLoading: landlordContactLoading } = useQuery({
     queryKey: ["landlord-contact", p?.owner_id, id, user?.id],
-    enabled: !!p?.owner_id && !!user && !isDemoListingId(id),
+    enabled: !!p?.owner_id && !!user && !isDemo,
     queryFn: () => getPropertyOwnerContact({ data: { propertyId: id } }),
   });
 
   const { data: valuation, isLoading: valLoading } = useQuery({
     queryKey: ["valuation", id],
+    enabled: !isDemo,
     queryFn: () => getAIValuation({ data: { propertyId: id } }),
   });
 
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to save properties");
-      if (isDemoListingId(id)) {
+      if (isDemo) {
         throw new Error("Demo listings cannot be saved. Browse live listings from landlords.");
       }
       await toggleSavedProperty({ data: { propertyId: id, saved: !isSaved } });
@@ -111,16 +146,17 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       qc.invalidateQueries({ queryKey: ["saved"] });
       toast.success(isSaved ? "Removed from saved" : "Saved to your list");
     },
-    onError: (e: Error) => {
-      toast.error(e.message);
-      if (e.message.includes("Sign in")) navigate({ to: "/auth", search: authSearch });
+    onError: (err) => {
+      const msg = errorMessage(err);
+      toast.error(msg);
+      if (isAuthRequiredMessage(msg)) redirectToAuth();
     },
   });
 
   const messageLandlord = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to message landlords");
-      if (isDemoListingId(id)) {
+      if (isDemo) {
         throw new Error("Demo listings cannot be messaged. Try a live landlord listing.");
       }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
@@ -135,20 +171,29 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       toast.success("Message sent to the landlord");
       navigate({ to: "/tenant/messages/$id", params: { id: inquiry.id } });
     },
-    onError: (e: Error) => {
-      if (e.message.includes("Sign in")) {
-        toast.error(e.message);
-        navigate({ to: "/auth", search: authSearch });
-        return;
-      }
-      toast.error(e.message);
+    onError: (err) => {
+      const msg = errorMessage(err);
+      toast.error(msg);
+      if (isAuthRequiredMessage(msg)) redirectToAuth();
     },
   });
 
   const handleCall = () => {
     if (!user) {
       toast.error("Sign in to call the landlord");
-      navigate({ to: "/auth", search: authSearch });
+      redirectToAuth();
+      return;
+    }
+    if (isDemo) {
+      toast.info("Demo listings are sample data — call is not available.");
+      return;
+    }
+    if (!p?.owner_id) {
+      toast.error("Landlord contact is unavailable for this listing");
+      return;
+    }
+    if (landlordContactLoading) {
+      toast.info("Loading landlord contact…");
       return;
     }
     const phone = landlordContact?.phone?.trim();
@@ -168,14 +213,13 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
         await navigator.clipboard.writeText(shareUrl);
         toast.success("Listing link copied");
       }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       toast.error("Could not share this listing");
     }
   };
 
-  const handleSendChat = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const submitChatMessage = useCallback(async () => {
     if (!chatInput.trim() || chatLoading) return;
     const userMsg = chatInput.trim();
     setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", text: userMsg }]);
@@ -192,15 +236,23 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     } finally {
       setChatLoading(false);
     }
-  };
+  }, [chatInput, chatLoading, id]);
+
+  const handleSendChat = useCallback(
+    (e: SubmitEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      void submitChatMessage();
+    },
+    [submitChatMessage],
+  );
 
   const openReportForm = () => {
     if (!user) {
       toast.error("Sign in to report a listing");
-      navigate({ to: "/auth", search: authSearch });
+      redirectToAuth();
       return;
     }
-    if (isDemoListingId(id)) {
+    if (isDemo) {
       toast.info("Demo listings are sample data — nothing to report.");
       return;
     }
@@ -229,7 +281,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       setReportOpen(false);
       setReportDetails("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not submit report");
+      toast.error(errorMessage(err));
     } finally {
       setReportSubmitting(false);
     }
@@ -238,11 +290,15 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const openBooking = () => {
     if (!user) {
       toast.error("Please sign in to book viewings");
-      navigate({ to: "/auth", search: authSearch });
+      redirectToAuth();
       return;
     }
-    if (isDemoListingId(id)) {
+    if (isDemo) {
       toast.info("Demo listings cannot be booked. Find a live listing to schedule a viewing.");
+      return;
+    }
+    if (!p?.owner_id) {
+      toast.error("Viewing bookings are not available for this listing yet.");
       return;
     }
     setIsBookingOpen(true);
@@ -254,9 +310,10 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     isLoading,
     isError,
     refetch,
-    isSaved,
+    isSaved: isSaved ?? false,
     similar,
     landlordContact,
+    landlordContactLoading,
     valuation,
     valLoading,
     isBookingOpen,
@@ -282,6 +339,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     openReportForm,
     submitReport,
     openBooking,
-    isDemo: isDemoListingId(id),
+    redirectToAuth,
+    isDemo,
   };
 }

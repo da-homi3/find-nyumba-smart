@@ -1,46 +1,24 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { useCountUp } from "@/hooks/use-count-up";
 import type { Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { AdUnit } from "@/components/AdUnit";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { HOOD_META } from "@/components/landing/hood-meta";
+import { AnimatedStat } from "@/components/motion/AnimatedStat";
+import { NeighborhoodCard3D } from "@/components/landing/NeighborhoodCard3D";
 
 export function TrustStrip() {
-  const ref = useRef<HTMLElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), {
-      threshold: 0.3,
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  const homes = useCountUp(10000, 1400, visible);
-  const fees = useCountUp(98, 1000, visible);
-  const hours = useCountUp(24, 800, visible);
-  const rating = useCountUp(47, 900, visible);
-  const items = [
-    { k: `${homes >= 10000 ? "10k+" : homes.toLocaleString()}`, v: "Verified homes" },
-    { k: `${fees}%`, v: "No agent fees" },
-    { k: `${hours}h`, v: "Avg response" },
-    { k: `${(rating / 10).toFixed(1)}★`, v: "Tenant rating" },
-  ];
   return (
-    <section ref={ref} aria-label="Trust statistics" className="border-y bg-secondary">
-      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-8 sm:grid-cols-4 sm:px-6">
-        {items.map((s) => (
-          <div key={s.v} className="text-center sm:text-left">
-            <div className="font-display text-2xl font-semibold text-primary sm:text-3xl tabular-nums">
-              {s.k}
-            </div>
-            <div className="text-xs text-muted-foreground">{s.v}</div>
-          </div>
-        ))}
+    <section
+      aria-label="Trust statistics"
+      className="border-y border-white/10 bg-[var(--color-graphite)]"
+    >
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-10 sm:grid-cols-4 sm:px-6">
+        <AnimatedStat value={10000} suffix="+" label="Verified homes" />
+        <AnimatedStat value={98} suffix="%" label="No agent fees" />
+        <AnimatedStat value={24} suffix="h" label="Avg response" />
+        <AnimatedStat value={4.7} suffix="★" label="Tenant rating" decimals={1} />
       </div>
     </section>
   );
@@ -108,40 +86,17 @@ export function PopularNeighborhoods({
             </h2>
           </div>
         </div>
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((h) => {
             const meta = HOOD_META[h.name];
             return (
-              <Link
+              <NeighborhoodCard3D
                 key={h.name}
-                to="/tenant"
-                search={{ neighborhood: h.name }}
-                className="group overflow-hidden rounded-2xl border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-card"
-              >
-                {meta?.img && (
-                  <div className="aspect-[16/9] overflow-hidden bg-muted">
-                    <img
-                      src={meta.img}
-                      alt=""
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-                <div className="flex items-center justify-between p-4">
-                  <div>
-                    <div className="font-display text-base font-semibold">{h.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {meta
-                        ? `From KES ${meta.from.toLocaleString()}/mo`
-                        : h.count > 0
-                          ? `${h.count} homes`
-                          : "Explore"}
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
-                </div>
-              </Link>
+                name={h.name}
+                minPrice={meta?.from ?? 15000}
+                image={meta?.img}
+                count={h.count}
+              />
             );
           })}
         </div>

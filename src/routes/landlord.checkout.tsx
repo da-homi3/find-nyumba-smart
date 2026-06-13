@@ -64,6 +64,7 @@ function LandlordCheckoutPage() {
       <div className="mx-auto max-w-lg px-6 py-10">
         <h1 className="font-display text-2xl font-semibold">Buy lead pack</h1>
         <CheckoutFlow
+          checkoutPath="/landlord/checkout"
           lineItem={{
             title: pack.label,
             subtitle: "Verified tenant leads for your listings",
@@ -87,6 +88,7 @@ function LandlordCheckoutPage() {
       <p className="mt-1 text-sm text-muted-foreground">{planDef.name}</p>
       <div className="mt-8">
         <CheckoutFlow
+          checkoutPath="/landlord/checkout"
           lineItem={{
             title: planDef.name,
             subtitle: planDef.desc,

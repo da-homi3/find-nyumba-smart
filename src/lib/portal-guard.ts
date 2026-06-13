@@ -36,12 +36,24 @@ export function canAccessPortal(roles: AppRole[], portal: PortalId): boolean {
   return required ? new Set(roles).has(required) : false;
 }
 
+export function hasPendingApplicationForRole(
+  applications: ReadonlyArray<{ requested_role: string; status: string }>,
+  role: "landlord" | "manager" | "agency",
+): boolean {
+  return applications.some((a) => a.requested_role === role && a.status === "pending");
+}
+
 export function resolvePostLoginPath(
   roles: AppRole[],
   activePortal: PortalId | null,
   redirect?: string,
 ): string {
-  if (redirect) return redirect;
+  if (redirect) {
+    const portal = portalFromPathname(redirect);
+    if (!portal || portal === "tenant" || canAccessPortal(roles, portal)) {
+      return redirect;
+    }
+  }
   if (activePortal && canAccessPortal(roles, activePortal)) {
     return PORTAL_HOME[activePortal];
   }

@@ -5,6 +5,7 @@ import { BookingModal } from "@/components/BookingModal";
 import { PropertyDetailActionBar } from "@/components/property-detail/PropertyDetailActionBar";
 import { PropertyDetailContent } from "@/components/property-detail/PropertyDetailContent";
 import { PropertyDetailGallery } from "@/components/property-detail/PropertyDetailGallery";
+import { PropertyDetailMedia } from "@/components/property-detail/PropertyDetailMedia";
 import { buildPropertyDetailHead } from "@/components/property-detail/property-detail-head";
 import { usePropertyDetail } from "@/hooks/use-property-detail";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -75,6 +76,8 @@ function PropertyDetail() {
         onToggleSave={() => detail.toggleSave.mutate()}
       />
 
+      <PropertyDetailMedia property={p} />
+
       <PropertyDetailContent
         property={p}
         propertyId={id}
@@ -88,7 +91,7 @@ function PropertyDetail() {
         chatInput={detail.chatInput}
         chatLoading={detail.chatLoading}
         onChatInputChange={detail.setChatInput}
-        onChatSubmit={(e) => void detail.handleSendChat(e)}
+        onChatSubmit={detail.handleSendChat}
         isDemo={detail.isDemo}
         reportOpen={detail.reportOpen}
         reportReason={detail.reportReason}
@@ -108,16 +111,14 @@ function PropertyDetail() {
         onBook={detail.openBooking}
       />
 
-      {p.owner_id && (
-        <BookingModal
-          propertyId={p.id}
-          landlordId={p.owner_id}
-          propertyTitle={p.title}
-          propertyAddress={p.address ?? p.neighborhood}
-          isOpen={detail.isBookingOpen}
-          onClose={() => detail.setIsBookingOpen(false)}
-        />
-      )}
+      <BookingModal
+        propertyId={p.id}
+        propertyTitle={p.title}
+        propertyAddress={p.address ?? p.neighborhood}
+        isOpen={detail.isBookingOpen}
+        onClose={() => detail.setIsBookingOpen(false)}
+        onUnauthorized={detail.redirectToAuth}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/agency")({
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/agency")({
 });
 
 function AgencyLayout() {
-  const { user, loading, isAgency } = useAuth();
+  const { user, loading, isAgency, pendingApplications } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isPublicEntry = pathname === "/agency" || pathname === "/agency/";
@@ -16,13 +17,24 @@ function AgencyLayout() {
   useEffect(() => {
     if (isPublicEntry || loading) return;
     if (!user) {
-      navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
+      navigate({
+        to: "/auth",
+        search: { redirect: pathname, role: "agency", mode: "signin" },
+        replace: true,
+      });
       return;
     }
     if (!isAgency) {
-      navigate({ to: "/settings", replace: true });
+      const pending = hasPendingApplicationForRole(pendingApplications, "agency");
+      navigate({
+        to: pending ? "/auth/pending" : "/auth",
+        search: pending
+          ? undefined
+          : { redirect: pathname, role: "agency", mode: "signup" },
+        replace: true,
+      });
     }
-  }, [loading, user, isAgency, isPublicEntry, pathname, navigate]);
+  }, [loading, user, isAgency, pendingApplications, isPublicEntry, pathname, navigate]);
 
   if (!isPublicEntry && (loading || !user || !isAgency)) {
     return (

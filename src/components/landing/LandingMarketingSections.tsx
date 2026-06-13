@@ -1,4 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { useRef } from "react";
+import { motion } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 import {
   ShieldCheck,
   MapPin,
@@ -16,15 +21,41 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+gsap.registerPlugin(ScrollTrigger);
+
 export function VerifiedSection() {
+  const sectionRef = useRef<HTMLElement>(null);
   const levels = [
     { icon: Smartphone, title: "Phone verified", desc: "Landlord reachable via verified line." },
     { icon: BadgeCheck, title: "ID verified", desc: "National ID matched to landlord profile." },
     { icon: Building2, title: "Business verified", desc: "Registered agency or property company." },
     { icon: Camera, title: "Ownership verified", desc: "Title deed or lease cross-checked." },
   ];
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 60%",
+          end: "bottom 20%",
+          scrub: 1,
+        },
+      });
+      tl.from(".verify-card:nth-child(1)", { x: -100, opacity: 0, rotation: -5 })
+        .from(".verify-card:nth-child(2)", { y: 60, opacity: 0 }, "-=0.3")
+        .from(".verify-card:nth-child(3)", { x: 100, opacity: 0, rotation: 5 }, "-=0.3")
+        .from(".verify-card:nth-child(4)", { y: -60, opacity: 0, scale: 0.8 }, "-=0.3");
+    },
+    { scope: sectionRef },
+  );
+
   return (
-    <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+    <section
+      ref={sectionRef}
+      id="verification-section"
+      className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20"
+    >
       <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">
@@ -51,9 +82,19 @@ export function VerifiedSection() {
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {levels.map((l, i) => (
-            <div key={l.title} className="rounded-2xl border bg-card p-5 shadow-soft">
+            <motion.div
+              key={l.title}
+              className="verify-card relative overflow-hidden rounded-[20px] border border-white/10 bg-glass-bg p-6 backdrop-blur-xl"
+              whileHover={{ y: -8, boxShadow: "0 24px 60px rgba(30,184,138,0.3)" }}
+            >
+              <div
+                className="pointer-events-none absolute right-4 top-2 font-display text-7xl font-extrabold leading-none text-[rgba(30,184,138,0.06)]"
+                aria-hidden
+              >
+                {i + 1}
+              </div>
               <div className="flex items-center justify-between">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-emerald text-primary-foreground">
                   <l.icon className="h-5 w-5" />
@@ -62,7 +103,15 @@ export function VerifiedSection() {
               </div>
               <h3 className="mt-4 font-display text-lg font-semibold">{l.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{l.desc}</p>
-            </div>
+              <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${(i + 1) * 25}%` }}
+                  transition={{ duration: 1, delay: 0.2 }}
+                  className="h-full rounded-full bg-gradient-emerald"
+                />
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>

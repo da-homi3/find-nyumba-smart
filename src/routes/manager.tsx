@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/manager")({
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/manager")({
 });
 
 function ManagerLayout() {
-  const { user, loading, isManager } = useAuth();
+  const { user, loading, isManager, pendingApplications } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isPublicEntry = pathname === "/manager" || pathname === "/manager/";
@@ -16,13 +17,24 @@ function ManagerLayout() {
   useEffect(() => {
     if (isPublicEntry || loading) return;
     if (!user) {
-      navigate({ to: "/auth", search: { redirect: pathname }, replace: true });
+      navigate({
+        to: "/auth",
+        search: { redirect: pathname, role: "manager", mode: "signin" },
+        replace: true,
+      });
       return;
     }
     if (!isManager) {
-      navigate({ to: "/settings", replace: true });
+      const pending = hasPendingApplicationForRole(pendingApplications, "manager");
+      navigate({
+        to: pending ? "/auth/pending" : "/auth",
+        search: pending
+          ? undefined
+          : { redirect: pathname, role: "manager", mode: "signup" },
+        replace: true,
+      });
     }
-  }, [loading, user, isManager, isPublicEntry, pathname, navigate]);
+  }, [loading, user, isManager, pendingApplications, isPublicEntry, pathname, navigate]);
 
   if (!isPublicEntry && (loading || !user || !isManager)) {
     return (

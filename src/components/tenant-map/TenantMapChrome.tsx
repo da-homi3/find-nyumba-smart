@@ -23,6 +23,7 @@ type TenantMapChromeProps = Readonly<{
   selected: Property | null;
   onSelect: (property: Property) => void;
   onClearSelected: () => void;
+  mapProvider?: "mapbox" | "google";
 }>;
 
 export function TenantMapChrome({
@@ -131,13 +132,13 @@ export function TenantMapChrome({
 
       {showWater && (
         <div
-          className="pointer-events-none absolute inset-0 z-[5] bg-blue-500/10 mix-blend-multiply"
+          className="pointer-events-none absolute inset-0 z-5 bg-blue-500/10 mix-blend-multiply"
           aria-hidden
         />
       )}
       {showSecurity && (
         <div
-          className="pointer-events-none absolute inset-0 z-[5] bg-red-500/10 mix-blend-multiply"
+          className="pointer-events-none absolute inset-0 z-5 bg-red-500/10 mix-blend-multiply"
           aria-hidden
         />
       )}

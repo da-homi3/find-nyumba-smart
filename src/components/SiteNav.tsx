@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { useTheme } from "@/hooks/use-theme";
 import { ChevronDown } from "lucide-react";
 
 const SERVICE_LINKS = [
@@ -20,21 +22,44 @@ type Props = {
 export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const { user, signOut, isLandlord } = useAuth();
   const { isPlus } = useEntitlements();
+  const { isDark, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const isHero = variant === "hero";
-  const textClass = isHero ? "text-background" : "text-foreground";
-  const mutedClass = isHero ? "text-background/85" : "text-muted-foreground";
+  const textClass = isHero ? "text-white" : "text-foreground";
+  const mutedClass = isHero ? "text-white/85" : "text-muted-foreground";
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const glassClass = isHero
+    ? scrolled
+      ? "bg-[rgba(13,17,23,0.9)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      : "bg-[rgba(13,17,23,0.4)]"
+    : scrolled
+      ? "bg-background/95 shadow-card"
+      : "bg-background/80";
 
   return (
-    <header
+    <motion.header
+      initial={{ y: -80 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 200, damping: 25 }}
       className={
         isHero
-          ? "absolute top-0 inset-x-0 z-30"
-          : "sticky top-0 z-30 border-b bg-background/95 backdrop-blur"
+          ? "fixed top-4 inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/10 backdrop-blur-xl sm:inset-x-6"
+          : "sticky top-0 z-30 border-b backdrop-blur-xl"
       }
+      style={isHero ? undefined : undefined}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-6">
+      <div
+        className={`flex items-center justify-between px-4 py-3 transition-colors sm:px-5 ${glassClass}`}
+      >
         <Link to="/" className={`flex items-center gap-2 ${textClass}`}>
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
             N
@@ -97,7 +122,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
         {user ? (
           <Link
             to="/settings"
-            className={`hidden items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${isHero ? "border-background/30 bg-background/10 text-background" : "border-border"}`}
+            className={`hidden items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${isHero ? "border-white/30 bg-white/10 text-white" : "border-border"}`}
           >
             Account
             {isPlus && (
@@ -110,15 +135,27 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
           <Link
             to="/auth"
             search={{ redirect: "/tenant" }}
-            className={`hidden rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${isHero ? "border-background/30 bg-background/10 text-background" : "border-border"}`}
+            className={`hidden rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${isHero ? "border-white/30 bg-white/10 text-white" : "border-border"}`}
           >
             Sign in
           </Link>
         )}
 
+        <motion.button
+          type="button"
+          onClick={toggleTheme}
+          whileHover={{ rotate: 180 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ duration: 0.3 }}
+          aria-label="Toggle theme"
+          className={`hidden rounded-xl border p-2 text-lg md:inline-flex ${isHero ? "border-white/20 bg-white/10" : "border-border bg-secondary/50"}`}
+        >
+          {isDark ? "☀️" : "🌙"}
+        </motion.button>
+
         <button
           type="button"
-          className={`rounded-lg border px-3 py-2 text-sm md:hidden ${isHero ? "border-background/30 text-background" : ""}`}
+          className={`rounded-lg border px-3 py-2 text-sm md:hidden ${isHero ? "border-white/30 text-white" : ""}`}
           onClick={() => setMenuOpen((o) => !o)}
         >
           Menu
@@ -157,7 +194,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
           )}
         </div>
       )}
-    </header>
+    </motion.header>
   );
 }
 

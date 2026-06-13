@@ -4,10 +4,12 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "@/lib/error-reporting";
@@ -15,6 +17,7 @@ import { getOgImageUrl } from "@/lib/site";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PageTransition } from "@/components/motion/PageTransition";
 
 function NotFoundComponent() {
   return (
@@ -108,7 +111,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap",
       },
     ],
   }),
@@ -120,7 +123,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -132,13 +135,28 @@ function RootShell({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+function AnimatedOutlet() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Mapbox GL breaks when any ancestor has a CSS transform (PageTransition uses y).
+  if (pathname.startsWith("/tenant/map")) {
+    return <Outlet />;
+  }
+  return (
+    <AnimatePresence mode="wait">
+      <PageTransition key={pathname}>
+        <Outlet />
+      </PageTransition>
+    </AnimatePresence>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ErrorBoundary>
-          <Outlet />
+          <AnimatedOutlet />
         </ErrorBoundary>
         <Toaster />
       </AuthProvider>

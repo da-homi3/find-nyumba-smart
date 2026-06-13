@@ -42,6 +42,8 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
         toast.success("Media updated");
       }
       void qc.invalidateQueries({ queryKey: ["my-properties-list"] });
+      void qc.invalidateQueries({ queryKey: ["manager-properties"] });
+      void qc.invalidateQueries({ queryKey: ["agency-properties"] });
       void qc.invalidateQueries({ queryKey: ["my-property-reports"] });
     },
     onError: (err: Error) => toast.error(err.message),

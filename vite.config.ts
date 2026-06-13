@@ -29,7 +29,7 @@ export default defineConfig({
     },
     ssr: {
       noExternal: [],
-      external: ["@sendgrid/mail"],
+      external: ["@sendgrid/mail", "mapbox-gl"],
     },
   },
 });

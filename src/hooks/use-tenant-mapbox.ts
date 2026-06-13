@@ -1,0 +1,644 @@
+import type { GeoJSONSource, Map as MapboxMap, MapMouseEvent } from "mapbox-gl";
+import { useEffect, useRef, useState } from "react";
+import type { Property } from "@/lib/properties";
+import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
+import { getMapboxPublicToken } from "@/lib/api/map.functions";
+import {
+  compactKes,
+  filterMappableProperties,
+  NAIROBI_CENTER,
+} from "@/components/tenant-map/map-constants";
+
+const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+
+export async function resolveMapboxToken(): Promise<string | null> {
+  const baked = BUILD_TIME_TOKEN?.trim();
+  if (baked?.startsWith("pk.")) return baked;
+  try {
+    const cfg = await getMapboxPublicToken();
+    return cfg.token?.startsWith("pk.") ? cfg.token : null;
+  } catch {
+    return null;
+  }
+}
+
+export function hasMapboxTokenSync() {
+  return Boolean(BUILD_TIME_TOKEN?.trim()?.startsWith("pk."));
+}
+
+const MAP_STYLES = {
+  dark: "mapbox://styles/mapbox/dark-v11",
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  streets: "mapbox://styles/mapbox/streets-v12",
+} as const;
+
+type ActiveLayer = "listings" | "security" | "water";
+type MapboxModule = typeof import("mapbox-gl");
+
+function resolveActiveLayer(showSecurity: boolean, showWater: boolean): ActiveLayer {
+  if (showSecurity) return "security";
+  if (showWater) return "water";
+  return "listings";
+}
+
+function waterScoreLabel(p: Property): string {
+  return getListingIntel(p).water.toLowerCase();
+}
+
+function securityScore(p: Property): number {
+  const label = getListingIntel(p).security;
+  const map: Record<string, number> = {
+    Poor: 1,
+    Moderate: 3,
+    Good: 4,
+    Excellent: 5,
+  };
+  return map[label] ?? 3;
+}
+
+function isBoostedListing(p: Property): 0 | 1 {
+  return p.featured_until && new Date(p.featured_until).getTime() > Date.now() ? 1 : 0;
+}
+
+function listingsGeoJson(properties: Property[]): GeoJSON.FeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: properties.map((p) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [p.longitude!, p.latitude!] },
+      properties: {
+        id: p.id,
+        price: p.rent_kes,
+        priceLabel: compactKes(p.rent_kes).replace("KES ", ""),
+        verificationLevel: verificationLevel(p),
+        waterScore: waterScoreLabel(p),
+        securityScore: securityScore(p),
+        isBoosted: isBoostedListing(p),
+      },
+    })),
+  };
+}
+
+function addTerrainAndSky(map: MapboxMap) {
+  if (!map.getSource("mapbox-dem")) {
+    map.addSource("mapbox-dem", {
+      type: "raster-dem",
+      url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+      tileSize: 512,
+      maxzoom: 14,
+    });
+    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+  }
+
+  if (!map.getLayer("sky")) {
+    map.addLayer({
+      id: "sky",
+      type: "sky",
+      paint: {
+        "sky-type": "atmosphere",
+        "sky-atmosphere-sun": [0, 90],
+        "sky-atmosphere-sun-intensity": 15,
+      },
+    });
+  }
+
+  if (!map.getLayer("3d-buildings") && map.getSource("composite")) {
+    map.addLayer({
+      id: "3d-buildings",
+      source: "composite",
+      "source-layer": "building",
+      filter: ["==", "extrude", "true"],
+      type: "fill-extrusion",
+      minzoom: 13,
+      paint: {
+        "fill-extrusion-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "height"],
+          0,
+          "#0d1a14",
+          50,
+          "#1c2d20",
+          100,
+          "#2d4a35",
+        ],
+        "fill-extrusion-height": ["get", "height"],
+        "fill-extrusion-base": ["get", "min_height"],
+        "fill-extrusion-opacity": 0.8,
+      },
+    });
+  }
+}
+
+function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
+  if (!map.getSource("listings")) {
+    map.addSource("listings", {
+      type: "geojson",
+      data,
+      cluster: true,
+      clusterMaxZoom: 13,
+      clusterRadius: 50,
+    });
+  }
+
+  if (!map.getLayer("clusters")) {
+    map.addLayer({
+      id: "clusters",
+      type: "circle",
+      source: "listings",
+      filter: ["has", "point_count"],
+      paint: {
+        "circle-color": ["step", ["get", "point_count"], "#1eb88a", 10, "#0a5c47", 30, "#06402d"],
+        "circle-radius": ["step", ["get", "point_count"], 22, 10, 30, 30, 38],
+        "circle-opacity": 0.9,
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "rgba(30,184,138,0.4)",
+      },
+    });
+  }
+
+  if (!map.getLayer("cluster-count")) {
+    map.addLayer({
+      id: "cluster-count",
+      type: "symbol",
+      source: "listings",
+      filter: ["has", "point_count"],
+      layout: {
+        "text-field": "{point_count_abbreviated}",
+        "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+        "text-size": 14,
+      },
+      paint: { "text-color": "#ffffff" },
+    });
+  }
+
+  if (!map.getLayer("unclustered-point-bg")) {
+    map.addLayer({
+      id: "unclustered-point-bg",
+      type: "circle",
+      source: "listings",
+      filter: ["!", ["has", "point_count"]],
+      paint: {
+        "circle-color": ["case", ["==", ["get", "isBoosted"], 1], "#f6ad55", "#1eb88a"],
+        "circle-radius": 22,
+        "circle-opacity": 0.95,
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "rgba(30,184,138,0.4)",
+      },
+    });
+  }
+
+  if (!map.getLayer("unclustered-label")) {
+    map.addLayer({
+      id: "unclustered-label",
+      type: "symbol",
+      source: "listings",
+      filter: ["!", ["has", "point_count"]],
+      layout: {
+        "text-field": "{priceLabel}",
+        "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+        "text-size": 12,
+      },
+      paint: { "text-color": "#ffffff" },
+    });
+  }
+}
+
+function addHeatLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
+  if (!map.getSource("rent-heat")) {
+    map.addSource("rent-heat", { type: "geojson", data });
+    map.addLayer({
+      id: "rent-heatmap",
+      type: "heatmap",
+      source: "rent-heat",
+      paint: {
+        "heatmap-weight": ["interpolate", ["linear"], ["get", "price"], 5000, 0.2, 120000, 1],
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0,
+          "rgba(255,107,53,0)",
+          0.35,
+          "rgba(255,107,53,0.45)",
+          0.65,
+          "rgba(232,184,74,0.55)",
+          1,
+          "rgba(13,79,60,0.75)",
+        ],
+        "heatmap-radius": 36,
+        "heatmap-opacity": 0.55,
+      },
+      layout: { visibility: "visible" },
+    });
+  }
+
+  if (!map.getSource("security-heat")) {
+    map.addSource("security-heat", { type: "geojson", data });
+    map.addLayer({
+      id: "security-heatmap",
+      type: "heatmap",
+      source: "security-heat",
+      paint: {
+        "heatmap-weight": ["interpolate", ["linear"], ["get", "securityScore"], 0, 0, 5, 1],
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0,
+          "rgba(252,74,74,0)",
+          0.3,
+          "rgba(252,74,74,0.5)",
+          0.6,
+          "rgba(246,173,85,0.6)",
+          1,
+          "rgba(30,184,138,0.8)",
+        ],
+        "heatmap-radius": 40,
+        "heatmap-opacity": 0.6,
+      },
+      layout: { visibility: "none" },
+    });
+  }
+}
+
+function setupMapLayers(map: MapboxMap, properties: Property[]) {
+  try {
+    const data = listingsGeoJson(properties);
+    addTerrainAndSky(map);
+    addListingLayers(map, data);
+    addHeatLayers(map, data);
+  } catch (layerErr) {
+    console.error("Mapbox layer setup failed:", layerErr);
+  }
+}
+
+function applyMarkerColors(map: MapboxMap, activeLayer: ActiveLayer) {
+  if (!map.getLayer("unclustered-point-bg")) return;
+
+  if (activeLayer === "security") {
+    map.setPaintProperty("unclustered-point-bg", "circle-color", [
+      "interpolate",
+      ["linear"],
+      ["get", "securityScore"],
+      0,
+      "#fc4a4a",
+      3,
+      "#f6ad55",
+      4,
+      "#48bb78",
+      5,
+      "#1eb88a",
+    ]);
+    return;
+  }
+
+  if (activeLayer === "water") {
+    map.setPaintProperty("unclustered-point-bg", "circle-color", [
+      "match",
+      ["get", "waterScore"],
+      "excellent",
+      "#1eb88a",
+      "good",
+      "#48bb78",
+      "moderate",
+      "#f6ad55",
+      "poor",
+      "#fc4a4a",
+      "#4299e1",
+    ]);
+    return;
+  }
+
+  map.setPaintProperty("unclustered-point-bg", "circle-color", [
+    "case",
+    ["==", ["get", "isBoosted"], 1],
+    "#f6ad55",
+    "#1eb88a",
+  ]);
+}
+
+function applyHeatVisibility(map: MapboxMap, showHeat: boolean, showSecurity: boolean) {
+  if (map.getLayer("rent-heatmap")) {
+    map.setLayoutProperty(
+      "rent-heatmap",
+      "visibility",
+      showHeat && !showSecurity ? "visible" : "none",
+    );
+  }
+  if (map.getLayer("security-heatmap")) {
+    map.setLayoutProperty("security-heatmap", "visibility", showSecurity ? "visible" : "none");
+  }
+}
+
+function handleListingClick(
+  event: MapMouseEvent,
+  getProperties: () => Property[],
+  setSelected: (property: Property) => void,
+) {
+  const props = event.features?.[0]?.properties;
+  if (!props?.id) return;
+  const listing = getProperties().find((item) => item.id === props.id);
+  if (listing) setSelected(listing);
+}
+
+function handleClusterClick(map: MapboxMap, event: MapMouseEvent) {
+  const features = map.queryRenderedFeatures(event.point, { layers: ["clusters"] });
+  const clusterId = features[0]?.properties?.cluster_id;
+  if (clusterId == null) return;
+  const src = map.getSource("listings") as GeoJSONSource;
+  src.getClusterExpansionZoom(clusterId, (err, zoom) => {
+    if (err || zoom == null) return;
+    const coords = (features[0].geometry as GeoJSON.Point).coordinates as [number, number];
+    map.easeTo({ center: coords, zoom });
+  });
+}
+
+function attachMapControls(map: MapboxMap, mapboxgl: MapboxModule["default"]) {
+  map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "bottom-right");
+  map.addControl(
+    new mapboxgl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+    }),
+    "bottom-right",
+  );
+}
+
+function flyToNairobi(map: MapboxMap) {
+  map.flyTo({
+    center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
+    zoom: 12,
+    pitch: 45,
+    bearing: 0,
+    duration: 3000,
+    essential: true,
+  });
+}
+
+export function useTenantMapbox(properties: Property[]) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<MapboxMap | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const propertiesRef = useRef(properties);
+  const styleRef = useRef<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(MAP_STYLES.dark);
+
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Property | null>(null);
+  const [showHeat, setShowHeat] = useState(true);
+  const [showWater, setShowWater] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [query, setQuery] = useState("");
+  const [markerCount, setMarkerCount] = useState(0);
+  const [isOnline, setIsOnline] = useState(true);
+  const [mapStyle, setMapStyle] = useState<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(
+    MAP_STYLES.dark,
+  );
+  const [accessToken, setAccessToken] = useState<string | null>(
+    BUILD_TIME_TOKEN?.trim()?.startsWith("pk.") ? BUILD_TIME_TOKEN.trim() : null,
+  );
+  const [tokenLoading, setTokenLoading] = useState(!hasMapboxTokenSync());
+
+  propertiesRef.current = properties;
+  const filteredProperties = filterMappableProperties(properties, query);
+  const filteredRef = useRef(filteredProperties);
+  filteredRef.current = filteredProperties;
+
+  const activeLayer = resolveActiveLayer(showSecurity, showWater);
+  const layerStateRef = useRef({ showHeat, showSecurity, activeLayer });
+  layerStateRef.current = { showHeat, showSecurity, activeLayer };
+
+  useEffect(() => {
+    if (accessToken) return;
+    let cancelled = false;
+    void (async () => {
+      setTokenLoading(true);
+      const token = await resolveMapboxToken();
+      if (!cancelled) {
+        setAccessToken(token);
+        setTokenLoading(false);
+        if (!token) setError("Mapbox token missing. Set VITE_MAPBOX_TOKEN or MAPBOX_PUBLIC_TOKEN.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setError((prev) => (prev?.includes("offline") ? null : prev));
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      if (!mapInstance.current) setError("You're offline. Showing cached listings.");
+    };
+    globalThis.addEventListener("online", handleOnline);
+    globalThis.addEventListener("offline", handleOffline);
+    if (!navigator.onLine) handleOffline();
+    return () => {
+      globalThis.removeEventListener("online", handleOnline);
+      globalThis.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!accessToken || tokenLoading) return;
+    if (!mapRef.current || mapInstance.current) return;
+
+    let cancelled = false;
+    let introTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
+
+    const onListingClick = (event: MapMouseEvent) =>
+      handleListingClick(event, () => propertiesRef.current, setSelected);
+    const onClusterClick = (event: MapMouseEvent) =>
+      handleClusterClick(mapInstance.current!, event);
+    const setPointer = () => {
+      mapInstance.current?.getCanvas().style.setProperty("cursor", "pointer");
+    };
+    const clearPointer = () => {
+      mapInstance.current?.getCanvas().style.removeProperty("cursor");
+    };
+    const onLoad = () => {
+      const map = mapInstance.current;
+      if (!map) return;
+      setupMapLayers(map, filteredRef.current);
+      applyHeatVisibility(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
+      applyMarkerColors(map, layerStateRef.current.activeLayer);
+      map.resize();
+      setError(null);
+      setReady(true);
+      setMarkerCount(filteredRef.current.length);
+      introTimer = globalThis.setTimeout(() => flyToNairobi(map), 500);
+    };
+    const onStyleLoad = () => {
+      const map = mapInstance.current;
+      if (!map) return;
+      setupMapLayers(map, filteredRef.current);
+      applyHeatVisibility(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
+      applyMarkerColors(map, layerStateRef.current.activeLayer);
+    };
+    const onMapError = (event: { error?: Error }) => {
+      const message = event.error?.message ?? "";
+      console.error("Mapbox error:", event);
+      if (/token|401|403|unauthorized|Forbidden/i.test(message)) {
+        setError(message || "Mapbox token rejected.");
+      }
+    };
+
+    void (async () => {
+      const mapboxgl = (await import("mapbox-gl")).default;
+      if (cancelled || !mapRef.current) return;
+
+      mapboxgl.accessToken = accessToken;
+      const map = new mapboxgl.Map({
+        container: mapRef.current,
+        style: MAP_STYLES.dark,
+        center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
+        zoom: 12,
+        pitch: 45,
+        bearing: -17.6,
+        antialias: true,
+      });
+      mapInstance.current = map;
+
+      attachMapControls(map, mapboxgl);
+      map.on("load", onLoad);
+      map.on("style.load", onStyleLoad);
+      map.on("error", onMapError);
+      map.on("click", "unclustered-point-bg", onListingClick);
+      map.on("click", "clusters", onClusterClick);
+      map.on("mouseenter", "unclustered-point-bg", setPointer);
+      map.on("mouseleave", "unclustered-point-bg", clearPointer);
+      map.on("mouseenter", "clusters", setPointer);
+      map.on("mouseleave", "clusters", clearPointer);
+
+      if (mapRef.current && typeof ResizeObserver !== "undefined") {
+        resizeObserverRef.current = new ResizeObserver(() => map.resize());
+        resizeObserverRef.current.observe(mapRef.current);
+      }
+
+      requestAnimationFrame(() => map.resize());
+    })();
+
+    return () => {
+      cancelled = true;
+      if (introTimer) globalThis.clearTimeout(introTimer);
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      const map = mapInstance.current;
+      if (map) {
+        map.off("load", onLoad);
+        map.off("style.load", onStyleLoad);
+        map.off("error", onMapError);
+        map.off("click", "unclustered-point-bg", onListingClick);
+        map.off("click", "clusters", onClusterClick);
+        map.off("mouseenter", "unclustered-point-bg", setPointer);
+        map.off("mouseleave", "unclustered-point-bg", clearPointer);
+        map.off("mouseenter", "clusters", setPointer);
+        map.off("mouseleave", "clusters", clearPointer);
+        map.remove();
+      }
+      mapInstance.current = null;
+      setReady(false);
+    };
+  }, [accessToken, tokenLoading]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !ready) return;
+    const data = listingsGeoJson(filteredProperties);
+    (map.getSource("listings") as GeoJSONSource | undefined)?.setData(data);
+    (map.getSource("security-heat") as GeoJSONSource | undefined)?.setData(data);
+    (map.getSource("rent-heat") as GeoJSONSource | undefined)?.setData(data);
+    setMarkerCount(filteredProperties.length);
+  }, [filteredProperties, ready]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !ready) return;
+    applyHeatVisibility(map, showHeat, showSecurity);
+    applyMarkerColors(map, activeLayer);
+  }, [showSecurity, showWater, showHeat, ready, activeLayer]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !ready || !selected?.longitude || !selected.latitude) return;
+    map.flyTo({
+      center: [selected.longitude, selected.latitude],
+      zoom: 15,
+      pitch: 60,
+      duration: 1500,
+    });
+  }, [selected, ready]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !ready || mapStyle === styleRef.current) return;
+    styleRef.current = mapStyle;
+    map.setStyle(mapStyle);
+  }, [mapStyle, ready]);
+
+  const cycleMapStyle = () => {
+    const styles = Object.values(MAP_STYLES);
+    const idx = styles.indexOf(mapStyle);
+    setMapStyle(styles[(idx + 1) % styles.length] ?? MAP_STYLES.dark);
+  };
+
+  const recenter = () => {
+    mapInstance.current?.flyTo({
+      center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
+      zoom: 12,
+      pitch: 45,
+      duration: 1200,
+    });
+    setSelected(null);
+  };
+
+  const locateMe = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        mapInstance.current?.flyTo({
+          center: [pos.coords.longitude, pos.coords.latitude],
+          zoom: 14,
+          duration: 1200,
+        });
+      },
+      () => setError("Could not access your location"),
+    );
+  };
+
+  const visibleCount = ready && !error ? markerCount : filteredProperties.length;
+
+  return {
+    mapRef,
+    ready,
+    error,
+    selected,
+    setSelected,
+    showHeat,
+    setShowHeat,
+    showWater,
+    setShowWater,
+    showSecurity,
+    setShowSecurity,
+    panelOpen,
+    setPanelOpen,
+    query,
+    setQuery,
+    isOnline,
+    filteredProperties,
+    visibleCount,
+    recenter,
+    locateMe,
+    cycleMapStyle,
+  };
+}
+
+export function hasMapboxToken() {
+  return hasMapboxTokenSync();
+}

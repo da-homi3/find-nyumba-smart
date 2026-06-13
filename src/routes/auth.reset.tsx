@@ -1,20 +1,36 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { resetStepSubtitle, resetStepTitle, type ResetStep } from "@/lib/auth-reset-copy";
 import { scorePassword } from "@/lib/password-strength";
 import { validatePasswordPair } from "@/lib/validate-password";
+import {
+  bootstrapPasswordRecoverySession,
+  hasAuthSession,
+  isPasswordRecoveryUrl,
+  passwordResetRedirectUrl,
+  recoverySessionEmail,
+  recoveryUrlError,
+} from "@/lib/auth-reset";
 import { errorMessage } from "@/lib/utils";
 
 const OTP_PATTERN = /^\d{6}$/;
 
+const resetSearchSchema = z.object({
+  email: z.string().optional(),
+});
+
 export const Route = createFileRoute("/auth/reset")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    email: typeof search.email === "string" ? search.email : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = resetSearchSchema.safeParse(search);
+    const raw = parsed.success ? parsed.data.email?.trim() : undefined;
+    if (!raw?.includes("@")) return { email: undefined };
+    return { email: raw };
+  },
   head: () => ({ meta: [{ title: "Reset password — NyumbaSearch" }] }),
   component: ResetPasswordPage,
 });
@@ -29,26 +45,71 @@ function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
-  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [linkBootstrapping, setLinkBootstrapping] = useState(false);
   const navigate = useNavigate();
 
   const strength = useMemo(() => scorePassword(password), [password]);
 
   useEffect(() => {
-    const hash = globalThis.location.hash;
-    if (hash.includes("type=recovery") || hash.includes("access_token=")) {
-      setStep("password");
-      setHasRecoverySession(true);
+    if (emailFromUrl) setEmail(emailFromUrl);
+  }, [emailFromUrl]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function activateRecoverySession() {
+      const ready = await bootstrapPasswordRecoverySession();
+      if (!active) return ready;
+
+      if (ready) {
+        setSessionReady(true);
+        setStep("password");
+        const sessionEmail = await recoverySessionEmail();
+        if (sessionEmail) setEmail(sessionEmail);
+      }
+      return ready;
     }
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    async function initFromEmailLink() {
+      const urlError = recoveryUrlError();
+      if (urlError) {
+        toast.error(urlError);
+        setStep("request");
+        return;
+      }
+
+      if (!isPasswordRecoveryUrl()) return;
+
+      setLinkBootstrapping(true);
+      setStep("password");
+      const ready = await activateRecoverySession();
+      if (!active) return;
+
+      if (!ready) {
+        toast.error("This reset link expired or is invalid. Request a new reset email.");
+        setStep("request");
+        setSessionReady(false);
+      }
+      setLinkBootstrapping(false);
+    }
+
+    void initFromEmailLink();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active || !session) return;
       if (event === "PASSWORD_RECOVERY") {
+        setSessionReady(true);
         setStep("password");
-        setHasRecoverySession(true);
+        setLinkBootstrapping(false);
+        if (session.user.email) setEmail(session.user.email);
       }
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -57,12 +118,31 @@ function ResetPasswordPage() {
     return () => globalThis.clearTimeout(timer);
   }, [resendSeconds]);
 
+  async function ensureRecoverySession(): Promise<boolean> {
+    if (sessionReady && (await hasAuthSession())) return true;
+    const ready = await bootstrapPasswordRecoverySession();
+    if (ready) {
+      setSessionReady(true);
+      return true;
+    }
+    return false;
+  }
+
   async function sendResetEmail() {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      toast.error("Enter your email address");
+      return;
+    }
+
     setLoading(true);
     try {
-      const redirectTo = `${globalThis.location.origin}/auth/reset`;
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+        redirectTo: passwordResetRedirectUrl(),
+      });
       if (error) throw error;
+      setEmail(trimmed);
+      setSessionReady(false);
       setResendSeconds(60);
       setStep("otp");
       toast.success("Check your email for the reset code or link.");
@@ -78,14 +158,41 @@ function ResetPasswordPage() {
     await sendResetEmail();
   }
 
-  function verifyOtp(e: FormEvent<HTMLFormElement>) {
+  async function verifyOtp(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!OTP_PATTERN.test(otp)) {
       toast.error("Enter the 6-digit code");
       return;
     }
-    setStep("password");
-    toast.success("Code accepted — set your new password.");
+    const trimmed = email.trim();
+    if (!trimmed) {
+      toast.error("Enter the email you used to request a reset");
+      setStep("request");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: trimmed,
+        token: otp,
+        type: "recovery",
+      });
+      if (error) throw error;
+      const authed = !!(data.session ?? (await hasAuthSession()));
+      if (!authed) {
+        throw new Error(
+          "Code accepted but session could not start. Use the link in your email instead.",
+        );
+      }
+      setSessionReady(true);
+      setStep("password");
+      toast.success("Code verified — set your new password.");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function updatePassword(e: FormEvent<HTMLFormElement>) {
@@ -98,16 +205,20 @@ function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session && !hasRecoverySession) {
-        toast.error("Open the reset link we emailed you, then set your new password.");
+      const authed = await ensureRecoverySession();
+      if (!authed) {
+        toast.error(
+          "Your reset session expired. Open the link in your email again, or request a new code.",
+        );
+        setStep("request");
         return;
       }
 
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("Password reset. Sign in with your new password.");
-      navigate({ to: "/auth" });
+      await supabase.auth.signOut();
+      toast.success("Password updated. Sign in with your new password.");
+      navigate({ to: "/auth", search: { redirect: "/tenant" } });
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -133,6 +244,7 @@ function ResetPasswordPage() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl border px-3 py-2.5 text-sm"
@@ -143,20 +255,23 @@ function ResetPasswordPage() {
               disabled={loading}
               className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
-              {loading ? "Sending…" : "Send reset code"}
+              {loading ? "Sending…" : "Send reset email"}
             </button>
           </form>
         )}
 
         {step === "otp" && (
           <form className="mt-8 space-y-5" onSubmit={verifyOtp}>
+            <p className="text-xs text-muted-foreground">
+              Enter the 6-digit code from your email, or open the reset link in that email instead.
+            </p>
             <OtpInput value={otp} onChange={setOtp} />
             <button
               type="submit"
-              disabled={otp.length < 6}
+              disabled={otp.length < 6 || loading}
               className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
-              Continue
+              {loading ? "Verifying…" : "Verify code"}
             </button>
             <div className="flex items-center justify-between text-xs">
               <button
@@ -172,20 +287,51 @@ function ResetPasswordPage() {
                 onClick={() => void sendResetEmail()}
                 className="font-semibold text-primary disabled:opacity-50"
               >
-                {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : "Resend code"}
+                {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : "Resend email"}
               </button>
             </div>
           </form>
         )}
 
-        {step === "password" && (
+        {step === "password" && linkBootstrapping && (
+          <div className="mt-10 flex flex-col items-center gap-3 text-center text-sm text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            Confirming your reset link…
+          </div>
+        )}
+
+        {step === "password" && !linkBootstrapping && !sessionReady && (
+          <div className="mt-10 rounded-2xl border border-dashed p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Your reset session is not active. Request a new code or open the link in your email.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("request");
+                setSessionReady(false);
+              }}
+              className="mt-4 text-sm font-semibold text-primary"
+            >
+              Request reset email
+            </button>
+          </div>
+        )}
+
+        {step === "password" && !linkBootstrapping && sessionReady && (
           <form className="mt-8 space-y-4" onSubmit={updatePassword}>
+            {email && (
+              <p className="text-xs text-muted-foreground">
+                Resetting password for <span className="font-medium text-foreground">{email}</span>
+              </p>
+            )}
             <Field label="New password">
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   minLength={8}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border px-3 py-2.5 pr-10 text-sm"
@@ -214,6 +360,7 @@ function ResetPasswordPage() {
                 type={showPassword ? "text" : "password"}
                 required
                 minLength={8}
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full rounded-xl border px-3 py-2.5 text-sm"
@@ -233,7 +380,7 @@ function ResetPasswordPage() {
   );
 }
 
-function Field({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
+function Field({ label, children }: Readonly<{ label: string; children: ReactNode }>) {
   return (
     <label className="block text-sm font-medium">
       <span className="mb-1.5 block text-xs text-muted-foreground">{label}</span>

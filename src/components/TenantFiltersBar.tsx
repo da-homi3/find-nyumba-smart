@@ -1,4 +1,5 @@
 import { SlidersHorizontal } from "lucide-react";
+import { motion } from "framer-motion";
 import type { PropertyType } from "@/lib/properties";
 
 export type TenantSort = "newest" | "price_asc" | "price_desc" | "score";
@@ -45,7 +46,7 @@ type Props = {
 
 export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Props>) {
   return (
-    <div className="sticky top-0 z-20 border-b bg-background/95 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <div className="sticky top-0 z-20 border-b bg-background/95 px-5 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="mx-auto flex max-w-2xl flex-wrap items-end gap-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
           <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -121,7 +122,7 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Pr
             onChange={(e) => onChange({ waterGoodOnly: e.target.checked })}
             className="accent-primary"
           />
-          Good water
+          <span>Good water</span>
         </label>
 
         <label className="flex items-center gap-1.5 pb-1 text-xs font-medium">
@@ -131,18 +132,25 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Pr
             onChange={(e) => onChange({ verifiedLevel2Plus: e.target.checked })}
             className="accent-primary"
           />
-          Verified L2+
+          <span>Verified L2+</span>
         </label>
 
-        <span className="ml-auto text-xs text-muted-foreground">{resultCount} homes</span>
+        <motion.span
+          key={resultCount}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="ml-auto text-xs text-muted-foreground"
+        >
+          <strong className="text-[#1eb88a]">{resultCount}</strong> homes found
+        </motion.span>
       </div>
 
-      <div className="mx-auto mt-2 flex max-w-2xl flex-wrap gap-1.5">
+      <div className="mx-auto mt-2 flex max-w-2xl flex-wrap gap-1.5 overflow-x-auto pb-1">
         {ALL_TYPES.map((t) => {
           const selectedTypes = new Set(filters.types);
-          const on = filters.types.length === 0 || selectedTypes.has(t);
+          const active = selectedTypes.has(t);
           return (
-            <button
+            <motion.button
               key={t}
               type="button"
               onClick={() => {
@@ -151,12 +159,22 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Pr
                   : [...filters.types, t];
                 onChange({ types: next });
               }}
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold capitalize ${
-                on ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"
-              }`}
+              animate={{
+                scale: active ? 1.05 : 1,
+                background: active
+                  ? "linear-gradient(135deg, #0a5c47, #1eb88a)"
+                  : "rgba(255,255,255,0.05)",
+                borderColor: active ? "#1eb88a" : "rgba(255,255,255,0.1)",
+                color: active ? "#fff" : undefined,
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="rounded-full border px-3 py-1 text-[10px] font-semibold capitalize"
+              style={{
+                boxShadow: active ? "0 4px 16px rgba(30,184,138,0.3)" : "none",
+              }}
             >
               {t.replaceAll("_", " ")}
-            </button>
+            </motion.button>
           );
         })}
       </div>

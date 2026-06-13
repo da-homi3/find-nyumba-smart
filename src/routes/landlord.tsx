@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/landlord")({
@@ -8,24 +9,31 @@ export const Route = createFileRoute("/landlord")({
 });
 
 function LandlordLayout() {
-  const { user, loading, isLandlord } = useAuth();
+  const { user, loading, isLandlord, pendingApplications } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  // The landlord portal entry (/landlord) is public — it hosts the
-  // landlord sign-in / sign-up flow. Only gate nested landlord routes.
   const isPublicEntry = pathname === "/landlord" || pathname === "/landlord/";
 
   useEffect(() => {
     if (isPublicEntry || loading) return;
     if (!user) {
-      navigate({ to: "/auth", search: { redirect: pathname } as never, replace: true });
+      navigate({
+        to: "/auth",
+        search: { redirect: pathname, role: "landlord", mode: "signin" },
+        replace: true,
+      });
       return;
     }
     if (!isLandlord) {
-      navigate({ to: "/settings", replace: true });
+      const pending = hasPendingApplicationForRole(pendingApplications, "landlord");
+      navigate({
+        to: pending ? "/auth/pending" : "/auth",
+        search: pending ? undefined : { redirect: pathname, role: "landlord", mode: "signup" },
+        replace: true,
+      });
     }
-  }, [loading, user, isLandlord, isPublicEntry, pathname, navigate]);
+  }, [loading, user, isLandlord, pendingApplications, isPublicEntry, pathname, navigate]);
 
   if (!isPublicEntry && (loading || !user || !isLandlord)) {
     return (

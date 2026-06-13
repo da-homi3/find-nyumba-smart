@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getInquiryThread,
@@ -27,12 +28,15 @@ const LANDLORD_QUICK_REPLIES = [
 
 type ConversationThreadProps = {
   inquiryId: string;
+  /** Router path for the back link (preferred over onBack). */
+  backTo?: string;
   onBack?: () => void;
   showQuickReplies?: boolean;
 };
 
 export function ConversationThread({
   inquiryId,
+  backTo,
   onBack,
   showQuickReplies = false,
 }: Readonly<ConversationThreadProps>) {
@@ -41,15 +45,20 @@ export function ConversationThread({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
 
-  const { data: thread } = useQuery({
+  const { data: thread, error: threadError, isLoading: threadLoading } = useQuery({
     queryKey: ["inquiry-thread", inquiryId],
     queryFn: () => getInquiryThread({ data: { inquiryId } }),
+    retry: 1,
   });
 
-  const { data: messages = [], isLoading } = useQuery({
+  const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
     queryKey: ["inquiry-messages", inquiryId],
     queryFn: () => listInquiryMessages({ data: { inquiryId } }),
+    retry: 1,
   });
+
+  const loadError = threadError ?? messagesError;
+  const isLoading = threadLoading || messagesLoading;
 
   useEffect(() => {
     if (!inquiryId || !user) return;
@@ -110,22 +119,52 @@ export function ConversationThread({
   });
 
   const counterparty = thread?.counterparty;
-  const inquiryProps = thread?.inquiry as { properties?: { title?: string } } | undefined;
-  const propertyTitle = inquiryProps?.properties?.title ?? "Listing";
+  const inquiry = thread?.inquiry as
+    | { property_id?: string; properties?: { id?: string; title?: string } | null }
+    | undefined;
+  const propertyTitle = inquiry?.properties?.title ?? "Listing";
+  const propertyId = inquiry?.property_id ?? inquiry?.properties?.id;
+
+  const backControl =
+    backTo != null ? (
+      <Link to={backTo} className="text-sm font-medium text-primary">
+        ← Back
+      </Link>
+    ) : onBack ? (
+      <button type="button" onClick={onBack} className="text-sm font-medium text-primary">
+        ← Back
+      </button>
+    ) : null;
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
+        <p className="text-sm font-medium text-destructive">Could not load this conversation.</p>
+        <p className="mt-1 text-xs text-muted-foreground">{loadError.message}</p>
+        {backControl}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-[60vh] flex-col">
       <header className="flex items-center gap-3 border-b px-4 py-3">
-        {onBack && (
-          <button type="button" onClick={onBack} className="text-sm font-medium text-primary">
-            Back
-          </button>
-        )}
+        {backControl}
         <div className="min-w-0 flex-1">
           <h2 className="line-clamp-1 font-display font-semibold">
             {counterparty?.full_name ?? "Conversation"}
           </h2>
-          <p className="line-clamp-1 text-xs text-muted-foreground">{propertyTitle}</p>
+          {propertyId ? (
+            <Link
+              to="/tenant/property/$id"
+              params={{ id: propertyId }}
+              className="line-clamp-1 text-xs text-primary hover:underline"
+            >
+              {propertyTitle}
+            </Link>
+          ) : (
+            <p className="line-clamp-1 text-xs text-muted-foreground">{propertyTitle}</p>
+          )}
         </div>
       </header>
 

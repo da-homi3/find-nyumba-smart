@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Lock, Phone, CheckCircle2, Loader2 } from "lucide-react";
+import { CreditCard, Lock, Phone, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatKes } from "@/lib/properties";
-import { initiateMpesaPayment, verifyMpesaPayment } from "@/lib/api/payment.functions";
+import {
+  createStripeCheckoutSession,
+  initiateMpesaPayment,
+  verifyMpesaPayment,
+} from "@/lib/api/payment.functions";
 import { transactionReference } from "@/lib/revenue/plans";
+import { isStripeCheckoutEnabled } from "@/lib/stripe-client";
 import { errorMessage } from "@/lib/utils";
 
 export type CheckoutLineItem = {
@@ -33,6 +38,7 @@ export type CheckoutMetadata = {
 type Props = {
   lineItem: CheckoutLineItem;
   metadata: CheckoutMetadata;
+  checkoutPath: string;
   defaultPhone?: string;
   allowQuarterly?: boolean;
   onSuccess: (ref: string) => void;
@@ -41,12 +47,15 @@ type Props = {
 export function CheckoutFlow({
   lineItem,
   metadata,
+  checkoutPath,
   defaultPhone = "",
   allowQuarterly = true,
   onSuccess,
 }: Readonly<Props>) {
+  const cardEnabled = isStripeCheckoutEnabled();
   const [step, setStep] = useState(1);
   const [cycle, setCycle] = useState<"monthly" | "quarterly">("monthly");
+  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
   const [phone, setPhone] = useState(defaultPhone);
   const [waiting, setWaiting] = useState(false);
   const [ref, setRef] = useState("");
@@ -59,7 +68,7 @@ export function CheckoutFlow({
   const nextBilling = new Date();
   nextBilling.setDate(nextBilling.getDate() + (cycle === "quarterly" ? 90 : 30));
 
-  async function completePayment() {
+  async function completeMpesaPayment() {
     setWaiting(true);
     try {
       const res = await initiateMpesaPayment({
@@ -94,6 +103,37 @@ export function CheckoutFlow({
     } finally {
       setWaiting(false);
     }
+  }
+
+  async function completeCardPayment() {
+    setWaiting(true);
+    try {
+      const res = await createStripeCheckoutSession({
+        data: {
+          amountKes,
+          paymentType: metadata.paymentType,
+          propertyId: metadata.propertyId,
+          plan: metadata.plan,
+          boostPackage: metadata.boostPackage,
+          billingCycle: cycle,
+          successPath: checkoutPath,
+          cancelPath: checkoutPath,
+          title: lineItem.title,
+        },
+      });
+      globalThis.location.href = res.url;
+    } catch (err) {
+      toast.error(errorMessage(err));
+      setWaiting(false);
+    }
+  }
+
+  function handlePay() {
+    if (paymentMethod === "card") {
+      void completeCardPayment();
+      return;
+    }
+    void completeMpesaPayment();
   }
 
   if (step === 3) {
@@ -162,35 +202,74 @@ export function CheckoutFlow({
 
       {step === 2 && (
         <>
+          {cardEnabled && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("mpesa")}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm font-semibold ${
+                  paymentMethod === "mpesa" ? "border-primary bg-primary/10 text-primary" : ""
+                }`}
+              >
+                <Phone className="h-4 w-4" /> M-Pesa
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("card")}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm font-semibold ${
+                  paymentMethod === "card" ? "border-primary bg-primary/10 text-primary" : ""
+                }`}
+              >
+                <CreditCard className="h-4 w-4" /> Card
+              </button>
+            </div>
+          )}
+
           <div className="space-y-3">
-            <label className="block text-xs font-semibold">
-              M-Pesa number
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="0712345678"
-                className="mt-1 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none"
-              />
-            </label>
+            {paymentMethod === "mpesa" && (
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-semibold">M-Pesa number</span>
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0712345678"
+                  className="w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none"
+                />
+              </label>
+            )}
             {waiting ? (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed py-8 text-sm">
-                <Phone className="h-8 w-8 animate-pulse text-primary" />
-                <p>Waiting for M-Pesa confirmation…</p>
+                {paymentMethod === "mpesa" ? (
+                  <>
+                    <Phone className="h-8 w-8 animate-pulse text-primary" />
+                    <p>Waiting for M-Pesa confirmation…</p>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-8 w-8 animate-pulse text-primary" />
+                    <p>Redirecting to secure card checkout…</p>
+                  </>
+                )}
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : (
               <button
                 type="button"
-                onClick={() => void completePayment()}
+                onClick={handlePay}
                 className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
               >
-                Send payment request · {formatKes(amountKes)}
+                {paymentMethod === "card"
+                  ? `Pay with card · ${formatKes(amountKes)}`
+                  : `Send payment request · ${formatKes(amountKes)}`}
               </button>
             )}
           </div>
 
           <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-            <Lock className="h-3.5 w-3.5" /> Secured by M-Pesa Lipa na M-Pesa Online
+            <Lock className="h-3.5 w-3.5" />
+            {paymentMethod === "card"
+              ? "Secured by Stripe"
+              : "Secured by M-Pesa Lipa na M-Pesa Online"}
           </p>
           <button type="button" onClick={() => setStep(1)} className="text-sm text-primary">
             ← Back

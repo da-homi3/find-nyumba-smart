@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
+import { useEffect, useState, useCallback } from "react";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
+import { useStripeCheckoutReturn } from "@/hooks/use-stripe-checkout-return";
 import { PLUS_PLAN } from "@/lib/revenue/plans";
-import { useEffect, useState } from "react";
 
 const searchSchema = z.object({
   plan: z.string().optional(),
@@ -18,6 +19,8 @@ function TenantCheckoutPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [done, setDone] = useState(false);
+  const onStripeSuccess = useCallback(() => setDone(true), []);
+  useStripeCheckoutReturn(onStripeSuccess);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -62,6 +65,7 @@ function TenantCheckoutPage() {
       </p>
       <div className="mt-8">
         <CheckoutFlow
+          checkoutPath="/tenant/checkout"
           lineItem={{
             title: "NyumbaSearch Plus",
             subtitle: "For serious house hunters in Nairobi",

@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, MapPin, Sparkles, ShieldCheck } from "lucide-react";
-import { searchProperties, type PropertyType } from "@/lib/properties";
+import { searchProperties, type Property, type PropertyType } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, type MouseEvent } from "react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { recordSearchEvent } from "@/lib/api/analytics.functions";
 import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
@@ -18,6 +18,8 @@ import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.funct
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { AdUnit } from "@/components/AdUnit";
 import { SiteNav } from "@/components/SiteNav";
+import { currentRedirectPath } from "@/lib/navigation";
+import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -37,31 +39,63 @@ export const Route = createFileRoute("/tenant/")({
 const LISTING_SKELETON_KEYS = ["a", "b", "c", "d", "e", "f"] as const;
 const PAGE_SIZE = 12;
 
+function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFilters {
+  return {
+    ...defaultTenantFilters,
+    maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
+    neighborhood: search.neighborhood ?? "All",
+    types: search.type ? [search.type as PropertyType] : [],
+  };
+}
+
+function applyClientFilters(items: Property[], filters: TenantFilters): Property[] {
+  let next = items;
+  if (filters.types.length > 0) {
+    const typeSet = new Set(filters.types);
+    next = next.filter((p) => typeSet.has(p.property_type));
+  }
+  if (filters.bedrooms != null) {
+    next = next.filter((p) => p.bedrooms >= filters.bedrooms!);
+  }
+  if (filters.waterGoodOnly) {
+    next = next.filter((p) => {
+      const w = getListingIntel(p).water;
+      return w === "Good" || w === "Excellent";
+    });
+  }
+  if (filters.verifiedLevel2Plus) {
+    next = next.filter((p) => verificationLevel(p) >= 2);
+  }
+  return next;
+}
+
+function analyticsSessionId(): string | undefined {
+  if (globalThis.sessionStorage === undefined) return undefined;
+  const existing = globalThis.sessionStorage.getItem("nyumba_sid");
+  if (existing) return existing;
+  const sid = crypto.randomUUID();
+  globalThis.sessionStorage.setItem("nyumba_sid", sid);
+  return sid;
+}
+
 function TenantHome() {
   const search = Route.useSearch();
-  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isTenant } = useAuth();
   const { isPlus } = useEntitlements();
   const qc = useQueryClient();
   const [q, setQ] = useState(search.q ?? "");
   const debouncedQ = useDebouncedValue(q, 400);
   const [page, setPage] = useState(1);
   const lastAnalyticsKey = useRef("");
-  const [filters, setFilters] = useState<TenantFilters>(() => ({
-    ...defaultTenantFilters,
-    maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
-    neighborhood: search.neighborhood ?? "All",
-    types: search.type ? [search.type as PropertyType] : [],
-  }));
+  const [filters, setFilters] = useState<TenantFilters>(() => filtersFromSearch(search));
 
   useEffect(() => {
     setQ(search.q ?? "");
     setPage(1);
-    setFilters((f) => ({
-      ...f,
-      maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
-      neighborhood: search.neighborhood ?? "All",
-      types: search.type ? [search.type as PropertyType] : [],
-    }));
+    setFilters((f) => ({ ...f, ...filtersFromSearch(search) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync individual URL search params only
   }, [search.q, search.maxPrice, search.neighborhood, search.type]);
 
   const {
@@ -70,11 +104,18 @@ function TenantHome() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["properties", debouncedQ, filters.neighborhood, filters.maxRent, filters.sort],
+    queryKey: [
+      "properties",
+      debouncedQ,
+      filters.neighborhood,
+      filters.minRent,
+      filters.maxRent,
+      filters.sort,
+    ],
     queryFn: () =>
       searchProperties({
         query: debouncedQ || undefined,
-        neighborhood: filters.neighborhood !== "All" ? filters.neighborhood : undefined,
+        neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
         maxRent: filters.maxRent,
         minRent: filters.minRent,
         sortBy: filters.sort,
@@ -84,7 +125,7 @@ function TenantHome() {
 
   const { data: savedList = [] } = useQuery({
     queryKey: ["saved-properties", user?.id],
-    enabled: !!user,
+    enabled: !!user && isTenant,
     queryFn: () => listSavedProperties(),
   });
   const savedIds = useMemo(() => new Set(savedList.map((p) => p.id)), [savedList]);
@@ -98,29 +139,13 @@ function TenantHome() {
       qc.invalidateQueries({ queryKey: ["saved-properties"] });
       toast.success(saved ? "Removed from saved" : "Saved to your list");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e) => toast.error(errorMessage(e)),
   });
 
-  const filtered = useMemo(() => {
-    let items = searchResult?.items ?? [];
-    if (filters.types.length > 0) {
-      const typeSet = new Set(filters.types);
-      items = items.filter((p) => typeSet.has(p.property_type));
-    }
-    if (filters.bedrooms != null) {
-      items = items.filter((p) => p.bedrooms >= filters.bedrooms!);
-    }
-    if (filters.waterGoodOnly) {
-      items = items.filter((p) => {
-        const w = getListingIntel(p).water;
-        return w === "Good" || w === "Excellent";
-      });
-    }
-    if (filters.verifiedLevel2Plus) {
-      items = items.filter((p) => verificationLevel(p) >= 2);
-    }
-    return items;
-  }, [searchResult?.items, filters]);
+  const filtered = useMemo(
+    () => applyClientFilters(searchResult?.items ?? [], filters),
+    [searchResult?.items, filters],
+  );
 
   useEffect(() => {
     if (isLoading || isError) return;
@@ -130,17 +155,9 @@ function TenantHome() {
     void recordSearchEvent({
       data: {
         query: debouncedQ || undefined,
-        neighborhood: filters.neighborhood !== "All" ? filters.neighborhood : undefined,
+        neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
         resultCount: filtered.length,
-        sessionId:
-          typeof globalThis.sessionStorage !== "undefined"
-            ? (globalThis.sessionStorage.getItem("nyumba_sid") ??
-              (() => {
-                const sid = crypto.randomUUID();
-                globalThis.sessionStorage.setItem("nyumba_sid", sid);
-                return sid;
-              })())
-            : undefined,
+        sessionId: analyticsSessionId(),
       },
     });
   }, [debouncedQ, filters.neighborhood, filtered.length, isLoading, isError]);
@@ -158,10 +175,15 @@ function TenantHome() {
     setPage(1);
   };
 
-  const handleToggleSave = (propertyId: string) => (e: React.MouseEvent) => {
+  const handleToggleSave = (propertyId: string) => (e: MouseEvent) => {
     e.preventDefault();
     if (!user) {
       toast.error("Sign in to save homes");
+      navigate({ to: "/auth", search: { redirect: currentRedirectPath(location) } });
+      return;
+    }
+    if (!isTenant) {
+      toast.info("Switch to a tenant account to save homes.");
       return;
     }
     if (isDemoListingId(propertyId)) {
@@ -180,7 +202,7 @@ function TenantHome() {
           alt="Aerial view of a leafy Nairobi neighbourhood at golden hour"
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-foreground/75 via-foreground/55 to-primary/85" />
+        <div className="absolute inset-0 -z-10 bg-linear-to-b from-foreground/75 via-foreground/55 to-primary/85" />
         <div className="mx-auto max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-wider text-primary-foreground/70">
             Karibu
@@ -246,7 +268,7 @@ function TenantHome() {
       )}
 
       <section className="mx-auto max-w-2xl px-5 pt-6">
-        <div className="flex items-start gap-3 rounded-2xl border bg-gradient-to-br from-accent to-secondary p-4">
+        <div className="flex items-start gap-3 rounded-2xl border bg-linear-to-br from-accent to-secondary p-4">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-gold text-gold-foreground">
             <Sparkles className="h-5 w-5" />
           </div>
@@ -267,79 +289,131 @@ function TenantHome() {
           </h2>
           <span className="text-xs text-muted-foreground">{filtered.length} results</span>
         </div>
-        {isLoading ? (
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {LISTING_SKELETON_KEYS.map((id) => (
-              <div key={id} className="overflow-hidden rounded-2xl border">
-                <div className="aspect-video animate-pulse bg-muted" />
-                <div className="space-y-2 p-4">
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="mt-8 rounded-2xl border border-destructive/30 p-10 text-center">
-            <p className="text-sm font-medium text-destructive">Couldn&apos;t load listings</p>
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
-            >
-              Try again
-            </button>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            No homes match these filters. Try widening your budget or turning off water filters.
-          </div>
-        ) : (
-          <>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {visible.map((p, index) => {
-                const slot = index + 1;
-                const boosted = boostedPool.length ? boostedPool[slot % boostedPool.length] : null;
-                return (
-                  <div key={p.id} className="contents">
-                    <PropertyCard
-                      p={p}
-                      saved={savedIds.has(p.id)}
-                      plusMember={isPlus}
-                      onToggleSave={handleToggleSave(p.id)}
-                    />
-                    {slot % 6 === 0 &&
-                      (boosted ? (
-                        <div>
-                          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gold">
-                            Featured listing
-                          </p>
-                          <PropertyCard p={boosted} plusMember={isPlus} />
-                        </div>
-                      ) : (
-                        <AdUnit
-                          label="Partner"
-                          title="Advertise on NyumbaSearch"
-                          body="Reach verified tenants searching for homes in Nairobi."
-                          href="/advertise"
-                        />
-                      ))}
-                  </div>
-                );
-              })}
-            </div>
-            {visible.length < filtered.length && (
-              <button
-                type="button"
-                onClick={() => setPage((n) => n + 1)}
-                className="mt-6 w-full rounded-xl border py-3 text-sm font-semibold hover:bg-secondary"
-              >
-                Load more ({filtered.length - visible.length} remaining)
-              </button>
-            )}
-          </>
-        )}
+        <TenantListingsGrid
+          isLoading={isLoading}
+          isError={isError}
+          filtered={filtered}
+          visible={visible}
+          boostedPool={boostedPool}
+          savedIds={savedIds}
+          isPlus={isPlus}
+          onRetry={() => void refetch()}
+          onLoadMore={() => setPage((n) => n + 1)}
+          onToggleSave={handleToggleSave}
+        />
       </section>
     </div>
+  );
+}
+
+type TenantListingsGridProps = Readonly<{
+  isLoading: boolean;
+  isError: boolean;
+  filtered: Property[];
+  visible: Property[];
+  boostedPool: Property[];
+  savedIds: Set<string>;
+  isPlus: boolean;
+  onRetry: () => void;
+  onLoadMore: () => void;
+  onToggleSave: (propertyId: string) => (e: MouseEvent) => void;
+}>;
+
+function TenantListingsGrid({
+  isLoading,
+  isError,
+  filtered,
+  visible,
+  boostedPool,
+  savedIds,
+  isPlus,
+  onRetry,
+  onLoadMore,
+  onToggleSave,
+}: TenantListingsGridProps) {
+  if (isLoading) {
+    return (
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {LISTING_SKELETON_KEYS.map((id) => (
+          <div key={id} className="overflow-hidden rounded-2xl border">
+            <div className="aspect-video animate-pulse bg-muted" />
+            <div className="space-y-2 p-4">
+              <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="mt-8 rounded-2xl border border-destructive/30 p-10 text-center">
+        <p className="text-sm font-medium text-destructive">Couldn&apos;t load listings</p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+        No homes match these filters. Try widening your budget or turning off water filters.
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visible.map((p, index) => {
+          const slot = index + 1;
+          const boosted = boostedPool.length > 0 ? boostedPool[slot % boostedPool.length] : null;
+          const showPromo = slot % 6 === 0;
+          return (
+            <div key={p.id} className="contents">
+              <PropertyCard
+                p={p}
+                saved={savedIds.has(p.id)}
+                plusMember={isPlus}
+                onToggleSave={onToggleSave(p.id)}
+              />
+              {showPromo &&
+                (boosted ? (
+                  <div>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gold">
+                      Featured listing
+                    </p>
+                    <PropertyCard p={boosted} plusMember={isPlus} />
+                  </div>
+                ) : (
+                  <AdUnit
+                    label="Partner"
+                    title="Advertise on NyumbaSearch"
+                    body="Reach verified tenants searching for homes in Nairobi."
+                    href="/advertise"
+                  />
+                ))}
+            </div>
+          );
+        })}
+      </div>
+      {visible.length < filtered.length && (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          className="mt-6 w-full rounded-xl border py-3 text-sm font-semibold hover:bg-secondary"
+        >
+          Load more ({filtered.length - visible.length} remaining)
+        </button>
+      )}
+    </>
   );
 }

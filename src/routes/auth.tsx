@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,6 +11,8 @@ import {
   DASHBOARD_APPROVAL_ROLES,
   isPrivilegedAccountRole,
   ORG_REQUIRED_ROLES,
+  organizationFieldLabel,
+  organizationFieldPlaceholder,
 } from "@/lib/account-roles";
 import { isKenyanPhone } from "@/lib/phone";
 import { validatePasswordPair } from "@/lib/validate-password";
@@ -18,12 +20,14 @@ import { authSubmitLabel, errorMessage } from "@/lib/utils";
 import {
   getMyProfilePortal,
   listMyPortalApplications,
-  registerPortalApplicationAfterSignup,
   submitPortalApplication,
 } from "@/lib/api/portal.functions";
+import { registerAccountSignup } from "@/lib/api/auth.functions";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
+  role: z.enum(["tenant", "landlord", "manager", "agency"]).optional(),
+  mode: z.enum(["signin", "signup"]).optional(),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -36,18 +40,36 @@ async function resolveRoles(user: User): Promise<string[]> {
   return (data ?? []).map((r) => r.role as string);
 }
 
+function signupSubtitle(role: AccountRole): string {
+  if (role === "landlord") {
+    return "Apply to list properties on NyumbaSearch — ops will review before dashboard access.";
+  }
+  if (role === "manager") {
+    return "Apply to manage properties on NyumbaSearch — ops will review your account.";
+  }
+  if (role === "agency") {
+    return "Apply as a real estate agency — ops will review before dashboard access.";
+  }
+  return "Join thousands finding verified homes in Nairobi.";
+}
+
 function TenantAuth() {
-  const { redirect } = Route.useSearch();
+  const { redirect, role: roleParam, mode: modeParam } = Route.useSearch();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(modeParam ?? "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [organizationName, setOrganizationName] = useState("");
-  const [role, setRole] = useState<AccountRole>("tenant");
+  const [role, setRole] = useState<AccountRole>(roleParam ?? "tenant");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (modeParam) setMode(modeParam);
+    if (roleParam) setRole(roleParam);
+  }, [modeParam, roleParam]);
 
   async function handleSignup() {
     if (ORG_REQUIRED_ROLES.has(role) && !organizationName.trim()) {
@@ -59,45 +81,29 @@ function TenantAuth() {
     const passwordError = validatePasswordPair(password, confirmPassword);
     if (passwordError) throw new Error(passwordError);
 
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${globalThis.location.origin}/tenant`,
-        data: {
-          full_name: fullName,
-          phone,
-          role,
-          organization_name: organizationName.trim() || undefined,
-        },
+    await registerAccountSignup({
+      data: {
+        email,
+        password,
+        fullName,
+        phone: phone.trim(),
+        role,
+        organizationName: organizationName.trim() || undefined,
       },
     });
-    if (error) throw error;
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) throw signInError;
 
     if (isPrivilegedAccountRole(role)) {
       const privilegedRole = role as "landlord" | "manager" | "agency";
-      const reviewUrl = `${globalThis.location.origin}/admin?tab=applications`;
       const portalPayload = {
         requestedRole: privilegedRole,
         organizationName: organizationName.trim() || undefined,
         phone: phone.trim() || undefined,
       };
 
-      if (signUpData.session) {
-        await submitPortalApplication({ data: portalPayload });
-      } else if (signUpData.user?.id) {
-        await registerPortalApplicationAfterSignup({
-          data: {
-            userId: signUpData.user.id,
-            applicantName: fullName || email,
-            applicantEmail: email,
-            requestedRole: privilegedRole,
-            organizationName: portalPayload.organizationName,
-            phone: portalPayload.phone,
-            reviewUrl,
-          },
-        });
-      }
+      await submitPortalApplication({ data: portalPayload });
 
       toast.success("Application submitted — we'll email you when approved.");
       navigate({ to: "/auth/pending" });
@@ -135,20 +141,20 @@ function TenantAuth() {
     globalThis.location.href = resolvePostLoginPath(roles as AppRole[], activePortal, redirect);
   }
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function submitForm() {
+    if (mode === "signup") {
+      await handleSignup();
+    } else {
+      await handleSignin();
+    }
+  }
+
+  function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    try {
-      if (mode === "signup") {
-        await handleSignup();
-      } else {
-        await handleSignin();
-      }
-    } catch (err) {
-      toast.error(errorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+    submitForm()
+      .catch((err) => toast.error(errorMessage(err)))
+      .finally(() => setLoading(false));
   }
 
   const submitLabel = authSubmitLabel(loading, mode);
@@ -167,7 +173,7 @@ function TenantAuth() {
         <p className="mt-2 text-sm text-muted-foreground">
           {mode === "signin"
             ? "Sign in to save homes and contact landlords — no agents."
-            : "Join thousands finding verified homes in Nairobi."}
+            : signupSubtitle(role)}
         </p>
 
         <div className="mt-6 flex rounded-xl border bg-secondary p-1">
@@ -221,12 +227,12 @@ function TenantAuth() {
               </Field>
 
               {ORG_REQUIRED_ROLES.has(role) && (
-                <Field label="Organization name">
+                <Field label={organizationFieldLabel(role)}>
                   <input
                     value={organizationName}
                     onChange={(e) => setOrganizationName(e.target.value)}
                     required
-                    placeholder="e.g. Nairobi Homes Ltd"
+                    placeholder={organizationFieldPlaceholder(role)}
                     className={inputCls}
                   />
                 </Field>

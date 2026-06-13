@@ -221,6 +221,41 @@ export async function getUserOrganizationId(
   return data?.organization_id ?? null;
 }
 
+type ManageableProperty = Pick<
+  PropertyRow,
+  "id" | "owner_id" | "organization_id" | "images" | "video_url" | "tour_url"
+>;
+
+export async function assertCanManageProperty(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  propertyId: string,
+): Promise<ManageableProperty> {
+  const admin = await adminClient();
+  const { data: property, error } = await admin
+    .from("properties")
+    .select("id, owner_id, organization_id, images, video_url, tour_url")
+    .eq("id", propertyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!property) throw new Error("Property not found");
+
+  const { data: roleRows } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  const roles = new Set((roleRows ?? []).map((r) => r.role));
+
+  let allowed = property.owner_id === userId;
+  if (!allowed && (roles.has("manager") || roles.has("agency")) && property.organization_id) {
+    const orgId = await getUserOrganizationId(supabase, userId);
+    allowed = orgId === property.organization_id;
+  }
+  if (!allowed) throw new ForbiddenError("You cannot update this property");
+
+  return property;
+}
+
 export async function assertInquiryParticipant(
   supabase: AuthContext["supabase"],
   userId: string,

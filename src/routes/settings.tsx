@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useId, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useId, type SubmitEvent, type ReactNode } from "react";
 import {
   Building2,
   Home,
@@ -148,13 +148,30 @@ function SettingsPage() {
       navigate({ to: "/caretaker" });
       return;
     }
+    if (portal === "admin") {
+      navigate({ to: "/admin" });
+      return;
+    }
     const def = PORTALS.find((p) => p.id === portal);
-    if (def?.role && !hasApprovedRole(def.role)) return;
-    await setActivePortalChoice(portal);
-    navigate({ to: PORTAL_HOME[portal] as "/tenant" });
+    if (def?.role && !hasApprovedRole(def.role)) {
+      const applyRoutes: Partial<Record<PortalId, "/landlord" | "/manager" | "/agency">> = {
+        landlord: "/landlord",
+        manager: "/manager",
+        agency: "/agency",
+      };
+      const applyRoute = applyRoutes[portal];
+      if (applyRoute) navigate({ to: applyRoute });
+      return;
+    }
+    try {
+      await setActivePortalChoice(portal);
+      navigate({ to: PORTAL_HOME[portal] as "/tenant" });
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
   }
 
-  async function saveProfile(e: FormEvent<HTMLFormElement>) {
+  async function saveProfile(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     if (phone.trim() && !isKenyanPhone(phone)) {
@@ -201,7 +218,7 @@ function SettingsPage() {
     }
   }
 
-  async function changePassword(e: FormEvent<HTMLFormElement>) {
+  async function changePassword(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const passwordError = validatePasswordPair(newPassword, confirmPassword);
     if (passwordError) {
@@ -435,9 +452,9 @@ function SettingsPage() {
                 );
               })}
               {hasApprovedRole("admin") && (
-                <button
-                  type="button"
-                  onClick={() => enterPortal("admin")}
+                <Link
+                  to="/admin"
+                  search={{ tab: "applications" }}
                   className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left hover:border-primary/40"
                 >
                   <Shield className="h-5 w-5 text-primary" />
@@ -445,7 +462,7 @@ function SettingsPage() {
                     <p className="font-semibold">Admin</p>
                     <p className="text-xs text-muted-foreground">Verifications and applications</p>
                   </div>
-                </button>
+                </Link>
               )}
             </div>
           </section>

@@ -60,6 +60,7 @@ import { Route as AgencyPropertiesRouteImport } from './routes/agency.properties
 import { Route as AgencyLeadsRouteImport } from './routes/agency.leads'
 import { Route as AgencyDashboardRouteImport } from './routes/agency.dashboard'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
+import { Route as TenantMessagesIndexRouteImport } from './routes/tenant.messages.index'
 import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
 import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
@@ -325,6 +326,11 @@ const AdminRevenueRoute = AdminRevenueRouteImport.update({
   path: '/revenue',
   getParentRoute: () => AdminRoute,
 } as any)
+const TenantMessagesIndexRoute = TenantMessagesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TenantMessagesRoute,
+} as any)
 const TenantReviewPropertyIdRoute = TenantReviewPropertyIdRouteImport.update({
   id: '/review/$propertyId',
   path: '/review/$propertyId',
@@ -433,6 +439,7 @@ export interface FileRoutesByFullPath {
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
+  '/tenant/messages/': typeof TenantMessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -470,7 +477,6 @@ export interface FileRoutesByTo {
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
   '/tenant/map': typeof TenantMapRoute
-  '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/verify/request': typeof VerifyRequestRoute
@@ -489,6 +495,7 @@ export interface FileRoutesByTo {
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
+  '/tenant/messages': typeof TenantMessagesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -552,6 +559,7 @@ export interface FileRoutesById {
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
+  '/tenant/messages/': typeof TenantMessagesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -616,6 +624,7 @@ export interface FileRouteTypes {
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
+    | '/tenant/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -653,7 +662,6 @@ export interface FileRouteTypes {
     | '/tenant/checkout'
     | '/tenant/compare'
     | '/tenant/map'
-    | '/tenant/messages'
     | '/tenant/profile'
     | '/tenant/saved'
     | '/verify/request'
@@ -672,6 +680,7 @@ export interface FileRouteTypes {
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
+    | '/tenant/messages'
   id:
     | '__root__'
     | '/'
@@ -734,6 +743,7 @@ export interface FileRouteTypes {
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
+    | '/tenant/messages/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1116,6 +1126,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRevenueRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/tenant/messages/': {
+      id: '/tenant/messages/'
+      path: '/'
+      fullPath: '/tenant/messages/'
+      preLoaderRoute: typeof TenantMessagesIndexRouteImport
+      parentRoute: typeof TenantMessagesRoute
+    }
     '/tenant/review/$propertyId': {
       id: '/tenant/review/$propertyId'
       path: '/review/$propertyId'
@@ -1346,10 +1363,12 @@ const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
 
 interface TenantMessagesRouteChildren {
   TenantMessagesIdRoute: typeof TenantMessagesIdRoute
+  TenantMessagesIndexRoute: typeof TenantMessagesIndexRoute
 }
 
 const TenantMessagesRouteChildren: TenantMessagesRouteChildren = {
   TenantMessagesIdRoute: TenantMessagesIdRoute,
+  TenantMessagesIndexRoute: TenantMessagesIndexRoute,
 }
 
 const TenantMessagesRouteWithChildren = TenantMessagesRoute._addFileChildren(

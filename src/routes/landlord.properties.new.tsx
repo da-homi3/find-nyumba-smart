@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LandlordShell } from "@/components/LandlordShell";
 import { createProperty } from "@/lib/api/nyumba.functions";
 import { analyzePropertyQuality, createSignedMediaUrls } from "@/lib/api/media.functions";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type ChangeEvent, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/utils";
 import type { PropertyType } from "@/lib/properties";
@@ -23,8 +23,109 @@ const MAX_VIDEO_MB = 100;
 
 const STEPS = ["Basics", "Details", "Pricing", "Intelligence", "Photos", "Review"] as const;
 
+function propertiesListPath(isAgency: boolean, isManager: boolean) {
+  if (isAgency) return "/agency/properties";
+  if (isManager) return "/manager/properties";
+  return "/landlord/properties";
+}
+
+function submitButtonLabel(step: number, uploading: boolean, loading: boolean) {
+  if (step < STEPS.length - 1) return "Continue";
+  if (uploading) return "Uploading media…";
+  if (loading) return "Publishing…";
+  return "Publish listing";
+}
+
+async function uploadToStorage(path: string, file: File) {
+  const { error } = await supabase.storage.from("property-media").upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false,
+    contentType: file.type,
+  });
+  if (error) throw error;
+}
+
+async function signUploadedPaths(paths: string[]) {
+  if (paths.length === 0) return new Map<string, string>();
+  const signed = await createSignedMediaUrls({ data: { paths } });
+  const map = new Map<string, string>();
+  for (const entry of signed) {
+    if (entry.path && entry.signedUrl) map.set(entry.path, entry.signedUrl);
+  }
+  return map;
+}
+
+async function uploadListingMedia(
+  userId: string,
+  propertyKey: string,
+  imageFiles: File[],
+  videoFile: File | null,
+  tourFile: File | null,
+  externalTourUrl: string,
+) {
+  const uploadedImagePaths: string[] = [];
+  for (const file of imageFiles) {
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${userId}/${propertyKey}/img-${crypto.randomUUID()}.${ext}`;
+    await uploadToStorage(path, file);
+    uploadedImagePaths.push(path);
+  }
+
+  let videoPath: string | null = null;
+  if (videoFile) {
+    const ext = videoFile.name.split(".").pop() ?? "mp4";
+    videoPath = `${userId}/${propertyKey}/video-${crypto.randomUUID()}.${ext}`;
+    await uploadToStorage(videoPath, videoFile);
+  }
+
+  let tourPath: string | null = null;
+  if (tourFile) {
+    const ext = tourFile.name.split(".").pop() ?? "jpg";
+    tourPath = `${userId}/${propertyKey}/tour360-${crypto.randomUUID()}.${ext}`;
+    await uploadToStorage(tourPath, tourFile);
+  }
+
+  const allPaths = [
+    ...uploadedImagePaths,
+    ...(videoPath ? [videoPath] : []),
+    ...(tourPath ? [tourPath] : []),
+  ];
+  if (allPaths.length === 0) {
+    return {
+      images: [] as string[],
+      video_url: null as string | null,
+      tour_url: externalTourUrl.trim() || null,
+    };
+  }
+
+  const signedMap = await signUploadedPaths(allPaths);
+  return {
+    images: uploadedImagePaths.map((p) => signedMap.get(p)).filter(Boolean) as string[],
+    video_url: videoPath ? (signedMap.get(videoPath) ?? null) : null,
+    tour_url: tourPath ? (signedMap.get(tourPath) ?? null) : externalTourUrl.trim() || null,
+  };
+}
+
+function ImagePreview({
+  file,
+  onRemove,
+}: Readonly<{ file: File; onRemove: () => void }>) {
+  return (
+    <div className="group relative aspect-square overflow-hidden rounded-lg border bg-background">
+      <img src={URL.createObjectURL(file)} alt={file.name} className="h-full w-full object-cover" />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-background opacity-0 transition group-hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 export function PropertyListingWizard({
-  portalLabel: _portalLabel = "Landlord",
+  portalLabel = "Landlord",
 }: Readonly<{ portalLabel?: string }>) {
   const navigate = useNavigate();
   const { user, isAgency, isManager } = useAuth();
@@ -104,73 +205,24 @@ export function PropertyListingWizard({
     if (!user) throw new Error("Sign in required");
     setUploading(true);
     try {
-      const uploadedImagePaths: string[] = [];
-      for (const file of imageFiles) {
-        const ext = file.name.split(".").pop() ?? "jpg";
-        const path = `${user.id}/${propertyKey}/img-${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage
-          .from("property-media")
-          .upload(path, file, { cacheControl: "31536000", upsert: false, contentType: file.type });
-        if (error) throw error;
-        uploadedImagePaths.push(path);
-      }
-
-      let videoPath: string | null = null;
-      if (videoFile) {
-        const ext = videoFile.name.split(".").pop() ?? "mp4";
-        const path = `${user.id}/${propertyKey}/video-${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from("property-media").upload(path, videoFile, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: videoFile.type,
-        });
-        if (error) throw error;
-        videoPath = path;
-      }
-
-      let tourPath: string | null = null;
-      if (tourFile) {
-        const ext = tourFile.name.split(".").pop() ?? "jpg";
-        const path = `${user.id}/${propertyKey}/tour360-${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from("property-media").upload(path, tourFile, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: tourFile.type,
-        });
-        if (error) throw error;
-        tourPath = path;
-      }
-
-      const allPaths = [
-        ...uploadedImagePaths,
-        ...(videoPath ? [videoPath] : []),
-        ...(tourPath ? [tourPath] : []),
-      ];
-      if (allPaths.length === 0)
-        return {
-          images: [] as string[],
-          video_url: null as string | null,
-          tour_url: form.tour_url.trim() || null,
-        };
-
-      const signed = await createSignedMediaUrls({
-        data: { paths: allPaths },
-      });
-      const map = new Map<string, string>();
-      for (const s of signed) {
-        if (s.path && s.signedUrl) map.set(s.path, s.signedUrl);
-      }
-      return {
-        images: uploadedImagePaths.map((p) => map.get(p)!).filter(Boolean),
-        video_url: videoPath ? (map.get(videoPath) ?? null) : null,
-        tour_url: tourPath ? (map.get(tourPath) ?? null) : form.tour_url.trim() || null,
-      };
+      return await uploadListingMedia(
+        user.id,
+        propertyKey,
+        imageFiles,
+        videoFile,
+        tourFile,
+        form.tour_url,
+      );
     } finally {
       setUploading(false);
     }
   }
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  function removeImageAt(index: number) {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) {
       toast.error("Sign in to list a property");
@@ -215,12 +267,7 @@ export function PropertyListingWizard({
         toast.warning("Quality analysis failed", { description: errorMessage(err) });
       }
 
-      const listPath = isAgency
-        ? "/agency/properties"
-        : isManager
-          ? "/manager/dashboard"
-          : "/landlord/properties";
-      navigate({ to: listPath });
+      navigate({ to: propertiesListPath(isAgency, isManager) });
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -248,7 +295,7 @@ export function PropertyListingWizard({
     return true;
   }
 
-  function goNext(e: FormEvent<HTMLFormElement>) {
+  function goNext(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateStep(step)) return;
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -258,7 +305,8 @@ export function PropertyListingWizard({
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">Add a property</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Step {step + 1} of {STEPS.length}: {STEPS[step]} — no agents, direct to verified tenants.
+        {portalLabel} portal · Step {step + 1} of {STEPS.length}: {STEPS[step]} — upload photos,
+        video, and 360° views for verified tenants.
       </p>
       <div className="mt-4 flex gap-1">
         {STEPS.map((label, i) => (
@@ -437,23 +485,11 @@ export function PropertyListingWizard({
               {imageFiles.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {imageFiles.map((f, i) => (
-                    <div
+                    <ImagePreview
                       key={`${f.name}-${f.size}-${f.lastModified}`}
-                      className="group relative aspect-square overflow-hidden rounded-lg border bg-background"
-                    >
-                      <img
-                        src={URL.createObjectURL(f)}
-                        alt={f.name}
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setImageFiles((p) => p.filter((_, j) => j !== i))}
-                        className="absolute right-1 top-1 rounded-full bg-foreground/80 p-1 text-background opacity-0 transition group-hover:opacity-100"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
+                      file={f}
+                      onRemove={() => removeImageAt(i)}
+                    />
                   ))}
                 </div>
               )}
@@ -534,7 +570,9 @@ export function PropertyListingWizard({
                 /mo
               </li>
               <li>
-                {imageFiles.length} photo(s){videoFile ? " · video attached" : ""}
+                {imageFiles.length} photo(s)
+                {videoFile ? " · walkthrough video" : ""}
+                {tourFile || form.tour_url.trim() ? " · 360° tour" : ""}
               </li>
             </ul>
           </div>
@@ -556,13 +594,7 @@ export function PropertyListingWizard({
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {step < STEPS.length - 1
-              ? "Continue"
-              : uploading
-                ? "Uploading media…"
-                : loading
-                  ? "Publishing…"
-                  : "Publish listing"}
+            {submitButtonLabel(step, uploading, loading)}
           </button>
         </div>
       </form>

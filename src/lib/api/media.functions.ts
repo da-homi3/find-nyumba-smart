@@ -6,6 +6,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { callGeminiChat } from "@/lib/api/ai-client";
 import { getAuthContext, JSON_OBJECT_RE } from "@/lib/api/server-context";
+import {
+  adminClient,
+  assertCanManageProperty,
+} from "@/lib/api/nyumba/nyumba-shared";
 
 const QUALITY_AI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
 
@@ -115,11 +119,12 @@ async function callAI(prompt: string): Promise<QualityResult | null> {
 }
 
 async function runQualityAnalysis(supabase: SupabaseClient, userId: string, propertyId: string) {
-  const { data: property, error } = await supabase
+  await assertCanManageProperty(supabase, userId, propertyId);
+  const admin = await adminClient();
+  const { data: property, error } = await admin
     .from("properties")
     .select("*")
     .eq("id", propertyId)
-    .eq("owner_id", userId)
     .maybeSingle();
   if (error) throw error;
   if (!property) throw new Error("Property not found");
@@ -177,11 +182,11 @@ export const listPropertyQualityReports = createServerFn({ method: "POST" })
   .inputValidator(propertyIdSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
+    await assertCanManageProperty(supabase, userId, data.propertyId);
     const { data: rows, error } = await supabase
       .from("property_quality_reports")
       .select("*")
       .eq("property_id", data.propertyId)
-      .eq("owner_id", userId)
       .order("created_at", { ascending: false })
       .limit(5);
     if (error) throw error;
@@ -229,14 +234,7 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
   .inputValidator(updateMediaSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    const { data: existing, error: fetchErr } = await supabase
-      .from("properties")
-      .select("id, images, video_url, tour_url")
-      .eq("id", data.propertyId)
-      .eq("owner_id", userId)
-      .maybeSingle();
-    if (fetchErr) throw fetchErr;
-    if (!existing) throw new Error("Property not found");
+    const existing = await assertCanManageProperty(supabase, userId, data.propertyId);
 
     let images = data.images ?? [...(existing.images ?? [])];
     if (data.appendImages?.length) images = [...images, ...data.appendImages];
@@ -245,16 +243,18 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
       images = images.filter((u) => !remove.has(u));
     }
 
-    const { data: property, error } = await supabase
+    const admin = await adminClient();
+    const patch: Record<string, unknown> = {
+      images,
+      updated_at: new Date().toISOString(),
+    };
+    if (data.video_url !== undefined) patch.video_url = data.video_url;
+    if (data.tour_url !== undefined) patch.tour_url = data.tour_url;
+
+    const { data: property, error } = await admin
       .from("properties")
-      .update({
-        images,
-        updated_at: new Date().toISOString(),
-        ...(data.video_url !== undefined ? { video_url: data.video_url } : {}),
-        ...(data.tour_url !== undefined ? { tour_url: data.tour_url } : {}),
-      })
+      .update(patch)
       .eq("id", data.propertyId)
-      .eq("owner_id", userId)
       .select("*")
       .single();
     if (error) throw error;

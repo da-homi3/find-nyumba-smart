@@ -23,6 +23,8 @@ const VAR_KEYS = [
   "MPESA_CALLBACK_URL",
   "NYUMBA_USE_MOCK_LISTINGS",
   "GEMINI_MODEL",
+  "MAPBOX_PUBLIC_TOKEN",
+  "VITE_MAPBOX_TOKEN",
 ];
 
 /** Uploaded as Worker secrets */
@@ -35,6 +37,8 @@ const SECRET_KEYS = [
   "MPESA_CONSUMER_SECRET",
   "MPESA_SHORTCODE",
   "MPESA_PASSKEY",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
   "GEMINI_API_KEY",
   "CARETAKER_SESSION_SECRET",
 ];
@@ -91,32 +95,47 @@ function serializeEnvFile(env, originalText) {
   return out.join("\n").replace(/\n*$/, "\n");
 }
 
-function ensureDefaults(env) {
-  const next = { ...env };
-
+function applyUrlDefaults(next) {
   if (!next.PUBLIC_APP_URL) next.PUBLIC_APP_URL = PRODUCTION_URL;
   if (!next.SITE_URL) next.SITE_URL = PRODUCTION_URL;
   if (!next.MPESA_CALLBACK_URL) {
     next.MPESA_CALLBACK_URL = `${next.PUBLIC_APP_URL}/api/mpesa/callback`;
   }
+  if (!next.VITE_SITE_URL) next.VITE_SITE_URL = next.PUBLIC_APP_URL;
+}
+
+function applyFeatureDefaults(next) {
   if (!next.NYUMBA_USE_MOCK_LISTINGS) next.NYUMBA_USE_MOCK_LISTINGS = "0";
   if (!next.CARETAKER_SESSION_SECRET) {
     next.CARETAKER_SESSION_SECRET = randomBytes(32).toString("hex");
   }
   if (!next.MPESA_ENV && next.MPESA_CONSUMER_KEY) next.MPESA_ENV = "sandbox";
-  if (!next.VITE_SITE_URL) next.VITE_SITE_URL = next.PUBLIC_APP_URL;
+}
 
-  if (!next.VITE_GOOGLE_MAPS_API_KEY && next.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY) {
-    next.VITE_GOOGLE_MAPS_API_KEY = next.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY;
+function mirrorEnvKeys(next, pairs) {
+  for (const [target, source] of pairs) {
+    if (!next[target] && next[source]) next[target] = next[source];
   }
-  if (!next.VITE_GOOGLE_MAPS_TRACKING_ID && next.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID) {
-    next.VITE_GOOGLE_MAPS_TRACKING_ID = next.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID;
-  }
+}
 
+function removeDeprecatedKeys(next) {
   for (const key of DEPRECATED_ENV_KEYS) {
     delete next[key];
   }
+}
 
+function ensureDefaults(env) {
+  const next = { ...env };
+  applyUrlDefaults(next);
+  applyFeatureDefaults(next);
+  mirrorEnvKeys(next, [
+    ["VITE_STRIPE_PUBLISHABLE_KEY", "STRIPE_PUBLISHABLE_KEY"],
+    ["VITE_MAPBOX_TOKEN", "MAPBOX_PUBLIC_TOKEN"],
+    ["MAPBOX_PUBLIC_TOKEN", "VITE_MAPBOX_TOKEN"],
+    ["VITE_GOOGLE_MAPS_API_KEY", "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"],
+    ["VITE_GOOGLE_MAPS_TRACKING_ID", "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID"],
+  ]);
+  removeDeprecatedKeys(next);
   return next;
 }
 
@@ -172,6 +191,16 @@ function main() {
   if (!env.GEMINI_API_KEY) {
     console.log(
       "NyumbaAI: Cloudflare Workers AI on production (GEMINI_API_KEY optional for local dev).",
+    );
+  }
+
+  if (!env.STRIPE_SECRET_KEY) {
+    console.warn("Stripe not configured — add STRIPE_SECRET_KEY to .env for card checkout.");
+  }
+
+  if (!env.VITE_MAPBOX_TOKEN && !env.MAPBOX_PUBLIC_TOKEN) {
+    console.warn(
+      "Mapbox 3D map not configured — add VITE_MAPBOX_TOKEN (pk.ey...) from https://account.mapbox.com/access-tokens/",
     );
   }
 

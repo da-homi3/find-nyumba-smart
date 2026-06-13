@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import {
   listAdminVerifications,
@@ -32,6 +32,10 @@ function AdminDashboard() {
     tabFromUrl === "applications" ? "applications" : "verifications",
   );
   const qc = useQueryClient();
+
+  useEffect(() => {
+    if (tabFromUrl === "applications") setActiveTab("applications");
+  }, [tabFromUrl]);
 
   const { data: verifications = [], isLoading: verLoading } = useQuery({
     queryKey: ["admin-verifications"],

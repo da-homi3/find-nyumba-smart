@@ -5,7 +5,7 @@ import { PropertyListingWizard } from "./landlord.properties.new";
 export const Route = createFileRoute("/agency/properties/new")({
   component: () => (
     <AgencyShell>
-      <PropertyListingWizard />
+      <PropertyListingWizard portalLabel="Real estate agency" />
     </AgencyShell>
   ),
 });

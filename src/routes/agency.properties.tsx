@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AgencyShell } from "@/components/AgencyShell";
 import { listAgencyProperties } from "@/lib/api/nyumba.functions";
 import { formatKes } from "@/lib/properties";
+import { PropertyMediaManager } from "@/components/PropertyMediaManager";
 import { Plus } from "lucide-react";
 
 export const Route = createFileRoute("/agency/properties")({
@@ -49,6 +50,7 @@ function Page() {
               <p className="font-semibold">{p.title}</p>
               <p className="text-xs text-muted-foreground">{p.neighborhood}</p>
               <p className="mt-2 text-sm font-semibold">{formatKes(p.rent_kes)}</p>
+              <PropertyMediaManager property={p} />
             </div>
           ))}
         </div>

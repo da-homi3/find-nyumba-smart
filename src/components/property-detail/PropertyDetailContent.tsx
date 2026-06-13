@@ -9,7 +9,7 @@ import { PropertyReviewsSection } from "@/components/PropertyReviewsSection";
 import { PropertyStat } from "./PropertyStat";
 import { PropertyAiAssistant } from "./PropertyAiAssistant";
 import { PropertyReportSection } from "./PropertyReportSection";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 
 type Valuation = {
   estimatedRentRange: string;
@@ -32,7 +32,7 @@ type PropertyDetailContentProps = Readonly<{
   chatInput: string;
   chatLoading: boolean;
   onChatInputChange: (value: string) => void;
-  onChatSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onChatSubmit: (e: SubmitEvent<HTMLFormElement>) => void;
   isDemo: boolean;
   reportOpen: boolean;
   reportReason: string;
@@ -49,6 +49,29 @@ function valuationGradeClass(grade: string) {
   if (grade === "Good Deal") return "bg-emerald-500/20 text-emerald-700";
   if (grade === "Overpriced") return "bg-red-500/20 text-red-700";
   return "bg-gray-500/20 text-gray-700";
+}
+
+function renderValuationBody(valLoading: boolean, valuation: Valuation | undefined) {
+  if (valLoading) {
+    return <p className="text-xs text-muted-foreground mt-1">Calculating fair market rent...</p>;
+  }
+  if (!valuation) return null;
+  return (
+    <div className="mt-2 text-xs">
+      <div className="flex justify-between items-center">
+        <span>
+          Estimated rent range:{" "}
+          <strong className="text-foreground">{valuation.estimatedRentRange}</strong>
+        </span>
+        <span
+          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${valuationGradeClass(valuation.valuationGrade)}`}
+        >
+          {valuation.valuationGrade}
+        </span>
+      </div>
+      <p className="mt-2 text-muted-foreground leading-relaxed">{valuation.details}</p>
+    </div>
+  );
 }
 
 export function PropertyDetailContent({
@@ -137,29 +160,12 @@ export function PropertyDetailContent({
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-4">
+      <section className="mt-6 rounded-2xl border bg-linear-to-r from-emerald-500/10 to-teal-500/10 p-4">
         <h3 className="font-display text-sm font-semibold flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300">
           <Sparkles className="h-4 w-4" />
           AI Valuation Estimate
         </h3>
-        {valLoading ? (
-          <p className="text-xs text-muted-foreground mt-1">Calculating fair market rent...</p>
-        ) : valuation ? (
-          <div className="mt-2 text-xs">
-            <div className="flex justify-between items-center">
-              <span>
-                Estimated rent range:{" "}
-                <strong className="text-foreground">{valuation.estimatedRentRange}</strong>
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${valuationGradeClass(valuation.valuationGrade)}`}
-              >
-                {valuation.valuationGrade}
-              </span>
-            </div>
-            <p className="mt-2 text-muted-foreground leading-relaxed">{valuation.details}</p>
-          </div>
-        ) : null}
+        {renderValuationBody(valLoading, valuation)}
       </section>
 
       <section className="mt-6">

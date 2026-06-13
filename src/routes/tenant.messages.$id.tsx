@@ -2,6 +2,7 @@ import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { ConversationThread } from "@/components/ConversationThread";
 import { useAuth } from "@/hooks/use-auth";
 import { MessageCircle } from "lucide-react";
+import { currentRedirectPath } from "@/lib/navigation";
 
 export const Route = createFileRoute("/tenant/messages/$id")({
   component: ThreadPage,
@@ -19,7 +20,7 @@ function ThreadPage() {
         <p className="mt-4 text-sm text-muted-foreground">Sign in to view this conversation.</p>
         <Link
           to="/auth"
-          search={{ redirect: location.pathname + location.search }}
+          search={{ redirect: currentRedirectPath(location) }}
           className="mt-4 inline-block text-sm font-semibold text-primary"
         >
           Sign in
@@ -29,8 +30,11 @@ function ThreadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <ConversationThread inquiryId={id} onBack={() => globalThis.history.back()} />
+    <div className="mx-auto max-w-2xl pt-4">
+      <ConversationThread
+        inquiryId={id}
+        backTo="/tenant/messages"
+      />
     </div>
   );
 }

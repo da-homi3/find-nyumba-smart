@@ -1,10 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { BedDouble, Bath, MapPin, Flame, Heart, Droplets, Shield, Wifi, Car } from "lucide-react";
+import { useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { BedDouble, Bath, MapPin, Flame, Droplets, Shield, Wifi, Car } from "lucide-react";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyImage } from "@/components/PropertyImage";
 import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { isListingEarlyAccess } from "@/lib/revenue/entitlements";
+import { SaveButton } from "@/components/motion/SaveButton";
+import { isTouchDevice } from "@/lib/motion/performance";
 
 type Props = {
   readonly p: Property;
@@ -27,6 +31,11 @@ export function PropertyCard({
   showSave = true,
   plusMember = false,
 }: Readonly<Props>) {
+  const cardRef = useRef<HTMLElement>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const touch = isTouchDevice();
+
   const score = p.authenticity_score ?? 70;
   const level = verificationLevel(p);
   const intel = getListingIntel(p);
@@ -34,9 +43,36 @@ export function PropertyCard({
   const earlyAccess = isListingEarlyAccess(p.created_at, plusMember);
   const coverImage = p.images[0];
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (touch) return;
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMousePos({
+      x: ((e.clientX - rect.left) / rect.width - 0.5) * 20,
+      y: ((e.clientY - rect.top) / rect.height - 0.5) * -20,
+    });
+  };
+
   return (
-    <article
-      className={`group relative overflow-hidden rounded-2xl border bg-card shadow-soft transition hover:-translate-y-0.5 hover:shadow-card ${isFeatured ? "ring-2 ring-gold/40" : ""}`}
+    <motion.article
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setMousePos({ x: 0, y: 0 });
+      }}
+      animate={{
+        rotateY: isHovered && !touch ? mousePos.x * 0.5 : 0,
+        rotateX: isHovered && !touch ? mousePos.y * 0.5 : 0,
+        y: isHovered ? -8 : 0,
+        scale: isHovered ? 1.02 : 1,
+      }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+      className={`group relative overflow-hidden rounded-2xl border bg-card shadow-soft ${
+        isFeatured ? "ring-2 ring-gold/40" : ""
+      } ${isHovered ? "shadow-[0_32px_80px_rgba(0,0,0,0.25),0_0_0_1px_rgba(30,184,138,0.2)]" : ""}`}
     >
       <Link
         to="/tenant/property/$id"
@@ -47,12 +83,22 @@ export function PropertyCard({
 
       <div className="relative z-10 pointer-events-none">
         <div className="relative aspect-video overflow-hidden bg-muted">
-          <PropertyImage
-            src={coverImage}
-            seed={p.id}
-            alt={p.title}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          />
+          <motion.div
+            animate={{
+              scale: isHovered ? 1.08 : 1,
+              x: isHovered ? mousePos.x * 0.3 : 0,
+              y: isHovered ? mousePos.y * 0.3 : 0,
+            }}
+            transition={{ type: "spring", stiffness: 200, damping: 30 }}
+            className="h-full w-full"
+          >
+            <PropertyImage
+              src={coverImage}
+              seed={p.id}
+              alt={p.title}
+              className="h-full w-full object-cover"
+            />
+          </motion.div>
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {isFeatured && (
               <span className="inline-flex rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
@@ -86,20 +132,7 @@ export function PropertyCard({
             )}
           </div>
           {showSave && onToggleSave && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleSave(e);
-              }}
-              aria-label={saved ? "Remove from saved" : "Save listing"}
-              className="pointer-events-auto absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-background/95 shadow-soft backdrop-blur"
-            >
-              <Heart
-                className={`h-4 w-4 ${saved ? "fill-destructive text-destructive" : "text-foreground"}`}
-              />
-            </button>
+            <SaveButton saved={saved} onToggle={onToggleSave} className="absolute top-3 right-3" />
           )}
           <span className="absolute bottom-3 left-3 rounded-full bg-gradient-gold px-3 py-1 text-xs font-semibold text-gold-foreground">
             {formatKes(p.rent_kes)}
@@ -154,12 +187,24 @@ export function PropertyCard({
                 </span>
               )}
             </div>
-            <span className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground">
+            <motion.span
+              whileHover={{ scale: 1.05 }}
+              className="shrink-0 rounded-lg bg-gradient-emerald px-3 py-1.5 text-[11px] font-semibold text-white"
+            >
               View details
-            </span>
+            </motion.span>
           </div>
         </div>
       </div>
-    </article>
+
+      {isHovered && !touch && (
+        <div
+          className="pointer-events-none absolute inset-0 rounded-2xl"
+          style={{
+            background: `radial-gradient(circle at ${50 + mousePos.x}% ${50 - mousePos.y}%, rgba(30,184,138,0.08), transparent 60%)`,
+          }}
+        />
+      )}
+    </motion.article>
   );
 }
