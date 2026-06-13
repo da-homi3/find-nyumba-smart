@@ -5,6 +5,9 @@ GRANT EXECUTE ON FUNCTION public.has_role(UUID, public.app_role) TO authenticate
 
 -- Split admin write policy so SELECT on user_roles only evaluates the own-row policy.
 DROP POLICY IF EXISTS "Admins manage user roles" ON public.user_roles;
+DROP POLICY IF EXISTS "Admins insert user roles" ON public.user_roles;
+DROP POLICY IF EXISTS "Admins update user roles" ON public.user_roles;
+DROP POLICY IF EXISTS "Admins delete user roles" ON public.user_roles;
 CREATE POLICY "Admins insert user roles" ON public.user_roles
   FOR INSERT WITH CHECK (public.has_role(auth.uid(), 'admin'));
 CREATE POLICY "Admins update user roles" ON public.user_roles

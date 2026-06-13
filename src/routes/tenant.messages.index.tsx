@@ -124,10 +124,7 @@ function MessagesBody({
         <p className="mt-3 text-sm text-muted-foreground">
           No conversations yet. Message a landlord from a property page to start.
         </p>
-        <Link
-          to="/tenant"
-          className="mt-4 inline-block text-sm font-semibold text-primary"
-        >
+        <Link to="/tenant" className="mt-4 inline-block text-sm font-semibold text-primary">
           Browse listings
         </Link>
       </div>

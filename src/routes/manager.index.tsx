@@ -46,7 +46,11 @@ function ManagerEntry() {
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
               {[
-                { icon: ClipboardList, t: "Multi-landlord", d: "Organize units across client portfolios." },
+                {
+                  icon: ClipboardList,
+                  t: "Multi-landlord",
+                  d: "Organize units across client portfolios.",
+                },
                 { icon: Users, t: "Lead routing", d: "Tenant inquiries tied to each listing." },
               ].map((f) => (
                 <div

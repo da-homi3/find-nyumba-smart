@@ -45,13 +45,21 @@ export function ConversationThread({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
 
-  const { data: thread, error: threadError, isLoading: threadLoading } = useQuery({
+  const {
+    data: thread,
+    error: threadError,
+    isLoading: threadLoading,
+  } = useQuery({
     queryKey: ["inquiry-thread", inquiryId],
     queryFn: () => getInquiryThread({ data: { inquiryId } }),
     retry: 1,
   });
 
-  const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
+  const {
+    data: messages = [],
+    isLoading: messagesLoading,
+    error: messagesError,
+  } = useQuery({
     queryKey: ["inquiry-messages", inquiryId],
     queryFn: () => listInquiryMessages({ data: { inquiryId } }),
     retry: 1,
