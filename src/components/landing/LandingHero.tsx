@@ -62,9 +62,9 @@ export function LandingHero({
       </div>
 
       {use3d ? (
-        <div className="pointer-events-none absolute inset-0 z-1" aria-hidden>
+        <div className="pointer-events-auto absolute inset-0 z-1" aria-hidden>
           <Suspense fallback={null}>
-            <HeroScene3D />
+            <HeroScene3D backdropUrl={heroImg} />
           </Suspense>
         </div>
       ) : null}

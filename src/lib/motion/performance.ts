@@ -43,3 +43,24 @@ export function shouldUseHeavy3D(): boolean {
 export function targetFps(): number {
   return isLowEndDevice() ? 30 : 60;
 }
+
+export type HeroSceneBudget = {
+  cars: number;
+  peds: number;
+  trees: number;
+  tier: "off" | "medium" | "high";
+};
+
+/** Scene entity counts by device capability. */
+export function getHeroSceneBudget(): HeroSceneBudget {
+  if (!shouldUseHeavy3D()) {
+    return { cars: 0, peds: 0, trees: 0, tier: "off" };
+  }
+  const nav = globalThis.navigator as Navigator & { deviceMemory?: number };
+  const cores = nav.hardwareConcurrency ?? 4;
+  const memory = nav.deviceMemory ?? 4;
+  if (cores >= 8 && memory >= 4) {
+    return { cars: 12, peds: 20, trees: 80, tier: "high" };
+  }
+  return { cars: 6, peds: 10, trees: 40, tier: "medium" };
+}
