@@ -46,8 +46,16 @@ function AgencyEntry() {
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
               {[
-                { icon: Building2, t: "Agency portfolio", d: "List and manage properties under your brand." },
-                { icon: TrendingUp, t: "Lead pipeline", d: "Track landlord and tenant opportunities." },
+                {
+                  icon: Building2,
+                  t: "Agency portfolio",
+                  d: "List and manage properties under your brand.",
+                },
+                {
+                  icon: TrendingUp,
+                  t: "Lead pipeline",
+                  d: "Track landlord and tenant opportunities.",
+                },
               ].map((f) => (
                 <div
                   key={f.t}

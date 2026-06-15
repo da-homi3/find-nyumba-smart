@@ -72,14 +72,16 @@ export const PIN_SLOTS: PinSlot[] = [
 ];
 
 /** Tree positions along south sidewalk outer edge. */
-export function generateTreePositions(count: number): { x: number; z: number; kind: "palm" | "acacia" }[] {
+export function generateTreePositions(
+  count: number,
+): { x: number; z: number; kind: "palm" | "acacia" }[] {
   const out: { x: number; z: number; kind: "palm" | "acacia" }[] = [];
   for (let i = 0; i < count; i++) {
     const t = i / Math.max(count - 1, 1);
     const pt = SIDEWALK_SOUTH.getPointAt(t);
     out.push({
-      x: pt.x + (Math.sin(i * 2.1) * 0.8),
-      z: pt.z + 2.5 + (Math.cos(i * 1.7) * 0.5),
+      x: pt.x + Math.sin(i * 2.1) * 0.8,
+      z: pt.z + 2.5 + Math.cos(i * 1.7) * 0.5,
       kind: i % 3 === 0 ? "acacia" : "palm",
     });
   }
