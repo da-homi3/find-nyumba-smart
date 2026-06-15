@@ -1,6 +1,9 @@
 import * as THREE from "three";
 
-export function createBackdrop(scene: THREE.Scene, imageUrl: string): Promise<{ mesh: THREE.Mesh; dispose: () => void }> {
+export function createBackdrop(
+  scene: THREE.Scene,
+  imageUrl: string,
+): Promise<{ mesh: THREE.Mesh; dispose: () => void }> {
   return new Promise((resolve, reject) => {
     const loader = new THREE.TextureLoader();
     loader.load(

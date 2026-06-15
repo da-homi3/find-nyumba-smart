@@ -27,7 +27,13 @@ function createSedan(color: number): THREE.Group {
   g.add(body);
   const cabin = new THREE.Mesh(
     new THREE.BoxGeometry(0.9, 0.35, 0.75),
-    new THREE.MeshStandardMaterial({ color: 0x88ccff, roughness: 0.2, metalness: 0.5, transparent: true, opacity: 0.85 }),
+    new THREE.MeshStandardMaterial({
+      color: 0x88ccff,
+      roughness: 0.2,
+      metalness: 0.5,
+      transparent: true,
+      opacity: 0.85,
+    }),
   );
   cabin.position.set(-0.1, 0.75, 0);
   g.add(cabin);

@@ -13,7 +13,11 @@ type Pedestrian = {
 
 const SHIRT_COLORS = [0x12856b, 0x3366cc, 0xcc6633, 0x8844aa, 0xeeeeee, 0xf6ad55];
 
-function createPedestrian(shirtColor: number): { group: THREE.Group; leftLeg: THREE.Mesh; rightLeg: THREE.Mesh } {
+function createPedestrian(shirtColor: number): {
+  group: THREE.Group;
+  leftLeg: THREE.Mesh;
+  rightLeg: THREE.Mesh;
+} {
   const group = new THREE.Group();
   const body = new THREE.Mesh(
     new THREE.CapsuleGeometry(0.14, 0.35, 4, 8),
@@ -61,7 +65,15 @@ export function createPedestrians(scene: THREE.Scene, count: number): Pedestrian
     const speed = forward ? 0.025 + (i % 4) * 0.008 : -(0.02 + (i % 4) * 0.007);
 
     root.add(group);
-    peds.push({ group, curve, t, speed, walkPhase: Math.random() * Math.PI * 2, leftLeg, rightLeg });
+    peds.push({
+      group,
+      curve,
+      t,
+      speed,
+      walkPhase: Math.random() * Math.PI * 2,
+      leftLeg,
+      rightLeg,
+    });
   }
 
   const placePed = (p: Pedestrian, time: number) => {
