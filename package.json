@@ -3,6 +3,9 @@
   "private": true,
   "sideEffects": ["**/*.css", "**/mapbox-gl/**"],
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "npx vite dev",
     "build": "npx vite build",
