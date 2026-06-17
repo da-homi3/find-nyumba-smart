@@ -46,6 +46,11 @@ function ProviderPage() {
           ← Back to providers
         </Link>
         <h1 className="mt-4 font-display text-3xl font-semibold">{provider.businessName}</h1>
+        {provider.isPlaceholder && (
+          <p className="mt-2 inline-flex rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-muted-foreground">
+            Sample listing — request a quote and we&apos;ll match you with a vetted pro
+          </p>
+        )}
         <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
           <Star className="h-4 w-4 fill-gold text-gold" />
           {provider.rating} ({provider.reviewCount} reviews)
@@ -88,6 +93,7 @@ function ProviderPage() {
                   metadata: {
                     providerId: provider.id,
                     provider: provider.businessName,
+                    isPlaceholder: provider.isPlaceholder ?? false,
                     address: formFieldValue(fd, "address"),
                   },
                 },

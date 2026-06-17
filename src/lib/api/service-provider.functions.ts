@@ -136,6 +136,7 @@ export type PublicServiceProvider = {
   description: string;
   phone: string;
   tier: string;
+  isPlaceholder?: boolean;
 };
 
 function parseStartingPrice(priceRange: string | null | undefined): number {
@@ -180,6 +181,7 @@ export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
   .inputValidator(z.object({ category: z.string().min(1) }))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { mergeWithPlaceholders } = await import("@/data/service-placeholders");
     const { data: rows, error } = await supabaseAdmin
       .from("service_providers")
       .select("id, business_name, categories, areas_served, description, price_range, phone, tier")
@@ -188,17 +190,23 @@ export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
 
     if (error) throw error;
 
-    return (rows ?? [])
+    const live = (rows ?? [])
       .filter((row) => {
         const categories = Array.isArray(row.categories) ? (row.categories as string[]) : [];
         return categories.includes(data.category);
       })
-      .map((row) => mapProviderRow(row, data.category));
+      .map((row) => ({ ...mapProviderRow(row, data.category), isPlaceholder: false }));
+
+    return mergeWithPlaceholders(live, data.category);
   });
 
 export const getProviderById = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ id: z.string().uuid() }))
+  .inputValidator(z.object({ id: z.string().min(1) }))
   .handler(async ({ data }) => {
+    const { getPlaceholderProviderById } = await import("@/data/service-placeholders");
+    const placeholder = getPlaceholderProviderById(data.id);
+    if (placeholder) return placeholder;
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("service_providers")
@@ -210,5 +218,5 @@ export const getProviderById = createServerFn({ method: "GET" })
 
     if (error) throw error;
     if (row?.status !== "active") return null;
-    return mapProviderRow(row);
+    return { ...mapProviderRow(row), isPlaceholder: false };
   });

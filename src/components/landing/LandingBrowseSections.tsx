@@ -140,6 +140,12 @@ export function ServiceTeaserRow() {
           </Link>
         ))}
       </div>
+      <Link
+        to="/services/register"
+        className="mt-6 inline-flex text-sm font-semibold text-primary hover:underline"
+      >
+        Join as a service provider →
+      </Link>
     </section>
   );
 }
