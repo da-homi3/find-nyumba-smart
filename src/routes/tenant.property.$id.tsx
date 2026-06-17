@@ -102,6 +102,7 @@ function PropertyDetail() {
         onReportReasonChange={detail.setReportReason}
         onReportDetailsChange={detail.setReportDetails}
         onReportSubmit={() => void detail.submitReport()}
+        onContactUnlocked={(phone) => detail.setUnlockedPhone(phone)}
       />
 
       <PropertyDetailActionBar

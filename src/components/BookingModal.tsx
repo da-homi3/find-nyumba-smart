@@ -191,11 +191,15 @@ export function BookingModal({
         <h3 id="booking-modal-title" className="font-display text-xl font-semibold">
           Book a viewing
         </h3>
-        <p className="mt-1 text-xs text-muted-foreground">{stepLabel} — no viewing fees, no agents.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {stepLabel} — no viewing fees, no agents.
+        </p>
 
         {step === 1 && (
           <div className="mt-4">
-            <p className="text-xs font-semibold text-muted-foreground">Select a date (Nairobi time)</p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              Select a date (Nairobi time)
+            </p>
             <div className="mt-2 grid max-h-64 grid-cols-2 gap-2 overflow-y-auto">
               {days.map((d) => (
                 <button

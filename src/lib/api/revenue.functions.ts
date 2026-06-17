@@ -8,21 +8,41 @@ import {
   getActiveLandlordPlan,
   getTenantPlusStatus,
 } from "@/lib/revenue/subscription-store";
+import { ensureTenantTrial } from "@/lib/payments/tenant-trial";
 
 export const getUserEntitlements = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
-    const [landlordPlan, plus] = await Promise.all([
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [landlordPlan, plus, trial] = await Promise.all([
       getActiveLandlordPlan(supabase, userId),
       getTenantPlusStatus(supabase, userId),
+      ensureTenantTrial(supabaseAdmin, userId),
     ]);
+
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const { data: spendRows } = await supabaseAdmin
+      .from("contact_unlocks")
+      .select("fee_charged")
+      .eq("user_id", userId)
+      .eq("method", "paid")
+      .gte("unlocked_at", monthStart);
+
+    const monthlyUnlockSpend = (spendRows ?? []).reduce(
+      (sum, row) => sum + (row.fee_charged ?? 0),
+      0,
+    );
 
     return {
       landlordPlan,
       tenantPlan: plus.tenantPlan,
       plusExpiresAt: plus.plusExpiresAt,
       listingLimit: LISTING_LIMITS[landlordPlan] ?? 1,
+      trialUnlocksRemaining: trial.trialUnlocksRemaining,
+      trialEndsAt: trial.trialEndsAt,
+      trialActive: trial.trialActive,
+      monthlyUnlockSpend,
     };
   });
 
@@ -212,7 +232,7 @@ export const getAdminRevenueStats = createServerFn({ method: "GET" })
     }
 
     const chart = Array.from(monthBuckets.values());
-    const latest = chart[chart.length - 1] ?? {
+    const latest = chart.at(-1) ?? {
       month: "",
       mrr: 0,
       boosts: 0,

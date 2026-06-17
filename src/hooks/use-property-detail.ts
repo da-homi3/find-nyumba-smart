@@ -16,7 +16,8 @@ import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
 import { currentRedirectPath } from "@/lib/navigation";
-import { errorMessage } from "@/lib/utils";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { PlusRequiredError } from "@/lib/payments/require-plus";
 import type { Property } from "@/lib/properties";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
@@ -35,13 +36,11 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { isPlus } = useEntitlements();
   const qc = useQueryClient();
   const isDemo = isDemoListingId(id);
 
-  const authSearch = useMemo(
-    () => ({ redirect: currentRedirectPath(location) }),
-    [location],
-  );
+  const authSearch = useMemo(() => ({ redirect: currentRedirectPath(location) }), [location]);
 
   const redirectToAuth = useCallback(() => {
     navigate({ to: "/auth", search: authSearch });
@@ -56,6 +55,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const [reportReason, setReportReason] = useState("Suspicious listing");
   const [reportDetails, setReportDetails] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [unlockedPhone, setUnlockedPhone] = useState<string | null>(null);
 
   useEffect(() => {
     setGalleryIndex(0);
@@ -76,7 +76,12 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     return () => globalThis.clearTimeout(timer);
   }, [user, id, isDemo]);
 
-  const { data: p, isLoading, isError, refetch } = useQuery({
+  const {
+    data: p,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["property", id],
     queryFn: () => fetchProperty(id),
     initialData: initialProperty ?? undefined,
@@ -122,11 +127,17 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     },
   });
 
-  const { data: landlordContact, isLoading: landlordContactLoading } = useQuery({
+  const { data: landlordContact } = useQuery({
     queryKey: ["landlord-contact", p?.owner_id, id, user?.id],
     enabled: !!p?.owner_id && !!user && !isDemo,
     queryFn: () => getPropertyOwnerContact({ data: { propertyId: id } }),
   });
+
+  useEffect(() => {
+    if (landlordContact?.unlocked && landlordContact.phone) {
+      setUnlockedPhone(landlordContact.phone);
+    }
+  }, [landlordContact?.unlocked, landlordContact?.phone]);
 
   const { data: valuation, isLoading: valLoading } = useQuery({
     queryKey: ["valuation", id],
@@ -159,6 +170,9 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       if (isDemo) {
         throw new Error("Demo listings cannot be messaged. Try a live landlord listing.");
       }
+      if (!isPlus) {
+        throw new PlusRequiredError();
+      }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
       return createInquiry({
         data: {
@@ -172,6 +186,15 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       navigate({ to: "/tenant/messages/$id", params: { id: inquiry.id } });
     },
     onError: (err) => {
+      if (err instanceof PlusRequiredError) {
+        toast.error(err.message, {
+          action: {
+            label: "Upgrade to Plus",
+            onClick: () => navigate({ to: "/tenant/checkout", search: { plan: "plus" } }),
+          },
+        });
+        return;
+      }
       const msg = errorMessage(err);
       toast.error(msg);
       if (isAuthRequiredMessage(msg)) redirectToAuth();
@@ -192,13 +215,10 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       toast.error("Landlord contact is unavailable for this listing");
       return;
     }
-    if (landlordContactLoading) {
-      toast.info("Loading landlord contact…");
-      return;
-    }
-    const phone = landlordContact?.phone?.trim();
+    const phone = unlockedPhone?.trim();
     if (!phone) {
-      toast.info("Phone not on file — send a message to reach the landlord.");
+      document.getElementById("contact-unlock")?.scrollIntoView({ behavior: "smooth" });
+      toast.info("Unlock the landlord's number first");
       return;
     }
     globalThis.location.href = `tel:${phone}`;
@@ -313,7 +333,8 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     isSaved: isSaved ?? false,
     similar,
     landlordContact,
-    landlordContactLoading,
+    unlockedPhone,
+    setUnlockedPhone,
     valuation,
     valLoading,
     isBookingOpen,

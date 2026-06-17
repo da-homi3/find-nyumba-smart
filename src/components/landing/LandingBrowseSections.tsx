@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
 import type { Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { AdUnit } from "@/components/AdUnit";
@@ -12,7 +11,7 @@ export function TrustStrip() {
   return (
     <section
       aria-label="Trust statistics"
-      className="border-y border-white/10 bg-[var(--color-graphite)]"
+      className="border-y border-white/10 bg-(--color-graphite)"
     >
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-10 sm:grid-cols-4 sm:px-6">
         <AnimatedStat value={10000} suffix="+" label="Verified homes" />
@@ -47,7 +46,7 @@ export function FeaturedListings({
           See all →
         </Link>
       </div>
-      <div className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+      <div className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
         {featured.map((p) => (
           <div key={p.id} className="w-72 shrink-0 sm:w-auto">
             <PropertyCard p={p} />

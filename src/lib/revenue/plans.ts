@@ -157,13 +157,34 @@ export const PLUS_PLAN = {
   monthlyKes: 500,
   quarterlyKes: 1500,
   features: [
+    "Unlimited contact unlocks on every listing",
+    "In-app messaging with landlords and service providers",
+    "Scam-risk scores on every property you view",
     "Early access: new listings 24hrs before public",
-    "Scam alert notifications for saved searches",
     "Unlimited saved searches with instant alerts",
     "Monthly market report by neighborhood",
-    "Priority support response",
   ],
 };
+
+export const PROVIDER_TIERS = [
+  { value: "basic" as const, label: "Basic", priceKes: 1500, desc: "Listed in category directory" },
+  {
+    value: "featured" as const,
+    label: "Featured",
+    priceKes: 3500,
+    desc: "Higher placement + Featured badge",
+  },
+  {
+    value: "premium" as const,
+    label: "Premium",
+    priceKes: 6000,
+    desc: "Top placement + multiple categories",
+  },
+];
+
+export function providerTierPrice(tier: string): number {
+  return PROVIDER_TIERS.find((t) => t.value === tier)?.priceKes ?? 1500;
+}
 
 export const REPORT_CATALOG: {
   id: string;

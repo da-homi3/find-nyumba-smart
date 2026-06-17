@@ -31,6 +31,11 @@ export function authSubmitLabel(loading: boolean, mode: "signin" | "signup"): st
   return mode === "signin" ? "Sign in" : "Create account";
 }
 
+export function formFieldValue(fd: FormData, name: string, fallback = ""): string {
+  const value = fd.get(name);
+  return typeof value === "string" ? value : fallback;
+}
+
 export function viewingStatusTone(status: string): string {
   if (status === "confirmed") return "bg-emerald-500/10 text-emerald-600";
   if (status === "completed") return "bg-blue-500/10 text-blue-600";

@@ -22,6 +22,7 @@ import {
   propertyIdSchema,
   propertyPayloadSchema,
 } from "@/lib/api/nyumba/nyumba-shared";
+import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
 
 export const listProperties = createServerFn({ method: "POST" })
   .inputValidator(listPropertiesSchema)
@@ -336,26 +337,60 @@ export const listManagerProperties = createServerFn({ method: "GET" })
 export const getPropertyOwnerContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ propertyId: z.string().uuid() }))
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
+    const { userId } = authContext(context);
     const admin = await adminClient();
     const { data: property, error: propertyError } = await admin
       .from("properties")
-      .select("owner_id, is_active")
+      .select("owner_id, is_active, contact_phone")
       .eq("id", data.propertyId)
       .maybeSingle();
     if (propertyError) throw propertyError;
     if (!property?.owner_id || !property.is_active) {
-      return { phone: null, fullName: null };
+      return { phone: null, fullName: null, unlocked: false };
     }
+
+    if (property.owner_id === userId) {
+      const phone =
+        property.contact_phone?.trim() ||
+        (
+          await admin
+            .from("profiles")
+            .select("phone, full_name")
+            .eq("id", property.owner_id)
+            .maybeSingle()
+        ).data?.phone?.trim() ||
+        null;
+      const fullName =
+        (await admin.from("profiles").select("full_name").eq("id", property.owner_id).maybeSingle())
+          .data?.full_name ?? null;
+      return { phone, fullName, unlocked: true };
+    }
+
+    const plus = await getTenantPlusStatus(admin, userId);
+    const { data: unlock } = await admin
+      .from("contact_unlocks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("listing_id", data.propertyId)
+      .maybeSingle();
+
+    if (plus.tenantPlan !== "plus" && !unlock) {
+      return { phone: null, fullName: null, unlocked: false };
+    }
+
     const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select("phone, full_name")
       .eq("id", property.owner_id)
       .maybeSingle();
     if (profileError) throw profileError;
+
+    const phone = property.contact_phone?.trim() || profile?.phone?.trim() || null;
     return {
-      phone: profile?.phone?.trim() || null,
+      phone,
       fullName: profile?.full_name ?? null,
+      unlocked: true,
     };
   });
 

@@ -19,6 +19,7 @@
     "db:migrate:foundation-rls": "node scripts/apply-foundation-rls.mjs",
     "db:migrate:has-role-grant": "node scripts/apply-has-role-grant.mjs",
     "db:migrate:viewings-booking": "node scripts/apply-viewings-booking-rls.mjs",
+    "db:migrate:contact-unlock": "node scripts/apply-contact-unlock-migration.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",

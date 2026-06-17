@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
+import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
+import { PlusRequiredError } from "@/lib/payments/require-plus";
 import {
   assertInquiryParticipant,
   authContext,
@@ -21,6 +23,12 @@ export const createInquiry = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "tenant");
+
+    const plus = await getTenantPlusStatus(supabase, userId);
+    if (plus.tenantPlan !== "plus") {
+      throw new PlusRequiredError();
+    }
+
     const { data: property, error: propertyError } = await supabase
       .from("properties")
       .select("id, owner_id, title")
@@ -90,6 +98,12 @@ export const listTenantInquiries = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "tenant");
+
+    const plus = await getTenantPlusStatus(supabase, userId);
+    if (plus.tenantPlan !== "plus") {
+      return [];
+    }
+
     const { data, error } = await supabase
       .from("inquiries")
       .select(
@@ -220,6 +234,13 @@ export const sendInquiryMessage = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
     const inquiry = await assertInquiryParticipant(supabase, userId, data.inquiryId);
+
+    if (inquiry.tenant_id === userId) {
+      const plus = await getTenantPlusStatus(supabase, userId);
+      if (plus.tenantPlan !== "plus") {
+        throw new PlusRequiredError();
+      }
+    }
 
     const { data: message, error } = await supabase
       .from("inquiry_messages")

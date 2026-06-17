@@ -7,7 +7,7 @@ import { formatKes } from "@/lib/properties";
 import { countUnread } from "@/lib/conversation-utils";
 import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
-import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
+import { MessagingGate } from "@/components/MessagingGate";
 import { PropertyImage } from "@/components/PropertyImage";
 import { useEntitlements } from "@/hooks/use-entitlements";
 
@@ -52,25 +52,24 @@ function Messages() {
   return (
     <div className="mx-auto max-w-2xl px-5 pt-10">
       <h1 className="font-display text-2xl font-semibold">Messages</h1>
-      <p className="text-sm text-muted-foreground">{inquiries.length} conversations</p>
-
-      {!isPlus && inquiries.length >= 3 && (
-        <div className="mt-4">
-          <PlusUpsellBanner
-            dismissKey="messages-3"
-            title="Plus: priority landlord replies"
-            compact
+      {isPlus ? (
+        <>
+          <p className="text-sm text-muted-foreground">{inquiries.length} conversations</p>
+          <MessagesBody
+            inquiries={inquiries}
+            userId={user.id}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => void refetch()}
           />
+        </>
+      ) : (
+        <div className="mt-6">
+          <MessagingGate>
+            <span />
+          </MessagingGate>
         </div>
       )}
-
-      <MessagesBody
-        inquiries={inquiries}
-        userId={user.id}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => void refetch()}
-      />
     </div>
   );
 }
@@ -124,10 +123,7 @@ function MessagesBody({
         <p className="mt-3 text-sm text-muted-foreground">
           No conversations yet. Message a landlord from a property page to start.
         </p>
-        <Link
-          to="/tenant"
-          className="mt-4 inline-block text-sm font-semibold text-primary"
-        >
+        <Link to="/tenant" className="mt-4 inline-block text-sm font-semibold text-primary">
           Browse listings
         </Link>
       </div>

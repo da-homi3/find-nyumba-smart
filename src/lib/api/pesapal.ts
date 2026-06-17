@@ -6,8 +6,8 @@ let tokenCache: TokenCache | null = null;
 export function isPesapalConfigured(): boolean {
   return Boolean(
     process.env.PESAPAL_CONSUMER_KEY?.trim() &&
-      process.env.PESAPAL_CONSUMER_SECRET?.trim() &&
-      process.env.PESAPAL_NOTIFICATION_ID?.trim(),
+    process.env.PESAPAL_CONSUMER_SECRET?.trim() &&
+    process.env.PESAPAL_NOTIFICATION_ID?.trim(),
   );
 }
 
@@ -113,7 +113,8 @@ function parseRegisterIpnResponse(json: unknown): {
 
 function notificationId(): string {
   const id = process.env.PESAPAL_NOTIFICATION_ID;
-  if (!id) throw new Error("PESAPAL_NOTIFICATION_ID is required — register your IPN URL with Pesapal");
+  if (!id)
+    throw new Error("PESAPAL_NOTIFICATION_ID is required — register your IPN URL with Pesapal");
   return id;
 }
 
@@ -138,9 +139,7 @@ async function getAuthToken(): Promise<string> {
     throw new Error(data.errorMessage ?? data.message ?? "Pesapal authentication failed");
   }
 
-  const expiresAt = data.expiryDate
-    ? new Date(data.expiryDate).getTime()
-    : now + 4 * 60_000;
+  const expiresAt = data.expiryDate ? new Date(data.expiryDate).getTime() : now + 4 * 60_000;
 
   tokenCache = { token: data.token, expiresAt };
   return data.token;

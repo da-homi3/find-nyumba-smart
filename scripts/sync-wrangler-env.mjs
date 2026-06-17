@@ -210,9 +210,11 @@ function main() {
     );
   }
 
-  const missingPesapal = ["PESAPAL_CONSUMER_KEY", "PESAPAL_CONSUMER_SECRET", "PESAPAL_NOTIFICATION_ID"].filter(
-    (k) => !env[k],
-  );
+  const missingPesapal = [
+    "PESAPAL_CONSUMER_KEY",
+    "PESAPAL_CONSUMER_SECRET",
+    "PESAPAL_NOTIFICATION_ID",
+  ].filter((k) => !env[k]);
   if (missingPesapal.length) {
     console.warn(
       "Pesapal not fully configured — run: node scripts/setup-pesapal-ipn.mjs",

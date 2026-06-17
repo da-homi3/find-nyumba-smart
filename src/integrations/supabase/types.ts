@@ -466,6 +466,7 @@ export type Database = {
           payment_type: string;
           property_id: string | null;
           status: string;
+          trial_end: string | null;
           user_id: string;
         };
         Insert: {
@@ -639,6 +640,7 @@ export type Database = {
           plan: string;
           start_date: string;
           status: string;
+          trial_end: string | null;
           user_id: string;
         };
         Insert: {
@@ -652,6 +654,7 @@ export type Database = {
           plan: string;
           start_date?: string;
           status?: string;
+          trial_end?: string | null;
           user_id: string;
         };
         Update: {
@@ -665,6 +668,7 @@ export type Database = {
           plan?: string;
           start_date?: string;
           status?: string;
+          trial_end?: string | null;
           user_id?: string;
         };
         Relationships: [
@@ -676,6 +680,108 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      contact_unlocks: {
+        Row: {
+          fee_charged: number;
+          id: string;
+          listing_id: string;
+          method: string;
+          payment_id: string | null;
+          unlocked_at: string;
+          user_id: string;
+        };
+        Insert: {
+          fee_charged?: number;
+          id?: string;
+          listing_id: string;
+          method: string;
+          payment_id?: string | null;
+          unlocked_at?: string;
+          user_id: string;
+        };
+        Update: {
+          fee_charged?: number;
+          id?: string;
+          listing_id?: string;
+          method?: string;
+          payment_id?: string | null;
+          unlocked_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      service_providers: {
+        Row: {
+          areas_served: Json;
+          business_name: string;
+          categories: Json;
+          created_at: string;
+          description: string | null;
+          id: string;
+          phone: string;
+          photo_url: string | null;
+          price_range: string | null;
+          status: string;
+          subscription_id: string | null;
+          tier: string;
+          user_id: string;
+        };
+        Insert: {
+          areas_served?: Json;
+          business_name: string;
+          categories?: Json;
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          phone: string;
+          photo_url?: string | null;
+          price_range?: string | null;
+          status?: string;
+          subscription_id?: string | null;
+          tier?: string;
+          user_id: string;
+        };
+        Update: {
+          areas_served?: Json;
+          business_name?: string;
+          categories?: Json;
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          phone?: string;
+          photo_url?: string | null;
+          price_range?: string | null;
+          status?: string;
+          subscription_id?: string | null;
+          tier?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      provider_inquiries: {
+        Row: {
+          created_at: string;
+          id: string;
+          message: string;
+          provider_id: string;
+          tenant_user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          message: string;
+          provider_id: string;
+          tenant_user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          message?: string;
+          provider_id?: string;
+          tenant_user_id?: string;
+        };
+        Relationships: [];
       };
       leads: {
         Row: {
@@ -988,6 +1094,9 @@ export type Database = {
           phone: string | null;
           plus_expires_at: string | null;
           tenant_plan: string;
+          trial_unlocks_remaining: number;
+          trial_started_at: string | null;
+          trial_ends_at: string | null;
           updated_at: string;
         };
         Insert: {
@@ -1030,6 +1139,7 @@ export type Database = {
           bathrooms: number;
           bedrooms: number;
           boost_package: string | null;
+          contact_phone: string | null;
           created_at: string;
           deposit_kes: number | null;
           description: string | null;

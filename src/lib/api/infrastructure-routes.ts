@@ -104,11 +104,15 @@ const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/mpesa/callback" && method === "POST",
     run: (req) =>
-      withErrorHandler("M-Pesa callback", req, handleMpesaCallback, () =>
-        new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Error" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }),
+      withErrorHandler(
+        "M-Pesa callback",
+        req,
+        handleMpesaCallback,
+        () =>
+          new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Error" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          }),
       ),
   },
   {

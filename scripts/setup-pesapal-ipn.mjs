@@ -94,7 +94,8 @@ async function main() {
     process.exit(1);
   }
 
-  const base = env.PUBLIC_APP_URL || env.SITE_URL || "https://nyumba-search.kevinbuluma1.workers.dev";
+  const base =
+    env.PUBLIC_APP_URL || env.SITE_URL || "https://nyumba-search.kevinbuluma1.workers.dev";
   const ipnUrl = `${base.replace(/\/$/, "")}/api/payments/webhook/pesapal`;
 
   console.log(`Registering IPN: ${ipnUrl}`);

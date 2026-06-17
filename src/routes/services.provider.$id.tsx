@@ -1,19 +1,39 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
-import { MOCK_PROVIDERS } from "@/data/revenue-mock";
+import { getProviderById } from "@/lib/api/service-provider.functions";
 import { formatKes } from "@/lib/properties";
 import { Star, Phone, MapPin } from "lucide-react";
 import { useState } from "react";
 import { submitInquiry } from "@/lib/submit-inquiry";
+import { formFieldValue } from "@/lib/utils";
 
 export const Route = createFileRoute("/services/provider/$id")({
+  loader: async ({ params }) => {
+    const provider = await getProviderById({ data: { id: params.id } });
+    return { provider };
+  },
   component: ProviderPage,
 });
 
 function ProviderPage() {
-  const { id } = Route.useParams();
-  const provider = MOCK_PROVIDERS.find((p) => p.id === id) ?? MOCK_PROVIDERS[0];
+  const { provider } = Route.useLoaderData();
   const [sent, setSent] = useState(false);
+
+  if (!provider) {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-2xl px-5 py-12 text-center">
+          <h1 className="font-display text-2xl font-semibold">Provider not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This business is not listed or is no longer active.
+          </p>
+          <Link to="/services" className="mt-6 inline-flex text-sm text-primary">
+            ← Browse services
+          </Link>
+        </main>
+      </PublicPageShell>
+    );
+  }
 
   return (
     <PublicPageShell>
@@ -61,14 +81,14 @@ function ProviderPage() {
               const ok = await submitInquiry(
                 {
                   inquiryType: "service_quote",
-                  name: String(fd.get("name") ?? ""),
-                  phone: String(fd.get("phone") ?? ""),
+                  name: formFieldValue(fd, "name"),
+                  phone: formFieldValue(fd, "phone"),
                   subject: `Service quote — ${provider.businessName}`,
-                  message: String(fd.get("details") ?? "Quote request"),
+                  message: formFieldValue(fd, "details", "Quote request"),
                   metadata: {
                     providerId: provider.id,
                     provider: provider.businessName,
-                    address: String(fd.get("address") ?? ""),
+                    address: formFieldValue(fd, "address"),
                   },
                 },
                 "Quote request sent",

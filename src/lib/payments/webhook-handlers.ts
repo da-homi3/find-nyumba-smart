@@ -25,7 +25,10 @@ async function logWebhook(
   });
 }
 
-function parsePesapalIpn(request: Request, body?: Record<string, string>): {
+function parsePesapalIpn(
+  request: Request,
+  body?: Record<string, string>,
+): {
   orderTrackingId: string;
   merchantReference: string;
 } | null {
@@ -48,11 +51,22 @@ async function parseJsonBody(request: Request): Promise<unknown> {
 }
 
 export async function handleMpesaWebhook(request: Request): Promise<Response> {
+  const webhookSecret = process.env.MPESA_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const auth = request.headers.get("authorization");
+    const url = new URL(request.url);
+    const querySecret = url.searchParams.get("secret");
+    const authorized = auth === `Bearer ${webhookSecret}` || querySecret === webhookSecret;
+    if (!authorized) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+  }
+
   const body = (await parseJsonBody(request)) as StkCallbackBody;
   const parsed = parseStkCallback(body);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  await logWebhook(supabaseAdmin, "mpesa", body, true);
+  await logWebhook(supabaseAdmin, "mpesa", body, Boolean(webhookSecret));
 
   if (!parsed) {
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
@@ -85,7 +99,12 @@ export async function handlePesapalWebhook(request: Request): Promise<Response> 
   const ipn = parsePesapalIpn(request, body);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  await logWebhook(supabaseAdmin, "pesapal", body ?? Object.fromEntries(new URL(request.url).searchParams), true);
+  await logWebhook(
+    supabaseAdmin,
+    "pesapal",
+    body ?? Object.fromEntries(new URL(request.url).searchParams),
+    true,
+  );
 
   if (!ipn) {
     return new Response(buildIpnResponse("", "", false), {
@@ -96,16 +115,15 @@ export async function handlePesapalWebhook(request: Request): Promise<Response> 
 
   try {
     await completePesapalPayment(supabaseAdmin, ipn.merchantReference, ipn.orderTrackingId);
-    return new Response(
-      buildIpnResponse(ipn.orderTrackingId, ipn.merchantReference, true),
-      { headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(buildIpnResponse(ipn.orderTrackingId, ipn.merchantReference, true), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Pesapal IPN processing error:", err);
-    return new Response(
-      buildIpnResponse(ipn.orderTrackingId, ipn.merchantReference, false),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(buildIpnResponse(ipn.orderTrackingId, ipn.merchantReference, false), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -179,7 +197,7 @@ export async function handlePesapalRedirect(request: Request): Promise<Response>
   }
 
   const sep = successPath.includes("?") ? "&" : "?";
-  return Response.redirect(`${successPath}${sep}card=success`, 302);
+  return Response.redirect(`${successPath}${sep}card=success&paymentId=${payment.id}`, 302);
 }
 
 export async function handleRenewalCron(request: Request): Promise<Response> {

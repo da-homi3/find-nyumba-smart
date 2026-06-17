@@ -1,10 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { fetchProperty } from "@/lib/properties";
-import {
-  computeListingRiskScore,
-  neighborhoodMedianRent,
-} from "@/lib/listings/risk-score";
+import { computeListingRiskScore, neighborhoodMedianRent } from "@/lib/listings/risk-score";
 
 export const getListingRiskScore = createServerFn({ method: "GET" })
   .inputValidator(z.object({ listingId: z.string().uuid() }))

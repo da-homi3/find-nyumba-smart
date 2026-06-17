@@ -8,14 +8,9 @@ import { BOOST_PACKAGES } from "@/lib/revenue/plans";
 
 import { parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 
-
-
 type SupabaseAdmin = SupabaseClient<Database>;
 
-
-
 export type PaymentFulfillment = {
-
   userId: string;
 
   propertyId: string | null;
@@ -27,7 +22,6 @@ export type PaymentFulfillment = {
   paymentId?: string;
 
   metadata?: Record<string, string | number | undefined> & {
-
     qty?: number;
 
     propertyAddress?: string;
@@ -54,14 +48,11 @@ export type PaymentFulfillment = {
 
     boostPackage?: string;
 
+    providerId?: string;
   };
-
 };
 
-
-
 function boostEndDate(packageId: BoostPackage): Date {
-
   const days = BOOST_PACKAGES.find((p) => p.id === packageId)?.durationDays ?? 7;
 
   const end = new Date();
@@ -69,59 +60,37 @@ function boostEndDate(packageId: BoostPackage): Date {
   end.setDate(end.getDate() + days);
 
   return end;
-
 }
 
-
-
 function boostPlacements(packageId: BoostPackage): string[] {
-
   if (packageId === "spotlight") return ["search-top"];
 
   if (packageId === "homepage") return ["search-top", "homepage"];
 
   return ["search-top", "homepage", "newsletter", "push"];
-
 }
 
-
-
 function addBillingDays(days: number): string {
-
   const d = new Date();
 
   d.setDate(d.getDate() + days);
 
   return d.toISOString();
-
 }
-
-
 
 function paymentMethod(metadata: PaymentFulfillment["metadata"]) {
-
   return metadata?.paymentMethod === "card" ? "card" : "mpesa";
-
 }
-
-
 
 function billingCycle(metadata: PaymentFulfillment["metadata"]) {
-
   return metadata?.billingCycle === "quarterly" ? "quarterly" : "monthly";
-
 }
 
-
-
 async function fulfillBoost(
-
   supabaseAdmin: SupabaseAdmin,
 
   payment: PaymentFulfillment,
-
 ) {
-
   const { userId, propertyId, amountKes, metadata = {} } = payment;
 
   if (!propertyId) return;
@@ -135,19 +104,14 @@ async function fulfillBoost(
     .from("properties")
 
     .update({
-
       featured_until: end.toISOString(),
 
       boost_package: packageId,
-
     })
 
     .eq("id", propertyId);
 
-
-
   await supabaseAdmin.from("listing_boosts").insert({
-
     listing_id: propertyId,
 
     user_id: userId,
@@ -159,15 +123,10 @@ async function fulfillBoost(
     amount_paid_kes: amountKes,
 
     placements: boostPlacements(packageId),
-
   });
-
 }
 
-
-
 async function fulfillLeadPack(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
-
   const { userId, metadata = {} } = payment;
 
   const qty = Number(metadata.qty ?? 0);
@@ -193,13 +152,9 @@ async function fulfillLeadPack(supabaseAdmin: SupabaseAdmin, payment: PaymentFul
     .update({ lead_pack_balance: current + qty })
 
     .eq("id", userId);
-
 }
 
-
-
 async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
-
   const { userId, amountKes, metadata = {} } = payment;
 
   const plan = (metadata.plan ?? "pro") as LandlordPlan;
@@ -214,10 +169,7 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
 
     .eq("id", userId);
 
-
-
   await supabaseAdmin.from("subscriptions").insert({
-
     user_id: userId,
 
     plan,
@@ -231,15 +183,10 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
     payment_method: paymentMethod(metadata),
 
     next_billing_date: cycle === "quarterly" ? addBillingDays(90) : addBillingDays(30),
-
   });
-
 }
 
-
-
 async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
-
   const { userId, amountKes, metadata = {} } = payment;
 
   const cycle = billingCycle(metadata);
@@ -251,19 +198,14 @@ async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentF
     .from("profiles")
 
     .update({
-
       tenant_plan: "plus",
 
       plus_expires_at: addBillingDays(days),
-
     })
 
     .eq("id", userId);
 
-
-
   await supabaseAdmin.from("subscriptions").insert({
-
     user_id: userId,
 
     plan: "plus",
@@ -277,29 +219,20 @@ async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentF
     payment_method: paymentMethod(metadata),
 
     next_billing_date: addBillingDays(days),
-
   });
-
 }
 
-
-
 async function fulfillVerification(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
-
   const { propertyId, amountKes, paymentId, metadata = {} } = payment;
 
   const requestId = metadata.verificationRequestId;
 
-
-
   if (requestId && paymentId) {
-
     await supabaseAdmin
 
       .from("verification_requests")
 
       .update({
-
         paid: true,
 
         payment_id: paymentId,
@@ -307,19 +240,14 @@ async function fulfillVerification(supabaseAdmin: SupabaseAdmin, payment: Paymen
         amount_paid_kes: amountKes,
 
         status: "pending",
-
       })
 
       .eq("id", requestId);
 
     return;
-
   }
 
-
-
   await supabaseAdmin.from("verification_requests").insert({
-
     property_address: metadata.propertyAddress ?? "—",
 
     listing_url: metadata.listingUrl ?? null,
@@ -341,15 +269,60 @@ async function fulfillVerification(supabaseAdmin: SupabaseAdmin, payment: Paymen
     payment_id: paymentId ?? null,
 
     paid: Boolean(paymentId),
-
   });
-
 }
 
+async function fulfillContactUnlock(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
+  const { userId, propertyId, amountKes, paymentId } = payment;
+  if (!propertyId) return;
 
+  const { data: existing } = await supabaseAdmin
+    .from("contact_unlocks")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("listing_id", propertyId)
+    .maybeSingle();
+  if (existing) return;
+
+  await supabaseAdmin.from("contact_unlocks").insert({
+    user_id: userId,
+    listing_id: propertyId,
+    method: "paid",
+    payment_id: paymentId ?? null,
+    fee_charged: amountKes,
+  });
+}
+
+async function fulfillProviderSubscription(
+  supabaseAdmin: SupabaseAdmin,
+  payment: PaymentFulfillment,
+) {
+  const { userId, amountKes, metadata = {} } = payment;
+  const tier =
+    metadata.plan === "featured" || metadata.plan === "premium" ? metadata.plan : "basic";
+  const cycle = billingCycle(metadata);
+
+  let providerUpdate = supabaseAdmin
+    .from("service_providers")
+    .update({ status: "active", tier })
+    .eq("user_id", userId);
+  if (metadata.providerId) {
+    providerUpdate = providerUpdate.eq("id", metadata.providerId);
+  }
+  await providerUpdate;
+
+  await supabaseAdmin.from("subscriptions").insert({
+    user_id: userId,
+    plan: tier,
+    status: "active",
+    amount_kes: amountKes,
+    billing_cycle: cycle,
+    payment_method: paymentMethod(metadata),
+    next_billing_date: cycle === "quarterly" ? addBillingDays(90) : addBillingDays(30),
+  });
+}
 
 async function fulfillReport(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
-
   const { userId, paymentId, metadata = {} } = payment;
 
   if (!paymentId) return;
@@ -357,27 +330,18 @@ async function fulfillReport(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfi
   const reportType = String(metadata.reportType ?? metadata.plan ?? "quarterly-overview");
 
   await supabaseAdmin.from("report_purchases").insert({
-
     user_id: userId,
 
     report_type: reportType,
 
     payment_id: paymentId,
-
   });
-
 }
 
-
-
 const FULFILLMENT_HANDLERS: Record<
-
   string,
-
   (admin: SupabaseAdmin, payment: PaymentFulfillment) => Promise<void>
-
 > = {
-
   property_boost: fulfillBoost,
 
   featured_listing: fulfillBoost,
@@ -394,32 +358,25 @@ const FULFILLMENT_HANDLERS: Record<
 
   report: fulfillReport,
 
+  contact_unlock: fulfillContactUnlock,
+
+  provider_subscription: fulfillProviderSubscription,
 };
 
-
-
 export async function fulfillPayment(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
-
   const handler = FULFILLMENT_HANDLERS[payment.paymentType];
 
   if (handler) await handler(supabaseAdmin, payment);
-
 }
 
-
-
 export async function fulfillPaymentRow(
-
   supabaseAdmin: SupabaseAdmin,
 
   row: Database["public"]["Tables"]["payments"]["Row"],
-
 ) {
-
   const meta = parsePaymentMetadata(row.metadata);
 
   await fulfillPayment(supabaseAdmin, {
-
     userId: row.user_id,
 
     propertyId: row.property_id,
@@ -431,7 +388,6 @@ export async function fulfillPaymentRow(
     paymentId: row.id,
 
     metadata: {
-
       plan: meta.plan,
 
       boostPackage: meta.boostPackage,
@@ -458,10 +414,7 @@ export async function fulfillPaymentRow(
 
       reportType: meta.reportType,
 
+      providerId: meta.providerId,
     },
-
   });
-
 }
-
-

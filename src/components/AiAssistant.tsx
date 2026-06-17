@@ -104,7 +104,9 @@ export function AiAssistant() {
         className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#1eb88a] text-white shadow-elegant"
         aria-label="Open AI assistant"
       >
-        {open ? <X className="h-6 w-6" /> : (
+        {open ? (
+          <X className="h-6 w-6" />
+        ) : (
           <>
             <span className="animate-ns-pulse-ring pointer-events-none absolute inset-[-4px] rounded-full border-2 border-[#1eb88a] opacity-40" />
             <Sparkles className="h-6 w-6" />

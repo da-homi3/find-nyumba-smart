@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";import { PublicPageShell } from "@/components/SiteNav";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { PublicPageShell } from "@/components/SiteNav";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { createVerificationRequest } from "@/lib/api/payment.functions";
 import { VERIFICATION_TIERS } from "@/lib/revenue/plans";

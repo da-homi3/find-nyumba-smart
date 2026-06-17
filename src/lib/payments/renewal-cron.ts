@@ -4,6 +4,7 @@ import { initiateStkPush } from "@/lib/api/mpesa";
 import {
   PLUS_PLAN,
   planMonthlyPrice,
+  providerTierPrice,
   resolveLandlordPlan,
 } from "@/lib/revenue/plans";
 
@@ -14,6 +15,10 @@ type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"];
 function planAmountKes(sub: SubscriptionRow): number {
   if (sub.plan === "plus") {
     return sub.billing_cycle === "quarterly" ? PLUS_PLAN.quarterlyKes : PLUS_PLAN.monthlyKes;
+  }
+  if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
+    const base = providerTierPrice(sub.plan);
+    return sub.billing_cycle === "quarterly" ? Math.round(base * 3 * 0.9) : base;
   }
   const planId = resolveLandlordPlan(sub.plan);
   const cycle = sub.billing_cycle === "quarterly" ? "quarterly" : "monthly";
@@ -32,11 +37,13 @@ async function downgradeUser(supabaseAdmin: Admin, sub: SubscriptionRow) {
       .from("profiles")
       .update({ tenant_plan: "free", plus_expires_at: null })
       .eq("id", sub.user_id);
-  } else {
+  } else if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
     await supabaseAdmin
-      .from("profiles")
-      .update({ landlord_plan: "free" })
-      .eq("id", sub.user_id);
+      .from("service_providers")
+      .update({ status: "suspended" })
+      .eq("user_id", sub.user_id);
+  } else {
+    await supabaseAdmin.from("profiles").update({ landlord_plan: "free" }).eq("id", sub.user_id);
   }
   await supabaseAdmin.from("subscriptions").update({ status: "cancelled" }).eq("id", sub.id);
 }
@@ -84,7 +91,7 @@ export async function runSubscriptionRenewalCron(supabaseAdmin: Admin): Promise<
   const { data: expiring } = await supabaseAdmin
     .from("subscriptions")
     .select("*")
-    .eq("status", "active")
+    .in("status", ["active", "trialing"])
     .lte("next_billing_date", soon.toISOString());
 
   for (const sub of expiring ?? []) {

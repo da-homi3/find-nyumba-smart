@@ -6,10 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { callGeminiChat } from "@/lib/api/ai-client";
 import { getAuthContext, JSON_OBJECT_RE } from "@/lib/api/server-context";
-import {
-  adminClient,
-  assertCanManageProperty,
-} from "@/lib/api/nyumba/nyumba-shared";
+import { adminClient, assertCanManageProperty } from "@/lib/api/nyumba/nyumba-shared";
 
 const QUALITY_AI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
 

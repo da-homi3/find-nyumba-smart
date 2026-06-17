@@ -1,96 +1,238 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { PublicPageShell } from "@/components/SiteNav";
-import { submitInquiry } from "@/lib/submit-inquiry";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { PublicPageShell } from "@/components/SiteNav";
+import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  createServiceProvider,
+  SERVICE_PROVIDER_CATEGORIES,
+} from "@/lib/api/service-provider.functions";
+import { PROVIDER_TIERS } from "@/lib/revenue/plans";
+import { toast } from "sonner";
+import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/services/register")({
   component: RegisterProviderPage,
 });
 
+type Step = "profile" | "plan" | "pay";
+
 function RegisterProviderPage() {
-  const [submitting, setSubmitting] = useState(false);
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [step, setStep] = useState<Step>("profile");
+  const [saving, setSaving] = useState(false);
+  const [providerId, setProviderId] = useState<string | null>(null);
+  const [tier, setTier] = useState<(typeof PROVIDER_TIERS)[number]["value"]>("basic");
+  const [form, setForm] = useState({
+    businessName: "",
+    categories: [] as string[],
+    areasServed: "",
+    description: "",
+    phone: "",
+    priceRange: "",
+  });
+
+  if (loading) {
+    return (
+      <PublicPageShell>
+        <div className="mx-auto max-w-lg px-5 py-16 text-sm text-muted-foreground">Loading…</div>
+      </PublicPageShell>
+    );
+  }
+
+  if (!user) {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12 text-center">
+          <h1 className="font-display text-2xl font-semibold">List your business</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in to join the NyumbaSearch services directory.
+          </p>
+          <Link
+            to="/auth"
+            search={{ redirect: "/services/register" }}
+            className="mt-6 inline-flex rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+          >
+            Sign in
+          </Link>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  async function saveProfile() {
+    const areas = form.areasServed
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!form.businessName.trim() || form.categories.length === 0 || !form.phone.trim()) {
+      toast.error("Business name, at least one category, and phone are required");
+      return;
+    }
+    if (areas.length === 0) {
+      toast.error("Enter at least one area you serve");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await createServiceProvider({
+        data: {
+          businessName: form.businessName.trim(),
+          categories: form.categories as (typeof SERVICE_PROVIDER_CATEGORIES)[number][],
+          areasServed: areas,
+          description: form.description.trim() || undefined,
+          priceRange: form.priceRange.trim() || undefined,
+          phone: form.phone.trim(),
+        },
+      });
+      setProviderId(res.id);
+      setStep("plan");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selectedTier = PROVIDER_TIERS.find((t) => t.value === tier)!;
+
+  if (step === "profile") {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12">
+          <Link to="/services" className="text-sm text-primary">
+            ← Services
+          </Link>
+          <h1 className="mt-4 font-display text-2xl font-semibold">List your business</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Join electricians, plumbers, movers, and more on NyumbaSearch.
+          </p>
+
+          <div className="mt-8 grid gap-3">
+            <input
+              required
+              placeholder="Business name"
+              value={form.businessName}
+              onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+              className="rounded-xl border px-3 py-2.5 text-sm"
+            />
+            <fieldset className="rounded-xl border p-3">
+              <legend className="px-1 text-xs font-semibold text-muted-foreground">
+                Categories
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SERVICE_PROVIDER_CATEGORIES.map((c) => (
+                  <label key={c} className="flex items-center gap-1.5 text-sm capitalize">
+                    <input
+                      type="checkbox"
+                      checked={form.categories.includes(c)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          categories: e.target.checked
+                            ? [...form.categories, c]
+                            : form.categories.filter((x) => x !== c),
+                        })
+                      }
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <input
+              required
+              placeholder="Areas served (comma separated, required)"
+              value={form.areasServed}
+              onChange={(e) => setForm({ ...form, areasServed: e.target.value })}
+              className="rounded-xl border px-3 py-2.5 text-sm"
+            />
+            <input
+              placeholder="Phone"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="rounded-xl border px-3 py-2.5 text-sm"
+            />
+            <input
+              placeholder="Price range (e.g. KES 1,500 – 5,000 per job)"
+              value={form.priceRange}
+              onChange={(e) => setForm({ ...form, priceRange: e.target.value })}
+              className="rounded-xl border px-3 py-2.5 text-sm"
+            />
+            <textarea
+              placeholder="Tell tenants what you do"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="min-h-24 rounded-xl border px-3 py-2.5 text-sm"
+            />
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void saveProfile()}
+              className="rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Continue to plans"}
+            </button>
+          </div>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  if (step === "plan") {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12">
+          <h1 className="font-display text-2xl font-semibold">Choose a plan</h1>
+          <p className="mt-2 text-sm text-emerald-600">
+            Your first month is free for new subscribers — no payment collected today.
+          </p>
+          <div className="mt-8 grid gap-3">
+            {PROVIDER_TIERS.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => {
+                  setTier(t.value);
+                  setStep("pay");
+                }}
+                className="rounded-2xl border p-4 text-left hover:border-primary"
+              >
+                <p className="font-semibold">
+                  {t.label} — KES {t.priceKes.toLocaleString()}/mo
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{t.desc}</p>
+              </button>
+            ))}
+          </div>
+        </main>
+      </PublicPageShell>
+    );
+  }
 
   return (
     <PublicPageShell>
       <main className="mx-auto max-w-lg px-5 py-12">
-        <Link to="/services" className="text-sm text-primary">
-          ← Services
-        </Link>
-        <h1 className="mt-4 font-display text-2xl font-semibold">Join the marketplace</h1>
-        <form
-          className="mt-8 grid gap-3"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (submitting) return;
-            const fd = new FormData(e.currentTarget);
-            setSubmitting(true);
-            const ok = await submitInquiry(
-              {
-                inquiryType: "service_register",
-                name: String(fd.get("business") ?? ""),
-                phone: String(fd.get("phone") ?? ""),
-                email: String(fd.get("email") ?? ""),
-                company: String(fd.get("business") ?? ""),
-                subject: `Provider application — ${fd.get("business")}`,
-                message: `Category: ${fd.get("category")}\nAreas: ${fd.get("areas")}\nYears: ${fd.get("years")}`,
-                metadata: {
-                  category: String(fd.get("category") ?? ""),
-                  areas: String(fd.get("areas") ?? ""),
-                  years: String(fd.get("years") ?? ""),
-                },
-              },
-              "Application received. We'll review and contact you within 48 hours.",
-            );
-            setSubmitting(false);
-            if (ok) e.currentTarget.reset();
-          }}
-        >
-          <input
-            required
-            name="business"
-            placeholder="Business name"
-            className="rounded-xl border px-3 py-2 text-sm"
+        <h1 className="font-display text-2xl font-semibold">Activate your listing</h1>
+        <div className="mt-8">
+          <CheckoutFlow
+            checkoutPath="/services/register"
+            lineItem={{
+              title: `${selectedTier.label} provider plan`,
+              subtitle: selectedTier.desc,
+              amountKes: selectedTier.priceKes,
+            }}
+            metadata={{
+              paymentType: "provider_subscription",
+              plan: tier,
+              providerId: providerId ?? undefined,
+            }}
+            defaultPhone={(user.user_metadata?.phone as string | undefined) ?? user.phone ?? ""}
+            allowQuarterly={false}
+            onSuccess={() => navigate({ to: "/services/provider/dashboard" })}
           />
-          <select name="category" required className="rounded-xl border px-3 py-2 text-sm">
-            <option value="">Category</option>
-            <option value="plumber">Plumber</option>
-            <option value="electrician">Electrician</option>
-            <option value="mover">Mover</option>
-          </select>
-          <input
-            name="areas"
-            placeholder="Areas served"
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <input
-            name="years"
-            placeholder="Years in business"
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <input
-            required
-            name="phone"
-            placeholder="Phone"
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <input
-            required
-            name="email"
-            type="email"
-            placeholder="Email"
-            className="rounded-xl border px-3 py-2 text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            KES 2,000/month subscription or KES 150 per verified customer request.
-          </p>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-          >
-            {submitting ? "Sending…" : "Submit application"}
-          </button>
-        </form>
+        </div>
       </main>
     </PublicPageShell>
   );

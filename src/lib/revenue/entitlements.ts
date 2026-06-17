@@ -6,6 +6,10 @@ export type UserEntitlements = {
   tenantPlan: TenantPlan;
   plusExpiresAt: string | null;
   listingLimit: number;
+  trialUnlocksRemaining?: number;
+  trialEndsAt?: string | null;
+  trialActive?: boolean;
+  monthlyUnlockSpend?: number;
 };
 
 export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
@@ -13,6 +17,10 @@ export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
   tenantPlan: "free",
   plusExpiresAt: null,
   listingLimit: LISTING_LIMITS.free,
+  trialUnlocksRemaining: 0,
+  trialEndsAt: null,
+  trialActive: false,
+  monthlyUnlockSpend: 0,
 };
 
 export function isPlusMember(entitlements: UserEntitlements): boolean {

@@ -11,10 +11,7 @@ type Props = {
   isPlus: boolean;
 };
 
-const RISK_STYLES: Record<
-  RiskLevel,
-  { color: string; label: string; bg: string }
-> = {
+const RISK_STYLES: Record<RiskLevel, { color: string; label: string; bg: string }> = {
   low: {
     color: "#48bb78",
     label: "Low risk",
@@ -35,10 +32,7 @@ const RISK_STYLES: Record<
 function RiskResultCard({ risk }: Readonly<{ risk: { level: RiskLevel; reasons: string[] } }>) {
   const styles = RISK_STYLES[risk.level];
   return (
-    <div
-      className="flex h-full flex-col justify-center p-4"
-      style={{ background: styles.bg }}
-    >
+    <div className="flex h-full flex-col justify-center p-4" style={{ background: styles.bg }}>
       <span className="text-base font-bold" style={{ color: styles.color }}>
         {styles.label}
       </span>

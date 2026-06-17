@@ -65,6 +65,7 @@ import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.statu
 import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
 import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
+import { Route as ServicesProviderDashboardRouteImport } from './routes/services.provider.dashboard'
 import { Route as ServicesProviderIdRouteImport } from './routes/services.provider.$id'
 import { Route as ManagerPropertiesNewRouteImport } from './routes/manager.properties.new'
 import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
@@ -352,6 +353,12 @@ const TenantMessagesIdRoute = TenantMessagesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => TenantMessagesRoute,
 } as any)
+const ServicesProviderDashboardRoute =
+  ServicesProviderDashboardRouteImport.update({
+    id: '/provider/dashboard',
+    path: '/provider/dashboard',
+    getParentRoute: () => ServicesRoute,
+  } as any)
 const ServicesProviderIdRoute = ServicesProviderIdRouteImport.update({
   id: '/provider/$id',
   path: '/provider/$id',
@@ -442,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
+  '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
@@ -499,6 +507,7 @@ export interface FileRoutesByTo {
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
+  '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
@@ -564,6 +573,7 @@ export interface FileRoutesById {
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
+  '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
@@ -630,6 +640,7 @@ export interface FileRouteTypes {
     | '/landlord/properties/new'
     | '/manager/properties/new'
     | '/services/provider/$id'
+    | '/services/provider/dashboard'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
@@ -687,6 +698,7 @@ export interface FileRouteTypes {
     | '/landlord/properties/new'
     | '/manager/properties/new'
     | '/services/provider/$id'
+    | '/services/provider/dashboard'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
@@ -751,6 +763,7 @@ export interface FileRouteTypes {
     | '/landlord/properties/new'
     | '/manager/properties/new'
     | '/services/provider/$id'
+    | '/services/provider/dashboard'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
@@ -1173,6 +1186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantMessagesIdRouteImport
       parentRoute: typeof TenantMessagesRoute
     }
+    '/services/provider/dashboard': {
+      id: '/services/provider/dashboard'
+      path: '/provider/dashboard'
+      fullPath: '/services/provider/dashboard'
+      preLoaderRoute: typeof ServicesProviderDashboardRouteImport
+      parentRoute: typeof ServicesRoute
+    }
     '/services/provider/$id': {
       id: '/services/provider/$id'
       path: '/provider/$id'
@@ -1368,12 +1388,14 @@ interface ServicesRouteChildren {
   ServicesCategoryRoute: typeof ServicesCategoryRoute
   ServicesRegisterRoute: typeof ServicesRegisterRoute
   ServicesProviderIdRoute: typeof ServicesProviderIdRoute
+  ServicesProviderDashboardRoute: typeof ServicesProviderDashboardRoute
 }
 
 const ServicesRouteChildren: ServicesRouteChildren = {
   ServicesCategoryRoute: ServicesCategoryRoute,
   ServicesRegisterRoute: ServicesRegisterRoute,
   ServicesProviderIdRoute: ServicesProviderIdRoute,
+  ServicesProviderDashboardRoute: ServicesProviderDashboardRoute,
 }
 
 const ServicesRouteWithChildren = ServicesRoute._addFileChildren(

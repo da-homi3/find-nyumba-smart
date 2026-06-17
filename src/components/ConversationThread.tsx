@@ -10,7 +10,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, CheckCheck, Loader2, Send } from "lucide-react";
-import { toast } from "sonner";
+import { PlusRequiredError } from "@/lib/payments/require-plus";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 type Message = {
   id: string;
@@ -25,6 +26,24 @@ const LANDLORD_QUICK_REPLIES = [
   "Please book a viewing",
   "Thanks for your interest",
 ];
+
+function BackControl({ backTo, onBack }: Readonly<{ backTo?: string; onBack?: () => void }>) {
+  if (backTo != null) {
+    return (
+      <Link to={backTo} className="text-sm font-medium text-primary">
+        ← Back
+      </Link>
+    );
+  }
+  if (onBack) {
+    return (
+      <button type="button" onClick={onBack} className="text-sm font-medium text-primary">
+        ← Back
+      </button>
+    );
+  }
+  return null;
+}
 
 type ConversationThreadProps = {
   inquiryId: string;
@@ -41,17 +60,26 @@ export function ConversationThread({
   showQuickReplies = false,
 }: Readonly<ConversationThreadProps>) {
   const { user } = useAuth();
+  const { isPlus } = useEntitlements();
   const qc = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
 
-  const { data: thread, error: threadError, isLoading: threadLoading } = useQuery({
+  const {
+    data: thread,
+    error: threadError,
+    isLoading: threadLoading,
+  } = useQuery({
     queryKey: ["inquiry-thread", inquiryId],
     queryFn: () => getInquiryThread({ data: { inquiryId } }),
     retry: 1,
   });
 
-  const { data: messages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
+  const {
+    data: messages = [],
+    isLoading: messagesLoading,
+    error: messagesError,
+  } = useQuery({
     queryKey: ["inquiry-messages", inquiryId],
     queryFn: () => listInquiryMessages({ data: { inquiryId } }),
     retry: 1,
@@ -115,33 +143,33 @@ export function ConversationThread({
       void qc.invalidateQueries({ queryKey: ["tenant-inquiries"] });
       void qc.invalidateQueries({ queryKey: ["landlord-leads"] });
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      if (err instanceof PlusRequiredError) {
+        toast.error(err.message, { description: "Upgrade to Plus to message landlords." });
+        return;
+      }
+      toast.error(err.message);
+    },
   });
 
   const counterparty = thread?.counterparty;
   const inquiry = thread?.inquiry as
-    | { property_id?: string; properties?: { id?: string; title?: string } | null }
+    | {
+        tenant_id?: string;
+        property_id?: string;
+        properties?: { id?: string; title?: string } | null;
+      }
     | undefined;
+  const tenantNeedsPlus = inquiry?.tenant_id === user?.id && !isPlus;
   const propertyTitle = inquiry?.properties?.title ?? "Listing";
   const propertyId = inquiry?.property_id ?? inquiry?.properties?.id;
-
-  const backControl =
-    backTo != null ? (
-      <Link to={backTo} className="text-sm font-medium text-primary">
-        ← Back
-      </Link>
-    ) : onBack ? (
-      <button type="button" onClick={onBack} className="text-sm font-medium text-primary">
-        ← Back
-      </button>
-    ) : null;
 
   if (loadError) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-6 text-center">
         <p className="text-sm font-medium text-destructive">Could not load this conversation.</p>
         <p className="mt-1 text-xs text-muted-foreground">{loadError.message}</p>
-        {backControl}
+        <BackControl backTo={backTo} onBack={onBack} />
       </div>
     );
   }
@@ -149,7 +177,7 @@ export function ConversationThread({
   return (
     <div className="flex h-full min-h-[60vh] flex-col">
       <header className="flex items-center gap-3 border-b px-4 py-3">
-        {backControl}
+        <BackControl backTo={backTo} onBack={onBack} />
         <div className="min-w-0 flex-1">
           <h2 className="line-clamp-1 font-display font-semibold">
             {counterparty?.full_name ?? "Conversation"}
@@ -208,7 +236,7 @@ export function ConversationThread({
         <div ref={bottomRef} />
       </div>
 
-      {showQuickReplies && (
+      {showQuickReplies && !tenantNeedsPlus && (
         <div className="flex flex-wrap gap-1.5 border-t px-3 pt-2">
           {LANDLORD_QUICK_REPLIES.map((text) => (
             <button
@@ -223,35 +251,48 @@ export function ConversationThread({
         </div>
       )}
 
-      <form
-        className="flex items-end gap-2 border-t p-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const body = draft.trim();
-          if (!body || send.isPending) return;
-          send.mutate(body);
-        }}
-      >
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={2}
-          placeholder="Type a message…"
-          className="min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-        />
-        <button
-          type="submit"
-          disabled={!draft.trim() || send.isPending}
-          className="rounded-xl bg-primary p-3 text-primary-foreground disabled:opacity-50"
-          aria-label="Send message"
+      {tenantNeedsPlus ? (
+        <div className="border-t p-4 text-center text-sm text-muted-foreground">
+          Messaging requires{" "}
+          <Link
+            to="/tenant/checkout"
+            search={{ plan: "plus" }}
+            className="font-semibold text-primary"
+          >
+            NyumbaSearch Plus
+          </Link>
+        </div>
+      ) : (
+        <form
+          className="flex items-end gap-2 border-t p-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const body = draft.trim();
+            if (!body || send.isPending) return;
+            send.mutate(body);
+          }}
         >
-          {send.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </button>
-      </form>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            placeholder="Type a message…"
+            className="min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            type="submit"
+            disabled={!draft.trim() || send.isPending}
+            className="rounded-xl bg-primary p-3 text-primary-foreground disabled:opacity-50"
+            aria-label="Send message"
+          >
+            {send.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

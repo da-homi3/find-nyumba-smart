@@ -45,7 +45,10 @@ function TenantCheckoutPage() {
     <div className="mx-auto max-w-lg px-5 pb-24 pt-10">
       <h1 className="font-display text-2xl font-semibold">NyumbaSearch Plus</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Early access and unlimited search alerts.
+        Unlimited contact unlocks, in-app messaging, and scam-risk scores.
+      </p>
+      <p className="mt-2 text-sm font-medium text-emerald-600">
+        First month free for new subscribers — no payment today.
       </p>
 
       <div className="mt-6 flex gap-2">

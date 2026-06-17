@@ -13,7 +13,8 @@ const BASE =
   "https://nyumba-search.kevinbuluma1.workers.dev";
 
 const routeTree = readFileSync(join(root, "src", "routeTree.gen.ts"), "utf8");
-const pathMatch = routeTree.match(/fullPaths:\s*([\s\S]*?)\s*id:/);
+const fullPathsRegex = /fullPaths:\s*([\s\S]*?)\s*id:/;
+const pathMatch = fullPathsRegex.exec(routeTree);
 const rawBlock = pathMatch?.[1] ?? "";
 const routes = [...new Set([...rawBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]))];
 
@@ -60,14 +61,14 @@ async function resolveSamplePropertyId() {
 function expandPath(path) {
   return (
     path
-      .replace(/\$id/g, SAMPLE_UUID)
-      .replace(/\$propertyId/g, SAMPLE_UUID)
-      .replace(/\$category/g, "movers")
+      .replaceAll("$id", SAMPLE_UUID)
+      .replaceAll("$propertyId", SAMPLE_UUID)
+      .replaceAll("$category", "movers")
       .replace(/\/$/, "") || "/"
   );
 }
 
-function detectIssues(path, status, html, hasLoader) {
+function detectIssues(path, status, html, _hasLoader) {
   const issues = [];
   if (status === 404) issues.push("404");
   if (status >= 500) issues.push("server_error");
@@ -94,10 +95,10 @@ function detectIssues(path, status, html, hasLoader) {
 function routeHasLoader(path) {
   const fileHint = path
     .replace(/^\//, "")
-    .replace(/\//g, ".")
-    .replace(/\$id/g, ".$id")
-    .replace(/\$propertyId/g, ".$propertyId")
-    .replace(/\$category/g, ".$category");
+    .replaceAll("/", ".")
+    .replaceAll("$id", ".$id")
+    .replaceAll("$propertyId", ".$propertyId")
+    .replaceAll("$category", ".$category");
   const candidates = [
     join(root, "src", "routes", `${fileHint}.tsx`),
     join(root, "src", "routes", `${fileHint}.ts`),
@@ -140,7 +141,7 @@ async function auditRoute(path) {
   };
 }
 
-async function main() {
+try {
   await resolveSamplePropertyId();
   console.log(`Route audit → ${BASE} (${routes.length} routes)\n`);
   const results = [];
@@ -148,9 +149,8 @@ async function main() {
     const row = await auditRoute(path);
     results.push(row);
     const icon = row.ok ? "✓" : "✗";
-    console.log(
-      `${icon} ${path} — ${row.status} (${row.bodyBytes}B)${row.issues.length ? ` [${row.issues.join(", ")}]` : ""}`,
-    );
+    const issueSuffix = row.issues.length ? ` [${row.issues.join(", ")}]` : "";
+    console.log(`${icon} ${path} — ${row.status} (${row.bodyBytes}B)${issueSuffix}`);
   }
 
   const summary = {
@@ -172,9 +172,7 @@ async function main() {
   writeFileSync(outPath, JSON.stringify(report, null, 2));
   console.log(`\nWrote ${outPath} — ${summary.passed}/${summary.total} passed`);
   process.exit(summary.failed > 0 ? 1 : 0);
-}
-
-main().catch((e) => {
+} catch (e) {
   console.error(e);
   process.exit(1);
-});
+}

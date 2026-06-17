@@ -10,6 +10,7 @@ import { ScamRiskScanner } from "@/components/ScamRiskScanner";
 import { PropertyStat } from "./PropertyStat";
 import { PropertyAiAssistant } from "./PropertyAiAssistant";
 import { PropertyReportSection } from "./PropertyReportSection";
+import { ContactUnlockCard } from "@/components/ContactUnlockCard";
 import type { SubmitEvent } from "react";
 
 type Valuation = {
@@ -44,6 +45,7 @@ type PropertyDetailContentProps = Readonly<{
   onReportReasonChange: (value: string) => void;
   onReportDetailsChange: (value: string) => void;
   onReportSubmit: () => void;
+  onContactUnlocked?: (phone: string) => void;
 }>;
 
 function valuationGradeClass(grade: string) {
@@ -99,6 +101,7 @@ export function PropertyDetailContent({
   onReportReasonChange,
   onReportDetailsChange,
   onReportSubmit,
+  onContactUnlocked,
 }: PropertyDetailContentProps) {
   const vLevel = verificationLevel(p);
   const intel = getListingIntel(p);
@@ -165,10 +168,15 @@ export function PropertyDetailContent({
               </div>
             )}
             <p className="mt-2 text-xs text-muted-foreground">
-              Phone verified · Usually replies within 2 hours
+              Contact details are unlocked separately — messaging requires Plus.
             </p>
           </div>
         </div>
+        {!isDemo && (
+          <div id="contact-unlock" className="mt-4">
+            <ContactUnlockCard listing={p} onUnlocked={onContactUnlocked} />
+          </div>
+        )}
       </section>
 
       <section className="mt-6 rounded-2xl border bg-linear-to-r from-emerald-500/10 to-teal-500/10 p-4">

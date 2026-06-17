@@ -240,10 +240,7 @@ export async function assertCanManageProperty(
   if (error) throw error;
   if (!property) throw new Error("Property not found");
 
-  const { data: roleRows } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const roles = new Set((roleRows ?? []).map((r) => r.role));
 
   let allowed = property.owner_id === userId;

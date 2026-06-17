@@ -37,10 +37,7 @@ async function pollPayment(
   throw new Error("Payment timed out. If you entered your PIN, wait a moment and refresh.");
 }
 
-function phaseLabelFor(
-  phase: PaymentPhase,
-  statusMessage: string | null,
-): string | null {
+function phaseLabelFor(phase: PaymentPhase, statusMessage: string | null): string | null {
   if (phase === "sending") return statusMessage;
   if (phase === "awaiting_pin") return statusMessage ?? "Enter your M-Pesa PIN on your phone";
   if (phase === "confirming") return statusMessage ?? "Confirming payment automatically…";
@@ -63,7 +60,9 @@ export type CheckoutMetadata = {
     | "featured_listing"
     | "lead_pack"
     | "verification"
-    | "report";
+    | "report"
+    | "contact_unlock"
+    | "provider_subscription";
   propertyId?: string;
   plan?: string;
   boostPackage?: "spotlight" | "homepage" | "campaign";
@@ -72,6 +71,7 @@ export type CheckoutMetadata = {
   reportType?: string;
   verificationTier?: "basic" | "standard" | "express";
   verificationRequestId?: string;
+  providerId?: string;
   propertyAddress?: string;
   listingUrl?: string;
   requesterName?: string;
@@ -117,13 +117,38 @@ export function CheckoutFlow({
 
   useEffect(() => {
     const params = new URLSearchParams(globalThis.location.search);
-    if (params.get("card") === "success") {
-      setStep(3);
-      const reference = transactionReference();
-      setRef(reference);
-      onSuccess(reference);
+    const paymentId = params.get("paymentId");
+
+    if (params.get("card") === "failed") {
+      toast.error("Card payment was not completed");
       globalThis.history.replaceState({}, "", checkoutPath);
+      return;
     }
+
+    if (params.get("card") !== "success" || !paymentId) return;
+
+    void (async () => {
+      setPhase("confirming");
+      setStatusMessage("Verifying card payment…");
+      try {
+        const status = await verifyPaymentStatus({ data: { paymentId } });
+        if (status.status !== "completed") {
+          toast.error(status.message ?? "Payment could not be verified");
+          return;
+        }
+        setStep(3);
+        const reference = transactionReference();
+        setRef(reference);
+        if (status.receipt) setReceipt(status.receipt);
+        onSuccess(reference);
+      } catch (err) {
+        toast.error(errorMessage(err));
+      } finally {
+        setPhase("idle");
+        setStatusMessage(null);
+        globalThis.history.replaceState({}, "", checkoutPath);
+      }
+    })();
   }, [checkoutPath, onSuccess]);
 
   async function completePayment(method: "mpesa" | "card") {
@@ -153,6 +178,7 @@ export function CheckoutFlow({
           reportType: metadata.reportType,
           verificationTier: metadata.verificationTier,
           verificationRequestId: metadata.verificationRequestId,
+          providerId: metadata.providerId,
           propertyAddress: metadata.propertyAddress,
           listingUrl: metadata.listingUrl,
           requesterName: metadata.requesterName,
@@ -163,6 +189,13 @@ export function CheckoutFlow({
           title: lineItem.title,
         },
       });
+
+      if (res.status === "trial_started") {
+        setRef("TRIAL");
+        setStep(3);
+        onSuccess("trial_started");
+        return;
+      }
 
       if (res.method === "card" && "redirectUrl" in res && res.redirectUrl) {
         globalThis.location.href = res.redirectUrl;
@@ -196,12 +229,20 @@ export function CheckoutFlow({
   }
 
   if (step === 3) {
+    const isTrial = ref === "TRIAL";
     return (
       <div className="py-6 text-center">
         <CheckCircle2 className="mx-auto h-16 w-16 text-primary" />
-        <h2 className="mt-4 font-display text-2xl font-semibold">Payment confirmed</h2>
+        <h2 className="mt-4 font-display text-2xl font-semibold">
+          {isTrial ? "Free trial started" : "Payment confirmed"}
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">{lineItem.title}</p>
-        <p className="mt-1 text-lg font-semibold">{formatKes(amountKes)}</p>
+        {!isTrial && <p className="mt-1 text-lg font-semibold">{formatKes(amountKes)}</p>}
+        {isTrial && (
+          <p className="mt-2 text-sm text-emerald-600">
+            Your first month is free — no payment collected today.
+          </p>
+        )}
         {receipt && (
           <p className="mt-3 text-xs text-muted-foreground">
             M-Pesa receipt: <span className="font-mono font-medium text-foreground">{receipt}</span>
@@ -261,7 +302,9 @@ export function CheckoutFlow({
           </div>
           <div>
             <p className="text-sm font-semibold">Pay with M-Pesa</p>
-            <p className="text-xs text-muted-foreground">We&apos;ll send an STK prompt to your phone</p>
+            <p className="text-xs text-muted-foreground">
+              We&apos;ll send an STK prompt to your phone
+            </p>
           </div>
         </div>
 
@@ -307,7 +350,9 @@ export function CheckoutFlow({
           >
             <CreditCard className="h-4 w-4" />
             Pay with card instead
-            <ChevronDown className={`h-4 w-4 transition-transform ${showCard ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${showCard ? "rotate-180" : ""}`}
+            />
           </button>
 
           {showCard && (

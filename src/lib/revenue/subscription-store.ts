@@ -24,7 +24,7 @@ export async function getActiveLandlordPlan(supabase: Db, userId: string): Promi
     .from("subscriptions")
     .select("plan, status, next_billing_date")
     .eq("user_id", userId)
-    .eq("status", "active")
+    .in("status", ["active", "trialing"])
     .order("created_at", { ascending: false });
 
   const now = Date.now();
@@ -45,7 +45,7 @@ export async function getTenantPlusStatus(
     .from("subscriptions")
     .select("plan, status, next_billing_date")
     .eq("user_id", userId)
-    .eq("status", "active")
+    .in("status", ["active", "trialing"])
     .eq("plan", "plus")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -116,7 +116,7 @@ export async function countActivePlusMembers(supabaseAdmin: Db): Promise<number>
     .from("subscriptions")
     .select("id", { count: "exact", head: true })
     .eq("plan", "plus")
-    .eq("status", "active")
+    .in("status", ["active", "trialing"])
     .gt("next_billing_date", now);
   return count ?? 0;
 }

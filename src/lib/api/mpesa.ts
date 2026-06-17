@@ -151,8 +151,7 @@ export type StkQueryResult = {
 
 function parseStkQueryResponse(json: unknown): StkQueryResult {
   if (typeof json !== "object" || json === null) return { status: "pending" };
-  const resultCode =
-    "ResultCode" in json ? String(json.ResultCode) : undefined;
+  const resultCode = "ResultCode" in json ? String(json.ResultCode) : undefined;
   const resultDesc =
     "ResultDesc" in json && typeof json.ResultDesc === "string" ? json.ResultDesc : undefined;
 

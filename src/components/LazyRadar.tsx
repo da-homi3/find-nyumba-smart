@@ -29,9 +29,7 @@ function StaticRadarFallback({
           className="absolute h-[45%] w-[45%] rounded-full border opacity-25"
           style={{ borderColor: color }}
         />
-        {staticLabel ? (
-          <span className="absolute text-xs text-white/60">{staticLabel}</span>
-        ) : null}
+        {staticLabel ? <span className="absolute text-xs text-white/60">{staticLabel}</span> : null}
       </div>
     </div>
   );
