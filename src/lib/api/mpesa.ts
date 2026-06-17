@@ -1,10 +1,47 @@
 import { getSiteUrl } from "@/lib/site";
 
+type StkPushApiResponse = {
+  CheckoutRequestID?: string;
+  MerchantRequestID?: string;
+  CustomerMessage?: string;
+  errorMessage?: string;
+};
+
 type StkPushResult = {
   checkoutRequestId: string;
   merchantRequestId: string;
   customerMessage: string;
 };
+
+function readOAuthToken(json: unknown): { token: string; expiresIn: number } {
+  if (typeof json !== "object" || json === null) {
+    throw new Error("M-Pesa OAuth missing access_token");
+  }
+  const token =
+    "access_token" in json && typeof json.access_token === "string" ? json.access_token : "";
+  const expiresIn =
+    "expires_in" in json &&
+    (typeof json.expires_in === "number" || typeof json.expires_in === "string")
+      ? Number(json.expires_in)
+      : 3600;
+  if (!token) throw new Error("M-Pesa OAuth missing access_token");
+  return { token, expiresIn };
+}
+
+function parseStkPushResponse(json: unknown): StkPushApiResponse {
+  if (typeof json !== "object" || json === null) return {};
+  const str = (key: string): string | undefined => {
+    if (!(key in json)) return undefined;
+    const value = json[key as keyof typeof json];
+    return typeof value === "string" ? value : undefined;
+  };
+  return {
+    CheckoutRequestID: str("CheckoutRequestID"),
+    MerchantRequestID: str("MerchantRequestID"),
+    CustomerMessage: str("CustomerMessage"),
+    errorMessage: str("errorMessage"),
+  };
+}
 
 function mpesaBaseUrl() {
   const env = process.env.MPESA_ENV ?? "sandbox";
@@ -25,7 +62,14 @@ export function mpesaCallbackUrl(): string {
   return `${getSiteUrl()}/api/mpesa/callback`;
 }
 
+let cachedAccessToken: { token: string; expiresAt: number } | null = null;
+
 async function getAccessToken(): Promise<string> {
+  const now = Date.now();
+  if (cachedAccessToken && cachedAccessToken.expiresAt > now) {
+    return cachedAccessToken.token;
+  }
+
   const key = process.env.MPESA_CONSUMER_KEY!;
   const consumerSecret = process.env.MPESA_CONSUMER_SECRET!;
   const auth = Buffer.from(`${key}:${consumerSecret}`).toString("base64");
@@ -36,11 +80,12 @@ async function getAccessToken(): Promise<string> {
     throw new Error(`M-Pesa OAuth failed: ${res.status}`);
   }
   const json: unknown = await res.json();
-  const token =
-    typeof json === "object" && json !== null && "access_token" in json
-      ? String((json as { access_token: unknown }).access_token)
-      : "";
-  if (!token) throw new Error("M-Pesa OAuth missing access_token");
+  const { token, expiresIn } = readOAuthToken(json);
+
+  cachedAccessToken = {
+    token,
+    expiresAt: now + Math.max(60, expiresIn - 60) * 1000,
+  };
   return token;
 }
 
@@ -85,12 +130,7 @@ export async function initiateStkPush(opts: {
     }),
   });
 
-  const json = (await res.json()) as {
-    CheckoutRequestID?: string;
-    MerchantRequestID?: string;
-    CustomerMessage?: string;
-    errorMessage?: string;
-  };
+  const json = parseStkPushResponse(await res.json());
 
   if (!res.ok || !json.CheckoutRequestID) {
     throw new Error(json.errorMessage ?? json.CustomerMessage ?? "STK Push failed");
@@ -101,6 +141,54 @@ export async function initiateStkPush(opts: {
     merchantRequestId: json.MerchantRequestID ?? "",
     customerMessage: json.CustomerMessage ?? "Check your phone for the M-Pesa prompt.",
   };
+}
+
+export type StkQueryResult = {
+  status: "success" | "pending" | "failed";
+  resultDesc?: string;
+  mpesaReceipt?: string;
+};
+
+function parseStkQueryResponse(json: unknown): StkQueryResult {
+  if (typeof json !== "object" || json === null) return { status: "pending" };
+  const resultCode =
+    "ResultCode" in json ? String(json.ResultCode) : undefined;
+  const resultDesc =
+    "ResultDesc" in json && typeof json.ResultDesc === "string" ? json.ResultDesc : undefined;
+
+  if (resultCode === "0") {
+    return { status: "success", resultDesc, mpesaReceipt: resultDesc };
+  }
+  // 1032 = cancelled by user, 1 = insufficient funds, etc.
+  if (resultCode && resultCode !== "1037") {
+    return { status: "failed", resultDesc };
+  }
+  return { status: "pending", resultDesc };
+}
+
+/** Check STK Push status with Daraja (fallback when callback is delayed). */
+export async function queryStkPushStatus(checkoutRequestId: string): Promise<StkQueryResult> {
+  const token = await getAccessToken();
+  const { encodedCredential, timestamp } = buildStkCredentials();
+  const shortcode = process.env.MPESA_SHORTCODE!;
+
+  const res = await fetch(`${mpesaBaseUrl()}/mpesa/stkpushquery/v1/query`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      BusinessShortCode: shortcode,
+      Password: encodedCredential,
+      Timestamp: timestamp,
+      CheckoutRequestID: checkoutRequestId,
+    }),
+  });
+
+  const json: unknown = await res.json();
+  if (!res.ok) return { status: "pending" };
+  return parseStkQueryResponse(json);
 }
 
 export type StkCallbackBody = {

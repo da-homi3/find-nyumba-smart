@@ -17,6 +17,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { AdUnit } from "@/components/AdUnit";
+import { RadarScanPanel } from "@/components/RadarScanPanel";
 import { SiteNav } from "@/components/SiteNav";
 import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
@@ -36,7 +37,6 @@ export const Route = createFileRoute("/tenant/")({
   component: TenantHome,
 });
 
-const LISTING_SKELETON_KEYS = ["a", "b", "c", "d", "e", "f"] as const;
 const PAGE_SIZE = 12;
 
 function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFilters {
@@ -333,17 +333,26 @@ function TenantListingsGrid({
 }: TenantListingsGridProps) {
   if (isLoading) {
     return (
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {LISTING_SKELETON_KEYS.map((id) => (
-          <div key={id} className="overflow-hidden rounded-2xl border">
-            <div className="aspect-video animate-pulse bg-muted" />
-            <div className="space-y-2 p-4">
-              <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
-            </div>
-          </div>
-        ))}
-      </div>
+      <RadarScanPanel
+        height={200}
+        className="mt-4"
+        label="Scanning Nairobi for homes that match your filters…"
+        speed={1.1}
+        scale={0.6}
+        ringCount={6}
+        spokeCount={8}
+        ringThickness={0.05}
+        spokeThickness={0.01}
+        sweepSpeed={1.4}
+        sweepWidth={2}
+        sweepLobes={1}
+        color="#1eb88a"
+        backgroundColor="#0d1117"
+        falloff={2}
+        brightness={1}
+        enableMouseInteraction={false}
+        mouseInfluence={0}
+      />
     );
   }
 
@@ -365,7 +374,7 @@ function TenantListingsGrid({
   if (filtered.length === 0) {
     return (
       <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-        No homes match these filters. Try widening your budget or turning off water filters.
+        No homes match these filters yet — try widening your budget or area.
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { fetchProperties, type Property } from "@/lib/properties";
 import { FallbackMap } from "@/components/tenant-map/FallbackMap";
 import { TenantMapChrome } from "@/components/tenant-map/TenantMapChrome";
+import { LazyRadar } from "@/components/LazyRadar";
 import { useTenantGoogleMap } from "@/hooks/use-tenant-google-map";
 import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks/use-tenant-mapbox";
 
@@ -26,15 +27,33 @@ function resolveInitialProvider(): MapProvider {
 
 function MapLoadingState({ message }: Readonly<{ message: string }>) {
   return (
-    <div className="relative flex h-dvh min-h-screen items-center justify-center bg-(--color-obsidian)">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center gap-2 rounded-full border border-white/10 bg-(--color-graphite) px-4 py-2 text-sm text-white"
-      >
-        <span className="h-2 w-2 animate-pulse-dot rounded-full bg-[#1eb88a]" aria-hidden />
-        <span>{message}</span>
-      </motion.div>
+    <div className="relative h-dvh min-h-screen bg-[#0c1a12]">
+      <LazyRadar
+        speed={0.7}
+        scale={1.2}
+        ringCount={12}
+        spokeCount={14}
+        ringThickness={0.04}
+        spokeThickness={0.01}
+        sweepSpeed={0.8}
+        sweepWidth={3}
+        sweepLobes={1}
+        color="#1eb88a"
+        backgroundColor="#0c1a12"
+        falloff={2.2}
+        brightness={1}
+        enableMouseInteraction
+        mouseInfluence={0.12}
+      />
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center text-base text-white/70"
+        >
+          {message}
+        </motion.span>
+      </div>
     </div>
   );
 }
@@ -65,7 +84,7 @@ function TenantMap() {
   }, [provider]);
 
   if (provider === "loading") {
-    return <MapLoadingState message="Preparing 3D map…" />;
+    return <MapLoadingState message="Scanning Nairobi for verified homes near you…" />;
   }
 
   if (provider === "mapbox") {
@@ -108,27 +127,48 @@ function TenantMapShell({
 
   return (
     <div className="relative h-dvh min-h-screen overflow-hidden bg-(--color-obsidian)">
-      {useFallback ? (
-        <FallbackMap
-          properties={map.filteredProperties}
-          selected={map.selected}
-          showHeat={map.showHeat}
-          onSelect={map.setSelected}
-        />
-      ) : (
-        <MapCanvas mapRef={map.mapRef} />
-      )}
+      <motion.div
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: map.ready || map.error ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        {useFallback ? (
+          <FallbackMap
+            properties={map.filteredProperties}
+            selected={map.selected}
+            showHeat={map.showHeat}
+            onSelect={map.setSelected}
+          />
+        ) : (
+          <MapCanvas mapRef={map.mapRef} />
+        )}
+      </motion.div>
 
       {!map.ready && !map.error ? (
         <MapOverlay>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-(--color-graphite) px-4 py-2 text-sm text-white shadow-xl"
-          >
-            <span className="h-2 w-2 animate-pulse-dot rounded-full bg-[#1eb88a]" aria-hidden />
-            <span>{loadingMessage}</span>
-          </motion.div>
+          <div className="relative h-48 w-full max-w-md overflow-hidden rounded-2xl">
+            <LazyRadar
+              speed={0.7}
+              scale={1}
+              ringCount={10}
+              spokeCount={12}
+              ringThickness={0.04}
+              spokeThickness={0.01}
+              sweepSpeed={0.9}
+              sweepWidth={3}
+              sweepLobes={1}
+              color="#1eb88a"
+              backgroundColor="#0c1a12"
+              falloff={2.2}
+              brightness={1}
+              enableMouseInteraction={false}
+              mouseInfluence={0}
+            />
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
+              <span className="text-center text-sm text-white/75">{loadingMessage}</span>
+            </div>
+          </div>
         </MapOverlay>
       ) : null}
 

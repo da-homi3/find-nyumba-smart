@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
-import { useStripeCheckoutReturn } from "@/hooks/use-stripe-checkout-return";
 import { PLUS_PLAN } from "@/lib/revenue/plans";
 
 const searchSchema = z.object({
@@ -18,9 +17,7 @@ export const Route = createFileRoute("/tenant/checkout")({
 function TenantCheckoutPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [done, setDone] = useState(false);
-  const onStripeSuccess = useCallback(() => setDone(true), []);
-  useStripeCheckoutReturn(onStripeSuccess);
+  const [cycle, setCycle] = useState<"monthly" | "quarterly">("monthly");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -41,42 +38,60 @@ function TenantCheckoutPage() {
   }
   if (!user) return null;
 
-  if (done) {
-    return (
-      <div className="mx-auto max-w-lg px-5 pt-16 text-center">
-        <p className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
-          NyumbaSearch Plus is active
-        </p>
-        <Link
-          to="/tenant/saved"
-          className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
-        >
-          Go to saved homes
-        </Link>
-      </div>
-    );
-  }
+  const amountKes = cycle === "quarterly" ? PLUS_PLAN.quarterlyKes : PLUS_PLAN.monthlyKes;
+  const defaultPhone = (user.user_metadata?.phone as string | undefined) ?? user.phone ?? "";
 
   return (
-    <div className="mx-auto max-w-lg px-5 pt-10 pb-24">
+    <div className="mx-auto max-w-lg px-5 pb-24 pt-10">
       <h1 className="font-display text-2xl font-semibold">NyumbaSearch Plus</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Early access and unlimited search alerts.
       </p>
+
+      <div className="mt-6 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setCycle("monthly")}
+          className={`flex-1 rounded-xl border py-2 text-sm font-semibold ${
+            cycle === "monthly" ? "border-primary bg-primary/10 text-primary" : ""
+          }`}
+        >
+          Monthly — KES {PLUS_PLAN.monthlyKes}
+        </button>
+        <button
+          type="button"
+          onClick={() => setCycle("quarterly")}
+          className={`flex-1 rounded-xl border py-2 text-sm font-semibold ${
+            cycle === "quarterly" ? "border-primary bg-primary/10 text-primary" : ""
+          }`}
+        >
+          3 months — KES {PLUS_PLAN.quarterlyKes}
+        </button>
+      </div>
+
       <div className="mt-8">
         <CheckoutFlow
-          checkoutPath="/tenant/checkout"
+          checkoutPath="/tenant/checkout?plan=plus"
           lineItem={{
             title: "NyumbaSearch Plus",
-            subtitle: "For serious house hunters in Nairobi",
-            amountKes: PLUS_PLAN.monthlyKes,
+            subtitle: cycle === "quarterly" ? "3-month billing cycle" : "Monthly billing",
+            amountKes: amountKes,
             features: PLUS_PLAN.features,
           }}
-          metadata={{ paymentType: "tenant_plus", plan: "plus" }}
-          defaultPhone={user.phone ?? ""}
-          onSuccess={() => setDone(true)}
+          metadata={{
+            paymentType: "tenant_plus",
+            plan: "plus",
+            billingCycle: cycle,
+          }}
+          defaultPhone={defaultPhone}
+          allowQuarterly={false}
+          onSuccess={() => navigate({ to: "/tenant/saved" })}
         />
       </div>
+
+      <Link to="/tenant" className="mt-6 block text-center text-sm text-primary">
+        ← Back to search
+      </Link>
     </div>
   );
 }

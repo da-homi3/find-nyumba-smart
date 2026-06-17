@@ -6,6 +6,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyRevenueBlocks } from "@/components/PropertyRevenueBlocks";
 import { PropertyReviewsSection } from "@/components/PropertyReviewsSection";
+import { ScamRiskScanner } from "@/components/ScamRiskScanner";
 import { PropertyStat } from "./PropertyStat";
 import { PropertyAiAssistant } from "./PropertyAiAssistant";
 import { PropertyReportSection } from "./PropertyReportSection";
@@ -139,6 +140,16 @@ export function PropertyDetailContent({
       </div>
 
       <PropertyIntelligencePanel intel={intel} />
+
+      <section className="mt-6">
+        <h2 className="font-display text-lg font-semibold">Scam risk scan</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          NyumbaSearch Plus checks pricing, verification, and listing signals for red flags.
+        </p>
+        <div className="mt-3">
+          <ScamRiskScanner listingId={propertyId} isPlus={isPlus} />
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border bg-card p-4">
         <h2 className="font-display text-lg font-semibold">About this landlord</h2>

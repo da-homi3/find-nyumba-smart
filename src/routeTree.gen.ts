@@ -61,6 +61,7 @@ import { Route as AgencyLeadsRouteImport } from './routes/agency.leads'
 import { Route as AgencyDashboardRouteImport } from './routes/agency.dashboard'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as TenantMessagesIndexRouteImport } from './routes/tenant.messages.index'
+import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.status.$requestId'
 import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
 import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
@@ -331,6 +332,11 @@ const TenantMessagesIndexRoute = TenantMessagesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TenantMessagesRoute,
 } as any)
+const VerifyStatusRequestIdRoute = VerifyStatusRequestIdRouteImport.update({
+  id: '/status/$requestId',
+  path: '/status/$requestId',
+  getParentRoute: () => VerifyRoute,
+} as any)
 const TenantReviewPropertyIdRoute = TenantReviewPropertyIdRouteImport.update({
   id: '/review/$propertyId',
   path: '/review/$propertyId',
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
+  '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -495,6 +502,7 @@ export interface FileRoutesByTo {
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
+  '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/tenant/messages': typeof TenantMessagesIndexRoute
 }
 export interface FileRoutesById {
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
+  '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
 }
 export interface FileRouteTypes {
@@ -624,6 +633,7 @@ export interface FileRouteTypes {
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
+    | '/verify/status/$requestId'
     | '/tenant/messages/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
+    | '/verify/status/$requestId'
     | '/tenant/messages'
   id:
     | '__root__'
@@ -743,6 +754,7 @@ export interface FileRouteTypes {
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
+    | '/verify/status/$requestId'
     | '/tenant/messages/'
   fileRoutesById: FileRoutesById
 }
@@ -1133,6 +1145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantMessagesIndexRouteImport
       parentRoute: typeof TenantMessagesRoute
     }
+    '/verify/status/$requestId': {
+      id: '/verify/status/$requestId'
+      path: '/status/$requestId'
+      fullPath: '/verify/status/$requestId'
+      preLoaderRoute: typeof VerifyStatusRequestIdRouteImport
+      parentRoute: typeof VerifyRoute
+    }
     '/tenant/review/$propertyId': {
       id: '/tenant/review/$propertyId'
       path: '/review/$propertyId'
@@ -1404,10 +1423,12 @@ const TenantRouteWithChildren =
 
 interface VerifyRouteChildren {
   VerifyRequestRoute: typeof VerifyRequestRoute
+  VerifyStatusRequestIdRoute: typeof VerifyStatusRequestIdRoute
 }
 
 const VerifyRouteChildren: VerifyRouteChildren = {
   VerifyRequestRoute: VerifyRequestRoute,
+  VerifyStatusRequestIdRoute: VerifyStatusRequestIdRoute,
 }
 
 const VerifyRouteWithChildren =

@@ -8,7 +8,8 @@ import { listSavedProperties } from "@/lib/api/nyumba.functions";
 
 import { useAuth } from "@/hooks/use-auth";
 
-import { Bot, Loader2, Send, Sparkles, X } from "lucide-react";
+import { Bot, Send, Sparkles, X } from "lucide-react";
+import { LazyRadar } from "@/components/LazyRadar";
 
 type Turn = { id: string; role: "user" | "assistant"; text: string };
 
@@ -100,10 +101,15 @@ export function AiAssistant() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-gold text-gold-foreground shadow-elegant"
+        className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#1eb88a] text-white shadow-elegant"
         aria-label="Open AI assistant"
       >
-        {open ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
+        {open ? <X className="h-6 w-6" /> : (
+          <>
+            <span className="animate-ns-pulse-ring pointer-events-none absolute inset-[-4px] rounded-full border-2 border-[#1eb88a] opacity-40" />
+            <Sparkles className="h-6 w-6" />
+          </>
+        )}
       </button>
 
       {open && (
@@ -168,11 +174,30 @@ export function AiAssistant() {
               </div>
             ))}
 
-            {ask.isPending && (
+            {ask.isPending ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Thinking…
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                  <LazyRadar
+                    speed={1.5}
+                    scale={0.25}
+                    ringCount={4}
+                    spokeCount={6}
+                    ringThickness={0.08}
+                    spokeThickness={0.015}
+                    sweepSpeed={2.5}
+                    sweepWidth={4}
+                    sweepLobes={1}
+                    color="#1eb88a"
+                    backgroundColor="#0d1117"
+                    falloff={2}
+                    brightness={1.3}
+                    enableMouseInteraction={false}
+                    mouseInfluence={0}
+                  />
+                </div>
+                <span>Thinking…</span>
               </div>
-            )}
+            ) : null}
           </div>
 
           <form

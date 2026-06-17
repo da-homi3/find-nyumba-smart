@@ -2,8 +2,28 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
-import { fulfillPayment } from "@/lib/revenue/fulfill-payment";
+import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
 import { isKenyanPhone } from "@/lib/phone";
+import { metadataFromCheckout } from "@/lib/payments/payment-metadata";
+import { assertPaymentRateLimit } from "@/lib/payments/rate-limit";
+
+const checkoutMetaSchema = z.object({
+  plan: z.string().optional(),
+  boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
+  billingCycle: z.enum(["monthly", "quarterly"]).optional(),
+  qty: z.number().int().positive().optional(),
+  propertyAddress: z.string().optional(),
+  listingUrl: z.string().optional(),
+  requesterName: z.string().optional(),
+  requesterPhone: z.string().optional(),
+  requesterEmail: z.string().email().optional(),
+  verificationTier: z.enum(["basic", "standard", "express"]).optional(),
+  verificationRequestId: z.string().uuid().optional(),
+  reportType: z.string().optional(),
+  successPath: z.string().min(1),
+  cancelPath: z.string().min(1).optional(),
+  title: z.string().trim().min(1).max(120),
+});
 
 const initiatePaymentSchema = z.object({
   propertyId: z.string().uuid().optional(),
@@ -19,11 +39,17 @@ const initiatePaymentSchema = z.object({
     "invoice",
     "landlord_plan",
   ]),
-  phoneNumber: z.string().refine(isKenyanPhone, "Invalid Safaricom phone number"),
+  phoneNumber: z
+    .string()
+    .refine((p) => !p || isKenyanPhone(p), "Invalid Safaricom phone number"),
   plan: z.string().optional(),
   boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
   billingCycle: z.enum(["monthly", "quarterly"]).optional(),
-  paymentMethod: z.enum(["mpesa", "card"]).optional(),
+  paymentMethod: z.enum(["mpesa", "card"]).default("mpesa"),
+  idempotencyKey: z.string().min(8).max(64),
+  email: z.string().email().optional(),
+  name: z.string().optional(),
+  ...checkoutMetaSchema.shape,
 });
 
 function formatPhone254(phone: string): string {
@@ -33,111 +59,164 @@ function formatPhone254(phone: string): string {
   return clean;
 }
 
-async function runFulfillment(
+async function insertPayment(
   userId: string,
-  propertyId: string | null,
-  paymentType: string,
-  amountKes: number,
-  meta: {
-    plan?: string;
-    boostPackage?: string;
-    billingCycle?: string;
-    paymentMethod?: string;
-  },
+  data: z.infer<typeof initiatePaymentSchema>,
+  idempotencyKey: string,
 ) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await fulfillPayment(supabaseAdmin, {
-    userId,
-    propertyId,
-    paymentType,
-    amountKes,
-    metadata: {
-      plan: meta.plan,
-      boostPackage: meta.boostPackage,
-      billingCycle: meta.billingCycle,
-      paymentMethod: meta.paymentMethod,
-    },
+  const metadata = metadataFromCheckout({
+    plan: data.plan,
+    boostPackage: data.boostPackage,
+    billingCycle: data.billingCycle,
+    paymentMethod: data.paymentMethod,
+    qty: data.qty,
+    propertyAddress: data.propertyAddress,
+    listingUrl: data.listingUrl,
+    requesterName: data.requesterName,
+    requesterPhone: data.requesterPhone,
+    requesterEmail: data.requesterEmail,
+    verificationTier: data.verificationTier,
+    verificationRequestId: data.verificationRequestId,
+    reportType: data.reportType,
+    successPath: data.successPath,
+    cancelPath: data.cancelPath,
+    title: data.title,
   });
+
+  const { data: existing } = await supabaseAdmin
+    .from("payments")
+    .select("*")
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+  if (existing) return { row: existing, supabaseAdmin };
+
+  const { data: row, error } = await supabaseAdmin
+    .from("payments")
+    .insert({
+      user_id: userId,
+      property_id: data.propertyId ?? null,
+      amount_kes: data.amountKes,
+      status: "pending",
+      payment_type: data.paymentType,
+      mpesa_phone: data.paymentMethod === "mpesa" ? formatPhone254(data.phoneNumber) : null,
+      payment_method: data.paymentMethod,
+      idempotency_key: idempotencyKey,
+      metadata,
+    } as never)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return { row, supabaseAdmin };
 }
 
-export const initiateMpesaPayment = createServerFn({ method: "POST" })
+export const initiatePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(initiatePaymentSchema)
   .handler(async ({ context, data }) => {
     const { userId } = getAuthContext(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const phone254 = formatPhone254(data.phoneNumber);
+    assertPaymentRateLimit(userId);
+    const { row, supabaseAdmin } = await insertPayment(userId, data, data.idempotencyKey);
 
-    const { data: row, error } = await supabaseAdmin
-      .from("payments")
-      .insert({
-        user_id: userId,
-        property_id: data.propertyId ?? null,
-        amount_kes: data.amountKes,
-        status: "pending",
-        payment_type: data.paymentType,
-        mpesa_phone: phone254,
-      })
-      .select("*")
-      .single();
+    if (row.status === "completed") {
+      return { paymentId: row.id, status: "completed" as const, method: data.paymentMethod };
+    }
 
-    if (error) throw error;
+    if (data.paymentMethod === "mpesa") {
+      if (!data.phoneNumber || !isKenyanPhone(data.phoneNumber)) {
+        throw new Error("Enter a valid M-Pesa phone number");
+      }
+      const { initiateStkPush, isMpesaConfigured } = await import("@/lib/api/mpesa");
+      if (isMpesaConfigured()) {
+        const phone254 = formatPhone254(data.phoneNumber);
+        const stk = await initiateStkPush({
+          phone254,
+          amountKes: data.amountKes,
+          accountReference: row.id.slice(0, 12),
+          transactionDesc: data.title.slice(0, 13),
+        });
 
-    const { initiateStkPush, isMpesaConfigured } = await import("@/lib/api/mpesa");
-    if (isMpesaConfigured() && data.paymentMethod !== "card") {
-      const stk = await initiateStkPush({
-        phone254,
-        amountKes: data.amountKes,
-        accountReference: row.id.slice(0, 12),
-        transactionDesc: "NyumbaSearch",
-      });
+        await supabaseAdmin
+          .from("payments")
+          .update({ mpesa_checkout_id: stk.checkoutRequestId })
+          .eq("id", row.id);
 
+        return {
+          paymentId: row.id,
+          status: "pending" as const,
+          method: "mpesa" as const,
+          checkoutRequestId: stk.checkoutRequestId,
+          message: stk.customerMessage,
+        };
+      }
+
+      const receiptCode = "DEMO" + Math.random().toString(36).substring(2, 9).toUpperCase();
       await supabaseAdmin
         .from("payments")
-        .update({ mpesa_checkout_id: stk.checkoutRequestId })
+        .update({ status: "completed", mpesa_receipt: receiptCode })
         .eq("id", row.id);
 
+      await fulfillPaymentRow(supabaseAdmin, {
+        ...row,
+        status: "completed",
+        mpesa_receipt: receiptCode,
+      });
+
       return {
-        success: true,
         paymentId: row.id,
-        mode: "live" as const,
-        message: stk.customerMessage,
+        status: "completed" as const,
+        method: "mpesa" as const,
+        receiptCode,
+        message: "Demo payment completed (configure MPESA_* env vars for live STK Push).",
       };
     }
 
-    const receiptCode = "DEMO" + Math.random().toString(36).substring(2, 9).toUpperCase();
-    await supabaseAdmin
-      .from("payments")
-      .update({ status: "completed", mpesa_receipt: receiptCode })
-      .eq("id", row.id);
-
-    await runFulfillment(userId, data.propertyId ?? null, data.paymentType, data.amountKes, {
-      plan: data.plan,
-      boostPackage: data.boostPackage,
-      billingCycle: data.billingCycle,
-      paymentMethod: data.paymentMethod,
-    });
-
-    if (data.paymentType === "premium_subscription") {
-      await supabaseAdmin.from("profiles").update({ is_portal_active: true }).eq("id", userId);
+    const { initiateCardPayment, isPesapalConfigured } = await import("@/lib/api/pesapal");
+    if (!isPesapalConfigured()) {
+      throw new Error("Card payments are not available yet. Use M-Pesa or try again later.");
     }
 
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const reference = `NS-${row.id}`;
+    const { authorizationUrl } = await initiateCardPayment({
+      reference,
+      amountKes: data.amountKes,
+      email: data.email ?? `user-${userId.slice(0, 8)}@nyumbasearch.ke`,
+      phone: formatPhone254(data.phoneNumber || profile?.phone || "254700000000"),
+      name: data.name ?? profile?.full_name ?? "NyumbaSearch customer",
+      description: data.title,
+    });
+
+    await supabaseAdmin
+      .from("payments")
+      .update({ mpesa_checkout_id: reference })
+      .eq("id", row.id);
+
     return {
-      success: true,
       paymentId: row.id,
-      receiptCode,
-      mode: "demo" as const,
-      message: "Demo payment completed (configure MPESA_* env vars for live STK Push).",
+      status: "pending" as const,
+      method: "card" as const,
+      redirectUrl: authorizationUrl,
     };
   });
 
-export const verifyMpesaPayment = createServerFn({ method: "POST" })
+/** @deprecated Use initiatePayment */
+export const initiateMpesaPayment = initiatePayment;
+
+export const verifyPaymentStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ paymentId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getAuthContext(context);
+    const { userId } = getAuthContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: row, error } = await supabase
+    const { data: row, error } = await supabaseAdmin
       .from("payments")
       .select("*")
       .eq("id", data.paymentId)
@@ -145,145 +224,65 @@ export const verifyMpesaPayment = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
+
+    const synced =
+      row.status === "pending" && row.payment_method === "mpesa"
+        ? await (await import("@/lib/payments/complete-mpesa-payment")).syncMpesaPaymentStatus(
+            supabaseAdmin,
+            row,
+          )
+        : row;
+
+    let message = "Waiting for M-Pesa confirmation";
+    if (synced.status === "completed") message = "Payment confirmed";
+    else if (synced.status === "failed") message = "Payment failed or was cancelled";
+
     return {
-      status: row.status,
-      receipt: row.mpesa_receipt,
+      status: synced.status,
+      paymentId: synced.id,
+      method: synced.payment_method,
+      purpose: synced.payment_type,
+      receipt: synced.mpesa_receipt ?? undefined,
+      message,
     };
   });
 
-const stripeCheckoutSchema = z.object({
-  amountKes: z.number().int().positive(),
-  paymentType: initiatePaymentSchema.shape.paymentType,
-  propertyId: z.string().uuid().optional(),
-  plan: z.string().optional(),
-  boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
-  billingCycle: z.enum(["monthly", "quarterly"]).optional(),
-  successPath: z.string().min(1),
-  cancelPath: z.string().min(1),
-  title: z.string().trim().min(1).max(120),
-});
+/** @deprecated Use verifyPaymentStatus */
+export const verifyMpesaPayment = verifyPaymentStatus;
 
-export const createStripeCheckoutSession = createServerFn({ method: "POST" })
+export const createVerificationRequest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(stripeCheckoutSchema)
+  .inputValidator(
+    z.object({
+      propertyAddress: z.string().min(3),
+      listingUrl: z.string().optional(),
+      tier: z.enum(["basic", "standard", "express"]),
+      requesterName: z.string().min(2),
+      requesterPhone: z.string().refine(isKenyanPhone),
+      requesterEmail: z.string().email(),
+    }),
+  )
   .handler(async ({ context, data }) => {
-    const { userId } = getAuthContext(context);
-    const { getStripe, isStripeConfigured } = await import("@/lib/api/stripe");
-    if (!isStripeConfigured()) {
-      throw new Error("Card payments are not available yet. Use M-Pesa or try again later.");
-    }
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { getSiteUrl } = await import("@/lib/site");
+    const tierPrices = { basic: 1000, standard: 2500, express: 5000 } as const;
 
     const { data: row, error } = await supabaseAdmin
-      .from("payments")
+      .from("verification_requests")
       .insert({
-        user_id: userId,
-        property_id: data.propertyId ?? null,
-        amount_kes: data.amountKes,
+        property_address: data.propertyAddress,
+        listing_url: data.listingUrl ?? null,
+        requester_name: data.requesterName,
+        requester_phone: data.requesterPhone,
+        requester_email: data.requesterEmail,
+        tier: data.tier,
+        amount_paid_kes: tierPrices[data.tier],
         status: "pending",
-        payment_type: data.paymentType,
-        mpesa_phone: null,
       })
-      .select("*")
+      .select("id")
       .single();
+
     if (error) throw error;
-
-    const siteUrl = getSiteUrl();
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      currency: "kes",
-      line_items: [
-        {
-          price_data: {
-            currency: "kes",
-            unit_amount: data.amountKes,
-            product_data: { name: data.title },
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: `${siteUrl}${data.successPath}?stripe=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}${data.cancelPath}?stripe=cancelled`,
-      metadata: {
-        payment_id: row.id,
-        user_id: userId,
-        payment_type: data.paymentType,
-        plan: data.plan ?? "",
-        boost_package: data.boostPackage ?? "",
-        billing_cycle: data.billingCycle ?? "",
-        property_id: data.propertyId ?? "",
-      },
-    });
-
-    if (!session.url) throw new Error("Could not start card checkout");
-
-    await supabaseAdmin
-      .from("payments")
-      .update({ mpesa_checkout_id: session.id })
-      .eq("id", row.id);
-
-    return { url: session.url, paymentId: row.id };
-  });
-
-export const verifyStripeCheckoutSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator(z.object({ sessionId: z.string().min(1) }))
-  .handler(async ({ context, data }) => {
-    const { userId } = getAuthContext(context);
-    const { getStripe, isStripeConfigured } = await import("@/lib/api/stripe");
-    if (!isStripeConfigured()) throw new Error("Stripe is not configured");
-
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.retrieve(data.sessionId);
-    if (session.metadata?.user_id !== userId) {
-      throw new Error("Invalid checkout session");
-    }
-
-    const paymentId = session.metadata?.payment_id;
-    if (!paymentId) throw new Error("Missing payment reference");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
-      .from("payments")
-      .select("*")
-      .eq("id", paymentId)
-      .eq("user_id", userId)
-      .single();
-    if (error || !row) throw new Error("Payment not found");
-
-    if (row.status === "completed") {
-      return { status: "completed" as const, paymentId: row.id };
-    }
-
-    if (session.payment_status !== "paid") {
-      return { status: "pending" as const, paymentId: row.id };
-    }
-
-    const receipt =
-      typeof session.payment_intent === "string"
-        ? session.payment_intent
-        : (session.payment_intent?.id ?? session.id);
-
-    await supabaseAdmin
-      .from("payments")
-      .update({ status: "completed", mpesa_receipt: receipt })
-      .eq("id", row.id);
-
-    await runFulfillment(userId, row.property_id, row.payment_type, row.amount_kes, {
-      plan: session.metadata?.plan || undefined,
-      boostPackage: session.metadata?.boost_package || undefined,
-      billingCycle: session.metadata?.billing_cycle || undefined,
-      paymentMethod: "card",
-    });
-
-    if (row.payment_type === "premium_subscription") {
-      await supabaseAdmin.from("profiles").update({ is_portal_active: true }).eq("id", userId);
-    }
-
-    return { status: "completed" as const, paymentId: row.id };
+    return { id: row.id };
   });
 
 export const listTransactions = createServerFn({ method: "GET" })

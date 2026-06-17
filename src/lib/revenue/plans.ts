@@ -165,6 +165,32 @@ export const PLUS_PLAN = {
   ],
 };
 
+export const REPORT_CATALOG: {
+  id: string;
+  name: string;
+  priceKes: number;
+  description: string;
+}[] = [
+  {
+    id: "quarterly-overview",
+    name: "Nairobi Rental Market Overview",
+    priceKes: 5000,
+    description: "Quarterly rental trends across Nairobi neighborhoods.",
+  },
+  {
+    id: "neighborhood-deep-dive",
+    name: "Neighborhood Deep Dive",
+    priceKes: 8000,
+    description: "Detailed supply, demand, and pricing for one neighborhood.",
+  },
+  {
+    id: "annual",
+    name: "Annual Housing Market Report",
+    priceKes: 25000,
+    description: "Full-year market analysis with forecasts.",
+  },
+];
+
 export const LEAD_PACKS = [
   { qty: 10, priceKes: 1800, label: "10 rental leads" },
   { qty: 25, priceKes: 4000, label: "25 rental leads" },

@@ -44,6 +44,7 @@ function BoostPage() {
     return (
       <div className="mx-auto max-w-lg px-6 py-10">
         <CheckoutFlow
+          checkoutPath={`/landlord/boost?package=${packageId}&propertyId=${propertyId}`}
           lineItem={{
             title: `${pkg.name} boost`,
             subtitle: pkg.placement,
@@ -54,6 +55,7 @@ function BoostPage() {
             propertyId,
             boostPackage: packageId,
           }}
+          defaultPhone={(user?.user_metadata?.phone as string | undefined) ?? user?.phone ?? ""}
           allowQuarterly={false}
           onSuccess={() => {}}
         />
@@ -99,7 +101,7 @@ function BoostPage() {
       {step === 2 && (
         <>
           <label className="mt-6 block text-sm font-semibold">
-            Select listing
+            <span className="mb-2 block">Select listing</span>
             <select
               value={propertyId}
               onChange={(e) => setPropertyId(e.target.value)}

@@ -1,15 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { motion } from "framer-motion";
 import { Search, MapPin, ArrowRight } from "lucide-react";
-import heroImg from "@/assets/hero-nairobi.jpg";
+import heroImg from "@/assets/hero-garden-city.jpg";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import type { PropertyType } from "@/lib/properties";
-import { shouldUseHeavy3D } from "@/lib/motion/performance";
-
-const HeroScene3D = lazy(() =>
-  import("@/components/HeroScene3D").then((m) => ({ default: m.HeroScene3D })),
-);
 
 const POPULAR_HOODS = ["Kilimani", "Westlands", "Karen", "Lavington", "Kasarani"] as const;
 
@@ -29,11 +24,6 @@ export function LandingHero({
   const [hood, setHood] = useState("");
   const [maxRent, setMaxRent] = useState("");
   const [propType, setPropType] = useState<PropertyType | "">("");
-  const [use3d, setUse3d] = useState(false);
-
-  useEffect(() => {
-    setUse3d(shouldUseHeavy3D());
-  }, []);
 
   const submit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,24 +42,17 @@ export function LandingHero({
       <div className="absolute inset-0 z-0" aria-hidden>
         <img
           src={heroImg}
-          alt=""
+          alt="Aerial view of a garden city with green-roof buildings, winding paths, and a central pond at golden hour"
           width={1920}
           height={1280}
+          sizes="100vw"
           fetchPriority="high"
           decoding="async"
           className="h-full w-full object-cover object-center"
         />
       </div>
 
-      {use3d ? (
-        <div className="pointer-events-auto absolute inset-0 z-1" aria-hidden>
-          <Suspense fallback={null}>
-            <HeroScene3D backdropUrl={heroImg} />
-          </Suspense>
-        </div>
-      ) : null}
-
-      <div className="pointer-events-none absolute inset-0 z-2 bg-linear-to-b from-[rgba(13,17,23,0.35)] via-[rgba(13,17,23,0.15)] to-[rgba(13,17,23,0.88)]" />
+      <div className="pointer-events-none absolute inset-0 z-1 bg-linear-to-b from-[rgba(13,17,23,0.35)] via-[rgba(13,17,23,0.15)] to-[rgba(13,17,23,0.88)]" />
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 py-32 text-center sm:px-6">
         <motion.div

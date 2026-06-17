@@ -1,5 +1,6 @@
 import { Bot, Send } from "lucide-react";
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
+import { LazyRadar } from "@/components/LazyRadar";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
 
@@ -8,7 +9,7 @@ type PropertyAiAssistantProps = Readonly<{
   chatInput: string;
   chatLoading: boolean;
   onChatInputChange: (value: string) => void;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: SubmitEvent<HTMLFormElement>) => void;
 }>;
 
 export function PropertyAiAssistant({
@@ -41,7 +42,30 @@ export function PropertyAiAssistant({
             </div>
           </div>
         ))}
-        {chatLoading && <div className="text-muted-foreground italic">AI is typing...</div>}
+        {chatLoading ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+              <LazyRadar
+                speed={1.5}
+                scale={0.25}
+                ringCount={4}
+                spokeCount={6}
+                ringThickness={0.08}
+                spokeThickness={0.015}
+                sweepSpeed={2.5}
+                sweepWidth={4}
+                sweepLobes={1}
+                color="#1eb88a"
+                backgroundColor="#0d1117"
+                falloff={2}
+                brightness={1.3}
+                enableMouseInteraction={false}
+                mouseInfluence={0}
+              />
+            </div>
+            <span className="italic">AI is analyzing…</span>
+          </div>
+        ) : null}
       </div>
       <form onSubmit={onSubmit} className="mt-3 flex gap-2">
         <input

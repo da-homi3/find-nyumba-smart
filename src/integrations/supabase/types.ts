@@ -457,9 +457,12 @@ export type Database = {
           amount_kes: number;
           created_at: string;
           id: string;
+          idempotency_key: string | null;
+          metadata: Record<string, unknown>;
           mpesa_checkout_id: string | null;
           mpesa_phone: string | null;
           mpesa_receipt: string | null;
+          payment_method: string | null;
           payment_type: string;
           property_id: string | null;
           status: string;
@@ -469,9 +472,12 @@ export type Database = {
           amount_kes: number;
           created_at?: string;
           id?: string;
+          idempotency_key?: string | null;
+          metadata?: Record<string, unknown>;
           mpesa_checkout_id?: string | null;
           mpesa_phone?: string | null;
           mpesa_receipt?: string | null;
+          payment_method?: string | null;
           payment_type: string;
           property_id?: string | null;
           status?: string;
@@ -481,9 +487,12 @@ export type Database = {
           amount_kes?: number;
           created_at?: string;
           id?: string;
+          idempotency_key?: string | null;
+          metadata?: Record<string, unknown>;
           mpesa_checkout_id?: string | null;
           mpesa_phone?: string | null;
           mpesa_receipt?: string | null;
+          payment_method?: string | null;
           payment_type?: string;
           property_id?: string | null;
           status?: string;
@@ -512,6 +521,60 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      payment_webhook_log: {
+        Row: {
+          id: string;
+          provider: string;
+          payment_id: string | null;
+          raw_payload: Json;
+          signature_valid: boolean;
+          processed: boolean;
+          received_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider: string;
+          payment_id?: string | null;
+          raw_payload: Json;
+          signature_valid?: boolean;
+          processed?: boolean;
+          received_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider?: string;
+          payment_id?: string | null;
+          raw_payload?: Json;
+          signature_valid?: boolean;
+          processed?: boolean;
+          received_at?: string;
+        };
+        Relationships: [];
+      };
+      report_purchases: {
+        Row: {
+          id: string;
+          user_id: string;
+          report_type: string;
+          payment_id: string;
+          unlocked_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          report_type: string;
+          payment_id: string;
+          unlocked_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          report_type?: string;
+          payment_id?: string;
+          unlocked_at?: string;
+        };
+        Relationships: [];
       };
       listing_boosts: {
         Row: {
@@ -569,6 +632,7 @@ export type Database = {
           amount_kes: number;
           billing_cycle: string;
           created_at: string;
+          grace_period_end: string | null;
           id: string;
           next_billing_date: string;
           payment_method: string;
@@ -581,6 +645,7 @@ export type Database = {
           amount_kes: number;
           billing_cycle?: string;
           created_at?: string;
+          grace_period_end?: string | null;
           id?: string;
           next_billing_date: string;
           payment_method?: string;
@@ -593,6 +658,7 @@ export type Database = {
           amount_kes?: number;
           billing_cycle?: string;
           created_at?: string;
+          grace_period_end?: string | null;
           id?: string;
           next_billing_date?: string;
           payment_method?: string;
@@ -714,6 +780,8 @@ export type Database = {
           id: string;
           listing_id: string | null;
           listing_url: string | null;
+          paid: boolean;
+          payment_id: string | null;
           property_address: string;
           report_url: string | null;
           requester_email: string;
@@ -728,6 +796,8 @@ export type Database = {
           id?: string;
           listing_id?: string | null;
           listing_url?: string | null;
+          paid?: boolean;
+          payment_id?: string | null;
           property_address: string;
           report_url?: string | null;
           requester_email: string;
@@ -742,6 +812,8 @@ export type Database = {
           id?: string;
           listing_id?: string | null;
           listing_url?: string | null;
+          paid?: boolean;
+          payment_id?: string | null;
           property_address?: string;
           report_url?: string | null;
           requester_email?: string;
@@ -912,6 +984,7 @@ export type Database = {
           id: string;
           is_portal_active: boolean;
           landlord_plan: string;
+          lead_pack_balance: number;
           phone: string | null;
           plus_expires_at: string | null;
           tenant_plan: string;
@@ -925,6 +998,7 @@ export type Database = {
           id: string;
           is_portal_active?: boolean;
           landlord_plan?: string;
+          lead_pack_balance?: number;
           phone?: string | null;
           plus_expires_at?: string | null;
           tenant_plan?: string;
@@ -938,6 +1012,7 @@ export type Database = {
           id?: string;
           is_portal_active?: boolean;
           landlord_plan?: string;
+          lead_pack_balance?: number;
           phone?: string | null;
           plus_expires_at?: string | null;
           tenant_plan?: string;
@@ -1764,21 +1839,11 @@ export type Enums<
     : never;
 
 export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never;
+  },
+  CompositeTypeName extends keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"],
+> = DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName];
 
 export const Constants = {
   public: {

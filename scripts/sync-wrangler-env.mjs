@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
+import { patchWorkerCron } from "./patch-worker-cron.mjs";
 import { execSync } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,7 +21,12 @@ const VAR_KEYS = [
   "PUBLIC_APP_URL",
   "SITE_URL",
   "MPESA_ENV",
+  "MPESA_SHORTCODE",
   "MPESA_CALLBACK_URL",
+  "PESAPAL_ENV",
+  "PESAPAL_CALLBACK_URL",
+  "PESAPAL_NOTIFICATION_ID",
+  "VITE_PESAPAL_CHECKOUT_ENABLED",
   "NYUMBA_USE_MOCK_LISTINGS",
   "GEMINI_MODEL",
   "MAPBOX_PUBLIC_TOKEN",
@@ -35,10 +41,10 @@ const SECRET_KEYS = [
   "OPS_NOTIFICATION_EMAIL",
   "MPESA_CONSUMER_KEY",
   "MPESA_CONSUMER_SECRET",
-  "MPESA_SHORTCODE",
   "MPESA_PASSKEY",
-  "STRIPE_SECRET_KEY",
-  "STRIPE_WEBHOOK_SECRET",
+  "PESAPAL_CONSUMER_KEY",
+  "PESAPAL_CONSUMER_SECRET",
+  "CRON_SECRET",
   "GEMINI_API_KEY",
   "CARETAKER_SESSION_SECRET",
 ];
@@ -101,6 +107,10 @@ function applyUrlDefaults(next) {
   if (!next.MPESA_CALLBACK_URL) {
     next.MPESA_CALLBACK_URL = `${next.PUBLIC_APP_URL}/api/mpesa/callback`;
   }
+  if (!next.PESAPAL_CALLBACK_URL) {
+    next.PESAPAL_CALLBACK_URL = `${next.PUBLIC_APP_URL}/api/payments/callback/card`;
+  }
+  if (!next.PESAPAL_ENV) next.PESAPAL_ENV = "sandbox";
   if (!next.VITE_SITE_URL) next.VITE_SITE_URL = next.PUBLIC_APP_URL;
 }
 
@@ -109,7 +119,13 @@ function applyFeatureDefaults(next) {
   if (!next.CARETAKER_SESSION_SECRET) {
     next.CARETAKER_SESSION_SECRET = randomBytes(32).toString("hex");
   }
+  if (!next.CRON_SECRET) {
+    next.CRON_SECRET = randomBytes(24).toString("hex");
+  }
   if (!next.MPESA_ENV && next.MPESA_CONSUMER_KEY) next.MPESA_ENV = "sandbox";
+  if (next.PESAPAL_CONSUMER_KEY && next.PESAPAL_NOTIFICATION_ID) {
+    next.VITE_PESAPAL_CHECKOUT_ENABLED = "1";
+  }
 }
 
 function mirrorEnvKeys(next, pairs) {
@@ -129,7 +145,7 @@ function ensureDefaults(env) {
   applyUrlDefaults(next);
   applyFeatureDefaults(next);
   mirrorEnvKeys(next, [
-    ["VITE_STRIPE_PUBLISHABLE_KEY", "STRIPE_PUBLISHABLE_KEY"],
+    ["VITE_PESAPAL_CHECKOUT_ENABLED", "VITE_PESAPAL_CHECKOUT_ENABLED"],
     ["VITE_MAPBOX_TOKEN", "MAPBOX_PUBLIC_TOKEN"],
     ["MAPBOX_PUBLIC_TOKEN", "VITE_MAPBOX_TOKEN"],
     ["VITE_GOOGLE_MAPS_API_KEY", "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"],
@@ -194,8 +210,14 @@ function main() {
     );
   }
 
-  if (!env.STRIPE_SECRET_KEY) {
-    console.warn("Stripe not configured — add STRIPE_SECRET_KEY to .env for card checkout.");
+  const missingPesapal = ["PESAPAL_CONSUMER_KEY", "PESAPAL_CONSUMER_SECRET", "PESAPAL_NOTIFICATION_ID"].filter(
+    (k) => !env[k],
+  );
+  if (missingPesapal.length) {
+    console.warn(
+      "Pesapal not fully configured — run: node scripts/setup-pesapal-ipn.mjs",
+      missingPesapal.join(", "),
+    );
   }
 
   if (!env.VITE_MAPBOX_TOKEN && !env.MAPBOX_PUBLIC_TOKEN) {
@@ -215,6 +237,7 @@ function main() {
   }
 
   patchWranglerVars(env);
+  patchWorkerCron();
 
   console.log("\nDone. Rebuild client for VITE_* keys: npm run build");
   if (process.argv.includes("--deploy")) {
