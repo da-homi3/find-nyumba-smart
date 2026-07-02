@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, MapPin, Sparkles, ShieldCheck } from "lucide-react";
-import { searchProperties, type Property, type PropertyType } from "@/lib/properties";
+import { type Property, type PropertyType } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { useMemo, useState, useEffect, useRef, type MouseEvent } from "react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -17,12 +17,13 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { AdUnit } from "@/components/AdUnit";
-import { RadarScanPanel } from "@/components/RadarScanPanel";
+import { ListingGridSkeleton } from "@/components/skeletons/ListingCardSkeleton";
 import { SiteNav } from "@/components/SiteNav";
 import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useListingsSearch } from "@/hooks/use-listings-search";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
@@ -98,30 +99,34 @@ function TenantHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync individual URL search params only
   }, [search.q, search.maxPrice, search.neighborhood, search.type]);
 
+  const listingFilters = useMemo(
+    () => ({
+      query: debouncedQ || undefined,
+      neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
+      maxRent: filters.maxRent,
+      minRent: filters.minRent,
+      sortBy: filters.sort,
+      limit: PAGE_SIZE * page,
+      offset: 0,
+    }),
+    [
+      debouncedQ,
+      filters.neighborhood,
+      filters.maxRent,
+      filters.minRent,
+      filters.sort,
+      page,
+    ],
+  );
+
   const {
     data: searchResult,
     isLoading,
     isError,
+    error,
     refetch,
-  } = useQuery({
-    queryKey: [
-      "properties",
-      debouncedQ,
-      filters.neighborhood,
-      filters.minRent,
-      filters.maxRent,
-      filters.sort,
-    ],
-    queryFn: () =>
-      searchProperties({
-        query: debouncedQ || undefined,
-        neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
-        maxRent: filters.maxRent,
-        minRent: filters.minRent,
-        sortBy: filters.sort,
-        limit: 100,
-      }),
-  });
+    isFetching,
+  } = useListingsSearch(listingFilters);
 
   const { data: savedList = [] } = useQuery({
     queryKey: ["saved-properties", user?.id],
@@ -158,9 +163,10 @@ function TenantHome() {
         neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
         resultCount: filtered.length,
         sessionId: analyticsSessionId(),
+        userId: user?.id,
       },
     });
-  }, [debouncedQ, filters.neighborhood, filtered.length, isLoading, isError]);
+  }, [debouncedQ, filters.neighborhood, filtered.length, isLoading, isError, user?.id]);
 
   const visible = filtered.slice(0, page * PAGE_SIZE);
   const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
@@ -232,7 +238,16 @@ function TenantHome() {
         </div>
       </header>
 
-      <TenantFiltersBar filters={filters} onChange={patchFilters} resultCount={filtered.length} />
+      <TenantFiltersBar
+        filters={filters}
+        onChange={patchFilters}
+        resultCount={filtered.length}
+        resultsLoading={isLoading}
+      />
+
+      {isFetching && !isLoading ? (
+        <p className="mx-auto max-w-2xl px-5 pt-2 text-xs text-muted-foreground">Updating results…</p>
+      ) : null}
 
       <RecentlyViewedStrip />
 
@@ -287,11 +302,14 @@ function TenantHome() {
             <MapPin className="mr-1 inline h-4 w-4 text-primary" />
             {filters.neighborhood === "All" ? "All vacancies" : filters.neighborhood}
           </h2>
-          <span className="text-xs text-muted-foreground">{filtered.length} results</span>
+          <span className="text-xs text-muted-foreground">
+            {isLoading ? "Loading…" : `${filtered.length} results`}
+          </span>
         </div>
         <TenantListingsGrid
           isLoading={isLoading}
           isError={isError}
+          errorMessage={error instanceof Error ? error.message : undefined}
           filtered={filtered}
           visible={visible}
           boostedPool={boostedPool}
@@ -309,6 +327,7 @@ function TenantHome() {
 type TenantListingsGridProps = Readonly<{
   isLoading: boolean;
   isError: boolean;
+  errorMessage?: string;
   filtered: Property[];
   visible: Property[];
   boostedPool: Property[];
@@ -322,6 +341,7 @@ type TenantListingsGridProps = Readonly<{
 function TenantListingsGrid({
   isLoading,
   isError,
+  errorMessage,
   filtered,
   visible,
   boostedPool,
@@ -332,34 +352,16 @@ function TenantListingsGrid({
   onToggleSave,
 }: TenantListingsGridProps) {
   if (isLoading) {
-    return (
-      <RadarScanPanel
-        height={200}
-        className="mt-4"
-        label="Scanning Nairobi for homes that match your filters…"
-        speed={1.1}
-        scale={0.6}
-        ringCount={6}
-        spokeCount={8}
-        ringThickness={0.05}
-        spokeThickness={0.01}
-        sweepSpeed={1.4}
-        sweepWidth={2}
-        sweepLobes={1}
-        color="#1eb88a"
-        backgroundColor="#0d1117"
-        falloff={2}
-        brightness={1}
-        enableMouseInteraction={false}
-        mouseInfluence={0}
-      />
-    );
+    return <ListingGridSkeleton count={9} />;
   }
 
   if (isError) {
     return (
       <div className="mt-8 rounded-2xl border border-destructive/30 p-10 text-center">
         <p className="text-sm font-medium text-destructive">Couldn&apos;t load listings</p>
+        {errorMessage ? (
+          <p className="mt-2 text-xs text-muted-foreground">{errorMessage}</p>
+        ) : null}
         <button
           type="button"
           onClick={onRetry}

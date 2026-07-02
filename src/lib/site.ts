@@ -1,4 +1,7 @@
-export const DEFAULT_SITE_URL = "https://nyumba-search.kevinbuluma1.workers.dev";
+export const DEFAULT_SITE_URL = "https://nyumbasearch.com";
+
+/** Shared homepage title — keep `<title>`, `og:title`, and `twitter:title` identical. */
+export const HOMEPAGE_TITLE = "NyumbaSearch — Verified Homes in Nairobi | No Agents";
 
 /** Canonical public site URL (SSR + client). */
 export function getSiteUrl(): string {

@@ -9,22 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ManagerRouteImport } from './routes/manager'
+import { Route as LandlordAgreementRouteImport } from './routes/landlord-agreement'
 import { Route as LandlordRouteImport } from './routes/landlord'
 import { Route as InsuranceRouteImport } from './routes/insurance'
 import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CaretakerRouteImport } from './routes/caretaker'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AgencyRouteImport } from './routes/agency'
 import { Route as AdvertiseRouteImport } from './routes/advertise'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AcceptableUsePolicyRouteImport } from './routes/acceptable-use-policy'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantIndexRouteImport } from './routes/tenant.index'
@@ -47,6 +55,8 @@ import { Route as ManagerLeadsRouteImport } from './routes/manager.leads'
 import { Route as ManagerDashboardRouteImport } from './routes/manager.dashboard'
 import { Route as LandlordPropertiesRouteImport } from './routes/landlord.properties'
 import { Route as LandlordLeadsRouteImport } from './routes/landlord.leads'
+import { Route as LandlordIntegrationsRouteImport } from './routes/landlord.integrations'
+import { Route as LandlordImportRouteImport } from './routes/landlord.import'
 import { Route as LandlordDashboardRouteImport } from './routes/landlord.dashboard'
 import { Route as LandlordCheckoutRouteImport } from './routes/landlord.checkout'
 import { Route as LandlordCaretakersRouteImport } from './routes/landlord.caretakers'
@@ -73,9 +83,19 @@ import { Route as LandlordDashboardPlanRouteImport } from './routes/landlord.das
 import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.dashboard.billing'
 import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
 
+const WhatsappRoute = WhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TenantRoute = TenantRouteImport.update({
@@ -98,6 +118,16 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -106,6 +136,11 @@ const PricingRoute = PricingRouteImport.update({
 const ManagerRoute = ManagerRouteImport.update({
   id: '/manager',
   path: '/manager',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandlordAgreementRoute = LandlordAgreementRouteImport.update({
+  id: '/landlord-agreement',
+  path: '/landlord-agreement',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LandlordRoute = LandlordRouteImport.update({
@@ -121,6 +156,16 @@ const InsuranceRoute = InsuranceRouteImport.update({
 const FinanceRoute = FinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataDeletionRoute = DataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiePolicyRoute = CookiePolicyRouteImport.update({
+  id: '/cookie-policy',
+  path: '/cookie-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -151,6 +196,11 @@ const AdvertiseRoute = AdvertiseRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcceptableUsePolicyRoute = AcceptableUsePolicyRouteImport.update({
+  id: '/acceptable-use-policy',
+  path: '/acceptable-use-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -261,6 +311,16 @@ const LandlordPropertiesRoute = LandlordPropertiesRouteImport.update({
 const LandlordLeadsRoute = LandlordLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordIntegrationsRoute = LandlordIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordImportRoute = LandlordImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => LandlordRoute,
 } as any)
 const LandlordDashboardRoute = LandlordDashboardRouteImport.update({
@@ -394,22 +454,30 @@ const AgencyPropertiesNewRoute = AgencyPropertiesNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/acceptable-use-policy': typeof AcceptableUsePolicyRoute
   '/admin': typeof AdminRouteWithChildren
   '/advertise': typeof AdvertiseRoute
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/caretaker': typeof CaretakerRouteWithChildren
   '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/finance': typeof FinanceRoute
   '/insurance': typeof InsuranceRoute
   '/landlord': typeof LandlordRouteWithChildren
+  '/landlord-agreement': typeof LandlordAgreementRoute
   '/manager': typeof ManagerRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/tenant': typeof TenantRouteWithChildren
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/verify': typeof VerifyRouteWithChildren
+  '/whatsapp': typeof WhatsappRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/agency/dashboard': typeof AgencyDashboardRoute
   '/agency/leads': typeof AgencyLeadsRoute
@@ -423,6 +491,8 @@ export interface FileRoutesByFullPath {
   '/landlord/caretakers': typeof LandlordCaretakersRoute
   '/landlord/checkout': typeof LandlordCheckoutRoute
   '/landlord/dashboard': typeof LandlordDashboardRouteWithChildren
+  '/landlord/import': typeof LandlordImportRoute
+  '/landlord/integrations': typeof LandlordIntegrationsRoute
   '/landlord/leads': typeof LandlordLeadsRoute
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/manager/dashboard': typeof ManagerDashboardRoute
@@ -459,16 +529,24 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/acceptable-use-policy': typeof AcceptableUsePolicyRoute
   '/advertise': typeof AdvertiseRoute
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/finance': typeof FinanceRoute
   '/insurance': typeof InsuranceRoute
+  '/landlord-agreement': typeof LandlordAgreementRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/verify': typeof VerifyRouteWithChildren
+  '/whatsapp': typeof WhatsappRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/agency/dashboard': typeof AgencyDashboardRoute
   '/agency/leads': typeof AgencyLeadsRoute
@@ -482,6 +560,8 @@ export interface FileRoutesByTo {
   '/landlord/caretakers': typeof LandlordCaretakersRoute
   '/landlord/checkout': typeof LandlordCheckoutRoute
   '/landlord/dashboard': typeof LandlordDashboardRouteWithChildren
+  '/landlord/import': typeof LandlordImportRoute
+  '/landlord/integrations': typeof LandlordIntegrationsRoute
   '/landlord/leads': typeof LandlordLeadsRoute
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/manager/dashboard': typeof ManagerDashboardRoute
@@ -518,22 +598,30 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/acceptable-use-policy': typeof AcceptableUsePolicyRoute
   '/admin': typeof AdminRouteWithChildren
   '/advertise': typeof AdvertiseRoute
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/caretaker': typeof CaretakerRouteWithChildren
   '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
+  '/data-deletion': typeof DataDeletionRoute
   '/finance': typeof FinanceRoute
   '/insurance': typeof InsuranceRoute
   '/landlord': typeof LandlordRouteWithChildren
+  '/landlord-agreement': typeof LandlordAgreementRoute
   '/manager': typeof ManagerRouteWithChildren
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/tenant': typeof TenantRouteWithChildren
+  '/terms-of-service': typeof TermsOfServiceRoute
   '/verify': typeof VerifyRouteWithChildren
+  '/whatsapp': typeof WhatsappRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/agency/dashboard': typeof AgencyDashboardRoute
   '/agency/leads': typeof AgencyLeadsRoute
@@ -547,6 +635,8 @@ export interface FileRoutesById {
   '/landlord/caretakers': typeof LandlordCaretakersRoute
   '/landlord/checkout': typeof LandlordCheckoutRoute
   '/landlord/dashboard': typeof LandlordDashboardRouteWithChildren
+  '/landlord/import': typeof LandlordImportRoute
+  '/landlord/integrations': typeof LandlordIntegrationsRoute
   '/landlord/leads': typeof LandlordLeadsRoute
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/manager/dashboard': typeof ManagerDashboardRoute
@@ -585,22 +675,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/acceptable-use-policy'
     | '/admin'
     | '/advertise'
     | '/agency'
     | '/auth'
     | '/caretaker'
     | '/contact'
+    | '/cookie-policy'
+    | '/data-deletion'
     | '/finance'
     | '/insurance'
     | '/landlord'
+    | '/landlord-agreement'
     | '/manager'
     | '/pricing'
+    | '/privacy'
+    | '/refund-policy'
     | '/reports'
     | '/services'
     | '/settings'
     | '/tenant'
+    | '/terms-of-service'
     | '/verify'
+    | '/whatsapp'
     | '/admin/revenue'
     | '/agency/dashboard'
     | '/agency/leads'
@@ -614,6 +712,8 @@ export interface FileRouteTypes {
     | '/landlord/caretakers'
     | '/landlord/checkout'
     | '/landlord/dashboard'
+    | '/landlord/import'
+    | '/landlord/integrations'
     | '/landlord/leads'
     | '/landlord/properties'
     | '/manager/dashboard'
@@ -650,16 +750,24 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/acceptable-use-policy'
     | '/advertise'
     | '/auth'
     | '/contact'
+    | '/cookie-policy'
+    | '/data-deletion'
     | '/finance'
     | '/insurance'
+    | '/landlord-agreement'
     | '/pricing'
+    | '/privacy'
+    | '/refund-policy'
     | '/reports'
     | '/services'
     | '/settings'
+    | '/terms-of-service'
     | '/verify'
+    | '/whatsapp'
     | '/admin/revenue'
     | '/agency/dashboard'
     | '/agency/leads'
@@ -673,6 +781,8 @@ export interface FileRouteTypes {
     | '/landlord/caretakers'
     | '/landlord/checkout'
     | '/landlord/dashboard'
+    | '/landlord/import'
+    | '/landlord/integrations'
     | '/landlord/leads'
     | '/landlord/properties'
     | '/manager/dashboard'
@@ -708,22 +818,30 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/acceptable-use-policy'
     | '/admin'
     | '/advertise'
     | '/agency'
     | '/auth'
     | '/caretaker'
     | '/contact'
+    | '/cookie-policy'
+    | '/data-deletion'
     | '/finance'
     | '/insurance'
     | '/landlord'
+    | '/landlord-agreement'
     | '/manager'
     | '/pricing'
+    | '/privacy'
+    | '/refund-policy'
     | '/reports'
     | '/services'
     | '/settings'
     | '/tenant'
+    | '/terms-of-service'
     | '/verify'
+    | '/whatsapp'
     | '/admin/revenue'
     | '/agency/dashboard'
     | '/agency/leads'
@@ -737,6 +855,8 @@ export interface FileRouteTypes {
     | '/landlord/caretakers'
     | '/landlord/checkout'
     | '/landlord/dashboard'
+    | '/landlord/import'
+    | '/landlord/integrations'
     | '/landlord/leads'
     | '/landlord/properties'
     | '/manager/dashboard'
@@ -774,31 +894,53 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AcceptableUsePolicyRoute: typeof AcceptableUsePolicyRoute
   AdminRoute: typeof AdminRouteWithChildren
   AdvertiseRoute: typeof AdvertiseRoute
   AgencyRoute: typeof AgencyRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   CaretakerRoute: typeof CaretakerRouteWithChildren
   ContactRoute: typeof ContactRoute
+  CookiePolicyRoute: typeof CookiePolicyRoute
+  DataDeletionRoute: typeof DataDeletionRoute
   FinanceRoute: typeof FinanceRoute
   InsuranceRoute: typeof InsuranceRoute
   LandlordRoute: typeof LandlordRouteWithChildren
+  LandlordAgreementRoute: typeof LandlordAgreementRoute
   ManagerRoute: typeof ManagerRouteWithChildren
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
   ReportsRoute: typeof ReportsRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   TenantRoute: typeof TenantRouteWithChildren
+  TermsOfServiceRoute: typeof TermsOfServiceRoute
   VerifyRoute: typeof VerifyRouteWithChildren
+  WhatsappRoute: typeof WhatsappRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/whatsapp': {
+      id: '/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verify': {
       id: '/verify'
       path: '/verify'
       fullPath: '/verify'
       preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tenant': {
@@ -829,6 +971,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -841,6 +997,13 @@ declare module '@tanstack/react-router' {
       path: '/manager'
       fullPath: '/manager'
       preLoaderRoute: typeof ManagerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landlord-agreement': {
+      id: '/landlord-agreement'
+      path: '/landlord-agreement'
+      fullPath: '/landlord-agreement'
+      preLoaderRoute: typeof LandlordAgreementRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/landlord': {
@@ -862,6 +1025,20 @@ declare module '@tanstack/react-router' {
       path: '/finance'
       fullPath: '/finance'
       preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-deletion': {
+      id: '/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof DataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie-policy': {
+      id: '/cookie-policy'
+      path: '/cookie-policy'
+      fullPath: '/cookie-policy'
+      preLoaderRoute: typeof CookiePolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -904,6 +1081,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acceptable-use-policy': {
+      id: '/acceptable-use-policy'
+      path: '/acceptable-use-policy'
+      fullPath: '/acceptable-use-policy'
+      preLoaderRoute: typeof AcceptableUsePolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -1058,6 +1242,20 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/landlord/leads'
       preLoaderRoute: typeof LandlordLeadsRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/integrations': {
+      id: '/landlord/integrations'
+      path: '/integrations'
+      fullPath: '/landlord/integrations'
+      preLoaderRoute: typeof LandlordIntegrationsRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/import': {
+      id: '/landlord/import'
+      path: '/import'
+      fullPath: '/landlord/import'
+      preLoaderRoute: typeof LandlordImportRouteImport
       parentRoute: typeof LandlordRoute
     }
     '/landlord/dashboard': {
@@ -1336,6 +1534,8 @@ interface LandlordRouteChildren {
   LandlordCaretakersRoute: typeof LandlordCaretakersRoute
   LandlordCheckoutRoute: typeof LandlordCheckoutRoute
   LandlordDashboardRoute: typeof LandlordDashboardRouteWithChildren
+  LandlordImportRoute: typeof LandlordImportRoute
+  LandlordIntegrationsRoute: typeof LandlordIntegrationsRoute
   LandlordLeadsRoute: typeof LandlordLeadsRoute
   LandlordPropertiesRoute: typeof LandlordPropertiesRouteWithChildren
   LandlordIndexRoute: typeof LandlordIndexRoute
@@ -1347,6 +1547,8 @@ const LandlordRouteChildren: LandlordRouteChildren = {
   LandlordCaretakersRoute: LandlordCaretakersRoute,
   LandlordCheckoutRoute: LandlordCheckoutRoute,
   LandlordDashboardRoute: LandlordDashboardRouteWithChildren,
+  LandlordImportRoute: LandlordImportRoute,
+  LandlordIntegrationsRoute: LandlordIntegrationsRoute,
   LandlordLeadsRoute: LandlordLeadsRoute,
   LandlordPropertiesRoute: LandlordPropertiesRouteWithChildren,
   LandlordIndexRoute: LandlordIndexRoute,
@@ -1459,22 +1661,30 @@ const VerifyRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AcceptableUsePolicyRoute: AcceptableUsePolicyRoute,
   AdminRoute: AdminRouteWithChildren,
   AdvertiseRoute: AdvertiseRoute,
   AgencyRoute: AgencyRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   CaretakerRoute: CaretakerRouteWithChildren,
   ContactRoute: ContactRoute,
+  CookiePolicyRoute: CookiePolicyRoute,
+  DataDeletionRoute: DataDeletionRoute,
   FinanceRoute: FinanceRoute,
   InsuranceRoute: InsuranceRoute,
   LandlordRoute: LandlordRouteWithChildren,
+  LandlordAgreementRoute: LandlordAgreementRoute,
   ManagerRoute: ManagerRouteWithChildren,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
   ReportsRoute: ReportsRoute,
   ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,
   TenantRoute: TenantRouteWithChildren,
+  TermsOfServiceRoute: TermsOfServiceRoute,
   VerifyRoute: VerifyRouteWithChildren,
+  WhatsappRoute: WhatsappRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

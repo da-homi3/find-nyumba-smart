@@ -1,7 +1,10 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
-  "sideEffects": ["**/*.css", "**/mapbox-gl/**"],
+  "sideEffects": [
+    "**/*.css",
+    "**/mapbox-gl/**"
+  ],
   "type": "module",
   "scripts": {
     "dev": "npx vite dev",
@@ -20,10 +23,14 @@
     "db:migrate:has-role-grant": "node scripts/apply-has-role-grant.mjs",
     "db:migrate:viewings-booking": "node scripts/apply-viewings-booking-rls.mjs",
     "db:migrate:contact-unlock": "node scripts/apply-contact-unlock-migration.mjs",
+    "db:migrate:whatsapp": "node scripts/apply-whatsapp-migration.mjs",
+    "db:migrate:performance": "node scripts/apply-performance-indexes.mjs",
+    "db:migrate:platform-extensions": "node scripts/apply-platform-extensions.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",
     "deploy": "npm run build && node scripts/sync-wrangler-env.mjs && npx wrangler deploy --config dist/server/wrangler.json",
+    "deploy:domain": "node scripts/deploy-custom-domain.mjs",
     "demo:capture": "node scripts/record-app-demo.mjs",
     "demo:record": "node scripts/record-app-video.mjs",
     "seed:listings": "node scripts/seed-listings.mjs",
@@ -33,6 +40,9 @@
     "rotate:gemini": "node scripts/rotate-gemini-key.mjs",
     "mapbox": "node scripts/provision-mapbox.mjs",
     "mapbox:fetch": "node scripts/fetch-mapbox-token.mjs",
+    "db:migrate:email": "node scripts/apply-email-system.mjs",
+    "test:email": "node scripts/test-email-system.mjs",
+    "sendgrid:check": "node scripts/check-sendgrid-domain.mjs",
     "deploy:full": "npm run build && node scripts/sync-wrangler-env.mjs --deploy",
     "test:routes": "node scripts/route-audit.mjs",
     "test:unit": "vitest run",

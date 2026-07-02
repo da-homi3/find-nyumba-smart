@@ -7,6 +7,7 @@ import type { BoostPackage, LandlordPlan } from "@/lib/revenue/types";
 import { BOOST_PACKAGES } from "@/lib/revenue/plans";
 
 import { parsePaymentMetadata } from "@/lib/payments/payment-metadata";
+import { notifyContactUnlockEmails } from "@/lib/email/contact-unlock-notify";
 
 type SupabaseAdmin = SupabaseClient<Database>;
 
@@ -49,6 +50,8 @@ export type PaymentFulfillment = {
     boostPackage?: string;
 
     providerId?: string;
+
+    renewalSubscriptionId?: string;
   };
 };
 
@@ -86,6 +89,96 @@ function billingCycle(metadata: PaymentFulfillment["metadata"]) {
   return metadata?.billingCycle === "quarterly" ? "quarterly" : "monthly";
 }
 
+async function upsertActiveSubscription(
+  supabaseAdmin: SupabaseAdmin,
+  sub: {
+    user_id: string;
+    plan: string;
+    amount_kes: number;
+    billing_cycle: string;
+    payment_method: string;
+    next_billing_date: string;
+    status?: string;
+  },
+) {
+  const { data: existing } = await supabaseAdmin
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", sub.user_id)
+    .eq("plan", sub.plan)
+    .in("status", ["active", "trialing", "past_due"])
+    .maybeSingle();
+
+  if (existing) {
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        status: sub.status ?? "active",
+        amount_kes: sub.amount_kes,
+        billing_cycle: sub.billing_cycle,
+        payment_method: sub.payment_method,
+        next_billing_date: sub.next_billing_date,
+        grace_period_end: null,
+      })
+      .eq("id", existing.id);
+    return;
+  }
+
+  await supabaseAdmin.from("subscriptions").insert({
+    user_id: sub.user_id,
+    plan: sub.plan,
+    status: sub.status ?? "active",
+    amount_kes: sub.amount_kes,
+    billing_cycle: sub.billing_cycle,
+    payment_method: sub.payment_method,
+    next_billing_date: sub.next_billing_date,
+  });
+}
+
+async function fulfillRenewalSubscription(
+  supabaseAdmin: SupabaseAdmin,
+  payment: PaymentFulfillment,
+  subscriptionId: string,
+) {
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("*")
+    .eq("id", subscriptionId)
+    .maybeSingle();
+  if (!sub) return;
+
+  const cycle = billingCycle(payment.metadata);
+  const days = cycle === "quarterly" ? 90 : 30;
+
+  await upsertActiveSubscription(supabaseAdmin, {
+    user_id: sub.user_id,
+    plan: sub.plan,
+    amount_kes: payment.amountKes,
+    billing_cycle: cycle,
+    payment_method: paymentMethod(payment.metadata),
+    next_billing_date: addBillingDays(days),
+    status: "active",
+  });
+
+  if (sub.plan === "plus") {
+    await supabaseAdmin
+      .from("profiles")
+      .update({ tenant_plan: "plus", plus_expires_at: addBillingDays(days) })
+      .eq("id", sub.user_id);
+  } else if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
+    await supabaseAdmin
+      .from("service_providers")
+      .update({ status: "active", tier: sub.plan })
+      .eq("user_id", sub.user_id);
+  } else {
+    const plan = (payment.metadata?.plan ?? sub.plan) as LandlordPlan;
+    await supabaseAdmin
+      .from("profiles")
+      .update({ landlord_plan: plan, is_portal_active: true })
+      .eq("id", sub.user_id);
+  }
+}
+
 async function fulfillBoost(
   supabaseAdmin: SupabaseAdmin,
 
@@ -94,6 +187,13 @@ async function fulfillBoost(
   const { userId, propertyId, amountKes, metadata = {} } = payment;
 
   if (!propertyId) return;
+
+  const { data: owned } = await supabaseAdmin
+    .from("properties")
+    .select("owner_id")
+    .eq("id", propertyId)
+    .maybeSingle();
+  if (owned?.owner_id !== userId) return;
 
   const packageId = (metadata.boostPackage ?? "spotlight") as BoostPackage;
 
@@ -157,6 +257,13 @@ async function fulfillLeadPack(supabaseAdmin: SupabaseAdmin, payment: PaymentFul
 async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
   const { userId, amountKes, metadata = {} } = payment;
 
+  const { data: roles } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  const allowed = new Set(["landlord", "manager", "agency"]);
+  if (!(roles ?? []).some((r) => allowed.has(r.role))) return;
+
   const plan = (metadata.plan ?? "pro") as LandlordPlan;
 
   const cycle = billingCycle(metadata);
@@ -169,19 +276,12 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
 
     .eq("id", userId);
 
-  await supabaseAdmin.from("subscriptions").insert({
+  await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,
-
     plan,
-
-    status: "active",
-
     amount_kes: amountKes,
-
     billing_cycle: cycle,
-
     payment_method: paymentMethod(metadata),
-
     next_billing_date: cycle === "quarterly" ? addBillingDays(90) : addBillingDays(30),
   });
 }
@@ -190,34 +290,22 @@ async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentF
   const { userId, amountKes, metadata = {} } = payment;
 
   const cycle = billingCycle(metadata);
-
   const days = cycle === "quarterly" ? 90 : 30;
 
   await supabaseAdmin
-
     .from("profiles")
-
     .update({
       tenant_plan: "plus",
-
       plus_expires_at: addBillingDays(days),
     })
-
     .eq("id", userId);
 
-  await supabaseAdmin.from("subscriptions").insert({
+  await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,
-
     plan: "plus",
-
-    status: "active",
-
     amount_kes: amountKes,
-
     billing_cycle: cycle,
-
     payment_method: paymentMethod(metadata),
-
     next_billing_date: addBillingDays(days),
   });
 }
@@ -291,6 +379,14 @@ async function fulfillContactUnlock(supabaseAdmin: SupabaseAdmin, payment: Payme
     payment_id: paymentId ?? null,
     fee_charged: amountKes,
   });
+
+  void notifyContactUnlockEmails(supabaseAdmin, {
+    userId,
+    listingId: propertyId,
+    method: "paid",
+    feeKes: amountKes,
+    paidMethod: "M-Pesa",
+  });
 }
 
 async function fulfillProviderSubscription(
@@ -311,10 +407,9 @@ async function fulfillProviderSubscription(
   }
   await providerUpdate;
 
-  await supabaseAdmin.from("subscriptions").insert({
+  await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,
     plan: tier,
-    status: "active",
     amount_kes: amountKes,
     billing_cycle: cycle,
     payment_method: paymentMethod(metadata),
@@ -327,15 +422,24 @@ async function fulfillReport(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfi
 
   if (!paymentId) return;
 
+  const { data: existing } = await supabaseAdmin
+    .from("report_purchases")
+    .select("id")
+    .eq("payment_id", paymentId)
+    .maybeSingle();
+  if (existing) return;
+
   const reportType = String(metadata.reportType ?? metadata.plan ?? "quarterly-overview");
 
   await supabaseAdmin.from("report_purchases").insert({
     user_id: userId,
-
     report_type: reportType,
-
     payment_id: paymentId,
   });
+}
+
+async function fulfillInvoice(_supabaseAdmin: SupabaseAdmin, _payment: PaymentFulfillment) {
+  // Invoice checkout is not wired to the invoices table yet — payment is recorded in `payments`.
 }
 
 const FULFILLMENT_HANDLERS: Record<
@@ -361,9 +465,17 @@ const FULFILLMENT_HANDLERS: Record<
   contact_unlock: fulfillContactUnlock,
 
   provider_subscription: fulfillProviderSubscription,
+
+  invoice: fulfillInvoice,
 };
 
 export async function fulfillPayment(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
+  const renewalId = payment.metadata?.renewalSubscriptionId;
+  if (renewalId) {
+    await fulfillRenewalSubscription(supabaseAdmin, payment, renewalId);
+    return;
+  }
+
   const handler = FULFILLMENT_HANDLERS[payment.paymentType];
 
   if (handler) await handler(supabaseAdmin, payment);
@@ -375,46 +487,63 @@ export async function fulfillPaymentRow(
   row: Database["public"]["Tables"]["payments"]["Row"],
 ) {
   const meta = parsePaymentMetadata(row.metadata);
+  if (meta.fulfilledAt) return;
 
-  await fulfillPayment(supabaseAdmin, {
-    userId: row.user_id,
+  try {
+    await fulfillPayment(supabaseAdmin, {
+      userId: row.user_id,
 
-    propertyId: row.property_id,
+      propertyId: row.property_id,
 
-    paymentType: row.payment_type,
+      paymentType: row.payment_type,
 
-    amountKes: row.amount_kes,
+      amountKes: row.amount_kes,
 
-    paymentId: row.id,
+      paymentId: row.id,
 
-    metadata: {
-      plan: meta.plan,
+      metadata: {
+        plan: meta.plan,
 
-      boostPackage: meta.boostPackage,
+        boostPackage: meta.boostPackage,
 
-      billingCycle: meta.billingCycle,
+        billingCycle: meta.billingCycle,
 
-      paymentMethod: meta.paymentMethod,
+        paymentMethod: meta.paymentMethod,
 
-      qty: meta.qty,
+        qty: meta.qty,
 
-      propertyAddress: meta.propertyAddress,
+        propertyAddress: meta.propertyAddress,
 
-      listingUrl: meta.listingUrl,
+        listingUrl: meta.listingUrl,
 
-      requesterName: meta.requesterName,
+        requesterName: meta.requesterName,
 
-      requesterPhone: meta.requesterPhone,
+        requesterPhone: meta.requesterPhone,
 
-      requesterEmail: meta.requesterEmail,
+        requesterEmail: meta.requesterEmail,
 
-      verificationTier: meta.verificationTier,
+        verificationTier: meta.verificationTier,
 
-      verificationRequestId: meta.verificationRequestId,
+        verificationRequestId: meta.verificationRequestId,
 
-      reportType: meta.reportType,
+        reportType: meta.reportType,
 
-      providerId: meta.providerId,
-    },
-  });
+        providerId: meta.providerId,
+
+        renewalSubscriptionId: meta.renewalSubscriptionId,
+      },
+    });
+
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        metadata: { ...meta, fulfilledAt: new Date().toISOString() },
+      })
+      .eq("id", row.id);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const { Monitors } = await import("@/lib/alerts/monitors");
+    void Monitors.paymentFulfillFailed(row.id, row.payment_type, message);
+    throw err;
+  }
 }

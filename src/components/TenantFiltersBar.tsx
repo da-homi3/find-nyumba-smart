@@ -42,9 +42,15 @@ type Props = {
   filters: TenantFilters;
   onChange: (patch: Partial<TenantFilters>) => void;
   resultCount: number;
+  resultsLoading?: boolean;
 };
 
-export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Props>) {
+export function TenantFiltersBar({
+  filters,
+  onChange,
+  resultCount,
+  resultsLoading = false,
+}: Readonly<Props>) {
   return (
     <div className="sticky top-0 z-20 border-b bg-background/95 px-5 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="mx-auto flex max-w-2xl flex-wrap items-end gap-3">
@@ -136,12 +142,18 @@ export function TenantFiltersBar({ filters, onChange, resultCount }: Readonly<Pr
         </label>
 
         <motion.span
-          key={resultCount}
+          key={resultsLoading ? "loading" : resultCount}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="ml-auto text-xs text-muted-foreground"
         >
-          <strong className="text-[#1eb88a]">{resultCount}</strong> homes found
+          {resultsLoading ? (
+            "Scanning…"
+          ) : (
+            <>
+              <strong className="text-[#1eb88a]">{resultCount}</strong> homes found
+            </>
+          )}
         </motion.span>
       </div>
 

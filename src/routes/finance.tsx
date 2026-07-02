@@ -3,15 +3,37 @@ import { PublicPageShell } from "@/components/SiteNav";
 import { useState } from "react";
 import { formatKes } from "@/lib/properties";
 import { submitInquiry } from "@/lib/submit-inquiry";
+import { formFieldValue } from "@/lib/utils";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({ meta: [{ title: "Finance & mortgages — NyumbaSearch" }] }),
   component: FinancePage,
 });
 
+type FinanceGoal = "" | "buy" | "build" | "renovate";
+type IncomeBand = "" | "under30" | "30-60" | "60-100" | "over200";
+type DocsReady = "" | "yes" | "no";
+
 function FinancePage() {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
+  const [goal, setGoal] = useState<FinanceGoal>("");
+  const [income, setIncome] = useState<IncomeBand>("");
+  const [docs, setDocs] = useState<DocsReady>("");
+  const [propertyValue, setPropertyValue] = useState("");
   const [result, setResult] = useState<number | null>(null);
+
+  function goNext() {
+    if (step === 1 && goal) setStep(2);
+    else if (step === 2 && income) setStep(3);
+    else if (step === 3 && docs) setStep(4);
+    else if (step === 4 && propertyValue.trim()) {
+      const value = Number(propertyValue);
+      if (Number.isFinite(value) && value > 0) {
+        setResult(Math.round(value * 0.7));
+        setStep(5);
+      }
+    }
+  }
 
   return (
     <PublicPageShell>
@@ -40,54 +62,125 @@ function FinancePage() {
 
         <section className="mt-12 rounded-2xl border bg-card p-6">
           <h2 className="font-display text-xl font-semibold">Check my eligibility</h2>
-          {step < 4 ? (
+          <p className="mt-1 text-xs text-muted-foreground">Step {Math.min(step, 4)} of 4</p>
+
+          {step === 1 && (
             <div className="mt-4 space-y-4">
-              {step === 0 && (
-                <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
-                  onChange={() => setStep(1)}
-                >
-                  <option>What are you looking for?</option>
-                  <option>Buy a home</option>
-                  <option>Build</option>
-                  <option>Renovate</option>
-                </select>
-              )}
-              {step === 1 && (
-                <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
-                  onChange={() => setStep(2)}
-                >
-                  <option>Monthly income range</option>
-                  <option>Under KES 30k</option>
-                  <option>KES 30k–60k</option>
-                  <option>KES 60k–100k</option>
-                  <option>Above KES 200k</option>
-                </select>
-              )}
-              {step === 2 && (
-                <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
-                  onChange={() => setStep(3)}
-                >
-                  <option>KRA PIN + 6 months bank statements?</option>
-                  <option>Yes</option>
-                  <option>No</option>
-                </select>
-              )}
-              {step === 3 && (
-                <input
-                  type="number"
-                  placeholder="Estimated property value (KES)"
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
-                  onBlur={(e) => {
-                    setResult(Math.round(Number(e.target.value) * 0.7));
-                    setStep(4);
-                  }}
-                />
-              )}
+              <select
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value as FinanceGoal)}
+              >
+                <option value="">What are you looking for?</option>
+                <option value="buy">Buy a home</option>
+                <option value="build">Build</option>
+                <option value="renovate">Renovate</option>
+              </select>
+              <button
+                type="button"
+                disabled={!goal}
+                onClick={goNext}
+                className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                Next →
+              </button>
             </div>
-          ) : (
+          )}
+
+          {step === 2 && (
+            <div className="mt-4 space-y-4">
+              <select
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                value={income}
+                onChange={(e) => setIncome(e.target.value as IncomeBand)}
+              >
+                <option value="">Monthly income range</option>
+                <option value="under30">Under KES 30k</option>
+                <option value="30-60">KES 30k–60k</option>
+                <option value="60-100">KES 60k–100k</option>
+                <option value="over200">Above KES 200k</option>
+              </select>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="rounded-xl border px-4 py-2 text-sm"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={!income}
+                  onClick={goNext}
+                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="mt-4 space-y-4">
+              <select
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                value={docs}
+                onChange={(e) => setDocs(e.target.value as DocsReady)}
+              >
+                <option value="">KRA PIN + 6 months bank statements?</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="rounded-xl border px-4 py-2 text-sm"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={!docs}
+                  onClick={goNext}
+                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="mt-4 space-y-4">
+              <input
+                type="number"
+                placeholder="Estimated property value (KES)"
+                className="w-full rounded-xl border px-3 py-2 text-sm"
+                value={propertyValue}
+                onChange={(e) => setPropertyValue(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="rounded-xl border px-4 py-2 text-sm"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={!propertyValue.trim()}
+                  onClick={goNext}
+                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  See estimate →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step >= 5 && (
             <div className="mt-4">
               <p className="text-sm">
                 You may qualify for a loan of up to <strong>{formatKes(result ?? 3500000)}</strong>.
@@ -101,11 +194,16 @@ function FinancePage() {
                   await submitInquiry(
                     {
                       inquiryType: "finance",
-                      name: String(fd.get("name") ?? ""),
-                      phone: String(fd.get("phone") ?? ""),
+                      name: formFieldValue(fd, "name"),
+                      phone: formFieldValue(fd, "phone"),
                       subject: "Mortgage / finance eligibility",
                       message: `Estimated loan: ${formatKes(result ?? 0)}`,
-                      metadata: { estimatedLoanKes: String(result ?? 0) },
+                      metadata: {
+                        estimatedLoanKes: String(result ?? 0),
+                        goal,
+                        income,
+                        docs,
+                      },
                     },
                     "Thank you. A loan officer will call you within 1 business day.",
                   );

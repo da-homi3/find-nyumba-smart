@@ -19,6 +19,14 @@ function isInProgress(status: string): boolean {
   return status === "pending" || status === "in_progress";
 }
 
+function verificationErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.includes("Unauthorized")) {
+    return "Sign in with the email used when you submitted this verification request.";
+  }
+  if (error instanceof Error) return error.message;
+  return "Could not load this verification request.";
+}
+
 function VerificationResultCard({
   request,
 }: Readonly<{
@@ -67,7 +75,12 @@ function VerificationResultCard({
 function VerifyStatusPage() {
   const { requestId } = useParams({ from: "/verify/status/$requestId" });
 
-  const { data: request, isLoading } = useQuery({
+  const {
+    data: request,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["verification-request", requestId],
     queryFn: () => getVerificationRequest({ data: { requestId } }),
     refetchInterval: (query) => {
@@ -76,7 +89,84 @@ function VerifyStatusPage() {
     },
   });
 
-  if (isLoading || !request || isInProgress(request.status)) {
+  if (isError) {
+    const message = verificationErrorMessage(error);
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-2xl px-5 py-12">
+          <div className="rounded-2xl border bg-card p-6 text-center">
+            <h2 className="font-display text-xl font-semibold">Verification status unavailable</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link
+                to="/auth"
+                search={{ redirect: `/verify/status/${requestId}`, mode: "signin" }}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Sign in
+              </Link>
+              <Link to="/verify" className="rounded-xl border px-4 py-2 text-sm font-semibold">
+                Back to verification
+              </Link>
+            </div>
+          </div>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-4xl px-5 py-8">
+          <div className="relative h-[60vh] overflow-hidden rounded-[20px] bg-[#0c1a12]">
+            <LazyRadar
+              speed={1}
+              scale={1}
+              ringCount={10}
+              spokeCount={10}
+              ringThickness={0.05}
+              spokeThickness={0.01}
+              sweepSpeed={1}
+              sweepWidth={2}
+              sweepLobes={1}
+              color="#1eb88a"
+              backgroundColor="#0c1a12"
+              falloff={2}
+              brightness={1}
+              enableMouseInteraction
+              mouseInfluence={0.15}
+            />
+            <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center">
+              <h2 className="font-display text-xl font-semibold text-white">
+                Loading verification status…
+              </h2>
+            </div>
+          </div>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  if (!request) {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-2xl px-5 py-12">
+          <div className="rounded-2xl border bg-card p-6 text-center">
+            <h2 className="font-display text-xl font-semibold">Request not found</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This verification link may be invalid or expired.
+            </p>
+            <Link to="/verify" className="mt-6 inline-block text-sm font-semibold text-primary">
+              ← Back to verification
+            </Link>
+          </div>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  if (isInProgress(request.status)) {
     const tier = (request?.tier ?? "standard") as VerificationTier;
     return (
       <PublicPageShell>

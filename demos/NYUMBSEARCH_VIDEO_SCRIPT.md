@@ -1,6 +1,6 @@
 # NyumbaSearch — Full App Walkthrough Script
 
-**Live app:** https://nyumba-search.kevinbuluma1.workers.dev  
+**Live app:** https://nyumbasearch.com  
 **Recorded video:** `demos/nyumbasearch-full-walkthrough.webm` (auto-generated via Playwright)
 
 Use this script for a narrated Loom, Mainframe, or HeyGen presenter video (~12–15 minutes with auth demos).

@@ -6,7 +6,13 @@ import {
 import { listPendingApplications } from "@/lib/api/portal.functions";
 import { listProperties } from "@/lib/api/nyumba.functions";
 
-export type AdminTab = "verifications" | "scams" | "properties" | "audits" | "applications";
+export type AdminTab =
+  | "verifications"
+  | "scams"
+  | "properties"
+  | "audits"
+  | "applications"
+  | "announcements";
 
 export type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
 export type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];

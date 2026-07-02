@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+const baseURL = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
 
 export default defineConfig({
   testDir: "./e2e",

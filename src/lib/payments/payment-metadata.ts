@@ -16,6 +16,8 @@ export type PaymentMetadata = {
   successPath?: string;
   cancelPath?: string;
   title?: string;
+  renewalSubscriptionId?: string;
+  fulfilledAt?: string;
 };
 
 const STRING_METADATA_KEYS = [
@@ -35,6 +37,8 @@ const STRING_METADATA_KEYS = [
   "successPath",
   "cancelPath",
   "title",
+  "renewalSubscriptionId",
+  "fulfilledAt",
 ] as const satisfies ReadonlyArray<keyof PaymentMetadata>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -71,6 +75,7 @@ export function metadataFromCheckout(data: {
   successPath?: string;
   cancelPath?: string;
   title?: string;
+  renewalSubscriptionId?: string;
 }): PaymentMetadata {
   return { ...data };
 }

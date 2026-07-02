@@ -60,6 +60,32 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
+    const { data: userAuth } = await supabaseAdmin.auth.admin.getUserById(row.user_id);
+    const email = userAuth.user?.email;
+    const name =
+      (userAuth.user?.user_metadata?.full_name as string | undefined) ??
+      email?.split("@")[0] ??
+      "there";
+
+    if (email) {
+      const { sendEmail } = await import("@/lib/email/send");
+      const { verificationCompleteEmail } = await import("@/lib/email/templates");
+      const { getSiteUrl } = await import("@/lib/site");
+      const tpl = verificationCompleteEmail({
+        name,
+        propertyAddress: row.verification_type ?? "your property",
+        passed: data.status === "approved",
+        findings: data.notes ?? undefined,
+        statusUrl: `${getSiteUrl()}/verify/status/${row.id}`,
+      });
+      void sendEmail({
+        to: email,
+        templateId: "verification-complete",
+        ...tpl,
+        metadata: { verificationId: row.id, status: data.status },
+      });
+    }
+
     await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: userId,
       action: `VERIFICATION_${data.status.toUpperCase()}`,
@@ -169,4 +195,26 @@ export const listAdminAuditLogs = createServerFn({ method: "GET" })
       ...row,
       admin: profileFromMap(row.admin_id, profileMap),
     }));
+  });
+
+const announcementSchema = z.object({
+  title: z.string().trim().min(3).max(200),
+  body: z.string().trim().min(10).max(5000),
+  ctaLabel: z.string().trim().min(2).max(80),
+  ctaUrl: z.string().trim().url().max(500),
+  targetRoles: z
+    .array(z.enum(["tenant", "landlord", "agency", "manager", "all"]))
+    .min(1)
+    .max(5),
+});
+
+export const sendAdminAnnouncement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(announcementSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendProductAnnouncement } = await import("@/lib/cron/announcements");
+    return sendProductAnnouncement(supabaseAdmin, data, userId);
   });

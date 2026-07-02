@@ -21,7 +21,7 @@ Uses Nitro output: `dist/server/wrangler.json` (not root `wrangler.toml` — leg
 
 ## Post-deploy
 
-- [ ] Hit https://nyumba-search.kevinbuluma1.workers.dev/
+- [ ] Hit https://nyumbasearch.com/
 - [ ] Verify homepage shows live listing counts (not "0 verified")
 - [ ] `/tenant`, `/tenant/map`, `/tenant/compare` return 200
 - [ ] Sign-in flow on `/auth`
@@ -30,14 +30,14 @@ Uses Nitro output: `dist/server/wrangler.json` (not root `wrangler.toml` — leg
 
 ## Secrets (never commit)
 
-| Variable | Purpose |
-|----------|---------|
-| `SUPABASE_SERVICE_ROLE_KEY` | Server writes |
-| `SUPABASE_PUBLISHABLE_KEY` | Client + public reads |
-| `GEMINI_API_KEY` | NyumbaAI |
-| `MPESA_*` | STK push |
-| `SENDGRID_API_KEY` | Email |
-| `SUPABASE_ACCESS_TOKEN` | Management API migrations |
+| Variable                    | Purpose                   |
+| --------------------------- | ------------------------- |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server writes             |
+| `SUPABASE_PUBLISHABLE_KEY`  | Client + public reads     |
+| `GEMINI_API_KEY`            | NyumbaAI                  |
+| `MPESA_*`                   | STK push                  |
+| `SENDGRID_API_KEY`          | Email                     |
+| `SUPABASE_ACCESS_TOKEN`     | Management API migrations |
 
 ## Rollback
 

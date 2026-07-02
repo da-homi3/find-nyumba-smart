@@ -430,7 +430,7 @@ async function main() {
 
   // ── HTTP routes smoke ──
   console.log("\n— HTTP routes —");
-  const BASE = env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+  const BASE = env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
   for (const path of [
     "/tenant",
     "/landlord/dashboard",

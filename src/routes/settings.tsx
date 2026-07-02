@@ -82,6 +82,7 @@ function SettingsPage() {
   const qc = useQueryClient();
   const {
     user,
+    loading,
     pendingApplications,
     activePortal,
     hasApprovedRole,
@@ -125,20 +126,22 @@ function SettingsPage() {
     if (user?.id) setPrefs(readNotificationPrefs(user.id));
   }, [user?.id]);
 
-  if (!user) {
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate({ to: "/auth", search: { redirect: "/settings" }, replace: true });
+    }
+  }, [loading, user, navigate]);
+
+  if (loading) {
     return (
-      <div className="mx-auto max-w-md px-6 pt-24 text-center">
-        <p className="text-sm text-muted-foreground">Sign in to manage your account and portals.</p>
-        <Link
-          to="/auth"
-          search={{ redirect: "/settings" }}
-          className="mt-4 inline-block font-semibold text-primary"
-        >
-          Sign in
-        </Link>
+      <div className="mx-auto max-w-md px-6 pt-24">
+        <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+        <div className="mt-6 h-64 animate-pulse rounded-2xl bg-muted" />
       </div>
     );
   }
+
+  if (!user) return null;
 
   const pending = pendingApplications.filter((a) => a.status === "pending");
   const rejected = pendingApplications.filter((a) => a.status === "rejected");

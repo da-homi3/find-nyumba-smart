@@ -13,7 +13,14 @@
     "binding": "AI",
   },
 
-  "account_id": "2f9ae70dfb228529cc5e91d230ab2cfc",
+  "account_id": "7ff77105e5fd9fb5f560d381ec562ed8",
+
+  "kv_namespaces": [
+    {
+      "binding": "CACHE_KV",
+      "id": "c0ce09d3f3344b028c5dfec6beaf7253",
+    },
+  ],
 
   "vars": {
     "SUPABASE_URL": "https://fnycwcbxorhreidhbers.supabase.co",

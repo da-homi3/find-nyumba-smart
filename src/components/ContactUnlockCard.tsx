@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatKes } from "@/lib/properties";
 import { unlockFeeForRent } from "@/lib/payments/unlock-pricing";
 import { getListingUnlockState, unlockListingContact } from "@/lib/api/contact-unlock.functions";
-import { verifyPaymentStatus } from "@/lib/api/payment.functions";
+import { pollPaymentUntilComplete } from "@/lib/payments/poll-payment-client";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { errorMessage } from "@/lib/utils";
@@ -78,21 +78,13 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
   }
 
   async function pollPayment(paymentId: string) {
-    for (let i = 0; i < 40; i++) {
-      await new Promise((r) => setTimeout(r, i < 2 ? 1200 : 2500));
-      const status = await verifyPaymentStatus({ data: { paymentId } });
-      if (status.status === "completed") {
-        const refreshed = await unlockListingContact({
-          data: { listingId: listing.id },
-        });
-        if (refreshed.unlocked && refreshed.contactPhone) {
-          await applyUnlockedPhone(refreshed.contactPhone);
-        }
-        return;
-      }
-      if (status.status === "failed") throw new Error(status.message ?? "Payment failed");
+    await pollPaymentUntilComplete(paymentId);
+    const refreshed = await getListingUnlockState({ data: { listingId: listing.id } });
+    if (refreshed.unlocked && refreshed.contactPhone) {
+      await applyUnlockedPhone(refreshed.contactPhone);
+      return;
     }
-    throw new Error("Payment timed out");
+    throw new Error("Payment confirmed but contact unlock is still processing. Refresh the page.");
   }
 
   async function unlock(method?: "mpesa" | "card") {
@@ -116,7 +108,7 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
       }
 
       const pending = "paymentId" in res && res.paymentId && res.status === "pending";
-      if (pending) {
+      if (pending && res.paymentId) {
         toast.message(res.message ?? "Check your phone for the M-Pesa prompt");
         await pollPayment(res.paymentId);
         toast.success("Contact unlocked");

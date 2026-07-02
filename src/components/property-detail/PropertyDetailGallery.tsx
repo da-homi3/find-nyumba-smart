@@ -113,7 +113,7 @@ export function PropertyDetailGallery({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-(--color-obsidian) to-transparent" />
 
         <Link
-          to="/tenant/"
+          to="/tenant"
           aria-label="Back to search"
           className="absolute top-4 left-4 z-20 grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-md"
         >

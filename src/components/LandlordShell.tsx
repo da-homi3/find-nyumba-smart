@@ -9,6 +9,8 @@ import {
   Plus,
   KeyRound,
   CreditCard,
+  Upload,
+  Plug,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
@@ -16,6 +18,8 @@ import { useEffect, type ReactNode } from "react";
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/landlord/properties", label: "Properties", icon: Building2 },
+  { to: "/landlord/import", label: "Bulk import", icon: Upload },
+  { to: "/landlord/integrations", label: "API", icon: Plug },
   { to: "/landlord/leads", label: "Messages", icon: Inbox },
   { to: "/landlord/caretakers", label: "Caretakers", icon: KeyRound },
   { to: "/landlord/analytics", label: "Analytics", icon: BarChart3 },

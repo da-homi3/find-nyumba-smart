@@ -12,6 +12,6 @@
 
 name = "nyumba-search"
 compatibility_date = "2026-05-31"
-account_id = "2f9ae70dfb228529cc5e91d230ab2cfc"
+account_id = "7ff77105e5fd9fb5f560d381ec562ed8" # kevinbuluma9@gmail.com
 main = "dist/server/index.mjs"
 workers_dev = true

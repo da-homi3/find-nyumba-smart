@@ -5,15 +5,15 @@
 
 ## Wins (implemented or existing)
 
-| Area | Implementation |
-|------|----------------|
-| Code splitting | TanStack Router file-based lazy routes + Vite chunks |
-| Homepage data | `getPublicStats` avoids loading full listing array for KPIs |
-| Search | 400ms debounce reduces API churn |
-| Query cache | React Query `staleTime` on homepage stats (120s) and listings |
-| Map | Viewport culling on heatmap circles; marker clusterer lazy import |
-| Images | Hero `fetchPriority="high"`; property cards use listing URLs |
-| SSR | TanStack Start SSR on Cloudflare Workers (~4–56 KB HTML per route) |
+| Area           | Implementation                                                     |
+| -------------- | ------------------------------------------------------------------ |
+| Code splitting | TanStack Router file-based lazy routes + Vite chunks               |
+| Homepage data  | `getPublicStats` avoids loading full listing array for KPIs        |
+| Search         | 400ms debounce reduces API churn                                   |
+| Query cache    | React Query `staleTime` on homepage stats (120s) and listings      |
+| Map            | Viewport culling on heatmap circles; marker clusterer lazy import  |
+| Images         | Hero `fetchPriority="high"`; property cards use listing URLs       |
+| SSR            | TanStack Start SSR on Cloudflare Workers (~4–56 KB HTML per route) |
 
 ## Bundle notes
 
@@ -31,11 +31,11 @@
 
 ## Route payload sample (production audit)
 
-| Route | Body size |
-|-------|-----------|
-| `/` | ~56 KB |
-| `/tenant` | ~21 KB |
-| `/tenant/map` | ~13 KB |
-| `/tenant/property/$id` | ~6 KB |
+| Route                  | Body size |
+| ---------------------- | --------- |
+| `/`                    | ~56 KB    |
+| `/tenant`              | ~21 KB    |
+| `/tenant/map`          | ~13 KB    |
+| `/tenant/property/$id` | ~6 KB     |
 
 No blank-shell routes detected in `route-report.json`.

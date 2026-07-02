@@ -99,10 +99,10 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         void syncSession(s);
         return;
       }
-      setLoading(true);
-      setTimeout(() => {
-        void syncSession(s);
-      }, 0);
+      const showLoading =
+        event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "SIGNED_OUT";
+      if (showLoading) setLoading(true);
+      void syncSession(s);
     });
 
     setLoading(true);

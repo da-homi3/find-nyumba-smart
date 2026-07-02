@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE = process.env.DEMO_BASE_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+const BASE = process.env.DEMO_BASE_URL ?? "https://nyumbasearch.com";
 const OUT_DIR = path.join(__dirname, "..", "demos");
 const VIDEO_DIR = path.join(OUT_DIR, "recordings");
 const FINAL = path.join(OUT_DIR, "nyumbasearch-full-walkthrough.webm");

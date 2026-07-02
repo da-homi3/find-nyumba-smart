@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { initiateStkPush } from "@/lib/api/mpesa";
+import { initiateStkPush, isMpesaConfigured } from "@/lib/api/mpesa";
 import {
   PLUS_PLAN,
   planMonthlyPrice,
@@ -25,10 +25,25 @@ function planAmountKes(sub: SubscriptionRow): number {
   return planMonthlyPrice(planId, cycle);
 }
 
+function renewalPaymentType(sub: SubscriptionRow): string {
+  if (sub.plan === "plus") return "tenant_plus";
+  if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
+    return "provider_subscription";
+  }
+  return "landlord_plan";
+}
+
 function addDays(iso: string, days: number): string {
   const d = new Date(iso);
   d.setDate(d.getDate() + days);
   return d.toISOString();
+}
+
+function formatPhone254(phone: string): string {
+  let clean = phone.replaceAll("+", "").trim();
+  if (clean.startsWith("0")) clean = "254" + clean.slice(1);
+  else if (clean.startsWith("7") || clean.startsWith("1")) clean = "254" + clean;
+  return clean;
 }
 
 async function downgradeUser(supabaseAdmin: Admin, sub: SubscriptionRow) {
@@ -54,6 +69,8 @@ async function sendRenewalStk(
   amount: number,
   stats: { stkSent: number },
 ) {
+  if (!isMpesaConfigured()) return;
+
   const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("phone")
@@ -62,15 +79,57 @@ async function sendRenewalStk(
   const phone = profile?.phone;
   if (!phone) return;
 
+  const phone254 = formatPhone254(phone);
+  const paymentType = renewalPaymentType(sub);
+  const idempotencyKey = `renew-${sub.id}-${sub.next_billing_date.slice(0, 10)}`;
+
+  const { data: existing } = await supabaseAdmin
+    .from("payments")
+    .select("id, status")
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+  if (existing?.status === "completed") return;
+
+  let paymentId = existing?.id;
+  if (!paymentId) {
+    const { data: payment, error } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: sub.user_id,
+        amount_kes: amount,
+        status: "pending",
+        payment_type: paymentType,
+        payment_method: "mpesa",
+        mpesa_phone: phone254,
+        idempotency_key: idempotencyKey,
+        metadata: {
+          title: "NyumbaSearch renewal",
+          plan: sub.plan,
+          billingCycle: sub.billing_cycle,
+          paymentMethod: "mpesa",
+          renewalSubscriptionId: sub.id,
+        },
+      })
+      .select("id")
+      .single();
+    if (error || !payment) {
+      console.error("[renewal-cron] payment insert failed:", sub.id, error);
+      return;
+    }
+    paymentId = payment.id;
+  }
+
   try {
-    let phone254 = phone.replaceAll("+", "").trim();
-    if (phone254.startsWith("0")) phone254 = "254" + phone254.slice(1);
-    await initiateStkPush({
+    const stk = await initiateStkPush({
       phone254,
       amountKes: amount,
-      accountReference: "NS-renew",
+      accountReference: paymentId.slice(0, 12),
       transactionDesc: "NyumbaRenew",
     });
+    await supabaseAdmin
+      .from("payments")
+      .update({ mpesa_checkout_id: stk.checkoutRequestId })
+      .eq("id", paymentId);
     stats.stkSent += 1;
   } catch (err) {
     console.error("[renewal-cron] M-Pesa STK failed:", sub.id, err);
@@ -96,26 +155,16 @@ export async function runSubscriptionRenewalCron(supabaseAdmin: Admin): Promise<
 
   for (const sub of expiring ?? []) {
     const amount = planAmountKes(sub);
-
-    // Pesapal has no tokenized card charges — renew via M-Pesa STK for all subs.
-    if (sub.payment_method === "mpesa" || sub.payment_method === "card") {
-      await sendRenewalStk(supabaseAdmin, sub, amount, stats);
-      await supabaseAdmin
-        .from("subscriptions")
-        .update({
-          status: "past_due",
-          grace_period_end: addDays(now, 3),
-        })
-        .eq("id", sub.id);
-      stats.pastDue += 1;
-    }
+    await sendRenewalStk(supabaseAdmin, sub, amount, stats);
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        status: "past_due",
+        grace_period_end: addDays(now, 3),
+      })
+      .eq("id", sub.id);
+    stats.pastDue += 1;
   }
-
-  const { data: overdue } = await supabaseAdmin
-    .from("subscriptions")
-    .select("*")
-    .eq("status", "past_due")
-    .lte("grace_period_end", now);
 
   for (const sub of overdue ?? []) {
     await downgradeUser(supabaseAdmin, sub);

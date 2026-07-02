@@ -6,18 +6,50 @@ import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import { AnimatedStat } from "@/components/motion/AnimatedStat";
 import { NeighborhoodCard3D } from "@/components/landing/NeighborhoodCard3D";
+import { StatsSkeleton } from "@/components/skeletons/StatsSkeleton";
+import { NeighborhoodGridSkeleton } from "@/components/skeletons/NeighborhoodGridSkeleton";
+import { FEATURED_SKELETON_KEYS } from "@/components/skeletons/skeleton-keys";
+import { ListingCardSkeleton } from "@/components/skeletons/ListingCardSkeleton";
+import type { FeaturedAgency } from "@/lib/api/homepage-shared";
 
-export function TrustStrip() {
+export type TrustStripStats = {
+  verifiedHomes: number;
+  noAgentFeesPct: number;
+  avgResponseHours: number;
+  tenantRating: number;
+};
+
+const FALLBACK_TRUST_STATS: TrustStripStats = {
+  verifiedHomes: 24,
+  noAgentFeesPct: 98,
+  avgResponseHours: 24,
+  tenantRating: 4.7,
+};
+
+export function TrustStrip({
+  stats,
+  ready = true,
+}: Readonly<{ stats?: Partial<TrustStripStats>; ready?: boolean }>) {
+  if (!ready) return <StatsSkeleton />;
+
+  const verifiedHomes = stats?.verifiedHomes ?? FALLBACK_TRUST_STATS.verifiedHomes;
+  const s: TrustStripStats = {
+    verifiedHomes: verifiedHomes > 0 ? verifiedHomes : FALLBACK_TRUST_STATS.verifiedHomes,
+    noAgentFeesPct: stats?.noAgentFeesPct ?? FALLBACK_TRUST_STATS.noAgentFeesPct,
+    avgResponseHours: stats?.avgResponseHours ?? FALLBACK_TRUST_STATS.avgResponseHours,
+    tenantRating: stats?.tenantRating ?? FALLBACK_TRUST_STATS.tenantRating,
+  };
+
   return (
     <section
       aria-label="Trust statistics"
       className="border-y border-white/10 bg-(--color-graphite)"
     >
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-10 sm:grid-cols-4 sm:px-6">
-        <AnimatedStat value={10000} suffix="+" label="Verified homes" />
-        <AnimatedStat value={98} suffix="%" label="No agent fees" />
-        <AnimatedStat value={24} suffix="h" label="Avg response" />
-        <AnimatedStat value={4.7} suffix="★" label="Tenant rating" decimals={1} />
+        <AnimatedStat value={s.verifiedHomes} suffix="+" label="Verified homes" ready />
+        <AnimatedStat value={s.noAgentFeesPct} suffix="%" label="No agent fees" ready />
+        <AnimatedStat value={s.avgResponseHours} suffix="h" label="Avg response" ready />
+        <AnimatedStat value={s.tenantRating} suffix="★" label="Tenant rating" decimals={1} ready />
       </div>
     </section>
   );
@@ -26,7 +58,22 @@ export function TrustStrip() {
 export function FeaturedListings({
   featured,
   isBoosted,
-}: Readonly<{ featured: Property[]; isBoosted: boolean }>) {
+  loading = false,
+}: Readonly<{ featured: Property[]; isBoosted: boolean; loading?: boolean }>) {
+  if (loading) {
+    return (
+      <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+        <div className="skeleton h-8 w-64" />
+        <div className="mt-8 flex gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURED_SKELETON_KEYS.map((id) => (
+            <div key={id} className="w-72 shrink-0 sm:w-auto">
+              <ListingCardSkeleton />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
   if (!featured.length) return null;
   return (
     <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
@@ -59,7 +106,23 @@ export function FeaturedListings({
 
 export function PopularNeighborhoods({
   hoods,
-}: Readonly<{ hoods: { name: string; count: number }[] }>) {
+  minRentByHood,
+  loading = false,
+}: Readonly<{
+  hoods: { name: string; count: number }[];
+  minRentByHood?: Record<string, number>;
+  loading?: boolean;
+}>) {
+  if (loading) {
+    return (
+      <section className="border-t bg-secondary/40">
+        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+          <div className="skeleton h-8 w-72" />
+          <NeighborhoodGridSkeleton />
+        </div>
+      </section>
+    );
+  }
   const fallback = [
     "Kilimani",
     "Westlands",
@@ -88,11 +151,12 @@ export function PopularNeighborhoods({
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((h) => {
             const meta = HOOD_META[h.name];
+            const liveMin = minRentByHood?.[h.name];
             return (
               <NeighborhoodCard3D
                 key={h.name}
                 name={h.name}
-                minPrice={meta?.from ?? 15000}
+                minPrice={liveMin ?? meta?.from ?? 15000}
                 image={meta?.img}
                 count={h.count}
               />
@@ -150,21 +214,63 @@ export function ServiceTeaserRow() {
   );
 }
 
-export function AgencyLogosSection() {
-  const agencies = ["Sunrise Realty", "Nairobi Homes Co.", "Prime Estates", "Urban Nest Agency"];
+function AgencyLogosSkeleton() {
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-8">
+      {[1, 2, 3, 4].map((n) => (
+        <div key={n} className="h-6 w-28 animate-pulse rounded bg-muted" />
+      ))}
+    </div>
+  );
+}
+
+function AgencyPartnerGrid({ agencies }: Readonly<{ agencies: FeaturedAgency[] }>) {
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-8">
+      {agencies.map((agency) => (
+        <div
+          key={agency.id}
+          className="flex items-center gap-2 font-display text-sm font-semibold text-foreground/80"
+        >
+          {agency.logoUrl ? (
+            <img src={agency.logoUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+          ) : null}
+          <span>{agency.name}</span>
+          {agency.listingCount > 0 ? (
+            <span className="text-[10px] font-normal text-muted-foreground">
+              · {agency.listingCount} live
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AgencyLogosBody({
+  loading,
+  agencies,
+}: Readonly<{ loading: boolean; agencies: FeaturedAgency[] }>) {
+  if (loading) return <AgencyLogosSkeleton />;
+  if (agencies.length > 0) return <AgencyPartnerGrid agencies={agencies} />;
+  return (
+    <p className="mt-4 text-sm text-muted-foreground">
+      Verified agencies list here as they join NyumbaSearch.
+    </p>
+  );
+}
+
+export function AgencyLogosSection({
+  agencies = [],
+  loading = false,
+}: Readonly<{ agencies?: FeaturedAgency[]; loading?: boolean }>) {
   return (
     <section className="border-y bg-secondary/30 py-10">
       <div className="mx-auto max-w-7xl px-5 text-center sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Trusted agency partners
         </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-8 opacity-80">
-          {agencies.map((name) => (
-            <span key={name} className="font-display text-sm font-semibold text-foreground/70">
-              {name}
-            </span>
-          ))}
-        </div>
+        <AgencyLogosBody loading={loading} agencies={agencies} />
         <Link
           to="/pricing"
           hash="agencies"

@@ -58,7 +58,7 @@ export const listPropertiesSchema = z
         maxLng: z.number(),
       })
       .optional(),
-    limit: z.number().int().min(1).max(100).default(50),
+    limit: z.number().int().min(1).max(500).default(50),
     offset: z.number().int().min(0).default(0),
     sortBy: z.enum(["newest", "price_asc", "price_desc", "score"]).default("newest"),
   })
@@ -291,6 +291,10 @@ export async function notifyInquiryParticipant(
   const recipientId = inquiry.tenant_id === senderId ? inquiry.landlord_id : inquiry.tenant_id;
   if (!recipientId) return;
   const admin = await adminClient();
+
+  const { shouldSendMessageEmail } = await import("@/lib/email/prefs");
+  if (!(await shouldSendMessageEmail(admin, recipientId))) return;
+
   const [{ data: senderProfile }, { data: recipientProfile }, recipientAuth] = await Promise.all([
     admin.from("profiles").select("full_name").eq("id", senderId).maybeSingle(),
     admin.from("profiles").select("full_name").eq("id", recipientId).maybeSingle(),

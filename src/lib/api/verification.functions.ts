@@ -25,7 +25,7 @@ export const getVerificationRequest = createServerFn({ method: "GET" })
       .maybeSingle();
 
     const userEmail = profile?.email?.toLowerCase();
-    if (userEmail && row.requester_email.toLowerCase() !== userEmail) {
+    if (!userEmail || row.requester_email.toLowerCase() !== userEmail) {
       throw new Error("You do not have access to this verification request");
     }
 

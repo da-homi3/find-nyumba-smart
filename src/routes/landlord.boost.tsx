@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { LandlordShell } from "@/components/LandlordShell";
@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { listLandlordProperties } from "@/lib/api/nyumba.functions";
 import { BOOST_PACKAGES, boostPrice } from "@/lib/revenue/plans";
 import type { BoostPackage } from "@/lib/revenue/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatKes } from "@/lib/properties";
 
 const searchSchema = z.object({
@@ -26,10 +26,23 @@ export const Route = createFileRoute("/landlord/boost")({
 
 function BoostPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { package: pkgParam, propertyId: initialProperty } = Route.useSearch();
   const [step, setStep] = useState(initialProperty ? 2 : 1);
   const [packageId, setPackageId] = useState<BoostPackage>(pkgParam ?? "spotlight");
   const [propertyId, setPropertyId] = useState(initialProperty ?? "");
+
+  useEffect(() => {
+    if (pkgParam) setPackageId(pkgParam);
+  }, [pkgParam]);
+
+  useEffect(() => {
+    if (initialProperty) setPropertyId(initialProperty);
+  }, [initialProperty]);
+
+  useEffect(() => {
+    if (pkgParam && initialProperty) setStep(3);
+  }, [pkgParam, initialProperty]);
 
   const { data: properties = [] } = useQuery({
     queryKey: ["my-properties-list", user?.id],
@@ -57,7 +70,7 @@ function BoostPage() {
           }}
           defaultPhone={(user?.user_metadata?.phone as string | undefined) ?? user?.phone ?? ""}
           allowQuarterly={false}
-          onSuccess={() => {}}
+          onSuccess={() => navigate({ to: "/landlord/dashboard" })}
         />
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Your listing will appear in boosted positions within 15 minutes.

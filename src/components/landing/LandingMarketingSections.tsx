@@ -1,9 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { submitInquiry } from "@/lib/submit-inquiry";
+import type { FeaturedTestimonial, PropertyIntelligenceStats } from "@/lib/api/homepage-shared";
+import { FALLBACK_INTELLIGENCE } from "@/lib/api/homepage-shared";
 import {
   ShieldCheck,
   MapPin,
@@ -12,8 +15,6 @@ import {
   Building2,
   Star,
   Smartphone,
-  Apple,
-  PlayCircle,
   BadgeCheck,
   Camera,
   Bot,
@@ -119,25 +120,35 @@ export function VerifiedSection() {
   );
 }
 
-export function PropertyIntelSection() {
+export function PropertyIntelSection({
+  stats,
+  loading = false,
+}: Readonly<{ stats?: PropertyIntelligenceStats; loading?: boolean }>) {
+  const intel = stats ?? FALLBACK_INTELLIGENCE;
   const layers = [
     {
       icon: Droplets,
       title: "Water reliability",
       desc: "Community-reported supply quality and borehole data before you sign.",
-      stat: "72% of Kilimani listings have borehole backup",
+      stat:
+        intel.kilimaniSampleSize > 0
+          ? `${intel.kilimaniBoreholePercent}% of Kilimani listings have borehole backup`
+          : `${intel.kilimaniBoreholePercent}% of Kilimani listings have borehole backup (est.)`,
     },
     {
       icon: ShieldCheck,
       title: "Security",
       desc: "Gated compounds, guard presence, and neighbourhood safety scores.",
-      stat: "Level 3+ verified homes average 4.2/5 security",
+      stat: `Level 3+ verified homes average ${intel.avgSecurityScore}/5 security`,
     },
     {
       icon: Sparkles,
       title: "Internet",
       desc: "Safaricom, Zuku, and Faiba availability per building.",
-      stat: "89% of Westlands listings report fibre-ready",
+      stat:
+        intel.westlandsSampleSize > 0
+          ? `${intel.westlandsFibrePercent}% of Westlands listings report fibre-ready`
+          : `${intel.westlandsFibrePercent}% of Westlands listings report fibre-ready (est.)`,
     },
   ];
   return (
@@ -151,7 +162,10 @@ export function PropertyIntelSection() {
         </h2>
         <div className="mt-10 grid gap-5 sm:grid-cols-3">
           {layers.map((l) => (
-            <div key={l.title} className="rounded-2xl border bg-card p-6 shadow-soft">
+            <div
+              key={l.title}
+              className={`rounded-2xl border bg-card p-6 shadow-soft ${loading ? "animate-pulse" : ""}`}
+            >
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
                 <l.icon className="h-5 w-5" />
               </div>
@@ -232,24 +246,10 @@ export function WhyNyumba() {
   );
 }
 
-export function Testimonials() {
-  const items = [
-    {
-      name: "Faith W.",
-      role: "Tenant · Kilimani",
-      body: "Found my 1BR in two days. The verified badge actually meant something — landlord picked up on the first call.",
-    },
-    {
-      name: "Brian O.",
-      role: "Tenant · Westlands",
-      body: "Honest reviews on water and security saved me from a place that looked perfect online. Worth its weight in gold.",
-    },
-    {
-      name: "Achieng' M.",
-      role: "Landlord · Lavington",
-      body: "Filled a vacancy in 9 days, all leads pre-qualified. Way better than dealing with random WhatsApp brokers.",
-    },
-  ];
+export function Testimonials({
+  items,
+  loading = false,
+}: Readonly<{ items: FeaturedTestimonial[]; loading?: boolean }>) {
   return (
     <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
       <div className="max-w-2xl">
@@ -261,72 +261,97 @@ export function Testimonials() {
         </h2>
       </div>
       <div className="mt-10 grid gap-5 sm:grid-cols-3">
-        {items.map((t) => (
-          <figure
-            key={t.name}
-            className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-soft"
-          >
-            <div className="flex gap-0.5 text-gold">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={`${t.name}-${star}`} className="h-4 w-4 fill-current" />
-              ))}
-            </div>
-            <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-foreground/85">
-              "{t.body}"
-            </blockquote>
-            <figcaption className="mt-5">
-              <div className="font-display text-sm font-semibold">{t.name}</div>
-              <div className="text-xs text-muted-foreground">{t.role}</div>
-            </figcaption>
-          </figure>
-        ))}
+        {loading
+          ? [1, 2, 3].map((n) => (
+              <div key={n} className="h-48 animate-pulse rounded-2xl bg-muted" />
+            ))
+          : items.map((t) => (
+              <figure
+                key={`${t.name}-${t.body.slice(0, 24)}`}
+                className="flex h-full flex-col rounded-2xl border bg-card p-6 shadow-soft"
+              >
+                <div className="flex gap-0.5 text-gold">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={`${t.name}-${star}`}
+                      className={`h-4 w-4 ${star <= Math.round(t.rating) ? "fill-current" : "opacity-30"}`}
+                    />
+                  ))}
+                </div>
+                <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-foreground/85">
+                  &ldquo;{t.body}&rdquo;
+                </blockquote>
+                <figcaption className="mt-5">
+                  <div className="font-display text-sm font-semibold">{t.name}</div>
+                  <div className="text-xs text-muted-foreground">{t.roleLabel}</div>
+                </figcaption>
+              </figure>
+            ))}
       </div>
     </section>
   );
 }
 
 export function DownloadApp() {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
   return (
     <section className="border-t bg-gradient-emerald text-primary-foreground">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-5 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
         <div className="max-w-xl">
           <p className="text-xs font-semibold uppercase tracking-wider text-gold">Coming soon</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
-            Take NyumbaSearch with you.
+            NyumbaSearch on mobile — coming soon
           </h2>
           <p className="mt-3 text-primary-foreground/80">
-            Save searches, get instant alerts when verified homes match your budget, and message
-            landlords on the go.
+            Be the first to know when the app launches. Save searches, get instant alerts, and
+            message landlords on the go.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="inline-flex items-center gap-3 rounded-2xl border border-primary-foreground/30 bg-background/10 px-5 py-3 text-left text-sm backdrop-blur hover:bg-background/20"
-            aria-label="Download on the App Store (coming soon)"
+        {done ? (
+          <p className="rounded-2xl border border-primary-foreground/30 bg-background/10 px-5 py-4 text-sm backdrop-blur">
+            You&apos;re on the list — we&apos;ll email you when the app is ready.
+          </p>
+        ) : (
+          <form
+            className="flex w-full max-w-md flex-col gap-2 sm:flex-row"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (submitting || !email.includes("@")) return;
+              setSubmitting(true);
+              const ok = await submitInquiry(
+                {
+                  inquiryType: "app_notify",
+                  email,
+                  subject: "Mobile app launch notification",
+                  message: "Notify when NyumbaSearch mobile app launches",
+                  metadata: { source: "homepage_download_section" },
+                },
+                "You're on the list!",
+              );
+              setSubmitting(false);
+              if (ok) setDone(true);
+            }}
           >
-            <Apple className="h-6 w-6" />
-            <span>
-              <span className="block text-[10px] uppercase tracking-wider opacity-80">
-                Download on the
-              </span>
-              <span className="block font-display text-base font-semibold">App Store</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-3 rounded-2xl border border-primary-foreground/30 bg-background/10 px-5 py-3 text-left text-sm backdrop-blur hover:bg-background/20"
-            aria-label="Get it on Google Play (coming soon)"
-          >
-            <PlayCircle className="h-6 w-6" />
-            <span>
-              <span className="block text-[10px] uppercase tracking-wider opacity-80">
-                Get it on
-              </span>
-              <span className="block font-display text-base font-semibold">Google Play</span>
-            </span>
-          </button>
-        </div>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="min-w-0 flex-1 rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-background px-5 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+            >
+              {submitting ? "Saving…" : "Notify me"}
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );

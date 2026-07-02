@@ -1,0 +1,21 @@
+src\hooks\use-tenant-mapbox.ts:12:const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
+src\hooks\use-tenant-mapbox.ts:422:        if (!token) setError("Mapbox token missing. Set VITE_MAPBOX_TOKEN or MAPBOX_PUBLIC_TOKEN.");
+src\lib\config.server.ts:15://   - import.meta.env.VITE_FOO: PUBLIC config readable from both client
+src\lib\config.server.ts:17://     VITE_ prefix. Never put secrets here GÇö they ship to the browser.
+src\lib\stripe-client.ts:3:  const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+src\lib\site.ts:8:  const viteUrl = import.meta.env.VITE_SITE_URL as string | undefined;
+src\lib\pesapal-client.ts:3:  return import.meta.env.VITE_PESAPAL_CHECKOUT_ENABLED === "1";
+src\components\tenant-map\map-constants.ts:11:export const BROWSER_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+src\components\tenant-map\map-constants.ts:12:export const TRACKING_ID = import.meta.env.VITE_GOOGLE_MAPS_TRACKING_ID;
+src\integrations\supabase\client.ts:9:  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || serverEnv.SUPABASE_URL;
+src\integrations\supabase\client.ts:11:    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnv.SUPABASE_PUBLISHABLE_KEY;
+src\routes\whatsapp.tsx:18:const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined;
+src\routes\whatsapp.tsx:58:          WhatsApp listing is not configured yet. Set <code>VITE_WHATSAPP_NUMBER</code> in your
+src\routes\tenant.map.tsx:14:const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+src\routes\tenant.map.tsx:150:        error: "Map preview mode GÇö add VITE_MAPBOX_TOKEN for the full 3D map.",
+src\lib\api\connections-health.ts:40:  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+src\lib\api\connections-health.ts:42:    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+src\lib\api\connections-health.ts:76:      status: process.env.VITE_GOOGLE_MAPS_API_KEY ? "ok" : "degraded",
+src\lib\api\connections-health.ts:77:      detail: process.env.VITE_GOOGLE_MAPS_API_KEY
+src\lib\api\connections-health.ts:79:        : "CSS fallback map (rebuild after adding VITE_GOOGLE_MAPS_API_KEY)",
+src\lib\api\map.functions.ts:12:      process.env.MAPBOX_PUBLIC_TOKEN?.trim() ?? process.env.VITE_MAPBOX_TOKEN?.trim() ?? "";

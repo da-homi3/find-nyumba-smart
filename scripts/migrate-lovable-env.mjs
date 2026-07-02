@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const envPath = join(root, ".env");
-const PRODUCTION_URL = "https://nyumba-search.kevinbuluma1.workers.dev";
+const PRODUCTION_URL = "https://nyumbasearch.com";
 
 const DEPRECATED = new Set([
   "LOVABLE_API_KEY",

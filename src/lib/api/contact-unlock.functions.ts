@@ -2,11 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
+import { isKenyanPhone } from "@/lib/phone";
 import { unlockFeeForRent } from "@/lib/payments/unlock-pricing";
 import { ensureTenantTrial } from "@/lib/payments/tenant-trial";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
 import { initiatePaymentCore } from "@/lib/payments/initiate-payment-core";
-import { isKenyanPhone } from "@/lib/phone";
+import { notifyContactUnlockEmails } from "@/lib/email/contact-unlock-notify";
 
 async function resolveContactPhone(
   admin: import("@supabase/supabase-js").SupabaseClient<
@@ -140,6 +141,12 @@ export const unlockListingContact = createServerFn({ method: "POST" })
         method: "plus",
         fee_charged: 0,
       });
+      void notifyContactUnlockEmails(supabaseAdmin, {
+        userId,
+        listingId: data.listingId,
+        method: "plus",
+        feeKes: 0,
+      });
       return { unlocked: true, contactPhone, method: "plus" as const };
     }
 
@@ -171,6 +178,13 @@ export const unlockListingContact = createServerFn({ method: "POST" })
         listing_id: data.listingId,
         method: "trial",
         fee_charged: 0,
+      });
+
+      void notifyContactUnlockEmails(supabaseAdmin, {
+        userId,
+        listingId: data.listingId,
+        method: "trial",
+        feeKes: 0,
       });
 
       return {

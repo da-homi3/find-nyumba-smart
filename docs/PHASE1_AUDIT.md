@@ -1,7 +1,7 @@
 # NyumbaSearch Phase 1 Platform Audit
 
 **Date:** June 2026  
-**Deployed:** https://nyumba-search.kevinbuluma1.workers.dev  
+**Deployed:** https://nyumbasearch.com  
 **Stack:** TanStack Start + React 19 + Supabase + Cloudflare Workers (Nitro)
 
 ---

@@ -20,7 +20,7 @@ function LandlordLayout() {
     if (!user) {
       navigate({
         to: "/auth",
-        search: { redirect: pathname, role: "landlord", mode: "signin" },
+        search: { redirect: pathname, mode: "signin" },
         replace: true,
       });
       return;
@@ -29,7 +29,7 @@ function LandlordLayout() {
       const pending = hasPendingApplicationForRole(pendingApplications, "landlord");
       navigate({
         to: pending ? "/auth/pending" : "/auth",
-        search: pending ? undefined : { redirect: pathname, role: "landlord", mode: "signup" },
+        search: pending ? undefined : { redirect: pathname, signupFor: "landlord", mode: "signup" },
         replace: true,
       });
     }

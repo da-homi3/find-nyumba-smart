@@ -9,6 +9,7 @@ export default [
   {
     ignores: [
       "dist",
+      ".wrangler",
       ".output",
       ".vinxi",
       "src/routeTree.gen.ts",

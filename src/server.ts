@@ -1,8 +1,8 @@
-import "./lib/error-capture";
-
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { setWorkerBindings } from "./lib/worker-bindings";
+import { addSecurityHeaders } from "./lib/security/headers";
+import { tryInfrastructureRoute } from "./lib/api/infrastructure-routes";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -25,11 +25,9 @@ function attachRuntimeEnv(env: unknown) {
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
-  if (!serverEntryPromise) {
-    serverEntryPromise = import("@tanstack/react-start/server-entry").then(
-      (m) => (m.default ?? m) as ServerEntry,
-    );
-  }
+  serverEntryPromise ??= import("@tanstack/react-start/server-entry").then(
+    (m) => (m.default ?? m) as ServerEntry,
+  );
   return serverEntryPromise;
 }
 
@@ -56,15 +54,24 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       attachRuntimeEnv(env);
+
+      const infraResponse = await tryInfrastructureRoute(request);
+      if (infraResponse) {
+        return addSecurityHeaders(infraResponse);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      return addSecurityHeaders(normalized);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return addSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

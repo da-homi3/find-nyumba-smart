@@ -31,7 +31,7 @@ const FAQ = [
   },
   {
     q: "Can I pay with a card instead?",
-    a: "Yes. Expand Pay with card instead at checkout to use Pesapal (Visa/Mastercard). M-Pesa remains the recommended option for fastest confirmation.",
+    a: "Yes. Expand Pay with card instead at checkout to pay with Visa or Mastercard. M-Pesa remains the recommended option for fastest confirmation.",
   },
   {
     q: "Do subscriptions renew automatically?",

@@ -26,7 +26,8 @@ import { registerAccountSignup } from "@/lib/api/auth.functions";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
-  role: z.enum(["tenant", "landlord", "manager", "agency"]).optional(),
+  /** Client-only UX hint — never used for authorization; role is chosen in the signup form. */
+  signupFor: z.enum(["tenant", "landlord", "manager", "agency"]).optional(),
   mode: z.enum(["signin", "signup"]).optional(),
 });
 
@@ -54,7 +55,7 @@ function signupSubtitle(role: AccountRole): string {
 }
 
 function TenantAuth() {
-  const { redirect, role: roleParam, mode: modeParam } = Route.useSearch();
+  const { redirect, signupFor, mode: modeParam } = Route.useSearch();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">(modeParam ?? "signin");
   const [email, setEmail] = useState("");
@@ -63,13 +64,13 @@ function TenantAuth() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [organizationName, setOrganizationName] = useState("");
-  const [role, setRole] = useState<AccountRole>(roleParam ?? "tenant");
+  const [role, setRole] = useState<AccountRole>(signupFor ?? "tenant");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (modeParam) setMode(modeParam);
-    if (roleParam) setRole(roleParam);
-  }, [modeParam, roleParam]);
+    if (signupFor && modeParam === "signup") setRole(signupFor);
+  }, [modeParam, signupFor]);
 
   async function handleSignup() {
     if (ORG_REQUIRED_ROLES.has(role) && !organizationName.trim()) {

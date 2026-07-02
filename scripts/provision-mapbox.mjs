@@ -70,7 +70,8 @@ async function createPublicToken(secretToken, username) {
         note: "NyumbaSearch 3D map (public)",
         scopes: SCOPES,
         allowedUrls: [
-          "https://nyumba-search.kevinbuluma1.workers.dev",
+          "https://nyumbasearch.com",
+          "https://www.nyumbasearch.com",
           "http://localhost:*",
           "http://127.0.0.1:*",
         ],

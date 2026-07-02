@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
+import { homedir } from "node:os";
 import { patchWorkerCron } from "./patch-worker-cron.mjs";
 import { execSync } from "node:child_process";
 
@@ -14,7 +15,10 @@ const root = join(__dirname, "..");
 const envPath = join(root, ".env");
 const wranglerConfig = join(root, "dist", "server", "wrangler.json");
 
-const PRODUCTION_URL = "https://nyumba-search.kevinbuluma1.workers.dev";
+const PRODUCTION_URL = "https://nyumbasearch.com";
+const DEFAULT_CLOUDFLARE_ACCOUNT_ID = "7ff77105e5fd9fb5f560d381ec562ed8";
+
+const CUSTOM_DOMAINS = ["nyumbasearch.com", "www.nyumbasearch.com"];
 
 /** Plain vars merged into wrangler.json on deploy */
 const VAR_KEYS = [
@@ -31,6 +35,8 @@ const VAR_KEYS = [
   "GEMINI_MODEL",
   "MAPBOX_PUBLIC_TOKEN",
   "VITE_MAPBOX_TOKEN",
+  "WHATSAPP_API_VERSION",
+  "OPS_ALERT_EMAIL",
 ];
 
 /** Uploaded as Worker secrets */
@@ -42,11 +48,17 @@ const SECRET_KEYS = [
   "MPESA_CONSUMER_KEY",
   "MPESA_CONSUMER_SECRET",
   "MPESA_PASSKEY",
+  "MPESA_WEBHOOK_SECRET",
   "PESAPAL_CONSUMER_KEY",
   "PESAPAL_CONSUMER_SECRET",
   "CRON_SECRET",
   "GEMINI_API_KEY",
   "CARETAKER_SESSION_SECRET",
+  "WHATSAPP_TOKEN",
+  "WHATSAPP_VERIFY_TOKEN",
+  "WHATSAPP_PHONE_ID",
+  "WHATSAPP_APP_SECRET",
+  "ANTHROPIC_API_KEY",
 ];
 
 const DEPRECATED_ENV_KEYS = new Set([
@@ -163,6 +175,63 @@ function putSecret(name, value) {
   });
 }
 
+function getWranglerOAuthToken() {
+  const candidates = [
+    join(homedir(), ".config", ".wrangler", "config", "default.toml"),
+    join(process.env.APPDATA ?? "", "xdg.config", ".wrangler", "config", "default.toml"),
+  ];
+  const configPath = candidates.find((p) => existsSync(p));
+  if (!configPath) return null;
+  const toml = readFileSync(configPath, "utf8");
+  const oauthMatch = /oauth_token\s*=\s*"([^"]+)"/.exec(toml);
+  return oauthMatch?.[1] ?? null;
+}
+
+async function hasCloudflareZone(domain) {
+  const token = getWranglerOAuthToken();
+  if (!token) return false;
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/zones?name=${encodeURIComponent(domain)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const data = await res.json();
+    return Boolean(data.success && data.result?.length);
+  } catch {
+    return false;
+  }
+}
+
+function patchWranglerCustomDomains(zoneReady) {
+  if (!existsSync(wranglerConfig)) {
+    console.warn("Skip custom domains — run npm run build first.");
+    return;
+  }
+  const cfg = JSON.parse(readFileSync(wranglerConfig, "utf8"));
+  cfg.workers_dev = true;
+  if (zoneReady) {
+    cfg.routes = CUSTOM_DOMAINS.map((hostname) => ({
+      pattern: hostname,
+      custom_domain: true,
+    }));
+    console.log(`Patched custom domains: ${CUSTOM_DOMAINS.join(", ")}`);
+  } else {
+    delete cfg.routes;
+    console.warn(
+      "Skipping custom domains — add nyumbasearch.com in Cloudflare Dashboard → Add site, then: npm run deploy:domain",
+    );
+  }
+  writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
+}
+
+function patchWranglerAccountId(env) {
+  if (!existsSync(wranglerConfig)) return;
+  const cfg = JSON.parse(readFileSync(wranglerConfig, "utf8"));
+  cfg.account_id = env.CLOUDFLARE_ACCOUNT_ID || DEFAULT_CLOUDFLARE_ACCOUNT_ID;
+  writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
+  console.log(`Patched account_id → ${cfg.account_id}`);
+}
+
 function patchWranglerVars(env) {
   if (!existsSync(wranglerConfig)) {
     console.warn("Skip wrangler vars — run npm run build first.");
@@ -174,11 +243,17 @@ function patchWranglerVars(env) {
     if (env[key]) cfg.vars[key] = env[key];
   }
   cfg.ai = { binding: "AI" };
+  cfg.kv_namespaces = [
+    {
+      binding: "CACHE_KV",
+      id: "c0ce09d3f3344b028c5dfec6beaf7253",
+    },
+  ];
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
   console.log("Patched wrangler.json vars:", VAR_KEYS.filter((k) => env[k]).join(", "));
 }
 
-function main() {
+async function main() {
   if (!existsSync(envPath)) {
     console.error("Missing .env — copy from .env.example");
     process.exit(1);
@@ -228,6 +303,12 @@ function main() {
     );
   }
 
+  patchWranglerAccountId(env);
+  patchWranglerVars(env);
+  const zoneReady = await hasCloudflareZone("nyumbasearch.com");
+  patchWranglerCustomDomains(zoneReady);
+  patchWorkerCron();
+
   console.log("\nUploading Worker secrets…");
   for (const key of SECRET_KEYS) {
     if (!env[key]) {
@@ -237,9 +318,6 @@ function main() {
     console.log(`  put ${key}`);
     putSecret(key, env[key]);
   }
-
-  patchWranglerVars(env);
-  patchWorkerCron();
 
   console.log("\nDone. Rebuild client for VITE_* keys: npm run build");
   if (process.argv.includes("--deploy")) {
@@ -251,4 +329,9 @@ function main() {
   }
 }
 
-main();
+try {
+  await main();
+} catch (e) {
+  console.error(e);
+  process.exit(1);
+}

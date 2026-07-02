@@ -18,12 +18,18 @@ import { AdminAuditsTab } from "@/components/admin/AdminAuditsTab";
 import { AdminPropertiesTab } from "@/components/admin/AdminPropertiesTab";
 import { AdminScamsTab } from "@/components/admin/AdminScamsTab";
 import { AdminVerificationsTab } from "@/components/admin/AdminVerificationsTab";
+import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
   }),
-  component: AdminDashboard,
+  component: () => (
+    <RouteErrorBoundary title="Admin dashboard failed to load">
+      <AdminDashboard />
+    </RouteErrorBoundary>
+  ),
 });
 
 function AdminDashboard() {
@@ -121,6 +127,7 @@ function AdminDashboard() {
     { id: "properties" as const, label: "Moderate listings", count: properties.length },
     { id: "audits" as const, label: "Audit Logs", count: audits.length },
     { id: "applications" as const, label: "Portal applications", count: applications.length },
+    { id: "announcements" as const, label: "Announcements", count: 0 },
   ];
 
   return (
@@ -187,6 +194,7 @@ function AdminDashboard() {
               review={reviewApp}
             />
           )}
+          {activeTab === "announcements" && <AdminAnnouncementsTab />}
         </div>
       </div>
     </div>

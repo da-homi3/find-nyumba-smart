@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
-const BASE = process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+const BASE = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
@@ -146,6 +146,32 @@ async function checkSitemap() {
     else fail("Sitemap property URLs", "none found");
   } catch (e) {
     fail("Sitemap property URLs", String(e));
+  }
+}
+
+async function checkListingsApi() {
+  try {
+    const res = await fetch(`${BASE}/api/listings?limit=5`);
+    const json = await res.json();
+    if (!res.ok) {
+      fail("Listings API", `HTTP ${res.status}`);
+      return;
+    }
+    if ((json.items?.length ?? 0) > 0) {
+      pass("Listings API", `${json.total ?? json.items.length} total, ${json.items.length} returned`);
+    } else {
+      fail("Listings API", "empty items array");
+    }
+  } catch (e) {
+    fail("Listings API", String(e));
+  }
+
+  try {
+    const health = await (await fetch(`${BASE}/api/listings/health`)).json();
+    if (health.ok) pass("Listings health", `${health.activeCount} active`);
+    else fail("Listings health", health.error ?? "not ok");
+  } catch (e) {
+    fail("Listings health", String(e));
   }
 }
 
@@ -407,6 +433,7 @@ try {
   await runRevenuePageChecks();
   runRouteRegistrationChecks();
   await checkSitemap();
+  await checkListingsApi();
   await checkSupabaseListings(env);
   await checkMpesaOAuth(env);
   const mpesaReady = checkMpesaConfig(env);

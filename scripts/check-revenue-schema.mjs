@@ -28,7 +28,7 @@ const r2 = await admin
   .limit(1);
 console.log("profiles cols:", r2.error?.message ?? "ok");
 
-const BASE = env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+const BASE = env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
 const id = r1.data?.[0]?.id;
 if (id) {
   const res = await fetch(`${BASE}/tenant/property/${id}`);

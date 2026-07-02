@@ -36,7 +36,7 @@ jobs:
       - run: npm ci
       - name: Route audit
         env:
-          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://nyumba-search.kevinbuluma1.workers.dev' }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://nyumbasearch.com' }}
         run: npm run test:routes || true
       - name: Upload route report
         uses: actions/upload-artifact@v4
@@ -46,7 +46,7 @@ jobs:
           path: route-report.json
       - name: Smoke test
         env:
-          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://nyumba-search.kevinbuluma1.workers.dev' }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://nyumbasearch.com' }}
         run: npm run test:smoke
 
   migrate:

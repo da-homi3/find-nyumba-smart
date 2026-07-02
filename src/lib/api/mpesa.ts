@@ -1,4 +1,6 @@
 import { getSiteUrl } from "@/lib/site";
+import { getCacheKv } from "@/lib/kv/bindings";
+import { withCircuitBreaker } from "@/lib/resilience/circuit-breaker";
 
 type StkPushApiResponse = {
   CheckoutRequestID?: string;
@@ -62,30 +64,34 @@ export function mpesaCallbackUrl(): string {
   return `${getSiteUrl()}/api/mpesa/callback`;
 }
 
-let cachedAccessToken: { token: string; expiresAt: number } | null = null;
-
 async function getAccessToken(): Promise<string> {
-  const now = Date.now();
-  if (cachedAccessToken && cachedAccessToken.expiresAt > now) {
-    return cachedAccessToken.token;
+  const kv = getCacheKv();
+  if (kv) {
+    const cached = await kv.get("mpesa_token");
+    if (cached) return cached;
   }
 
   const key = process.env.MPESA_CONSUMER_KEY!;
   const consumerSecret = process.env.MPESA_CONSUMER_SECRET!;
   const auth = Buffer.from(`${key}:${consumerSecret}`).toString("base64");
-  const res = await fetch(`${mpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`, {
-    headers: { Authorization: `Basic ${auth}` },
-  });
-  if (!res.ok) {
-    throw new Error(`M-Pesa OAuth failed: ${res.status}`);
-  }
-  const json: unknown = await res.json();
-  const { token, expiresIn } = readOAuthToken(json);
 
-  cachedAccessToken = {
-    token,
-    expiresAt: now + Math.max(60, expiresIn - 60) * 1000,
-  };
+  const token = await withCircuitBreaker("mpesa", async () => {
+    const res = await fetch(`${mpesaBaseUrl()}/oauth/v1/generate?grant_type=client_credentials`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!res.ok) {
+      throw new Error(`M-Pesa OAuth failed: ${res.status}`);
+    }
+    const json: unknown = await res.json();
+    const { token: accessToken, expiresIn } = readOAuthToken(json);
+    if (kv) {
+      await kv.put("mpesa_token", accessToken, {
+        expirationTtl: Math.max(60, expiresIn - 60),
+      });
+    }
+    return accessToken;
+  });
+
   return token;
 }
 
@@ -149,14 +155,37 @@ export type StkQueryResult = {
   mpesaReceipt?: string;
 };
 
+function extractMpesaReceipt(json: object): string | undefined {
+  if (!("CallbackMetadata" in json)) return undefined;
+  const metadata = json.CallbackMetadata;
+  if (typeof metadata !== "object" || metadata === null) return undefined;
+
+  const items =
+    "Item" in metadata && Array.isArray(metadata.Item) ? metadata.Item : [];
+  for (const item of items) {
+    if (
+      item &&
+      typeof item === "object" &&
+      "Name" in item &&
+      item.Name === "MpesaReceiptNumber" &&
+      "Value" in item &&
+      item.Value != null
+    ) {
+      return String(item.Value);
+    }
+  }
+  return undefined;
+}
+
 function parseStkQueryResponse(json: unknown): StkQueryResult {
   if (typeof json !== "object" || json === null) return { status: "pending" };
   const resultCode = "ResultCode" in json ? String(json.ResultCode) : undefined;
   const resultDesc =
     "ResultDesc" in json && typeof json.ResultDesc === "string" ? json.ResultDesc : undefined;
+  const mpesaReceipt = extractMpesaReceipt(json);
 
   if (resultCode === "0") {
-    return { status: "success", resultDesc, mpesaReceipt: resultDesc };
+    return { status: "success", resultDesc, mpesaReceipt };
   }
   // 1032 = cancelled by user, 1 = insufficient funds, etc.
   if (resultCode && resultCode !== "1037") {

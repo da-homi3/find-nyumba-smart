@@ -5,6 +5,7 @@ import { listAgencyProperties } from "@/lib/api/nyumba.functions";
 import { formatKes } from "@/lib/properties";
 import { PropertyMediaManager } from "@/components/PropertyMediaManager";
 import { Plus } from "lucide-react";
+import { ListingGridSkeleton } from "@/components/skeletons/ListingCardSkeleton";
 
 export const Route = createFileRoute("/agency/properties")({
   component: () => (
@@ -35,7 +36,7 @@ function Page() {
         </Link>
       </div>
       {isLoading ? (
-        <div className="mt-8 h-40 animate-pulse rounded-2xl bg-muted" />
+        <ListingGridSkeleton count={6} />
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.map((p) => (

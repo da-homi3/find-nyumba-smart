@@ -8,6 +8,7 @@ import { PropertyDetailGallery } from "@/components/property-detail/PropertyDeta
 import { PropertyDetailMedia } from "@/components/property-detail/PropertyDetailMedia";
 import { buildPropertyDetailHead } from "@/components/property-detail/property-detail-head";
 import { usePropertyDetail } from "@/hooks/use-property-detail";
+import { PropertyDetailSkeleton } from "@/components/skeletons/PropertyDetailSkeleton";
 import { useEntitlements } from "@/hooks/use-entitlements";
 
 export const Route = createFileRoute("/tenant/property/$id")({
@@ -29,7 +30,7 @@ function PropertyDetail() {
   const detail = usePropertyDetail(id, loaderProperty);
 
   if (detail.isLoading && !detail.p) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
+    return <PropertyDetailSkeleton />;
   }
   if (!detail.p) {
     return (

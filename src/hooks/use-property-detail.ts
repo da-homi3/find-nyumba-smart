@@ -16,6 +16,7 @@ import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
 import { currentRedirectPath } from "@/lib/navigation";
+import { errorMessage } from "@/lib/utils";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import type { Property } from "@/lib/properties";

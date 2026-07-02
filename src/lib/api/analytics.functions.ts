@@ -7,9 +7,10 @@ const searchEventSchema = z.object({
   neighborhood: z.string().max(80).optional(),
   resultCount: z.number().int().min(0).max(10_000),
   sessionId: z.string().max(64).optional(),
+  userId: z.string().uuid().optional(),
 });
 
-/** Fire-and-forget search analytics (structured server log + optional DB row). */
+/** Fire-and-forget search analytics (structured log + search_events row). */
 export const recordSearchEvent = createServerFn({ method: "POST" })
   .inputValidator(searchEventSchema)
   .handler(async ({ data }) => {
@@ -19,17 +20,22 @@ export const recordSearchEvent = createServerFn({ method: "POST" })
       neighborhood: data.neighborhood ?? "",
       resultCount: data.resultCount,
       sessionId: data.sessionId ?? "anonymous",
+      userId: data.userId ?? null,
       at: new Date().toISOString(),
     };
     console.info("[NyumbaSearch:analytics]", JSON.stringify(payload));
 
     try {
-      await supabaseAdmin.from("admin_audit_logs").insert({
-        action: "search_event",
-        details: JSON.stringify(payload),
+      await supabaseAdmin.from("search_events").insert({
+        user_id: data.userId ?? null,
+        query: data.query ?? null,
+        neighborhood: data.neighborhood ?? null,
+        result_count: data.resultCount,
+        session_id: data.sessionId ?? null,
       });
-    } catch {
-      /* non-blocking */
+    } catch (err) {
+      console.warn("[analytics] search_events insert:", err);
     }
+
     return { recorded: true };
   });

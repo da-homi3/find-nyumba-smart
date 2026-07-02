@@ -13,8 +13,10 @@ import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "@/lib/error-reporting";
-import { getOgImageUrl } from "@/lib/site";
+import { getOgImageUrl, HOMEPAGE_TITLE } from "@/lib/site";
+import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
+import { CookieConsentBanner } from "@/components/CookieConsent";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/motion/PageTransition";
@@ -81,14 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NyumbaSearch — Find Verified Homes Smarter" },
+      { title: HOMEPAGE_TITLE },
       {
         name: "description",
         content:
           "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
       },
       { name: "author", content: "NyumbaSearch" },
-      { property: "og:title", content: "NyumbaSearch — Find Verified Homes Smarter" },
+      { property: "og:title", content: HOMEPAGE_TITLE },
       {
         property: "og:description",
         content:
@@ -96,7 +98,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "NyumbaSearch — Find Verified Homes Smarter" },
+      { name: "twitter:title", content: HOMEPAGE_TITLE },
       {
         name: "twitter:description",
         content:
@@ -107,6 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "preload", as: "image", href: heroImg, fetchPriority: "high" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
@@ -159,6 +162,7 @@ function RootComponent() {
           <AnimatedOutlet />
         </ErrorBoundary>
         <Toaster />
+        <CookieConsentBanner />
       </AuthProvider>
     </QueryClientProvider>
   );

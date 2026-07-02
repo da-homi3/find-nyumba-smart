@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, CheckCheck, Loader2, Send } from "lucide-react";
+import { toast } from "sonner";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import { useEntitlements } from "@/hooks/use-entitlements";
 

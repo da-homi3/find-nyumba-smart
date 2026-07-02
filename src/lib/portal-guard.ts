@@ -43,12 +43,21 @@ export function hasPendingApplicationForRole(
   return applications.some((a) => a.requested_role === role && a.status === "pending");
 }
 
+export function isSafeRedirectPath(path: string | undefined): path is string {
+  if (!path || typeof path !== "string") return false;
+  if (!path.startsWith("/")) return false;
+  if (path.startsWith("//")) return false;
+  if (path.includes("\\")) return false;
+  if (/^\/https?:/i.test(path)) return false;
+  return true;
+}
+
 export function resolvePostLoginPath(
   roles: AppRole[],
   activePortal: PortalId | null,
   redirect?: string,
 ): string {
-  if (redirect) {
+  if (redirect && isSafeRedirectPath(redirect)) {
     const portal = portalFromPathname(redirect);
     if (!portal || portal === "tenant" || canAccessPortal(roles, portal)) {
       return redirect;

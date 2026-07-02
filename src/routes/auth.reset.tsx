@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -12,10 +12,10 @@ import {
   bootstrapPasswordRecoverySession,
   hasAuthSession,
   isPasswordRecoveryUrl,
-  passwordResetRedirectUrl,
   recoverySessionEmail,
   recoveryUrlError,
 } from "@/lib/auth-reset";
+import { requestPasswordReset } from "@/lib/api/auth.functions";
 import { errorMessage } from "@/lib/utils";
 
 const OTP_PATTERN = /^\d{6}$/;
@@ -137,15 +137,12 @@ function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
-        redirectTo: passwordResetRedirectUrl(),
-      });
-      if (error) throw error;
+      await requestPasswordReset({ data: { email: trimmed } });
       setEmail(trimmed);
       setSessionReady(false);
       setResendSeconds(60);
       setStep("otp");
-      toast.success("Check your email for the reset code or link.");
+      toast.success("If that email is registered, we sent a 6-digit code and reset link.");
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -153,12 +150,12 @@ function ResetPasswordPage() {
     }
   }
 
-  async function requestReset(e: FormEvent<HTMLFormElement>) {
+  async function requestReset(e: SubmitEvent) {
     e.preventDefault();
     await sendResetEmail();
   }
 
-  async function verifyOtp(e: FormEvent<HTMLFormElement>) {
+  async function verifyOtp(e: SubmitEvent) {
     e.preventDefault();
     if (!OTP_PATTERN.test(otp)) {
       toast.error("Enter the 6-digit code");
@@ -195,7 +192,7 @@ function ResetPasswordPage() {
     }
   }
 
-  async function updatePassword(e: FormEvent<HTMLFormElement>) {
+  async function updatePassword(e: SubmitEvent) {
     e.preventDefault();
     const passwordError = validatePasswordPair(password, confirmPassword);
     if (passwordError) {

@@ -47,7 +47,7 @@ execSync("node scripts/test-gemini.mjs", {
 console.log("Syncing to Cloudflare…");
 execSync("node scripts/sync-wrangler-env.mjs", { stdio: "inherit", cwd: root });
 
-const base = process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+const base = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
 console.log("Deploying worker (secrets already updated; deploy picks up code if needed)…");
 execSync("npx wrangler deploy --config dist/server/wrangler.json", { stdio: "inherit", cwd: root });
 

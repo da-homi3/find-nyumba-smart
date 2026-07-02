@@ -1,4 +1,5 @@
 import { getProperty, listProperties } from "@/lib/api/nyumba.functions";
+import { fetchListingsApi } from "@/lib/listings-client";
 
 export type PropertyType =
   | "bedsitter"
@@ -62,9 +63,32 @@ export const prettyType = (t: PropertyType) =>
     townhouse: "Townhouse",
   })[t];
 
-export async function fetchProperties(): Promise<Property[]> {
-  const result = await listProperties({ data: {} });
+function isBrowser(): boolean {
+  return globalThis.window !== undefined;
+}
+
+export async function fetchProperties(filters?: PropertySearchFilters): Promise<Property[]> {
+  if (isBrowser()) {
+    const result = await fetchListingsApi({
+      limit: filters?.limit ?? 50,
+      offset: filters?.offset ?? 0,
+      ...filters,
+    });
+    return result.items;
+  }
+  const result = await listProperties({
+    data: { limit: filters?.limit ?? 50, offset: filters?.offset ?? 0, ...filters },
+  });
   return result.items;
+}
+
+/** Map view — up to 500 active listings with optional bounds filter. */
+export async function fetchMapProperties(filters?: PropertySearchFilters) {
+  return searchProperties({
+    ...filters,
+    limit: filters?.limit ?? 500,
+    offset: filters?.offset ?? 0,
+  });
 }
 
 export type PropertySearchFilters = {
@@ -83,6 +107,9 @@ export type PropertySearchFilters = {
 };
 
 export async function searchProperties(filters?: PropertySearchFilters) {
+  if (isBrowser()) {
+    return fetchListingsApi(filters ?? {});
+  }
   return listProperties({ data: filters ?? {} });
 }
 
@@ -97,13 +124,13 @@ export async function fetchProperty(id: string): Promise<Property | null> {
 }
 
 function getAnonymousSessionId() {
-  if (typeof window === "undefined") return undefined;
+  if (globalThis.window === undefined) return undefined;
 
   const key = "nyumba_session_id";
-  const existing = window.localStorage.getItem(key);
+  const existing = globalThis.window.localStorage.getItem(key);
   if (existing) return existing;
 
   const next = crypto.randomUUID();
-  window.localStorage.setItem(key, next);
+  globalThis.window.localStorage.setItem(key, next);
   return next;
 }

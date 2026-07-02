@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ORG_REQUIRED_ROLES } from "@/lib/account-roles";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
-import { checkRateLimit } from "@/lib/api/rate-limit";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getAuthContext } from "@/lib/api/server-context";
 import type { PortalId } from "@/lib/portal-guard";
 
@@ -126,7 +126,7 @@ export const registerPortalApplicationAfterSignup = createServerFn({ method: "PO
     }),
   )
   .handler(async ({ data }) => {
-    checkRateLimit(`portal-signup:${data.applicantEmail}`);
+    checkRateLimit(`portal-signup:${data.applicantEmail}`, RATE_LIMITS.portalSignup);
 
     if (!data.phone?.trim()) {
       throw new Error("A verified M-Pesa phone number is required for this application");

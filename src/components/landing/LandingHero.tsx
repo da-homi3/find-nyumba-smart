@@ -14,7 +14,13 @@ const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
   { value: "one_bedroom", label: "1 BR" },
   { value: "two_bedroom", label: "2 BR" },
   { value: "three_bedroom", label: "3 BR" },
+  { value: "townhouse", label: "4 BR+" },
+  { value: "maisonette", label: "Maisonette" },
+  { value: "bungalow", label: "Bungalow" },
 ];
+
+const MIN_BUDGET_KES = 1_000;
+const MAX_BUDGET_KES = 2_000_000;
 
 export function LandingHero({
   verifiedCount,
@@ -27,19 +33,26 @@ export function LandingHero({
 
   const submit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    navigate({
-      to: "/tenant/",
-      search: {
-        ...(hood ? { neighborhood: hood } : {}),
-        ...(maxRent ? { maxPrice: Number(maxRent) } : {}),
-        ...(propType ? { type: propType } : {}),
-      },
-    });
+    let budget: number | undefined;
+    if (maxRent.trim()) {
+      const parsed = Number(maxRent);
+      if (!Number.isFinite(parsed)) return;
+      budget = Math.min(MAX_BUDGET_KES, Math.max(MIN_BUDGET_KES, parsed));
+    }
+    const search: {
+      neighborhood?: string;
+      maxPrice?: number;
+      type?: PropertyType;
+    } = {};
+    if (hood) search.neighborhood = hood;
+    if (typeof budget === "number") search.maxPrice = budget;
+    if (propType) search.type = propType;
+    navigate({ to: "/tenant", search });
   };
 
   return (
     <section className="relative isolate min-h-screen overflow-hidden bg-(--color-obsidian)">
-      <div className="absolute inset-0 z-0" aria-hidden>
+      <div className="absolute inset-0 z-0 bg-[#0a5c47]" aria-hidden>
         <img
           src={heroImg}
           alt="Aerial view of a garden city with green-roof buildings, winding paths, and a central pond at golden hour"
@@ -47,6 +60,7 @@ export function LandingHero({
           height={1280}
           sizes="100vw"
           fetchPriority="high"
+          loading="eager"
           decoding="async"
           className="h-full w-full object-cover object-center"
         />
@@ -118,7 +132,8 @@ export function LandingHero({
               <input
                 type="number"
                 inputMode="numeric"
-                min={0}
+                min={MIN_BUDGET_KES}
+                max={MAX_BUDGET_KES}
                 value={maxRent}
                 onChange={(e) => setMaxRent(e.target.value)}
                 placeholder="Max budget"
@@ -177,7 +192,7 @@ export function LandingHero({
         >
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Link
-              to="/tenant/"
+              to="/tenant"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1eb88a] px-8 py-3.5 text-sm font-semibold text-white shadow-(--shadow-green)"
             >
               Browse homes

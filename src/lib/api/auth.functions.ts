@@ -1,8 +1,89 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { ORG_REQUIRED_ROLES } from "@/lib/account-roles";
-import { checkRateLimit } from "@/lib/api/rate-limit";
+import { checkRateLimit, rateLimitKeyFromHeaders, RATE_LIMITS } from "@/lib/api/rate-limit";
+import { passwordResetEmail } from "@/lib/email/templates";
+import { sendEmail } from "@/lib/email/send";
+import { getSiteUrl } from "@/lib/site";
 import { isKenyanPhone } from "@/lib/phone";
+
+const passwordResetSchema = z.object({
+  email: z.string().email(),
+});
+
+function passwordResetRedirectUrl(): string {
+  return `${getSiteUrl()}/auth/reset`;
+}
+
+function isUnknownAuthUserError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("user not found") ||
+    lower.includes("not found") ||
+    lower.includes("no user") ||
+    lower.includes("invalid email")
+  );
+}
+
+/** Sends password reset email with 6-digit code + link (SendGrid, Supabase fallback). */
+export const requestPasswordReset = createServerFn({ method: "POST" })
+  .inputValidator(passwordResetSchema)
+  .handler(async ({ data }) => {
+    const request = getRequest();
+    const ip = rateLimitKeyFromHeaders(request?.headers);
+    const email = data.email.trim().toLowerCase();
+
+    checkRateLimit(`pwreset:ip:${ip}`, RATE_LIMITS.passwordReset);
+    checkRateLimit(`pwreset:email:${email}`, RATE_LIMITS.passwordReset);
+
+    const redirectTo = passwordResetRedirectUrl();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    try {
+      const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo },
+      });
+
+      if (error) {
+        if (!isUnknownAuthUserError(error.message)) {
+          console.error("[auth] generateLink recovery:", error.message);
+        }
+        return { ok: true as const };
+      }
+
+      const props = linkData.properties as {
+        action_link?: string;
+        email_otp?: string;
+      };
+
+      const resetLink = props.action_link?.trim();
+      const otpCode = props.email_otp?.trim();
+
+      if (resetLink && otpCode) {
+        const tpl = passwordResetEmail({ resetLink, otpCode });
+        const sent = await sendEmail({
+          to: email,
+          templateId: "password-reset",
+          ...tpl,
+        });
+        if (sent) return { ok: true as const };
+      }
+
+      const { error: fallbackError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      });
+      if (fallbackError && !isUnknownAuthUserError(fallbackError.message)) {
+        console.error("[auth] resetPasswordForEmail fallback:", fallbackError.message);
+      }
+    } catch (err) {
+      console.error("[auth] requestPasswordReset:", err);
+    }
+
+    return { ok: true as const };
+  });
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -45,7 +126,7 @@ async function findAuthUserByEmail(email: string) {
 export const registerAccountSignup = createServerFn({ method: "POST" })
   .inputValidator(signupSchema)
   .handler(async ({ data }) => {
-    checkRateLimit(`signup:${data.email.toLowerCase()}`);
+    checkRateLimit(`signup:${data.email.toLowerCase()}`, RATE_LIMITS.signup);
 
     if (ORG_REQUIRED_ROLES.has(data.role) && !data.organizationName?.trim()) {
       throw new Error(

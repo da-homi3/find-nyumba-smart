@@ -1,36 +1,29 @@
-import sgMail from "@sendgrid/mail";
+import {
+  adminNewApplicationEmail,
+  newMessageEmail,
+  portalApprovedEmail,
+  portalRejectedEmail,
+} from "@/lib/email/templates";
+import { sendEmail } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
 
-type EmailPayload = {
+export const OPS_EMAIL = process.env.OPS_NOTIFICATION_EMAIL ?? "kevinbuluma9@gmail.com";
+
+/** @deprecated Use sendEmail from @/lib/email/send — kept for backward compatibility */
+export async function sendEmailNotification(payload: {
   to: string;
   subject: string;
   text: string;
   html?: string;
-};
-
-/** Sends email via SendGrid when SENDGRID_API_KEY is configured; otherwise no-op. */
-export async function sendEmailNotification(payload: EmailPayload): Promise<boolean> {
-  const key = process.env.SENDGRID_API_KEY;
-  const from = process.env.SENDGRID_FROM_EMAIL ?? "kevinbuluma9@gmail.com";
-  if (!key || !payload.to) return false;
-
-  try {
-    sgMail.setApiKey(key);
-    await sgMail.send({
-      to: payload.to,
-      from,
-      subject: payload.subject,
-      text: payload.text,
-      html: payload.html ?? payload.text.replaceAll("\n", "<br>"),
-    });
-    return true;
-  } catch (err) {
-    console.error("SendGrid notification failed:", err);
-    return false;
-  }
+}): Promise<boolean> {
+  return sendEmail({
+    to: payload.to,
+    subject: payload.subject,
+    text: payload.text,
+    html: payload.html ?? payload.text.replaceAll("\n", "<br>"),
+    templateId: "legacy-plain",
+  });
 }
-
-export const OPS_EMAIL = process.env.OPS_NOTIFICATION_EMAIL ?? "kevinbuluma9@gmail.com";
 
 export async function notifyOpsNewApplication(opts: {
   applicantName: string;
@@ -39,23 +32,23 @@ export async function notifyOpsNewApplication(opts: {
   orgName?: string;
   reviewUrl: string;
 }) {
-  const subject = `[NyumbaSearch] New ${opts.role} application — ${opts.applicantName}`;
-  const text = `A new portal application requires your review.
-
-Applicant: ${opts.applicantName}
-Email: ${opts.applicantEmail}
-Requested role: ${opts.role}
-Organization: ${opts.orgName ?? "—"}
-
-Review in admin: ${opts.reviewUrl}`;
-  return sendEmailNotification({ to: OPS_EMAIL, subject, text });
+  const tpl = adminNewApplicationEmail(opts);
+  return sendEmail({ to: OPS_EMAIL, templateId: "admin-new-application", ...tpl });
 }
 
 export async function notifyApplicantApproved(opts: { email: string; name: string; role: string }) {
   if (!opts.email) return false;
-  const subject = `Your NyumbaSearch ${opts.role} account is approved`;
-  const text = `Hi ${opts.name},\n\nYour application to join NyumbaSearch as a ${opts.role} has been approved. Sign in and open Settings to enter your dashboard.\n\n${getSiteUrl()}/auth`;
-  return sendEmailNotification({ to: opts.email, subject, text });
+  const portalPaths: Record<string, string> = {
+    landlord: "/landlord/dashboard",
+    manager: "/manager/dashboard",
+    agency: "/agency/dashboard",
+  };
+  const tpl = portalApprovedEmail({
+    name: opts.name,
+    role: opts.role,
+    dashboardUrl: `${getSiteUrl()}${portalPaths[opts.role] ?? "/tenant"}`,
+  });
+  return sendEmail({ to: opts.email, templateId: "portal-approved", ...tpl });
 }
 
 export async function notifyApplicantRejected(opts: {
@@ -65,9 +58,8 @@ export async function notifyApplicantRejected(opts: {
   reason?: string;
 }) {
   if (!opts.email) return false;
-  const subject = `NyumbaSearch ${opts.role} application update`;
-  const text = `Hi ${opts.name},\n\nYour ${opts.role} application was not approved at this time.${opts.reason ? `\n\nReason: ${opts.reason}` : ""}\n\nYou can still browse listings as a tenant.`;
-  return sendEmailNotification({ to: opts.email, subject, text });
+  const tpl = portalRejectedEmail(opts);
+  return sendEmail({ to: opts.email, templateId: "portal-rejected", ...tpl });
 }
 
 export async function notifyNewMessage(opts: {
@@ -79,7 +71,12 @@ export async function notifyNewMessage(opts: {
   threadUrl: string;
 }) {
   if (!opts.recipientEmail) return false;
-  const subject = `New message about ${opts.propertyTitle} — NyumbaSearch`;
-  const text = `Hi ${opts.recipientName},\n\n${opts.senderName} sent you a message about "${opts.propertyTitle}":\n\n"${opts.preview.slice(0, 200)}"\n\nOpen the conversation: ${opts.threadUrl}`;
-  return sendEmailNotification({ to: opts.recipientEmail, subject, text });
+  const tpl = newMessageEmail({
+    recipientName: opts.recipientName,
+    senderName: opts.senderName,
+    propertyTitle: opts.propertyTitle,
+    preview: opts.preview,
+    threadUrl: opts.threadUrl,
+  });
+  return sendEmail({ to: opts.recipientEmail, templateId: "new-message", ...tpl });
 }

@@ -5,13 +5,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Property } from "@/lib/properties";
 import { ForbiddenError, requireRole } from "@/lib/api/_authz";
-import {
-  createPublicClient,
-  PROPERTY_DETAIL_COLUMNS,
-  PUBLIC_PROPERTY_COLUMNS,
-} from "@/lib/api/public-client";
+import { assertPropertyAccess } from "@/lib/api/agency-scope";
+import { createPublicClient, PROPERTY_DETAIL_COLUMNS } from "@/lib/api/public-client";
+import { queryListings } from "@/lib/api/listings-core";
 import { checkRateLimit } from "@/lib/api/rate-limit";
-import { filterMockListings, getMockProperty, mockListingsEnabled } from "@/data/mockListings";
+import { getMockProperty, mockListingsEnabled } from "@/data/mockListings";
 import {
   adminClient,
   authContext,
@@ -29,96 +27,7 @@ export const listProperties = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const request = getRequest();
     checkRateLimit(request?.headers?.get("cf-connecting-ip") ?? "list-properties");
-
-    const supabase = createPublicClient();
-    const limit = data?.limit ?? 50;
-    const offset = data?.offset ?? 0;
-
-    let query = supabase
-      .from("properties")
-      .select(PUBLIC_PROPERTY_COLUMNS, { count: "exact" })
-      .eq("is_active", true);
-
-    if (data?.neighborhood && data.neighborhood !== "All") {
-      query = query.eq("neighborhood", data.neighborhood);
-    }
-    if (data?.propertyType) query = query.eq("property_type", data.propertyType);
-    if (data?.minRent) query = query.gte("rent_kes", data.minRent);
-    if (data?.maxRent) query = query.lte("rent_kes", data.maxRent);
-    if (data?.verifiedOnly) query = query.eq("is_verified", true);
-    if (data?.minBedrooms) query = query.gte("bedrooms", data.minBedrooms);
-    if (data?.minAuthenticityScore)
-      query = query.gte("authenticity_score", data.minAuthenticityScore);
-    if (data?.bounds) {
-      query = query
-        .gte("latitude", data.bounds.minLat)
-        .lte("latitude", data.bounds.maxLat)
-        .gte("longitude", data.bounds.minLng)
-        .lte("longitude", data.bounds.maxLng);
-    }
-    if (data?.query) {
-      const term = data.query
-        .replaceAll(",", " ")
-        .replace(/[()[\].,:*!%\\]/g, "")
-        .trim()
-        .slice(0, 100);
-      if (term) {
-        const typeTerm = term.replaceAll(" ", "_");
-        query = query.or(
-          `title.ilike.*${term}*,neighborhood.ilike.*${term}*,property_type.eq.${typeTerm}`,
-        );
-      }
-    }
-
-    switch (data?.sortBy ?? "newest") {
-      case "price_asc":
-        query = query.order("rent_kes", { ascending: true });
-        break;
-      case "price_desc":
-        query = query.order("rent_kes", { ascending: false });
-        break;
-      case "score":
-        query = query.order("authenticity_score", { ascending: false });
-        break;
-      default:
-        query = query.order("created_at", { ascending: false });
-    }
-
-    query = query.range(offset, offset + limit - 1);
-
-    const { data: rows, error, count } = await query;
-    if (error) throw error;
-
-    let items = mapPropertyRows(rows ?? []);
-    let total = count ?? items.length;
-
-    if (mockListingsEnabled()) {
-      const mockResult = filterMockListings({
-        neighborhood: data?.neighborhood,
-        propertyType: data?.propertyType,
-        minRent: data?.minRent,
-        maxRent: data?.maxRent,
-        verifiedOnly: data?.verifiedOnly,
-        minBedrooms: data?.minBedrooms,
-        minAuthenticityScore: data?.minAuthenticityScore,
-        bounds: data?.bounds,
-        query: data?.query,
-        sortBy: data?.sortBy,
-        limit,
-        offset,
-      });
-      const liveIds = new Set(items.map((item) => item.id));
-      const extras = mockResult.items.filter((item) => !liveIds.has(item.id));
-      items = [...items, ...extras];
-      total = items.length;
-    }
-
-    return {
-      items,
-      total,
-      limit,
-      offset,
-    };
+    return queryListings(data);
   });
 
 export const getProperty = createServerFn({ method: "POST" })
@@ -420,12 +329,7 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", userId);
     const roles = new Set((roleRows ?? []).map((r) => r.role));
-    let allowed = property.owner_id === userId;
-    if (!allowed && (roles.has("manager") || roles.has("agency")) && property.organization_id) {
-      const orgId = await getUserOrganizationId(supabase, userId);
-      allowed = orgId === property.organization_id;
-    }
-    if (!allowed) throw new ForbiddenError("You cannot update this property");
+    await assertPropertyAccess(supabase, userId, property, roles);
 
     const { data: updated, error } = await admin
       .from("properties")

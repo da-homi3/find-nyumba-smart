@@ -19,6 +19,25 @@ type Props = {
   variant?: "hero" | "light";
 };
 
+function resolveGlassClass(isHero: boolean, scrolled: boolean): string {
+  if (isHero) {
+    return scrolled
+      ? "bg-[rgba(13,17,23,0.9)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      : "bg-[rgba(13,17,23,0.4)]";
+  }
+  return scrolled ? "bg-background/95 shadow-card" : "bg-background/80";
+}
+
+function headerShellClass(isHero: boolean): string {
+  return isHero
+    ? "fixed top-4 inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/10 backdrop-blur-xl sm:inset-x-6"
+    : "sticky top-0 z-30 border-b backdrop-blur-xl";
+}
+
+function heroOutlineClass(isHero: boolean): string {
+  return isHero ? "border-white/30 bg-white/10 text-white" : "border-border";
+}
+
 export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const { user, signOut, isLandlord } = useAuth();
   const { isPlus } = useEntitlements();
@@ -37,25 +56,14 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const glassClass = isHero
-    ? scrolled
-      ? "bg-[rgba(13,17,23,0.9)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-      : "bg-[rgba(13,17,23,0.4)]"
-    : scrolled
-      ? "bg-background/95 shadow-card"
-      : "bg-background/80";
+  const glassClass = resolveGlassClass(isHero, scrolled);
 
   return (
     <motion.header
       initial={{ y: -80 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 25 }}
-      className={
-        isHero
-          ? "fixed top-4 inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/10 backdrop-blur-xl sm:inset-x-6"
-          : "sticky top-0 z-30 border-b backdrop-blur-xl"
-      }
-      style={isHero ? undefined : undefined}
+      className={headerShellClass(isHero)}
     >
       <div
         className={`flex items-center justify-between px-4 py-3 transition-colors sm:px-5 ${glassClass}`}
@@ -122,7 +130,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
         {user ? (
           <Link
             to="/settings"
-            className={`hidden items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${isHero ? "border-white/30 bg-white/10 text-white" : "border-border"}`}
+            className={`hidden items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${heroOutlineClass(isHero)}`}
           >
             Account
             {isPlus && (
@@ -135,7 +143,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
           <Link
             to="/auth"
             search={{ redirect: "/tenant" }}
-            className={`hidden rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${isHero ? "border-white/30 bg-white/10 text-white" : "border-border"}`}
+            className={`hidden rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${heroOutlineClass(isHero)}`}
           >
             Sign in
           </Link>
@@ -201,8 +209,8 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
 export function SiteFooter() {
   return (
     <footer className="border-t bg-secondary/40">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:grid-cols-2 md:grid-cols-5">
-        <div className="md:col-span-2">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="sm:col-span-2 lg:col-span-2">
           <div className="flex items-center gap-2">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
               N
@@ -234,6 +242,18 @@ export function SiteFooter() {
             { to: "/pricing#plus", label: "NyumbaSearch Plus" },
             { to: "/pricing#boost", label: "Boost a listing" },
             { to: "/advertise", label: "Advertise with us" },
+          ]}
+        />
+        <FooterCol
+          title="Legal"
+          links={[
+            { to: "/privacy", label: "Privacy policy" },
+            { to: "/terms-of-service", label: "Terms of service" },
+            { to: "/cookie-policy", label: "Cookie policy" },
+            { to: "/acceptable-use-policy", label: "Acceptable use" },
+            { to: "/refund-policy", label: "Refund policy" },
+            { to: "/data-deletion", label: "Delete my data" },
+            { to: "/landlord-agreement", label: "Landlord agreement" },
           ]}
         />
         <FooterCol

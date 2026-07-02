@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const PASSWORD = "NyumbaPortalTest!2026";
-const BASE = process.env.PUBLIC_APP_URL ?? "https://nyumba-search.kevinbuluma1.workers.dev";
+const BASE = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
 
 const USERS = {
   tenant: "smoke-tenant@nyumbasearch.app",

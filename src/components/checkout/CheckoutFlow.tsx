@@ -3,44 +3,33 @@ import { CreditCard, Lock, Phone, CheckCircle2, Loader2, ChevronDown } from "luc
 import { toast } from "sonner";
 import { formatKes } from "@/lib/properties";
 import { initiatePayment, verifyPaymentStatus } from "@/lib/api/payment.functions";
+import { pollPaymentUntilComplete } from "@/lib/payments/poll-payment-client";
 import { transactionReference } from "@/lib/revenue/plans";
 import { isPesapalCheckoutEnabled } from "@/lib/pesapal-client";
 import { errorMessage } from "@/lib/utils";
 
-type PollCallbacks = {
-  onPhase: (phase: "confirming" | "awaiting_pin") => void;
-  onMessage: (message: string) => void;
-};
-
 type PaymentPhase = "idle" | "sending" | "awaiting_pin" | "confirming";
-
-async function pollPayment(
-  paymentId: string,
-  callbacks: PollCallbacks,
-): Promise<string | undefined> {
-  const maxAttempts = 40;
-  for (let i = 0; i < maxAttempts; i++) {
-    let delay = 2500;
-    if (i === 0) delay = 1200;
-    else if (i < 4) delay = 2000;
-    await new Promise((r) => setTimeout(r, delay));
-
-    callbacks.onPhase(i < 2 ? "awaiting_pin" : "confirming");
-    const status = await verifyPaymentStatus({ data: { paymentId } });
-    callbacks.onMessage(status.message ?? "Confirming payment…");
-
-    if (status.status === "completed") return status.receipt;
-    if (status.status === "failed") {
-      throw new Error(status.message ?? "M-Pesa payment failed or was cancelled");
-    }
-  }
-  throw new Error("Payment timed out. If you entered your PIN, wait a moment and refresh.");
-}
 
 function phaseLabelFor(phase: PaymentPhase, statusMessage: string | null): string | null {
   if (phase === "sending") return statusMessage;
   if (phase === "awaiting_pin") return statusMessage ?? "Enter your M-Pesa PIN on your phone";
   if (phase === "confirming") return statusMessage ?? "Confirming payment automatically…";
+  return null;
+}
+
+type InitiatePaymentResult = Awaited<ReturnType<typeof initiatePayment>>;
+
+function mpesaPendingMessage(res: InitiatePaymentResult): string {
+  if (res.method === "mpesa" && "message" in res) {
+    return res.message ?? "Check your phone — enter your M-Pesa PIN.";
+  }
+  return "Check your phone — enter your M-Pesa PIN.";
+}
+
+function cardRedirectUrl(res: InitiatePaymentResult): string | null {
+  if (res.method === "card" && "redirectUrl" in res && res.redirectUrl) {
+    return res.redirectUrl;
+  }
   return null;
 }
 
@@ -197,24 +186,27 @@ export function CheckoutFlow({
         return;
       }
 
-      if (res.method === "card" && "redirectUrl" in res && res.redirectUrl) {
-        globalThis.location.href = res.redirectUrl;
+      const redirect = cardRedirectUrl(res);
+      if (redirect) {
+        globalThis.location.href = redirect;
         return;
       }
 
+      let mpesaReceipt: string | undefined;
       if (res.status === "pending" && res.paymentId) {
-        setStatusMessage(res.message ?? "Check your phone — enter your M-Pesa PIN.");
+        setStatusMessage(mpesaPendingMessage(res));
         setPhase("awaiting_pin");
-
-        const mpesaReceipt = await pollPayment(res.paymentId, {
-          onPhase: setPhase,
-          onMessage: setStatusMessage,
-        });
-        if (mpesaReceipt) setReceipt(mpesaReceipt);
-      } else if (res.status === "completed") {
-        if ("receiptCode" in res && res.receiptCode) setReceipt(res.receiptCode);
+        mpesaReceipt = (
+          await pollPaymentUntilComplete(res.paymentId, {
+            onPhase: setPhase,
+            onMessage: setStatusMessage,
+          })
+        ).receipt;
+      } else if (res.status === "completed" && "receiptCode" in res && res.receiptCode) {
+        mpesaReceipt = res.receiptCode;
       }
 
+      if (mpesaReceipt) setReceipt(mpesaReceipt);
       const reference = transactionReference();
       setRef(reference);
       setStep(3);
@@ -358,7 +350,7 @@ export function CheckoutFlow({
           {showCard && (
             <div className="mt-3 space-y-2">
               <p className="text-center text-xs text-muted-foreground">
-                You&apos;ll be redirected to Pesapal for card payment
+                You&apos;ll be redirected to our secure card checkout
               </p>
               <button
                 type="button"

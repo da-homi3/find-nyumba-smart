@@ -67,7 +67,6 @@ export async function handleMpesaWebhook(request: Request): Promise<Response> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   await logWebhook(supabaseAdmin, "mpesa", body, Boolean(webhookSecret));
-
   if (!parsed) {
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
       headers: { "Content-Type": "application/json" },
@@ -143,20 +142,32 @@ async function completePesapalPayment(
   const verified = await getTransactionStatus(orderTrackingId);
   if (verified.status !== "success" || verified.amountKes < payment.amount_kes) {
     if (verified.status === "failed") {
-      await supabaseAdmin.from("payments").update({ status: "failed" }).eq("id", payment.id);
+      await supabaseAdmin
+        .from("payments")
+        .update({ status: "failed" })
+        .eq("id", payment.id)
+        .eq("status", "pending");
     }
     return;
   }
 
-  await supabaseAdmin
+  const { data: completed } = await supabaseAdmin
     .from("payments")
     .update({
       status: "completed",
       mpesa_receipt: verified.confirmationCode ?? orderTrackingId,
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id)
+    .eq("status", "pending")
+    .select("*")
+    .maybeSingle();
 
-  await fulfillPaymentRow(supabaseAdmin, payment);
+  if (!completed) return;
+
+  await fulfillPaymentRow(supabaseAdmin, completed);
+
+  const { queuePaymentEmails } = await import("@/lib/payments/payment-email-hook");
+  queuePaymentEmails(supabaseAdmin, completed);
 }
 
 export async function handlePesapalRedirect(request: Request): Promise<Response> {
@@ -212,6 +223,84 @@ export async function handleRenewalCron(request: Request): Promise<Response> {
   const stats = await runSubscriptionRenewalCron(supabaseAdmin);
 
   return new Response(JSON.stringify({ ok: true, stats }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function authorizeCron(request: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  const auth = request.headers.get("authorization");
+  return Boolean(secret && auth === `Bearer ${secret}`);
+}
+
+export async function handleDailyCron(request: Request): Promise<Response> {
+  if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { runSubscriptionRenewalCron } = await import("@/lib/payments/renewal-cron");
+  const { runTrialReminderCron, runReengagementCron, runSavedSearchDigestCron } =
+    await import("@/lib/cron/marketing-cron");
+  const { runEmailRetryCron } = await import("@/lib/cron/email-retry-cron");
+  const { runViewingReminderCron } = await import("@/lib/cron/whatsapp-cron");
+  const { runSalesBotCron } = await import("@/lib/cron/sales-cron");
+
+  const [renewals, trial, reengagement, savedSearch, emailRetry, viewingReminders, sales] =
+    await Promise.all([
+    runSubscriptionRenewalCron(supabaseAdmin),
+    runTrialReminderCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] trial reminders:", e);
+      return { trialEnding: 0, trialExpired: 0 };
+    }),
+    runReengagementCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] re-engagement:", e);
+      return { sent: 0 };
+    }),
+    runSavedSearchDigestCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] saved search digest:", e);
+      return { sent: 0 };
+    }),
+    runEmailRetryCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] email retry:", e);
+      return { retried: 0, succeeded: 0 };
+    }),
+    runViewingReminderCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] whatsapp viewing reminders:", e);
+      return { tomorrow: 0, today: 0, skipped: true };
+    }),
+    runSalesBotCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] sales bot:", e);
+      return { upgrade: { sent: 0 }, landlord: { sent: 0 } };
+    }),
+  ]);
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      renewals,
+      marketing: { trial, reengagement, savedSearch },
+      emailRetry,
+      whatsapp: { viewingReminders },
+      sales,
+    }),
+    { headers: { "Content-Type": "application/json" } },
+  );
+}
+
+export async function handleWeeklyCron(request: Request): Promise<Response> {
+  if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { runWeeklyDigestCron } = await import("@/lib/cron/marketing-cron");
+  const digest = await runWeeklyDigestCron(supabaseAdmin);
+  return new Response(JSON.stringify({ ok: true, digest }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export async function handleMonthlyCron(request: Request): Promise<Response> {
+  if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { runMonthlyMarketTeaserCron } = await import("@/lib/cron/marketing-cron");
+  const teaser = await runMonthlyMarketTeaserCron(supabaseAdmin);
+  return new Response(JSON.stringify({ ok: true, teaser }), {
     headers: { "Content-Type": "application/json" },
   });
 }

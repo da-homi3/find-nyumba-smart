@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Clock, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -8,7 +9,18 @@ export const Route = createFileRoute("/auth/pending")({
 
 function PendingApproval() {
   const { user, pendingApplications, signOut } = useAuth();
+  const navigate = useNavigate();
   const pending = pendingApplications.filter((a) => a.status === "pending");
+
+  useEffect(() => {
+    if (!user) {
+      navigate({
+        to: "/auth",
+        search: { redirect: "/auth/pending", mode: "signin" },
+        replace: true,
+      });
+    }
+  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-background">

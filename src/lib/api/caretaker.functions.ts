@@ -7,8 +7,20 @@ import { getAuthContext } from "@/lib/api/server-context";
 
 const SESSION_DAYS = 7;
 
+function getCaretakerSessionSecret(): string {
+  const secret = process.env.CARETAKER_SESSION_SECRET?.trim();
+  const isProduction =
+    process.env.NODE_ENV === "production" ||
+    process.env.PUBLIC_APP_URL?.includes("nyumbasearch.com");
+  if (!secret) {
+    if (isProduction) throw new Error("CARETAKER_SESSION_SECRET is not configured");
+    return "nyumba-caretaker-dev-secret";
+  }
+  return secret;
+}
+
 async function hashValue(value: string): Promise<string> {
-  const secret = process.env.CARETAKER_SESSION_SECRET ?? "nyumba-caretaker-dev-secret";
+  const secret = getCaretakerSessionSecret();
   const data = new TextEncoder().encode(`${secret}:${value}`);
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
@@ -216,7 +228,8 @@ export const listCaretakerAssignedProperties = createServerFn({ method: "POST" }
       .from("properties")
       .select("*")
       .in("id", propertyIds);
-    return properties ?? [];
+    const { mapPropertyRows } = await import("@/lib/api/nyumba/nyumba-shared");
+    return mapPropertyRows(properties ?? []);
   });
 
 export const updateCaretakerVacancy = createServerFn({ method: "POST" })
@@ -252,4 +265,61 @@ export const validateCaretakerSession = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const caretaker = await resolveCaretakerFromToken(data.token);
     return { valid: true, name: caretaker.full_name };
+  });
+
+export type CaretakerViewing = {
+  id: string;
+  scheduledAt: string;
+  status: string;
+  notes: string | null;
+  propertyTitle: string;
+  propertyNeighborhood: string;
+  tenantName: string | null;
+};
+
+export const listCaretakerUpcomingViewings = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ token: z.string().min(16) }))
+  .handler(async ({ data }): Promise<CaretakerViewing[]> => {
+    const caretaker = await resolveCaretakerFromToken(data.token);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: assignments } = await supabaseAdmin
+      .from("caretaker_property_assignments")
+      .select("property_id")
+      .eq("caretaker_id", caretaker.id);
+    const propertyIds = (assignments ?? []).map((a) => a.property_id);
+    if (!propertyIds.length) return [];
+
+    const now = new Date().toISOString();
+    const { data: viewings } = await supabaseAdmin
+      .from("viewings")
+      .select(
+        "id, scheduled_at, status, notes, property_id, tenant_id, properties(title, neighborhood)",
+      )
+      .in("property_id", propertyIds)
+      .gte("scheduled_at", now)
+      .neq("status", "cancelled")
+      .neq("status", "completed")
+      .order("scheduled_at", { ascending: true })
+      .limit(20);
+
+    const tenantIds = [...new Set((viewings ?? []).map((v) => v.tenant_id))];
+    const { data: tenants } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", tenantIds.length ? tenantIds : ["00000000-0000-0000-0000-000000000000"]);
+    const tenantNameById = new Map((tenants ?? []).map((t) => [t.id, t.full_name]));
+
+    return (viewings ?? []).map((v) => {
+      const property = v.properties as { title: string; neighborhood: string } | null;
+      return {
+        id: v.id,
+        scheduledAt: v.scheduled_at,
+        status: v.status,
+        notes: v.notes,
+        propertyTitle: property?.title ?? "Property",
+        propertyNeighborhood: property?.neighborhood ?? "",
+        tenantName: tenantNameById.get(v.tenant_id) ?? null,
+      };
+    });
   });

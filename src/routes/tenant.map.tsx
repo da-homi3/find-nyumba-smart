@@ -1,20 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useEffect, useState, type ReactNode } from "react";
-import { fetchProperties, type Property } from "@/lib/properties";
+import { type Property } from "@/lib/properties";
+import { useListingsSearch } from "@/hooks/use-listings-search";
 import { FallbackMap } from "@/components/tenant-map/FallbackMap";
+import { filterMappableProperties } from "@/components/tenant-map/map-constants";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { TenantMapChrome } from "@/components/tenant-map/TenantMapChrome";
 import { LazyRadar } from "@/components/LazyRadar";
 import { useTenantGoogleMap } from "@/hooks/use-tenant-google-map";
 import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks/use-tenant-mapbox";
 
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+
+function hasGoogleMapsKeySync(): boolean {
+  return Boolean(GOOGLE_MAPS_KEY?.trim());
+}
+
 export const Route = createFileRoute("/tenant/map")({
   head: () => ({ meta: [{ title: "Map — NyumbaSearch" }] }),
-  component: TenantMap,
+  component: () => (
+    <RouteErrorBoundary title="Map failed to load">
+      <TenantMap />
+    </RouteErrorBoundary>
+  ),
 });
 
-type MapProvider = "loading" | "mapbox" | "google";
+type MapProvider = "loading" | "mapbox" | "google" | "fallback";
 type MapHookResult = ReturnType<typeof useTenantGoogleMap>;
 type TenantMapViewProps = Readonly<{
   properties: Property[];
@@ -59,10 +71,14 @@ function MapLoadingState({ message }: Readonly<{ message: string }>) {
 }
 
 function TenantMap() {
-  const { data: properties = [], isLoading: propertiesLoading } = useQuery({
-    queryKey: ["properties"],
-    queryFn: () => fetchProperties(),
-  });
+  const {
+    data: searchResult,
+    isLoading: propertiesLoading,
+    isError,
+    error,
+    refetch,
+  } = useListingsSearch({ limit: 500, sortBy: "newest" });
+  const properties = searchResult?.items ?? [];
 
   const [provider, setProvider] = useState<MapProvider>(resolveInitialProvider);
 
@@ -72,16 +88,37 @@ function TenantMap() {
     let cancelled = false;
     void resolveMapboxToken()
       .then((token) => {
-        if (!cancelled) setProvider(token ? "mapbox" : "google");
+        if (cancelled) return;
+        if (token) setProvider("mapbox");
+        else if (hasGoogleMapsKeySync()) setProvider("google");
+        else setProvider("fallback");
       })
       .catch(() => {
-        if (!cancelled) setProvider("google");
+        if (!cancelled) setProvider(hasGoogleMapsKeySync() ? "google" : "fallback");
       });
 
     return () => {
       cancelled = true;
     };
   }, [provider]);
+
+  if (isError) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <p className="text-lg font-semibold">Couldn&apos;t load listings</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          {error instanceof Error ? error.message : "Check your connection and try again."}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (provider === "loading") {
     return <MapLoadingState message="Scanning Nairobi for verified homes near you…" />;
@@ -91,7 +128,49 @@ function TenantMap() {
     return <TenantMapboxView properties={properties} propertiesLoading={propertiesLoading} />;
   }
 
-  return <TenantGoogleMapView properties={properties} propertiesLoading={propertiesLoading} />;
+  if (provider === "google") {
+    return <TenantGoogleMapView properties={properties} propertiesLoading={propertiesLoading} />;
+  }
+
+  return <TenantFallbackMapView properties={properties} propertiesLoading={propertiesLoading} />;
+}
+
+function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewProps) {
+  const [selected, setSelected] = useState<Property | null>(null);
+  const [query, setQuery] = useState("");
+  const [showHeat, setShowHeat] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const filtered = filterMappableProperties(properties, query);
+
+  return (
+    <TenantMapShell
+      map={{
+        mapRef: { current: null },
+        ready: true,
+        error: "Map preview mode — add VITE_MAPBOX_TOKEN for the full 3D map.",
+        selected,
+        setSelected,
+        showHeat,
+        setShowHeat,
+        showWater: false,
+        setShowWater: () => undefined,
+        showSecurity: false,
+        setShowSecurity: () => undefined,
+        panelOpen,
+        setPanelOpen,
+        query,
+        setQuery,
+        filteredProperties: filtered,
+        visibleCount: filtered.length,
+        locateMe: () => undefined,
+        recenter: () => undefined,
+        isOnline: true,
+      }}
+      propertiesLoading={propertiesLoading}
+      provider="google"
+      startInFallback
+    />
+  );
 }
 
 function TenantMapboxView({ properties, propertiesLoading }: TenantMapViewProps) {
@@ -116,21 +195,32 @@ function TenantMapShell({
   propertiesLoading,
   onCycleStyle,
   provider,
+  startInFallback = false,
 }: Readonly<{
   map: MapHookResult & { cycleMapStyle?: () => void };
   propertiesLoading: boolean;
   onCycleStyle?: () => void;
   provider: "mapbox" | "google";
+  startInFallback?: boolean;
 }>) {
-  const useFallback = Boolean(map.error);
+  const [forceFallback, setForceFallback] = useState(startInFallback);
+
+  useEffect(() => {
+    if (startInFallback || map.ready || map.error) return;
+    const timer = globalThis.setTimeout(() => setForceFallback(true), 12_000);
+    return () => globalThis.clearTimeout(timer);
+  }, [startInFallback, map.ready, map.error]);
+
+  const useFallback = startInFallback || Boolean(map.error) || forceFallback;
   const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading Nairobi map…";
+  const mapVisible = startInFallback || map.ready || map.error || forceFallback;
 
   return (
     <div className="relative h-dvh min-h-screen overflow-hidden bg-(--color-obsidian)">
       <motion.div
         className="absolute inset-0"
         initial={{ opacity: 0 }}
-        animate={{ opacity: map.ready || map.error ? 1 : 0 }}
+        animate={{ opacity: mapVisible ? 1 : 0 }}
         transition={{ duration: 0.4 }}
       >
         {useFallback ? (
@@ -145,7 +235,7 @@ function TenantMapShell({
         )}
       </motion.div>
 
-      {!map.ready && !map.error ? (
+      {mapVisible ? null : (
         <MapOverlay>
           <div className="relative h-48 w-full max-w-md overflow-hidden rounded-2xl">
             <LazyRadar
@@ -170,9 +260,9 @@ function TenantMapShell({
             </div>
           </div>
         </MapOverlay>
-      ) : null}
+      )}
 
-      {onCycleStyle && map.ready && !map.error ? (
+      {onCycleStyle && map.ready && !useFallback ? (
         <motion.button
           type="button"
           initial={{ opacity: 0, x: 20 }}

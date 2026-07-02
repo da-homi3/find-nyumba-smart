@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { useAuth } from "@/hooks/use-auth";
 import { PLUS_PLAN } from "@/lib/revenue/plans";
 
@@ -11,7 +12,11 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/tenant/checkout")({
   validateSearch: (search) => searchSchema.parse(search),
-  component: TenantCheckoutPage,
+  component: () => (
+    <RouteErrorBoundary title="Checkout failed to load">
+      <TenantCheckoutPage />
+    </RouteErrorBoundary>
+  ),
 });
 
 function TenantCheckoutPage() {

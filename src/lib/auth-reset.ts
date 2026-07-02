@@ -1,11 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getSiteUrl } from "@/lib/site";
 
 /** Redirect URL for Supabase password recovery emails (must match Auth redirect allowlist). */
 export function passwordResetRedirectUrl(): string {
   if (globalThis.location?.origin) {
     return `${globalThis.location.origin}/auth/reset`;
   }
-  return "https://nyumba-search.kevinbuluma1.workers.dev/auth/reset";
+  return `${getSiteUrl()}/auth/reset`;
 }
 
 const RECOVERY_QUERY_KEYS = ["code", "token_hash", "type", "error", "error_description"] as const;
@@ -42,9 +43,9 @@ export function recoveryUrlError(): string | null {
   if (globalThis.location?.href === undefined) return null;
   const url = new URL(globalThis.location.href);
   const fromQuery = url.searchParams.get("error_description") ?? url.searchParams.get("error");
-  if (fromQuery) return decodeURIComponent(fromQuery.replace(/\+/g, " "));
+  if (fromQuery) return decodeURIComponent(fromQuery.replaceAll("+", " "));
   const fromHash = hashParams().get("error_description") ?? hashParams().get("error");
-  if (fromHash) return decodeURIComponent(fromHash.replace(/\+/g, " "));
+  if (fromHash) return decodeURIComponent(fromHash.replaceAll("+", " "));
   return null;
 }
 
@@ -67,6 +68,54 @@ function waitForAuthTick(): Promise<void> {
   });
 }
 
+async function recoverFromTokenHash(url: URL, hash: URLSearchParams): Promise<boolean | null> {
+  const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
+  const recoveryType = url.searchParams.get("type") ?? hash.get("type");
+  if (!tokenHash || recoveryType !== "recovery") return null;
+
+  const { error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "recovery",
+  });
+  if (error) {
+    console.warn("[auth-reset] verifyOtp(token_hash):", error.message);
+    return hasAuthSession();
+  }
+  cleanRecoveryUrl(url);
+  cleanRecoveryHash();
+  return hasAuthSession();
+}
+
+async function recoverFromCode(url: URL): Promise<boolean | null> {
+  const code = url.searchParams.get("code");
+  if (!code) return null;
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    if (await hasAuthSession()) return true;
+    console.warn("[auth-reset] exchangeCodeForSession:", error.message);
+    return false;
+  }
+  cleanRecoveryUrl(url);
+  return hasAuthSession();
+}
+
+async function recoverFromHashTokens(): Promise<boolean | null> {
+  const tokens = parseRecoveryHash();
+  if (!tokens) return null;
+
+  const { error } = await supabase.auth.setSession({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+  });
+  if (error) {
+    console.warn("[auth-reset] setSession:", error.message);
+    return false;
+  }
+  cleanRecoveryHash();
+  return hasAuthSession();
+}
+
 /**
  * Establish a recovery session from email link (PKCE ?code=, ?token_hash=, or #access_token=).
  * Returns true only when a session is actually available.
@@ -87,48 +136,14 @@ export async function bootstrapPasswordRecoverySession(): Promise<boolean> {
   const url = new URL(globalThis.location.href);
   const hash = hashParams();
 
-  const tokenHash = url.searchParams.get("token_hash") ?? hash.get("token_hash");
-  const recoveryType = url.searchParams.get("type") ?? hash.get("type");
-  if (tokenHash && recoveryType === "recovery") {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "recovery",
-    });
-    if (error) {
-      console.warn("[auth-reset] verifyOtp(token_hash):", error.message);
-      return hasAuthSession();
-    }
-    cleanRecoveryUrl(url);
-    cleanRecoveryHash();
-    return hasAuthSession();
-  }
+  const fromTokenHash = await recoverFromTokenHash(url, hash);
+  if (fromTokenHash !== null) return fromTokenHash;
 
-  const code = url.searchParams.get("code");
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      // Code may already have been consumed by detectSessionInUrl
-      if (await hasAuthSession()) return true;
-      console.warn("[auth-reset] exchangeCodeForSession:", error.message);
-      return false;
-    }
-    cleanRecoveryUrl(url);
-    return hasAuthSession();
-  }
+  const fromCode = await recoverFromCode(url);
+  if (fromCode !== null) return fromCode;
 
-  const tokens = parseRecoveryHash();
-  if (tokens) {
-    const { error } = await supabase.auth.setSession({
-      access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
-    });
-    if (error) {
-      console.warn("[auth-reset] setSession:", error.message);
-      return false;
-    }
-    cleanRecoveryHash();
-    return hasAuthSession();
-  }
+  const fromHash = await recoverFromHashTokens();
+  if (fromHash !== null) return fromHash;
 
   return false;
 }

@@ -711,6 +711,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_log: {
+        Row: {
+          created_at: string;
+          id: string;
+          metadata: Json | null;
+          provider_id: string | null;
+          status: string;
+          subject: string;
+          template_id: string;
+          to_email: string;
+          to_name: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          provider_id?: string | null;
+          status?: string;
+          subject: string;
+          template_id: string;
+          to_email: string;
+          to_name?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          provider_id?: string | null;
+          status?: string;
+          subject?: string;
+          template_id?: string;
+          to_email?: string;
+          to_name?: string | null;
+        };
+        Relationships: [];
+      };
+      marketing_email_log: {
+        Row: {
+          id: string;
+          sent_at: string;
+          template_id: string;
+          user_id: string;
+        };
+        Insert: {
+          id?: string;
+          sent_at?: string;
+          template_id: string;
+          user_id: string;
+        };
+        Update: {
+          id?: string;
+          sent_at?: string;
+          template_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       service_providers: {
         Row: {
           areas_served: Json;
@@ -1097,6 +1154,9 @@ export type Database = {
           trial_unlocks_remaining: number;
           trial_started_at: string | null;
           trial_ends_at: string | null;
+          email_marketing_opt_in: boolean;
+          email_message_opt_in: boolean;
+          email_transactional_opt_in: boolean;
           updated_at: string;
         };
         Insert: {
@@ -1111,6 +1171,12 @@ export type Database = {
           phone?: string | null;
           plus_expires_at?: string | null;
           tenant_plan?: string;
+          trial_unlocks_remaining?: number;
+          trial_started_at?: string | null;
+          trial_ends_at?: string | null;
+          email_marketing_opt_in?: boolean;
+          email_message_opt_in?: boolean;
+          email_transactional_opt_in?: boolean;
           updated_at?: string;
         };
         Update: {
@@ -1125,6 +1191,12 @@ export type Database = {
           phone?: string | null;
           plus_expires_at?: string | null;
           tenant_plan?: string;
+          trial_unlocks_remaining?: number;
+          trial_started_at?: string | null;
+          trial_ends_at?: string | null;
+          email_marketing_opt_in?: boolean;
+          email_message_opt_in?: boolean;
+          email_transactional_opt_in?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -1496,6 +1568,36 @@ export type Database = {
           },
         ];
       };
+      search_events: {
+        Row: {
+          created_at: string;
+          id: string;
+          neighborhood: string | null;
+          query: string | null;
+          result_count: number | null;
+          session_id: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          neighborhood?: string | null;
+          query?: string | null;
+          result_count?: number | null;
+          session_id?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          neighborhood?: string | null;
+          query?: string | null;
+          result_count?: number | null;
+          session_id?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
       saved_searches: {
         Row: {
           alert_enabled: boolean;
@@ -1503,6 +1605,7 @@ export type Database = {
           criteria: Json;
           filters: Json;
           id: string;
+          last_notified_at: string | null;
           name: string;
           user_id: string;
         };
@@ -1512,6 +1615,7 @@ export type Database = {
           criteria?: Json;
           filters?: Json;
           id?: string;
+          last_notified_at?: string | null;
           name: string;
           user_id: string;
         };
@@ -1521,6 +1625,7 @@ export type Database = {
           criteria?: Json;
           filters?: Json;
           id?: string;
+          last_notified_at?: string | null;
           name?: string;
           user_id?: string;
         };
@@ -1713,6 +1818,162 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      whatsapp_sessions: {
+        Row: {
+          id: string;
+          wa_phone: string;
+          user_id: string | null;
+          role: string;
+          state: string;
+          context: Json;
+          last_message_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          wa_phone: string;
+          user_id?: string | null;
+          role?: string;
+          state?: string;
+          context?: Json;
+          last_message_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          wa_phone?: string;
+          user_id?: string | null;
+          role?: string;
+          state?: string;
+          context?: Json;
+          last_message_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_sessions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      whatsapp_message_log: {
+        Row: {
+          id: string;
+          wa_phone: string;
+          direction: string;
+          message_type: string;
+          body: string | null;
+          wa_message_id: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          wa_phone: string;
+          direction: string;
+          message_type?: string;
+          body?: string | null;
+          wa_message_id?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          wa_phone?: string;
+          direction?: string;
+          message_type?: string;
+          body?: string | null;
+          wa_message_id?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      whatsapp_link_events: {
+        Row: {
+          id: string;
+          wa_phone: string;
+          user_id: string;
+          linked_at: string;
+        };
+        Insert: {
+          id?: string;
+          wa_phone: string;
+          user_id: string;
+          linked_at?: string;
+        };
+        Update: {
+          id?: string;
+          wa_phone?: string;
+          user_id?: string;
+          linked_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_link_events_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      whatsapp_otp: {
+        Row: {
+          wa_phone: string;
+          otp: string;
+          user_id: string;
+          expires_at: string;
+        };
+        Insert: {
+          wa_phone: string;
+          otp: string;
+          user_id: string;
+          expires_at: string;
+        };
+        Update: {
+          wa_phone?: string;
+          otp?: string;
+          user_id?: string;
+          expires_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_otp_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      whatsapp_reminder_log: {
+        Row: {
+          id: string;
+          reminder_type: string;
+          reference_id: string;
+          wa_phone: string;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          reminder_type: string;
+          reference_id: string;
+          wa_phone: string;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          reminder_type?: string;
+          reference_id?: string;
+          wa_phone?: string;
+          sent_at?: string;
+        };
+        Relationships: [];
       };
       viewings: {
         Row: {
@@ -1952,7 +2213,8 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   },
-  CompositeTypeName extends keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"],
+  CompositeTypeName extends
+    keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"],
 > = DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName];
 
 export const Constants = {

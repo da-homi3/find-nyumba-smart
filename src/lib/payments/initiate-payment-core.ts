@@ -171,7 +171,41 @@ async function tryFirstSubscriptionTrial(
 
 function allowDemoMpesaCompletion(): boolean {
   if (process.env.ALLOW_DEMO_PAYMENTS === "true") return true;
-  return process.env.MPESA_ENV === "sandbox" || process.env.NODE_ENV !== "production";
+  if (process.env.ALLOW_DEMO_PAYMENTS === "false") return false;
+  return process.env.MPESA_ENV === "sandbox" && process.env.NODE_ENV === "development";
+}
+
+async function assertPaymentAuthorization(userId: string, data: InitiatePaymentInput) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  if (
+    data.paymentType === "landlord_plan" ||
+    data.paymentType === "premium_subscription" ||
+    data.paymentType === "lead_pack"
+  ) {
+    const { data: roles, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (error) throw error;
+    const allowed = new Set(["landlord", "manager", "agency"]);
+    if (!(roles ?? []).some((r) => allowed.has(r.role))) {
+      throw new Error("A landlord, manager, or agency account is required for this purchase");
+    }
+  }
+
+  if (data.paymentType === "property_boost" || data.paymentType === "featured_listing") {
+    if (!data.propertyId) throw new Error("Select a property for this purchase");
+    const { data: property, error } = await supabaseAdmin
+      .from("properties")
+      .select("owner_id")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    if (error) throw error;
+    if (property?.owner_id !== userId) {
+      throw new Error("You can only purchase boosts for your own listings");
+    }
+  }
 }
 
 async function completeMpesaPayment(
@@ -234,6 +268,7 @@ async function completeMpesaPayment(
 /** Shared payment initiation — call from server handlers with a known userId. */
 export async function initiatePaymentCore(userId: string, data: InitiatePaymentInput) {
   assertPaymentRateLimit(userId);
+  await assertPaymentAuthorization(userId, data);
 
   const trialStarted = await tryFirstSubscriptionTrial(userId, data);
   if (trialStarted) return trialStarted;

@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState, type ReactNode } from "react";
 import { PublicPageShell } from "@/components/SiteNav";
 import {
   BarChart,
@@ -11,27 +13,33 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatKes } from "@/lib/properties";
-
-const RENT_BY_HOOD = [
-  { hood: "Kilimani", rent: 45000 },
-  { hood: "Westlands", rent: 52000 },
-  { hood: "Karen", rent: 85000 },
-  { hood: "Kasarani", rent: 22000 },
-  { hood: "South B", rent: 38000 },
-];
-
-const TREND = [
-  { year: "2024", index: 100 },
-  { year: "2025", index: 108 },
-  { year: "2026", index: 115 },
-];
+import { getMarketReportTeaser } from "@/lib/api/stats.functions";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Market reports — NyumbaSearch" }] }),
   component: ReportsPage,
 });
 
+function ClientChart({ children }: Readonly<{ children: ReactNode }>) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) {
+    return <div className="h-56 animate-pulse rounded-xl bg-muted/60" aria-hidden />;
+  }
+  return children;
+}
+
 function ReportsPage() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["market-report-teaser"],
+    queryFn: () => getMarketReportTeaser(),
+    staleTime: 300_000,
+  });
+
+  const rentByHood = data?.rentByHood ?? [];
+  const trend = data?.trend ?? [];
+
   return (
     <PublicPageShell>
       <main className="mx-auto max-w-5xl px-5 py-12">
@@ -39,48 +47,65 @@ function ReportsPage() {
           Data-driven decisions for Nairobi&apos;s property market
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Free teaser charts below. Full neighborhood breakdowns available with Plus or paid
-          reports.
+          Live averages from active NyumbaSearch listings. Full neighborhood breakdowns available
+          with Plus or paid reports.
         </p>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-2">
-          <div className="rounded-2xl border bg-card p-4">
-            <h2 className="text-sm font-semibold">Average 2BR rent by neighborhood — Q2 2026</h2>
-            <div className="mt-4 h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={RENT_BY_HOOD}>
-                  <XAxis dataKey="hood" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip formatter={(v: number) => formatKes(v)} />
-                  <Bar dataKey="rent" fill="hsl(var(--primary))" radius={4} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {isLoading ? (
+          <div className="mt-10 flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-          <div className="rounded-2xl border bg-card p-4">
-            <h2 className="text-sm font-semibold">Nairobi rental price trends 2024–2026</h2>
-            <div className="mt-4 h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={TREND}>
-                  <XAxis dataKey="year" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="index"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+        ) : (
+          <>
+            <div className="mt-10 grid gap-8 lg:grid-cols-2">
+              <div className="rounded-2xl border bg-card p-4">
+                <h2 className="text-sm font-semibold">
+                  Average rent by neighborhood — live listings
+                </h2>
+                <div className="mt-4 h-56 min-h-56">
+                  <ClientChart>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={rentByHood}>
+                        <XAxis dataKey="hood" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => formatKes(v)} />
+                        <Bar dataKey="rent" fill="#1eb88a" radius={4} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ClientChart>
+                </div>
+              </div>
+              <div className="rounded-2xl border bg-card p-4">
+                <h2 className="text-sm font-semibold">Nairobi rental price index</h2>
+                <div className="mt-4 h-56 min-h-56">
+                  <ClientChart>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trend}>
+                        <XAxis dataKey="year" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line
+                          type="monotone"
+                          dataKey="index"
+                          stroke="#1eb88a"
+                          strokeWidth={2}
+                          dot={{ fill: "#1eb88a" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ClientChart>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <p className="mt-6 text-sm text-muted-foreground">
-          Rental demand remains strongest in Kilimani and Westlands, with supply tightening in Karen
-          for family units under {formatKes(90000)}/month.
-        </p>
+            <p className="mt-6 text-sm text-muted-foreground">
+              {isError
+                ? "Could not load live market data — showing cached estimates."
+                : (data?.summary ??
+                  "Browse verified listings on NyumbaSearch for the most up-to-date Nairobi rents.")}
+            </p>
+          </>
+        )}
 
         <section className="mt-12 overflow-x-auto rounded-2xl border">
           <table className="w-full text-sm">

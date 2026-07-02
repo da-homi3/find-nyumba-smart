@@ -10,7 +10,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BASE =
   process.argv.find((a) => a.startsWith("--base="))?.slice(7) ??
   process.env.PUBLIC_APP_URL ??
-  "https://nyumba-search.kevinbuluma1.workers.dev";
+  "https://nyumbasearch.com";
 
 const routeTree = readFileSync(join(root, "src", "routeTree.gen.ts"), "utf8");
 const fullPathsRegex = /fullPaths:\s*([\s\S]*?)\s*id:/;

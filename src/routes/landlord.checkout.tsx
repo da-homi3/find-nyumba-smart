@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { LandlordShell } from "@/components/LandlordShell";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -25,7 +26,9 @@ export const Route = createFileRoute("/landlord/checkout")({
   validateSearch: (search) => searchSchema.parse(search),
   component: () => (
     <LandlordShell>
-      <LandlordCheckoutPage />
+      <RouteErrorBoundary title="Checkout failed to load">
+        <LandlordCheckoutPage />
+      </RouteErrorBoundary>
     </LandlordShell>
   ),
 });

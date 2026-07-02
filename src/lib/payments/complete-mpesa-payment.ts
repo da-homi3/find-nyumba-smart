@@ -57,6 +57,14 @@ export async function syncMpesaPaymentStatus(
       .eq("id", completed.user_id);
   }
 
+  const { queuePaymentEmails } = await import("@/lib/payments/payment-email-hook");
+  queuePaymentEmails(supabaseAdmin, completed);
+
+  if (completed.payment_type === "contact_unlock") {
+    const { notifyWhatsAppContactUnlock } = await import("@/lib/whatsapp/notify-hooks");
+    void notifyWhatsAppContactUnlock(supabaseAdmin, completed);
+  }
+
   return completed;
 }
 
@@ -87,6 +95,12 @@ export async function completeMpesaFromCallback(
         .from("profiles")
         .update({ is_portal_active: true })
         .eq("id", payment.user_id);
+    }
+    const { queuePaymentEmails } = await import("@/lib/payments/payment-email-hook");
+    queuePaymentEmails(supabaseAdmin, payment);
+    if (payment.payment_type === "contact_unlock") {
+      const { notifyWhatsAppContactUnlock } = await import("@/lib/whatsapp/notify-hooks");
+      void notifyWhatsAppContactUnlock(supabaseAdmin, payment);
     }
   }
 
