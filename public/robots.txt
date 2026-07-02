@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /landlord/dashboard
+
+Sitemap: https://nyumbasearch.com/sitemap.xml

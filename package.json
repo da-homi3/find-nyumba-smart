@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx vite dev",
-    "build": "npx vite build",
+    "build": "node scripts/generate-sitemap.mjs && npx vite build",
     "build:dev": "npx vite build --mode development",
     "preview": "npx vite preview",
     "lint": "eslint .",

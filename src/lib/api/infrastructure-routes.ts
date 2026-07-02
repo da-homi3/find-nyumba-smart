@@ -7,8 +7,14 @@ import {
 } from "@/lib/api/rate-limit";
 import { withCache } from "@/lib/cache/manager";
 import { normalizeNeighborhoodFilter } from "@/lib/security/neighborhoods";
+import { buildFullSitemapXml, buildStaticSitemapXml, sitemapResponse } from "@/lib/seo/sitemap";
 
 type RouteHandler = (request: Request) => Promise<Response>;
+
+function normalizeSeoPath(pathname: string): string {
+  const trimmed = pathname.replace(/\/+$/, "") || "/";
+  return trimmed.toLowerCase();
+}
 
 function withPublicRateLimit(
   req: Request,
@@ -338,57 +344,22 @@ function handleRobotsTxt(): Response {
   const site = getSiteUrl();
   return new Response(
     `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /landlord/dashboard\n\nSitemap: ${site}/sitemap.xml\n`,
-    { headers: { "Content-Type": "text/plain; charset=utf-8" } },
+    {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+      },
+    },
   );
 }
 
 async function handleSitemapXml(): Promise<Response> {
   try {
-    const { createPublicClient } = await import("@/lib/api/public-client");
-    const supabase = createPublicClient();
-    const { data: properties } = await supabase
-      .from("properties")
-      .select("id, updated_at")
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(5000);
-    const base = getSiteUrl();
-    const staticPages = [
-      "",
-      "/tenant",
-      "/tenant/map",
-      "/auth",
-      "/landlord",
-      "/pricing",
-      "/privacy",
-      "/terms-of-service",
-      "/cookie-policy",
-      "/refund-policy",
-      "/data-deletion",
-      "/acceptable-use-policy",
-      "/landlord-agreement",
-      "/contact",
-      "/about",
-    ];
-    const urls = [
-      ...staticPages.map(
-        (p) =>
-          `  <url><loc>${base}${p}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`,
-      ),
-      ...(properties ?? []).map(
-        (p) =>
-          `  <url><loc>${base}/tenant/property/${p.id}</loc><lastmod>${p.updated_at}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`,
-      ),
-    ].join("\n");
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
-    return new Response(xml, {
-      headers: { "Content-Type": "application/xml; charset=utf-8" },
-    });
-  } catch {
-    return new Response(
-      '<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
-      { headers: { "Content-Type": "application/xml" } },
-    );
+    const { data: xml, cacheHit } = await withCache("sitemap_xml", "sitemap_xml", buildFullSitemapXml);
+    return sitemapResponse(xml, cacheHit);
+  } catch (error) {
+    console.error("[sitemap] fallback to static:", error);
+    return sitemapResponse(buildStaticSitemapXml());
   }
 }
 
@@ -603,12 +574,15 @@ const ROUTES: RouteDef[] = [
     run: (req) => withErrorHandler("Email unsubscribe", req, handleEmailUnsubscribe),
   },
   {
-    match: (url) => url.pathname === "/robots.txt",
+    match: (url) => normalizeSeoPath(url.pathname) === "/robots.txt",
     run: () => handleRobotsTxt(),
   },
   {
-    match: (url) => url.pathname === "/sitemap.xml",
-    run: () => handleSitemapXml(),
+    match: (url) => normalizeSeoPath(url.pathname) === "/sitemap.xml",
+    run: (req) =>
+      withErrorHandler("Sitemap", req, handleSitemapXml, () =>
+        sitemapResponse(buildStaticSitemapXml()),
+      ),
   },
 ];
 
