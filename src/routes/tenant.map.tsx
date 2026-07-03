@@ -121,7 +121,7 @@ function TenantMap() {
   }
 
   if (provider === "loading") {
-    return <MapLoadingState message="Loading Kenya map…" />;
+    return <MapLoadingState message="Loading map…" />;
   }
 
   if (provider === "mapbox") {
@@ -212,7 +212,7 @@ function TenantMapShell({
   }, [startInFallback, map.ready, map.error]);
 
   const useFallback = startInFallback || Boolean(map.error) || forceFallback;
-  const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading Kenya map…";
+  const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading map…";
   const mapVisible = startInFallback || map.ready || map.error || forceFallback;
 
   return (

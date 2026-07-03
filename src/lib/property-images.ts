@@ -1,8 +1,11 @@
 import heroNairobi from "@/assets/hero-nairobi.jpg";
 import listingPlaceholders from "@/data/listing-placeholders.json";
 
-/** Fabricated Unsplash IDs from early seed data — these 404. */
-const BROKEN_UNSPLASH_PATTERN = /images\.unsplash\.com\/photo-15453244\d+-cc1a3fa10c00/i;
+/** Fabricated or dead Unsplash IDs from early seed data. */
+const BROKEN_UNSPLASH_PATTERNS = [
+  /images\.unsplash\.com\/photo-15453244\d+-cc1a3fa10c00/i,
+  /images\.unsplash\.com\/photo-1560448204-e02f11c3d0e2/i,
+];
 
 const PLACEHOLDERS = listingPlaceholders as string[];
 
@@ -20,7 +23,8 @@ export function listingPlaceholderUrl(seed: string | number): string {
 }
 
 export function isBrokenListingImageUrl(url: string): boolean {
-  return BROKEN_UNSPLASH_PATTERN.test(url.trim());
+  const trimmed = url.trim();
+  return BROKEN_UNSPLASH_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
 export function normalizeListingImageUrl(url: string, seed: string): string {

@@ -83,7 +83,7 @@ export function TenantMapChrome({
             type="button"
             onClick={onRecenter}
             className="rounded-xl bg-foreground p-2 text-background transition hover:opacity-90"
-            aria-label="Recenter on Kenya"
+            aria-label="Recenter on Nairobi"
           >
             <MapPin className="h-4 w-4" />
           </button>
@@ -168,9 +168,14 @@ export function TenantMapChrome({
               onClick={() => onSelect(p)}
               className="flex w-full gap-2 rounded-xl border p-2 text-left hover:bg-secondary"
             >
-              {p.images[0] && (
-                <img src={p.images[0]} alt="" className="h-14 w-16 rounded-lg object-cover" />
-              )}
+              {p.images[0] ? (
+                <PropertyImage
+                  src={p.images[0]}
+                  seed={p.id}
+                  alt=""
+                  className="h-14 w-16 rounded-lg object-cover"
+                />
+              ) : null}
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold">{p.title}</p>
                 <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>

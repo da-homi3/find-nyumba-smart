@@ -3,7 +3,8 @@ import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import { resolveMapboxToken } from "@/hooks/use-tenant-mapbox";
 import { neighborhoodCentroid } from "@/lib/geo/property-map-coords";
 import { NAIROBI_CENTER } from "@/components/tenant-map/map-constants";
-import { enableMapbox3D, fitMapboxToKenya, MAPBOX_3D_INIT } from "@/lib/mapbox/mapbox-3d";
+import { loadMapboxGl } from "@/lib/mapbox/mapbox-init";
+import { fitMapboxToKenya, MAPBOX_MAP_INIT, syncMapbox3DForZoom } from "@/lib/mapbox/mapbox-3d";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,12 +19,13 @@ type PropertyLocationPickerProps = Readonly<{
 function flyToPin(map: MapboxMap, lng: number, lat: number) {
   map.flyTo({
     center: [lng, lat],
-    zoom: 15.5,
-    pitch: 58,
-    bearing: -20,
-    duration: 1200,
+    zoom: 15,
+    pitch: 50,
+    bearing: -15,
+    duration: 1000,
     essential: true,
   });
+  syncMapbox3DForZoom(map);
 }
 
 export function PropertyLocationPicker({
@@ -54,7 +56,7 @@ export function PropertyLocationPicker({
         return;
       }
 
-      const mapboxgl = (await import("mapbox-gl")).default;
+      const mapboxgl = await loadMapboxGl();
       mapboxgl.accessToken = token;
 
       const centroid = neighborhood ? neighborhoodCentroid(neighborhood) : null;
@@ -66,10 +68,10 @@ export function PropertyLocationPicker({
 
       const map = new mapboxgl.Map({
         container: mapRef.current!,
-        style: "mapbox://styles/mapbox/satellite-streets-v12",
+        style: "mapbox://styles/mapbox/streets-v12",
         center: [center.lng, center.lat],
-        zoom: hasPin ? 14 : 5.5,
-        ...MAPBOX_3D_INIT,
+        zoom: hasPin ? 14 : 11,
+        ...MAPBOX_MAP_INIT,
       });
 
       map.addControl(
@@ -91,7 +93,7 @@ export function PropertyLocationPicker({
 
       const onLoad = () => {
         if (cancelled) return;
-        enableMapbox3D(map);
+        syncMapbox3DForZoom(map);
         map.resize();
         if (latitude != null && longitude != null) {
           placeMarker(longitude, latitude);
@@ -100,17 +102,18 @@ export function PropertyLocationPicker({
           map.flyTo({
             center: [centroid.lng, centroid.lat],
             zoom: 13,
-            pitch: 50,
+            pitch: 0,
             duration: 800,
           });
         } else {
-          fitMapboxToKenya(map, { padding: 24, pitch: 45, duration: 0, maxZoom: 6.5 });
+          fitMapboxToKenya(map, { padding: 24, pitch: 0, duration: 0, maxZoom: 6.5 });
         }
         setLoading(false);
       };
 
       map.on("load", onLoad);
-      map.on("style.load", () => enableMapbox3D(map));
+      map.on("style.load", () => syncMapbox3DForZoom(map));
+      map.on("zoomend", () => syncMapbox3DForZoom(map));
 
       map.on("click", (e) => {
         placeMarker(e.lngLat.lng, e.lngLat.lat);
@@ -155,7 +158,7 @@ export function PropertyLocationPicker({
     mapInstance.current?.flyTo({
       center: [centroid.lng, centroid.lat],
       zoom: 13,
-      pitch: 50,
+      pitch: 0,
       duration: 900,
     });
   }, [neighborhood, latitude]);
@@ -186,7 +189,7 @@ export function PropertyLocationPicker({
   function showKenyaOverview() {
     const map = mapInstance.current;
     if (!map) return;
-    fitMapboxToKenya(map, { padding: 24, pitch: 45, duration: 1000, maxZoom: 6.5 });
+    fitMapboxToKenya(map, { padding: 24, pitch: 0, duration: 1000, maxZoom: 6.5 });
   }
 
   return (

@@ -9,7 +9,8 @@ import {
   NAIROBI_CENTER,
 } from "@/components/tenant-map/map-constants";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
-import { enableMapbox3D, fitMapboxToKenya, MAPBOX_3D_INIT } from "@/lib/mapbox/mapbox-3d";
+import { loadMapboxGl } from "@/lib/mapbox/mapbox-init";
+import { MAPBOX_MAP_INIT, syncHeatmapForZoom, syncMapbox3DForZoom } from "@/lib/mapbox/mapbox-3d";
 
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -39,9 +40,9 @@ export function hasMapboxTokenSync() {
 }
 
 const MAP_STYLES = {
-  dark: "mapbox://styles/mapbox/dark-v11",
-  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
   streets: "mapbox://styles/mapbox/streets-v12",
+  satellite: "mapbox://styles/mapbox/satellite-streets-v12",
+  dark: "mapbox://styles/mapbox/dark-v11",
 } as const;
 
 type ActiveLayer = "listings" | "security" | "water";
@@ -229,7 +230,7 @@ function addHeatLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
 function setupMapLayers(map: MapboxMap, properties: Property[]) {
   try {
     const data = listingsGeoJson(properties);
-    enableMapbox3D(map);
+    syncMapbox3DForZoom(map);
     addListingLayers(map, data);
     addHeatLayers(map, data);
   } catch (layerErr) {
@@ -283,16 +284,7 @@ function applyMarkerColors(map: MapboxMap, activeLayer: ActiveLayer) {
 }
 
 function applyHeatVisibility(map: MapboxMap, showHeat: boolean, showSecurity: boolean) {
-  if (map.getLayer("rent-heatmap")) {
-    map.setLayoutProperty(
-      "rent-heatmap",
-      "visibility",
-      showHeat && !showSecurity ? "visible" : "none",
-    );
-  }
-  if (map.getLayer("security-heatmap")) {
-    map.setLayoutProperty("security-heatmap", "visibility", showSecurity ? "visible" : "none");
-  }
+  syncHeatmapForZoom(map, showHeat, showSecurity);
 }
 
 function handleListingClick(
@@ -332,8 +324,15 @@ function attachMapControls(map: MapboxMap, mapboxgl: MapboxModule["default"]) {
   );
 }
 
-function introKenyaView(map: MapboxMap) {
-  fitMapboxToKenya(map, { padding: 48, pitch: 50, duration: 2800, maxZoom: 6.5 });
+function flyToNairobiMetro(map: MapboxMap, duration = 0) {
+  map.flyTo({
+    center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
+    zoom: 11.5,
+    pitch: 0,
+    bearing: 0,
+    duration,
+    essential: true,
+  });
 }
 
 export function useTenantMapbox(properties: Property[]) {
@@ -341,7 +340,7 @@ export function useTenantMapbox(properties: Property[]) {
   const mapInstance = useRef<MapboxMap | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const propertiesRef = useRef(properties);
-  const styleRef = useRef<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(MAP_STYLES.dark);
+  const styleRef = useRef<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(MAP_STYLES.streets);
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -354,7 +353,7 @@ export function useTenantMapbox(properties: Property[]) {
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [mapStyle, setMapStyle] = useState<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(
-    MAP_STYLES.dark,
+    MAP_STYLES.streets,
   );
   const [accessToken, setAccessToken] = useState<string | null>(
     BUILD_TIME_TOKEN?.trim()?.startsWith("pk.") ? BUILD_TIME_TOKEN.trim() : null,
@@ -410,7 +409,13 @@ export function useTenantMapbox(properties: Property[]) {
     if (!mapRef.current || mapInstance.current) return;
 
     let cancelled = false;
-    let introTimer: ReturnType<typeof globalThis.setTimeout> | undefined;
+
+    const onZoomEnd = () => {
+      const map = mapInstance.current;
+      if (!map) return;
+      syncMapbox3DForZoom(map);
+      syncHeatmapForZoom(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
+    };
 
     const onListingClick = (event: MapMouseEvent) =>
       handleListingClick(event, () => propertiesRef.current, setSelected);
@@ -432,7 +437,9 @@ export function useTenantMapbox(properties: Property[]) {
       setError(null);
       setReady(true);
       setMarkerCount(filteredRef.current.length);
-      introTimer = globalThis.setTimeout(() => introKenyaView(map), 400);
+      flyToNairobiMetro(map, 1200);
+      syncMapbox3DForZoom(map);
+      syncHeatmapForZoom(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
     };
     const onStyleLoad = () => {
       const map = mapInstance.current;
@@ -450,16 +457,16 @@ export function useTenantMapbox(properties: Property[]) {
     };
 
     void (async () => {
-      const mapboxgl = (await import("mapbox-gl")).default;
+      const mapboxgl = await loadMapboxGl();
       if (cancelled || !mapRef.current) return;
 
       mapboxgl.accessToken = accessToken;
       const map = new mapboxgl.Map({
         container: mapRef.current,
-        style: MAP_STYLES.dark,
+        style: MAP_STYLES.streets,
         center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
-        zoom: 5.5,
-        ...MAPBOX_3D_INIT,
+        zoom: 11.5,
+        ...MAPBOX_MAP_INIT,
       });
       mapInstance.current = map;
 
@@ -467,6 +474,7 @@ export function useTenantMapbox(properties: Property[]) {
       map.on("load", onLoad);
       map.on("style.load", onStyleLoad);
       map.on("error", onMapError);
+      map.on("zoomend", onZoomEnd);
       map.on("click", "unclustered-point-bg", onListingClick);
       map.on("click", "clusters", onClusterClick);
       map.on("mouseenter", "unclustered-point-bg", setPointer);
@@ -484,7 +492,6 @@ export function useTenantMapbox(properties: Property[]) {
 
     return () => {
       cancelled = true;
-      if (introTimer) globalThis.clearTimeout(introTimer);
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
       const map = mapInstance.current;
@@ -492,6 +499,7 @@ export function useTenantMapbox(properties: Property[]) {
         map.off("load", onLoad);
         map.off("style.load", onStyleLoad);
         map.off("error", onMapError);
+        map.off("zoomend", onZoomEnd);
         map.off("click", "unclustered-point-bg", onListingClick);
         map.off("click", "clusters", onClusterClick);
         map.off("mouseenter", "unclustered-point-bg", setPointer);
@@ -528,12 +536,13 @@ export function useTenantMapbox(properties: Property[]) {
     const coords = resolvePropertyMapCoords(selected);
     map.flyTo({
       center: [coords.lng, coords.lat],
-      zoom: 15.5,
-      pitch: 62,
-      bearing: -20,
+      zoom: 15,
+      pitch: 55,
+      bearing: -15,
       duration: 1500,
       essential: true,
     });
+    syncMapbox3DForZoom(map);
   }, [selected, ready]);
 
   useEffect(() => {
@@ -546,13 +555,13 @@ export function useTenantMapbox(properties: Property[]) {
   const cycleMapStyle = () => {
     const styles = Object.values(MAP_STYLES);
     const idx = styles.indexOf(mapStyle);
-    setMapStyle(styles[(idx + 1) % styles.length] ?? MAP_STYLES.dark);
+    setMapStyle(styles[(idx + 1) % styles.length] ?? MAP_STYLES.streets);
   };
 
   const recenter = () => {
     const map = mapInstance.current;
     if (!map) return;
-    fitMapboxToKenya(map, { padding: 48, pitch: 50, duration: 1400, maxZoom: 6.5 });
+    flyToNairobiMetro(map, 1200);
     setSelected(null);
   };
 
@@ -562,10 +571,11 @@ export function useTenantMapbox(properties: Property[]) {
       (pos) => {
         mapInstance.current?.flyTo({
           center: [pos.coords.longitude, pos.coords.latitude],
-          zoom: 14.5,
-          pitch: 55,
+          zoom: 14,
+          pitch: 45,
           duration: 1200,
         });
+        syncMapbox3DForZoom(mapInstance.current!);
       },
       () => setError("Could not access your location"),
     );

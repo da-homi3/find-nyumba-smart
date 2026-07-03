@@ -14,6 +14,8 @@ export const KENYA_MAX_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 const BUILDING_LAYER_ID = "3d-buildings";
+const TERRAIN_MIN_ZOOM = 12;
+const BUILDINGS_MIN_ZOOM = 13;
 
 function findLabelLayerId(map: MapboxMap): string | undefined {
   const layers = map.getStyle()?.layers;
@@ -31,30 +33,29 @@ function add3dBuildingsLayer(map: MapboxMap) {
       "source-layer": "building",
       filter: ["==", "extrude", "true"],
       type: "fill-extrusion",
-      minzoom: 13,
+      minzoom: BUILDINGS_MIN_ZOOM,
       paint: {
         "fill-extrusion-color": [
           "interpolate",
           ["linear"],
           ["get", "height"],
           0,
-          "#0d1a14",
+          "#d4d4d8",
           50,
-          "#1c2d20",
+          "#a1a1aa",
           100,
-          "#2d4a35",
+          "#71717a",
         ],
         "fill-extrusion-height": ["get", "height"],
         "fill-extrusion-base": ["get", "min_height"],
-        "fill-extrusion-opacity": 0.85,
+        "fill-extrusion-opacity": 0.75,
       },
     },
     findLabelLayerId(map),
   );
 }
 
-/** Terrain, atmosphere sky, and extruded buildings — re-safe after style changes. */
-export function enableMapbox3D(map: MapboxMap) {
+function ensureTerrainSource(map: MapboxMap) {
   if (!map.getSource("mapbox-dem")) {
     map.addSource("mapbox-dem", {
       type: "raster-dem",
@@ -63,28 +64,83 @@ export function enableMapbox3D(map: MapboxMap) {
       maxzoom: 14,
     });
   }
+}
+
+function ensureSkyLayer(map: MapboxMap) {
+  if (map.getLayer("sky")) return;
+  map.addLayer({
+    id: "sky",
+    type: "sky",
+    paint: {
+      "sky-type": "atmosphere",
+      "sky-atmosphere-sun": [0.0, 45.0],
+      "sky-atmosphere-sun-intensity": 12,
+    },
+  });
+}
+
+/** Terrain, sky, and extruded buildings — only when zoomed in enough to look correct. */
+export function enableMapbox3D(map: MapboxMap) {
+  ensureTerrainSource(map);
+  ensureSkyLayer(map);
 
   try {
-    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.2 });
   } catch (err) {
     console.warn("Mapbox terrain:", err);
   }
 
-  if (!map.getLayer("sky")) {
-    map.addLayer({
-      id: "sky",
-      type: "sky",
-      paint: {
-        "sky-type": "atmosphere",
-        "sky-atmosphere-sun": [0.0, 90.0],
-        "sky-atmosphere-sun-intensity": 15,
-      },
-    });
+  if (map.getLayer("sky")) {
+    map.setLayoutProperty("sky", "visibility", "visible");
   }
 
   add3dBuildingsLayer(map);
   if (!map.getLayer(BUILDING_LAYER_ID)) {
     map.once("idle", () => add3dBuildingsLayer(map));
+  }
+  if (map.getLayer(BUILDING_LAYER_ID)) {
+    map.setLayoutProperty(BUILDING_LAYER_ID, "visibility", "visible");
+  }
+}
+
+export function disableMapbox3D(map: MapboxMap) {
+  try {
+    map.setTerrain(null);
+  } catch {
+    // style may not support terrain yet
+  }
+  if (map.getLayer("sky")) {
+    map.setLayoutProperty("sky", "visibility", "none");
+  }
+  if (map.getLayer(BUILDING_LAYER_ID)) {
+    map.setLayoutProperty(BUILDING_LAYER_ID, "visibility", "none");
+  }
+}
+
+/** Toggle 3D layers based on zoom so country/city views stay flat and readable. */
+export function syncMapbox3DForZoom(map: MapboxMap) {
+  const zoom = map.getZoom();
+  if (zoom >= TERRAIN_MIN_ZOOM) {
+    enableMapbox3D(map);
+  } else {
+    disableMapbox3D(map);
+  }
+}
+
+export function syncHeatmapForZoom(map: MapboxMap, showHeat: boolean, showSecurity: boolean) {
+  const zoom = map.getZoom();
+  const rentVisible = showHeat && !showSecurity && zoom >= 9;
+  const securityVisible = showSecurity && zoom >= 9;
+
+  if (map.getLayer("rent-heatmap")) {
+    map.setLayoutProperty("rent-heatmap", "visibility", rentVisible ? "visible" : "none");
+    if (rentVisible) {
+      const opacity = zoom < 11 ? 0.22 : zoom < 13 ? 0.38 : 0.5;
+      map.setPaintProperty("rent-heatmap", "heatmap-opacity", opacity);
+    }
+  }
+  if (map.getLayer("security-heatmap")) {
+    map.setLayoutProperty("security-heatmap", "visibility", securityVisible ? "visible" : "none");
   }
 }
 
@@ -99,18 +155,21 @@ export type FitKenyaOptions = {
 export function fitMapboxToKenya(map: MapboxMap, options: FitKenyaOptions = {}) {
   map.fitBounds(KENYA_MAX_BOUNDS, {
     padding: options.padding ?? 32,
-    pitch: options.pitch ?? 45,
-    bearing: options.bearing ?? -17.6,
+    pitch: options.pitch ?? 0,
+    bearing: options.bearing ?? 0,
     duration: options.duration ?? 0,
-    maxZoom: options.maxZoom ?? 6.8,
+    maxZoom: options.maxZoom ?? 6.5,
     essential: true,
   });
 }
 
-export const MAPBOX_3D_INIT = {
-  pitch: 45,
-  bearing: -17.6,
+export const MAPBOX_MAP_INIT = {
+  pitch: 0,
+  bearing: 0,
   antialias: true,
   maxPitch: 85,
   maxBounds: KENYA_MAX_BOUNDS,
 } as const;
+
+/** @deprecated use MAPBOX_MAP_INIT */
+export const MAPBOX_3D_INIT = MAPBOX_MAP_INIT;
