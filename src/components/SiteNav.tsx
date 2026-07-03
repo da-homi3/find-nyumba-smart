@@ -113,6 +113,14 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
           >
             Pricing
           </Link>
+          {user && (
+            <Link
+              to="/settings"
+              className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+            >
+              Settings
+            </Link>
+          )}
           {isLandlord && (
             <Link
               to="/landlord/dashboard"
@@ -128,7 +136,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             to="/settings"
             className={`hidden items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${heroOutlineClass(isHero)}`}
           >
-            Account
+            Settings
             {isPlus && (
               <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
                 Plus
@@ -173,6 +181,8 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             ...SERVICE_LINKS,
             { to: "/pricing", label: "Pricing" },
             { to: "/tenant", label: "Browse" },
+            { to: "/tenant/map", label: "Map" },
+            { to: "/settings", label: "Settings" },
           ].map((l) => (
             <Link
               key={l.to}
