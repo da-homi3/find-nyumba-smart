@@ -40,3 +40,4 @@ sendgrid.env
 tmp_*.js
 tmp_*.ts
 tmp_*.html
+tsc-errors*.txt
