@@ -83,7 +83,7 @@ export function TenantMapChrome({
             type="button"
             onClick={onRecenter}
             className="rounded-xl bg-foreground p-2 text-background transition hover:opacity-90"
-            aria-label="Recenter on Nairobi"
+            aria-label="Recenter on Kenya"
           >
             <MapPin className="h-4 w-4" />
           </button>
@@ -228,7 +228,7 @@ export function TenantMapChrome({
           </div>
         ) : (
           <div className="pointer-events-auto rounded-2xl bg-background/95 px-4 py-3 text-center text-xs text-muted-foreground shadow-card backdrop-blur">
-            Tap a pin or cluster · pinch to zoom · heatmap shows price intensity
+            Tap a pin or cluster · pinch to zoom · drag with two fingers to tilt 3D
           </div>
         )}
       </div>

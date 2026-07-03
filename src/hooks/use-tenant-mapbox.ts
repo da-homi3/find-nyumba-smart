@@ -9,6 +9,7 @@ import {
   NAIROBI_CENTER,
 } from "@/components/tenant-map/map-constants";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
+import { enableMapbox3D, fitMapboxToKenya, MAPBOX_3D_INIT } from "@/lib/mapbox/mapbox-3d";
 
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -91,57 +92,6 @@ function listingsGeoJson(properties: Property[]): GeoJSON.FeatureCollection {
       };
     }),
   };
-}
-
-function addTerrainAndSky(map: MapboxMap) {
-  if (!map.getSource("mapbox-dem")) {
-    map.addSource("mapbox-dem", {
-      type: "raster-dem",
-      url: "mapbox://mapbox.mapbox-terrain-dem-v1",
-      tileSize: 512,
-      maxzoom: 14,
-    });
-    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
-  }
-
-  if (!map.getLayer("sky")) {
-    map.addLayer({
-      id: "sky",
-      type: "sky",
-      paint: {
-        "sky-type": "atmosphere",
-        "sky-atmosphere-sun": [0, 90],
-        "sky-atmosphere-sun-intensity": 15,
-      },
-    });
-  }
-
-  if (!map.getLayer("3d-buildings") && map.getSource("composite")) {
-    map.addLayer({
-      id: "3d-buildings",
-      source: "composite",
-      "source-layer": "building",
-      filter: ["==", "extrude", "true"],
-      type: "fill-extrusion",
-      minzoom: 13,
-      paint: {
-        "fill-extrusion-color": [
-          "interpolate",
-          ["linear"],
-          ["get", "height"],
-          0,
-          "#0d1a14",
-          50,
-          "#1c2d20",
-          100,
-          "#2d4a35",
-        ],
-        "fill-extrusion-height": ["get", "height"],
-        "fill-extrusion-base": ["get", "min_height"],
-        "fill-extrusion-opacity": 0.8,
-      },
-    });
-  }
 }
 
 function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
@@ -279,7 +229,7 @@ function addHeatLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
 function setupMapLayers(map: MapboxMap, properties: Property[]) {
   try {
     const data = listingsGeoJson(properties);
-    addTerrainAndSky(map);
+    enableMapbox3D(map);
     addListingLayers(map, data);
     addHeatLayers(map, data);
   } catch (layerErr) {
@@ -369,7 +319,10 @@ function handleClusterClick(map: MapboxMap, event: MapMouseEvent) {
 }
 
 function attachMapControls(map: MapboxMap, mapboxgl: MapboxModule["default"]) {
-  map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "bottom-right");
+  map.addControl(
+    new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }),
+    "bottom-right",
+  );
   map.addControl(
     new mapboxgl.GeolocateControl({
       positionOptions: { enableHighAccuracy: true },
@@ -379,15 +332,8 @@ function attachMapControls(map: MapboxMap, mapboxgl: MapboxModule["default"]) {
   );
 }
 
-function flyToNairobi(map: MapboxMap) {
-  map.flyTo({
-    center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
-    zoom: 12,
-    pitch: 45,
-    bearing: 0,
-    duration: 3000,
-    essential: true,
-  });
+function introKenyaView(map: MapboxMap) {
+  fitMapboxToKenya(map, { padding: 48, pitch: 50, duration: 2800, maxZoom: 6.5 });
 }
 
 export function useTenantMapbox(properties: Property[]) {
@@ -403,7 +349,7 @@ export function useTenantMapbox(properties: Property[]) {
   const [showHeat, setShowHeat] = useState(true);
   const [showWater, setShowWater] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
@@ -486,7 +432,7 @@ export function useTenantMapbox(properties: Property[]) {
       setError(null);
       setReady(true);
       setMarkerCount(filteredRef.current.length);
-      introTimer = globalThis.setTimeout(() => flyToNairobi(map), 500);
+      introTimer = globalThis.setTimeout(() => introKenyaView(map), 400);
     };
     const onStyleLoad = () => {
       const map = mapInstance.current;
@@ -512,10 +458,8 @@ export function useTenantMapbox(properties: Property[]) {
         container: mapRef.current,
         style: MAP_STYLES.dark,
         center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
-        zoom: 12,
-        pitch: 45,
-        bearing: -17.6,
-        antialias: true,
+        zoom: 5.5,
+        ...MAPBOX_3D_INIT,
       });
       mapInstance.current = map;
 
@@ -584,9 +528,11 @@ export function useTenantMapbox(properties: Property[]) {
     const coords = resolvePropertyMapCoords(selected);
     map.flyTo({
       center: [coords.lng, coords.lat],
-      zoom: 15,
-      pitch: 60,
+      zoom: 15.5,
+      pitch: 62,
+      bearing: -20,
       duration: 1500,
+      essential: true,
     });
   }, [selected, ready]);
 
@@ -604,12 +550,9 @@ export function useTenantMapbox(properties: Property[]) {
   };
 
   const recenter = () => {
-    mapInstance.current?.flyTo({
-      center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
-      zoom: 12,
-      pitch: 45,
-      duration: 1200,
-    });
+    const map = mapInstance.current;
+    if (!map) return;
+    fitMapboxToKenya(map, { padding: 48, pitch: 50, duration: 1400, maxZoom: 6.5 });
     setSelected(null);
   };
 
@@ -619,7 +562,8 @@ export function useTenantMapbox(properties: Property[]) {
       (pos) => {
         mapInstance.current?.flyTo({
           center: [pos.coords.longitude, pos.coords.latitude],
-          zoom: 14,
+          zoom: 14.5,
+          pitch: 55,
           duration: 1200,
         });
       },

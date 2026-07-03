@@ -3,6 +3,7 @@ import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import { resolveMapboxToken } from "@/hooks/use-tenant-mapbox";
 import { neighborhoodCentroid } from "@/lib/geo/property-map-coords";
 import { NAIROBI_CENTER } from "@/components/tenant-map/map-constants";
+import { enableMapbox3D, fitMapboxToKenya, MAPBOX_3D_INIT } from "@/lib/mapbox/mapbox-3d";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,17 @@ type PropertyLocationPickerProps = Readonly<{
   className?: string;
 }>;
 
+function flyToPin(map: MapboxMap, lng: number, lat: number) {
+  map.flyTo({
+    center: [lng, lat],
+    zoom: 15.5,
+    pitch: 58,
+    bearing: -20,
+    duration: 1200,
+    essential: true,
+  });
+}
+
 export function PropertyLocationPicker({
   latitude,
   longitude,
@@ -24,6 +36,7 @@ export function PropertyLocationPicker({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<MapboxMap | null>(null);
   const markerRef = useRef<MapboxMarker | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const onChangeRef = useRef(onChange);
@@ -53,12 +66,16 @@ export function PropertyLocationPicker({
 
       const map = new mapboxgl.Map({
         container: mapRef.current!,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: "mapbox://styles/mapbox/satellite-streets-v12",
         center: [center.lng, center.lat],
-        zoom: hasPin ? 15 : 12,
+        zoom: hasPin ? 14 : 5.5,
+        ...MAPBOX_3D_INIT,
       });
 
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(
+        new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }),
+        "top-right",
+      );
 
       const placeMarker = (lng: number, lat: number) => {
         markerRef.current?.remove();
@@ -72,26 +89,49 @@ export function PropertyLocationPicker({
         markerRef.current = marker;
       };
 
-      map.on("load", () => {
+      const onLoad = () => {
         if (cancelled) return;
+        enableMapbox3D(map);
+        map.resize();
         if (latitude != null && longitude != null) {
           placeMarker(longitude, latitude);
+          flyToPin(map, longitude, latitude);
+        } else if (centroid) {
+          map.flyTo({
+            center: [centroid.lng, centroid.lat],
+            zoom: 13,
+            pitch: 50,
+            duration: 800,
+          });
+        } else {
+          fitMapboxToKenya(map, { padding: 24, pitch: 45, duration: 0, maxZoom: 6.5 });
         }
         setLoading(false);
-      });
+      };
+
+      map.on("load", onLoad);
+      map.on("style.load", () => enableMapbox3D(map));
 
       map.on("click", (e) => {
         placeMarker(e.lngLat.lng, e.lngLat.lat);
         onChangeRef.current(e.lngLat.lat, e.lngLat.lng);
+        flyToPin(map, e.lngLat.lng, e.lngLat.lat);
       });
 
       mapInstance.current = map;
+
+      if (mapRef.current && typeof ResizeObserver !== "undefined") {
+        resizeObserverRef.current = new ResizeObserver(() => map.resize());
+        resizeObserverRef.current.observe(mapRef.current);
+      }
     }
 
     void init();
 
     return () => {
       cancelled = true;
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       markerRef.current?.remove();
       markerRef.current = null;
       mapInstance.current?.remove();
@@ -105,14 +145,19 @@ export function PropertyLocationPicker({
     const map = mapInstance.current;
     if (!map || latitude == null || longitude == null) return;
     markerRef.current?.setLngLat([longitude, latitude]);
-    map.flyTo({ center: [longitude, latitude], zoom: Math.max(map.getZoom(), 14) });
+    flyToPin(map, longitude, latitude);
   }, [latitude, longitude]);
 
   useEffect(() => {
     if (!neighborhood || latitude != null) return;
     const centroid = neighborhoodCentroid(neighborhood);
     if (!centroid) return;
-    mapInstance.current?.flyTo({ center: [centroid.lng, centroid.lat], zoom: 13 });
+    mapInstance.current?.flyTo({
+      center: [centroid.lng, centroid.lat],
+      zoom: 13,
+      pitch: 50,
+      duration: 900,
+    });
   }, [neighborhood, latitude]);
 
   function locateMe() {
@@ -138,37 +183,53 @@ export function PropertyLocationPicker({
     onChange(centroid.lat, centroid.lng);
   }
 
+  function showKenyaOverview() {
+    const map = mapInstance.current;
+    if (!map) return;
+    fitMapboxToKenya(map, { padding: 24, pitch: 45, duration: 1000, maxZoom: 6.5 });
+  }
+
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          Click the map to drop a pin, or drag the marker to refine the exact spot tenants will see.
+          Click the map to drop a pin, drag to refine, or tilt with right-click / two-finger drag
+          for 3D view.
         </p>
-        <button
-          type="button"
-          onClick={useNeighborhoodCenter}
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
-        >
-          <MapPin className="h-3.5 w-3.5" /> Use neighborhood center
-        </button>
-        <button
-          type="button"
-          onClick={locateMe}
-          className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
-        >
-          <Navigation className="h-3.5 w-3.5" /> Use my location
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={showKenyaOverview}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+          >
+            <MapPin className="h-3.5 w-3.5" /> Kenya overview
+          </button>
+          <button
+            type="button"
+            onClick={useNeighborhoodCenter}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+          >
+            <MapPin className="h-3.5 w-3.5" /> Use neighborhood center
+          </button>
+          <button
+            type="button"
+            onClick={locateMe}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+          >
+            <Navigation className="h-3.5 w-3.5" /> Use my location
+          </button>
+        </div>
       </div>
 
-      <div className="relative h-64 overflow-hidden rounded-xl border sm:h-80">
+      <div className="relative min-h-[22rem] h-[min(70vh,36rem)] overflow-hidden rounded-xl border">
         {loading ? (
-          <div className="absolute inset-0 grid place-items-center bg-muted">
+          <div className="absolute inset-0 z-10 grid place-items-center bg-muted">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : null}
-        <div ref={mapRef} className="absolute inset-0" />
+        <div ref={mapRef} className="absolute inset-0 touch-none" />
         {!loading && latitude == null ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center">
             <span className="inline-flex items-center gap-1 rounded-full bg-foreground/85 px-3 py-1 text-xs font-medium text-background">
               <MapPin className="h-3.5 w-3.5" /> Tap map to pin location
             </span>

@@ -121,7 +121,7 @@ function TenantMap() {
   }
 
   if (provider === "loading") {
-    return <MapLoadingState message="Scanning Nairobi for verified homes near you…" />;
+    return <MapLoadingState message="Loading Kenya map…" />;
   }
 
   if (provider === "mapbox") {
@@ -212,7 +212,7 @@ function TenantMapShell({
   }, [startInFallback, map.ready, map.error]);
 
   const useFallback = startInFallback || Boolean(map.error) || forceFallback;
-  const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading Nairobi map…";
+  const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading Kenya map…";
   const mapVisible = startInFallback || map.ready || map.error || forceFallback;
 
   return (
