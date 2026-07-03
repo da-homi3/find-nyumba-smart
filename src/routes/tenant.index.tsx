@@ -24,6 +24,11 @@ import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useListingsSearch } from "@/hooks/use-listings-search";
+import { getSiteUrl } from "@/lib/site";
+import {
+  prefetchTenantListings,
+  TENANT_LISTINGS_PAGE_SIZE,
+} from "@/lib/seo/prefetch-tenant-listings";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
@@ -34,11 +39,17 @@ const tenantSearchSchema = z.object({
 
 export const Route = createFileRoute("/tenant/")({
   validateSearch: tenantSearchSchema,
-  head: () => ({ meta: [{ title: "Discover homes — NyumbaSearch" }] }),
+  loader: async ({ context }) => {
+    await prefetchTenantListings(context.queryClient);
+  },
+  head: () => ({
+    meta: [{ title: "Discover homes — NyumbaSearch" }],
+    links: [{ rel: "canonical", href: `${getSiteUrl()}/tenant` }],
+  }),
   component: TenantHome,
 });
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = TENANT_LISTINGS_PAGE_SIZE;
 
 function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFilters {
   return {

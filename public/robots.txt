@@ -2,6 +2,13 @@ User-agent: *
 Allow: /
 
 Disallow: /admin
+Disallow: /auth
+Disallow: /settings
 Disallow: /landlord/dashboard
+Disallow: /agency/dashboard
+Disallow: /manager/dashboard
+Disallow: /caretaker/dashboard
+Disallow: /tenant/messages
+Disallow: /tenant/checkout
 
 Sitemap: https://nyumbasearch.com/sitemap.xml

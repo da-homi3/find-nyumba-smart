@@ -70,7 +70,7 @@ export function LandingHero({
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 py-32 text-center sm:px-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
           className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(30,184,138,0.4)] bg-[rgba(30,184,138,0.15)] px-4 py-1.5 text-sm font-medium text-[#1eb88a]"
@@ -83,7 +83,7 @@ export function LandingHero({
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
           className="max-w-4xl text-white"
@@ -94,7 +94,7 @@ export function LandingHero({
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.6 }}
           className="mt-5 max-w-xl text-lg text-white/70"
@@ -105,7 +105,7 @@ export function LandingHero({
 
         <motion.form
           onSubmit={submit}
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.6 }}
           className="mt-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-(--glass-border) bg-glass-bg shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl"
@@ -185,7 +185,7 @@ export function LandingHero({
         </motion.form>
 
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={false}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4 }}
           className="mt-8 flex flex-col gap-3 sm:flex-row"

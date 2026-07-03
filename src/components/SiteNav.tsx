@@ -61,7 +61,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
 
   return (
     <motion.header
-      initial={{ y: -80 }}
+      initial={false}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 25 }}
       className={headerShellClass(isHero)}

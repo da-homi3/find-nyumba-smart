@@ -27,6 +27,7 @@ import {
   fetchFeaturedTestimonialsApi,
   fetchIntelligenceStatsApi,
 } from "@/lib/homepage-client";
+import { prefetchHomepageQueries } from "@/lib/seo/prefetch-homepage";
 
 async function fetchPublicStatsApi(): Promise<PublicStats> {
   const res = await fetch("/api/stats/public", { headers: { Accept: "application/json" } });
@@ -35,6 +36,9 @@ async function fetchPublicStatsApi(): Promise<PublicStats> {
 }
 
 export const Route = createFileRoute("/")({
+  loader: async ({ context }) => {
+    await prefetchHomepageQueries(context.queryClient);
+  },
   head: () => {
     const canonical = getSiteUrl();
     const description =

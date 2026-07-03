@@ -348,15 +348,30 @@ async function handleAiProbe(): Promise<Response> {
 
 function handleRobotsTxt(): Response {
   const site = getSiteUrl();
-  return new Response(
-    `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /landlord/dashboard\n\nSitemap: ${site}/sitemap.xml\n`,
-    {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "public, max-age=86400",
-      },
+  const disallow = [
+    "/admin",
+    "/auth",
+    "/settings",
+    "/landlord/dashboard",
+    "/agency/dashboard",
+    "/manager/dashboard",
+    "/caretaker/dashboard",
+    "/tenant/messages",
+    "/tenant/checkout",
+  ];
+  const rules = [
+    "User-agent: *",
+    "Allow: /",
+    ...disallow.map((path) => `Disallow: ${path}`),
+    "",
+    `Sitemap: ${site}/sitemap.xml`,
+  ].join("\n");
+  return new Response(rules, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=86400",
     },
-  );
+  });
 }
 
 async function handleSitemapXml(): Promise<Response> {
