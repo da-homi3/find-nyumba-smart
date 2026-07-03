@@ -18,7 +18,13 @@ const env = Object.fromEntries(
     .filter((l) => l && !l.startsWith("#"))
     .map((l) => {
       const i = l.indexOf("=");
-      return [l.slice(0, i), l.slice(i + 1).trim().replace(/^["']|["']$/g, "")];
+      return [
+        l.slice(0, i),
+        l
+          .slice(i + 1)
+          .trim()
+          .replace(/^["']|["']$/g, ""),
+      ];
     }),
 );
 const apiKey = env.SENDGRID_API_KEY;
@@ -50,10 +56,13 @@ for (const [key, rec] of Object.entries(match.dns ?? {})) {
   console.log(`  ${key}: ${rec.type} ${rec.host} → ${rec.data} (valid: ${rec.valid})`);
 }
 
-const validate = await fetch(`https://api.sendgrid.com/v3/whitelabel/domains/${match.id}/validate`, {
-  method: "POST",
-  headers,
-});
+const validate = await fetch(
+  `https://api.sendgrid.com/v3/whitelabel/domains/${match.id}/validate`,
+  {
+    method: "POST",
+    headers,
+  },
+);
 const validation = await validate.json();
 console.log("\nValidation:", validation.valid ? "PASSED" : "FAILED");
 if (!validation.valid && validation.validation_results) {

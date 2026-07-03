@@ -20,14 +20,17 @@ function phaseLabelFor(phase: PaymentPhase, statusMessage: string | null): strin
 type InitiatePaymentResult = Awaited<ReturnType<typeof initiatePayment>>;
 
 function mpesaPendingMessage(res: InitiatePaymentResult): string {
-  if (res.method === "mpesa" && "message" in res) {
+  if (res.status === "trial_started") {
+    return res.message ?? "Your free trial has started.";
+  }
+  if ("method" in res && res.method === "mpesa" && "message" in res) {
     return res.message ?? "Check your phone — enter your M-Pesa PIN.";
   }
   return "Check your phone — enter your M-Pesa PIN.";
 }
 
 function cardRedirectUrl(res: InitiatePaymentResult): string | null {
-  if (res.method === "card" && "redirectUrl" in res && res.redirectUrl) {
+  if ("method" in res && res.method === "card" && "redirectUrl" in res && res.redirectUrl) {
     return res.redirectUrl;
   }
   return null;
@@ -51,7 +54,8 @@ export type CheckoutMetadata = {
     | "verification"
     | "report"
     | "contact_unlock"
-    | "provider_subscription";
+    | "provider_subscription"
+    | "invoice";
   propertyId?: string;
   plan?: string;
   boostPackage?: "spotlight" | "homepage" | "campaign";

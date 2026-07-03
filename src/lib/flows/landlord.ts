@@ -2,14 +2,24 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { enhanceListingDescription } from "@/lib/flows/nyumbaai";
 import { sendAccountStatus } from "@/lib/flows/assistant";
-import { handleAccountLinkEmail, handleAccountLinkOtp, promptAccountLink, tryResolveSessionUser } from "@/lib/flows/link-account";
+import {
+  handleAccountLinkEmail,
+  handleAccountLinkOtp,
+  promptAccountLink,
+  tryResolveSessionUser,
+} from "@/lib/flows/link-account";
 import { sendButtons, sendList, sendText } from "@/lib/whatsapp/client";
 import { reverseGeocodeNairobi } from "@/lib/whatsapp/geocode";
 import { uploadWhatsAppPhoto } from "@/lib/whatsapp/media";
 import { getSiteUrl } from "@/lib/site";
 import { updateState } from "@/lib/whatsapp/session";
 import type { WaInboundMessage, WaSession } from "@/lib/whatsapp/types";
-import { displayFirstName, formatProfileDigest, refreshSessionProfile, type UserAssistantProfile } from "@/lib/whatsapp/user-profile";
+import {
+  displayFirstName,
+  formatProfileDigest,
+  refreshSessionProfile,
+  type UserAssistantProfile,
+} from "@/lib/whatsapp/user-profile";
 
 type Admin = SupabaseClient<Database>;
 type PropertyType = Database["public"]["Enums"]["property_type"];
@@ -59,7 +69,11 @@ async function showLandlordMenu(
           title: "Landlord",
           rows: [
             { id: "listing_new", title: "Add listing", description: "Create new property" },
-            { id: "my_listings", title: "My listings", description: `${profile.activeListings + profile.pendingListings} total` },
+            {
+              id: "my_listings",
+              title: "My listings",
+              description: `${profile.activeListings + profile.pendingListings} total`,
+            },
             { id: "my_leads", title: "View leads", description: `${profile.totalLeads} unlocks` },
             { id: "my_status", title: "Account", description: "Plan & stats" },
             { id: "switch_role", title: "Switch role", description: "Tenant or provider mode" },
@@ -94,7 +108,11 @@ async function handleListingTitleStep(
     return;
   }
   await updateState(admin, waPhone, "listing_price", { draft: { ...draft, title: input } });
-  await sendText(waPhone, `✅ Title saved.\n\nStep 2/8 — *Monthly rent (KES)?* Numbers only.`, admin);
+  await sendText(
+    waPhone,
+    `✅ Title saved.\n\nStep 2/8 — *Monthly rent (KES)?* Numbers only.`,
+    admin,
+  );
 }
 
 async function handleListingPriceStep(
@@ -109,19 +127,25 @@ async function handleListingPriceStep(
     return;
   }
   await updateState(admin, waPhone, "listing_type", { draft: { ...draft, price } });
-  await sendList(waPhone, "Step 3/8 — Property type?", "Type", [
-    {
-      title: "Types",
-      rows: [
-        { id: "type_bedsitter", title: "Bedsitter" },
-        { id: "type_1br", title: "1 Bedroom" },
-        { id: "type_2br", title: "2 Bedroom" },
-        { id: "type_3br", title: "3 Bedroom" },
-        { id: "type_maisonette", title: "Maisonette" },
-        { id: "type_bungalow", title: "Bungalow" },
-      ],
-    },
-  ], admin);
+  await sendList(
+    waPhone,
+    "Step 3/8 — Property type?",
+    "Type",
+    [
+      {
+        title: "Types",
+        rows: [
+          { id: "type_bedsitter", title: "Bedsitter" },
+          { id: "type_1br", title: "1 Bedroom" },
+          { id: "type_2br", title: "2 Bedroom" },
+          { id: "type_3br", title: "3 Bedroom" },
+          { id: "type_maisonette", title: "Maisonette" },
+          { id: "type_bungalow", title: "Bungalow" },
+        ],
+      },
+    ],
+    admin,
+  );
 }
 
 async function handleListingTypeStep(
@@ -168,7 +192,11 @@ async function handleListingLocationStep(
   await updateState(admin, waPhone, "listing_description", {
     draft: { ...draft, neighborhood, lat, lng },
   });
-  await sendText(waPhone, "Step 5/8 — *Description* (30+ chars). Water, security, parking...", admin);
+  await sendText(
+    waPhone,
+    "Step 5/8 — *Description* (30+ chars). Water, security, parking...",
+    admin,
+  );
 }
 
 async function handleListingDescriptionStep(
@@ -181,11 +209,19 @@ async function handleListingDescriptionStep(
     await sendText(waPhone, "Please write a longer description.", admin);
     return;
   }
-  const cleaned = await enhanceListingDescription(input, { ...draft, price: draft.price, neighborhood: draft.neighborhood });
+  const cleaned = await enhanceListingDescription(input, {
+    ...draft,
+    price: draft.price,
+    neighborhood: draft.neighborhood,
+  });
   await updateState(admin, waPhone, "listing_photos", {
     draft: { ...draft, description: cleaned },
   });
-  await sendText(waPhone, "Step 6/8 — Send photos 📸 (up to 10). Type *DONE* when finished.", admin);
+  await sendText(
+    waPhone,
+    "Step 6/8 — Send photos 📸 (up to 10). Type *DONE* when finished.",
+    admin,
+  );
 }
 
 async function handleListingPhotosStep(
@@ -205,7 +241,11 @@ async function handleListingPhotosStep(
       await updateState(admin, waPhone, "listing_photos", {
         draft: { ...currentDraft, photos },
       });
-      await sendText(waPhone, `✅ Photo ${photos.length} saved. ${photos.length < 10 ? "Send more or *DONE*." : "Max reached — *DONE*."}`, admin);
+      await sendText(
+        waPhone,
+        `✅ Photo ${photos.length} saved. ${photos.length < 10 ? "Send more or *DONE*." : "Max reached — *DONE*."}`,
+        admin,
+      );
     } catch {
       await sendText(waPhone, "Could not save photo. Try again.", admin);
     }
@@ -219,9 +259,12 @@ async function handleListingPhotosStep(
       return;
     }
     await updateState(admin, waPhone, "listing_contact", { draft: { ...currentDraft, photos } });
-    await sendButtons(waPhone, "Step 7/8 — Tenant contact number?", [
-      { id: "use_wa_number", label: "Use my WhatsApp" },
-    ], admin);
+    await sendButtons(
+      waPhone,
+      "Step 7/8 — Tenant contact number?",
+      [{ id: "use_wa_number", label: "Use my WhatsApp" }],
+      admin,
+    );
     return;
   }
 
@@ -239,14 +282,14 @@ async function handleListingContactStep(
     await sendText(waPhone, "Enter a valid Kenyan phone number.", admin);
     return;
   }
-  const nextDraft = { ...draft, contact_phone: contactPhone };
+  const nextDraft: ListingDraft = { ...draft, contact_phone: contactPhone };
   await updateState(admin, waPhone, "listing_review", { draft: nextDraft });
-  const title = draftString(nextDraft.title, "Listing");
-  const neighborhood = draftString(nextDraft.neighborhood);
-  const photoCount = ((nextDraft.photos as string[]) ?? []).length;
+  const title = draftString(draft.title, "Listing");
+  const neighborhood = draftString(draft.neighborhood);
+  const photoCount = ((draft.photos as string[]) ?? []).length;
   await sendButtons(
     waPhone,
-    `Review:\n🏠 *${title}*\n📍 ${neighborhood}\n💰 KES ${Number(nextDraft.price).toLocaleString()}/mo\n📸 ${photoCount} photos`,
+    `Review:\n🏠 *${title}*\n📍 ${neighborhood}\n💰 KES ${Number(draft.price).toLocaleString()}/mo\n📸 ${photoCount} photos`,
     [
       { id: "listing_submit", label: "✅ Submit" },
       { id: "listing_new", label: "✏️ Start over" },
@@ -304,11 +347,7 @@ async function submitListingDraft(
   }
 }
 
-async function showMyListings(
-  admin: Admin,
-  waPhone: string,
-  userId: string,
-): Promise<void> {
+async function showMyListings(admin: Admin, waPhone: string, userId: string): Promise<void> {
   const { data: listings } = await admin
     .from("properties")
     .select("title, is_active, views")
@@ -317,21 +356,26 @@ async function showMyListings(
     .limit(5);
 
   if (!listings?.length) {
-    await sendButtons(waPhone, "No listings yet.", [{ id: "listing_new", label: "➕ Add first" }], admin);
+    await sendButtons(
+      waPhone,
+      "No listings yet.",
+      [{ id: "listing_new", label: "➕ Add first" }],
+      admin,
+    );
     return;
   }
 
   const summary = listings
     .map((l, i) => `${i + 1}. ${l.is_active ? "✅" : "⏳"} *${l.title}* — ${l.views} views`)
     .join("\n");
-  await sendText(waPhone, `📋 *Listings:*\n\n${summary}\n\n${getSiteUrl()}/landlord/properties`, admin);
+  await sendText(
+    waPhone,
+    `📋 *Listings:*\n\n${summary}\n\n${getSiteUrl()}/landlord/properties`,
+    admin,
+  );
 }
 
-async function showMyLeads(
-  admin: Admin,
-  waPhone: string,
-  userId: string,
-): Promise<void> {
+async function showMyLeads(admin: Admin, waPhone: string, userId: string): Promise<void> {
   const { data: props } = await admin.from("properties").select("id, title").eq("owner_id", userId);
   const ids = (props ?? []).map((p) => p.id);
   if (!ids.length) {
@@ -433,7 +477,17 @@ export async function handleLandlordFlow(
 ): Promise<void> {
   const firstName = displayFirstName(profile ?? null, senderName);
   const draft = (session.context.draft as ListingDraft) ?? {};
-  const ctx: LandlordFlowContext = { admin, waPhone, senderName, session, message, input, profile, firstName, draft };
+  const ctx: LandlordFlowContext = {
+    admin,
+    waPhone,
+    senderName,
+    session,
+    message,
+    input,
+    profile,
+    firstName,
+    draft,
+  };
 
   if (input === "my_status" && profile) {
     await sendAccountStatus(admin, waPhone, profile);
@@ -447,7 +501,11 @@ export async function handleLandlordFlow(
 
   if (input === "listing_new") {
     await updateState(admin, waPhone, "listing_title", { draft: {} });
-    await sendText(waPhone, "Step 1/8 — *Property title?*\n\nExample: _2BR apartment in Kilimani_", admin);
+    await sendText(
+      waPhone,
+      "Step 1/8 — *Property title?*\n\nExample: _2BR apartment in Kilimani_",
+      admin,
+    );
     return;
   }
 
@@ -465,9 +523,14 @@ export async function handleLandlordFlow(
 
   if (await handleAccountLinkSteps(admin, waPhone, input, session)) return;
 
-  await sendButtons(waPhone, "Landlord menu:", [
-    { id: "listing_new", label: "➕ Add listing" },
-    { id: "my_listings", label: "📋 Listings" },
-    { id: "landlord_menu", label: "🏠 Menu" },
-  ], admin);
+  await sendButtons(
+    waPhone,
+    "Landlord menu:",
+    [
+      { id: "listing_new", label: "➕ Add listing" },
+      { id: "my_listings", label: "📋 Listings" },
+      { id: "landlord_menu", label: "🏠 Menu" },
+    ],
+    admin,
+  );
 }

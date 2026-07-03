@@ -5,7 +5,11 @@ import { sendAccountStatus } from "@/lib/flows/assistant";
 import { sendButtons, sendList, sendText } from "@/lib/whatsapp/client";
 import { updateState } from "@/lib/whatsapp/session";
 import type { WaInboundMessage, WaSession } from "@/lib/whatsapp/types";
-import { displayFirstName, formatProfileDigest, type UserAssistantProfile } from "@/lib/whatsapp/user-profile";
+import {
+  displayFirstName,
+  formatProfileDigest,
+  type UserAssistantProfile,
+} from "@/lib/whatsapp/user-profile";
 
 type Admin = SupabaseClient<Database>;
 
@@ -36,7 +40,11 @@ export async function handleProviderFlow(
           {
             title: "Provider",
             rows: [
-              { id: "provider_profile", title: "My profile", description: profile.providerTier ?? "basic" },
+              {
+                id: "provider_profile",
+                title: "My profile",
+                description: profile.providerTier ?? "basic",
+              },
               { id: "provider_inquiries", title: "Inquiries", description: "View on dashboard" },
               { id: "my_status", title: "Account", description: "Full summary" },
               { id: "switch_role", title: "Switch role", description: "Tenant or landlord" },
@@ -64,14 +72,16 @@ export async function handleProviderFlow(
   if (input === "provider_register") {
     await sendText(
       waPhone,
-      `Register as a service provider on NyumbaSearch:\n\n${getSiteUrl()}/providers/register\n\nMovers, cleaners, plumbers & more.`,
+      `Register as a service provider on NyumbaSearch:\n\n${getSiteUrl()}/services/register\n\nMovers, cleaners, plumbers & more.`,
       admin,
     );
     return;
   }
 
   if (input === "provider_profile" || input === "provider_inquiries") {
-    const userId = profile?.userId ?? (await admin.from("profiles").select("id").eq("phone", waPhone).maybeSingle()).data?.id;
+    const userId =
+      profile?.userId ??
+      (await admin.from("profiles").select("id").eq("phone", waPhone).maybeSingle()).data?.id;
 
     if (!userId) {
       await sendText(waPhone, "Link your account in Settings first, then return here.", admin);
@@ -85,16 +95,19 @@ export async function handleProviderFlow(
       .maybeSingle();
 
     if (!provider) {
-      await sendButtons(waPhone, "No provider profile found.", [
-        { id: "provider_register", label: "➕ Register" },
-      ], admin);
+      await sendButtons(
+        waPhone,
+        "No provider profile found.",
+        [{ id: "provider_register", label: "➕ Register" }],
+        admin,
+      );
       return;
     }
 
     if (input === "provider_profile") {
       await sendText(
         waPhone,
-        `👤 *${provider.business_name}*\nStatus: ${provider.status}\nTier: ${provider.tier}\n\n${getSiteUrl()}/providers/dashboard`,
+        `👤 *${provider.business_name}*\nStatus: ${provider.status}\nTier: ${provider.tier}\n\n${getSiteUrl()}/services/provider/dashboard`,
         admin,
       );
       return;
@@ -102,15 +115,20 @@ export async function handleProviderFlow(
 
     await sendText(
       waPhone,
-      `📥 Check inquiries on your provider dashboard:\n${getSiteUrl()}/providers/dashboard`,
+      `📥 Check inquiries on your provider dashboard:\n${getSiteUrl()}/services/provider/dashboard`,
       admin,
     );
     return;
   }
 
-  await sendButtons(waPhone, "Provider menu:", [
-    { id: "provider_profile", label: "👤 Profile" },
-    { id: "provider_register", label: "➕ Register" },
-    { id: "provider_menu", label: "🏠 Menu" },
-  ], admin);
+  await sendButtons(
+    waPhone,
+    "Provider menu:",
+    [
+      { id: "provider_profile", label: "👤 Profile" },
+      { id: "provider_register", label: "➕ Register" },
+      { id: "provider_menu", label: "🏠 Menu" },
+    ],
+    admin,
+  );
 }

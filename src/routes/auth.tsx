@@ -23,6 +23,7 @@ import {
   submitPortalApplication,
 } from "@/lib/api/portal.functions";
 import { registerAccountSignup } from "@/lib/api/auth.functions";
+import { BrandLogoLink } from "@/components/BrandLogo";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -166,6 +167,8 @@ function TenantAuth() {
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
+
+        <BrandLogoLink className="mt-6" logoClassName="h-10" />
 
         <h1 className="mt-6 font-display text-3xl font-semibold">
           {mode === "signin" ? "Welcome back" : "Create your account"}

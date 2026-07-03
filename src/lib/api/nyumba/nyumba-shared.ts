@@ -109,9 +109,15 @@ export const sendInquiryMessageSchema = z.object({
 export const inquiryIdSchema = z.object({ inquiryId: z.string().uuid() });
 
 type PropertyRow = Database["public"]["Tables"]["properties"]["Row"];
-type PropertyRowInput = Omit<PropertyRow, "organization_id" | "owner_id"> & {
+type PropertyRowInput = Omit<
+  PropertyRow,
+  "organization_id" | "owner_id" | "contact_phone" | "duplicate_hash" | "import_batch_id"
+> & {
   organization_id?: string | null;
   owner_id?: string | null;
+  contact_phone?: string | null;
+  duplicate_hash?: string | null;
+  import_batch_id?: string | null;
 };
 
 export function mapPropertyRow(row: PropertyRowInput): Property {

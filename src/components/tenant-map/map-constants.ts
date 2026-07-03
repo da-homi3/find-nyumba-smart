@@ -1,5 +1,6 @@
 /// <reference types="google.maps" />
 import { prettyType, type Property } from "@/lib/properties";
+import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
 
 export const NAIROBI_CENTER = { lat: -1.286389, lng: 36.817223 };
 export const NAIROBI_BOUNDS = {
@@ -52,25 +53,35 @@ export function priceTagSvg(label: string, active: boolean) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-export function filterMappableProperties(properties: Property[], query: string) {
+export function filterMappableProperties(properties: Property[], query: string): Property[] {
   const qq = query.trim().toLowerCase();
-  return properties.filter((p) => {
-    if (!p.latitude || !p.longitude) return false;
-    if (!qq) return true;
-    return (
-      p.neighborhood.toLowerCase().includes(qq) ||
-      p.title.toLowerCase().includes(qq) ||
-      prettyType(p.property_type).toLowerCase().includes(qq)
-    );
-  });
+  return properties
+    .filter((p) => {
+      if (p.is_active === false) return false;
+      if (!qq) return true;
+      return (
+        p.neighborhood.toLowerCase().includes(qq) ||
+        p.title.toLowerCase().includes(qq) ||
+        prettyType(p.property_type).toLowerCase().includes(qq)
+      );
+    })
+    .map((p) => {
+      const coords = resolvePropertyMapCoords(p);
+      return {
+        ...p,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        map_approximate: coords.approximate,
+      };
+    });
 }
 
 export function projectToFallbackMap(p: Property) {
+  const coords = resolvePropertyMapCoords(p);
   const x =
-    ((p.longitude! - NAIROBI_BOUNDS.minLng) / (NAIROBI_BOUNDS.maxLng - NAIROBI_BOUNDS.minLng)) *
-    100;
+    ((coords.lng - NAIROBI_BOUNDS.minLng) / (NAIROBI_BOUNDS.maxLng - NAIROBI_BOUNDS.minLng)) * 100;
   const y =
-    ((NAIROBI_BOUNDS.maxLat - p.latitude!) / (NAIROBI_BOUNDS.maxLat - NAIROBI_BOUNDS.minLat)) * 100;
+    ((NAIROBI_BOUNDS.maxLat - coords.lat) / (NAIROBI_BOUNDS.maxLat - NAIROBI_BOUNDS.minLat)) * 100;
   return {
     left: `${Math.min(94, Math.max(6, x))}%`,
     top: `${Math.min(88, Math.max(12, y))}%`,

@@ -12,6 +12,7 @@ import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getMockProperty, mockListingsEnabled } from "@/data/mockListings";
 import {
   adminClient,
+  assertCanManageProperty,
   authContext,
   getUserOrganizationId,
   listPropertiesSchema,
@@ -135,10 +136,24 @@ export const createProperty = createServerFn({ method: "POST" })
     }
     const organizationId =
       isAgency || isManager ? await getUserOrganizationId(supabase, userId) : null;
+
+    const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
+    let latitude = data.latitude ?? null;
+    let longitude = data.longitude ?? null;
+    if ((latitude == null || longitude == null) && data.neighborhood) {
+      const centroid = neighborhoodCentroid(data.neighborhood);
+      if (centroid) {
+        latitude = centroid.lat;
+        longitude = centroid.lng;
+      }
+    }
+
     const { data: property, error } = await supabase
       .from("properties")
       .insert({
         ...data,
+        latitude,
+        longitude,
         owner_id: userId,
         organization_id: organizationId,
         property_type: data.property_type,
@@ -335,6 +350,61 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
       .from("properties")
       .update({ is_vacant: data.isVacant, updated_at: new Date().toISOString() })
       .eq("id", data.propertyId)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return mapPropertyRow(updated);
+  });
+
+export const getManageableProperty = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(propertyIdSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await assertCanManageProperty(supabase, userId, data.id);
+    const admin = await adminClient();
+    const { data: row, error } = await admin
+      .from("properties")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (error) throw error;
+    return mapPropertyRow(row);
+  });
+
+export const updateProperty = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    propertyPayloadSchema.extend({
+      propertyId: z.string().uuid(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    const { propertyId, ...payload } = data;
+    await assertCanManageProperty(supabase, userId, propertyId);
+    const admin = await adminClient();
+    const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
+    let latitude = payload.latitude ?? null;
+    let longitude = payload.longitude ?? null;
+    if ((latitude == null || longitude == null) && payload.neighborhood) {
+      const centroid = neighborhoodCentroid(payload.neighborhood);
+      if (centroid) {
+        latitude = centroid.lat;
+        longitude = centroid.lng;
+      }
+    }
+
+    const { data: updated, error } = await admin
+      .from("properties")
+      .update({
+        ...payload,
+        latitude,
+        longitude,
+        property_type: payload.property_type,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", propertyId)
       .select("*")
       .single();
     if (error) throw error;

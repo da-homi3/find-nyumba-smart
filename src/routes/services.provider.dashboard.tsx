@@ -84,6 +84,21 @@ function ProviderDashboardPage() {
         </p>
 
         <section className="mt-8">
+          <h2 className="font-display text-lg font-semibold">Subscription plan</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {subscription?.status === "active"
+              ? `Active — ${provider.tier} tier`
+              : "Upgrade for higher placement in tenant search"}
+          </p>
+          <Link
+            to="/services/register"
+            className="mt-3 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          >
+            {subscription?.status === "active" ? "Change plan" : "Choose a plan & pay"}
+          </Link>
+        </section>
+
+        <section className="mt-8">
           <h2 className="font-display text-lg font-semibold">
             Recent inquiries ({inquiries.length})
           </h2>

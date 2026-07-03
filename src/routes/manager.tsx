@@ -19,7 +19,7 @@ function ManagerLayout() {
     if (!user) {
       navigate({
         to: "/auth",
-        search: { redirect: pathname, role: "manager", mode: "signin" },
+        search: { redirect: pathname, signupFor: "manager", mode: "signin" },
         replace: true,
       });
       return;
@@ -28,7 +28,7 @@ function ManagerLayout() {
       const pending = hasPendingApplicationForRole(pendingApplications, "manager");
       navigate({
         to: pending ? "/auth/pending" : "/auth",
-        search: pending ? undefined : { redirect: pathname, role: "manager", mode: "signup" },
+        search: pending ? undefined : { redirect: pathname, signupFor: "manager", mode: "signup" },
         replace: true,
       });
     }

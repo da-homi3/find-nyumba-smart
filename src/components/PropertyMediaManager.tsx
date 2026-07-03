@@ -10,6 +10,8 @@ import { toast } from "sonner";
 const MAX_IMG_MB = 10;
 const MAX_VIDEO_MB = 100;
 
+type UpdateMediaResult = Awaited<ReturnType<typeof updatePropertyMedia>>;
+
 export function PropertyMediaManager({ property }: Readonly<{ property: Property }>) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -33,7 +35,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           runQualityAnalysis: true,
         },
       }),
-    onSuccess: (res) => {
+    onSuccess: (res: UpdateMediaResult) => {
       if (res.qualityReport) {
         toast.success(`Quality ${res.qualityReport.grade} · ${res.qualityReport.score}/100`, {
           description: res.qualityReport.summary,

@@ -5,6 +5,8 @@ import { listTransactions } from "@/lib/api/payment.functions";
 import { formatKes } from "@/lib/properties";
 import { LEAD_PACKS } from "@/lib/revenue/plans";
 
+type BillingPayment = Awaited<ReturnType<typeof listTransactions>>[number];
+
 export const Route = createFileRoute("/landlord/dashboard/billing")({
   component: () => (
     <LandlordShell>
@@ -14,7 +16,7 @@ export const Route = createFileRoute("/landlord/dashboard/billing")({
 });
 
 function BillingPage() {
-  const { data: payments = [] } = useQuery({
+  const { data: payments = [] } = useQuery<BillingPayment[]>({
     queryKey: ["billing-payments"],
     queryFn: () => listTransactions(),
   });
@@ -36,7 +38,7 @@ function BillingPage() {
         <p className="mt-1 font-display text-2xl font-semibold">{formatKes(totalDue || 0)}</p>
         <button
           type="button"
-          onClick={() => window.print()}
+          onClick={() => globalThis.print()}
           className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
         >
           Download invoice (print)

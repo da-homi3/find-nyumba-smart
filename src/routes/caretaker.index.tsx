@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { verifyCaretakerLogin, validateCaretakerSession } from "@/lib/api/caretaker.functions";
 import { setCaretakerToken, clearCaretakerToken, getCaretakerToken } from "@/lib/caretaker-session";
 import { errorMessage } from "@/lib/utils";
@@ -34,8 +35,8 @@ function CaretakerSignIn() {
         >
           <ArrowLeft className="h-4 w-4" /> Settings
         </Link>
-        <div className="mt-8 grid h-12 w-12 place-items-center rounded-xl bg-primary/10">
-          <KeyRound className="h-6 w-6 text-primary" />
+        <div className="mt-8">
+          <BrandLogo logoClassName="h-9" />
         </div>
         <h1 className="mt-4 font-display text-2xl font-semibold">Caretaker sign in</h1>
         <p className="mt-2 text-sm text-muted-foreground">

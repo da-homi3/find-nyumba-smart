@@ -93,7 +93,7 @@ function ProviderPage() {
                   metadata: {
                     providerId: provider.id,
                     provider: provider.businessName,
-                    isPlaceholder: provider.isPlaceholder ?? false,
+                    isPlaceholder: String(provider.isPlaceholder ?? false),
                     address: formFieldValue(fd, "address"),
                   },
                 },

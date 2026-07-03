@@ -264,7 +264,12 @@ export async function runSavedSearchDigestCron(admin: Admin) {
 
     if (criteria.neighborhood) query = query.ilike("neighborhood", `%${criteria.neighborhood}%`);
     if (criteria.maxBudget) query = query.lte("rent_kes", criteria.maxBudget);
-    if (criteria.propertyType) query = query.eq("property_type", criteria.propertyType);
+    if (criteria.propertyType) {
+      query = query.eq(
+        "property_type",
+        criteria.propertyType as Database["public"]["Enums"]["property_type"],
+      );
+    }
 
     const { data: matches } = await query.limit(5);
     if (!matches?.length) continue;

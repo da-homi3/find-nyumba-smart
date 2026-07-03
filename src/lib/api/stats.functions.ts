@@ -23,41 +23,38 @@ export const getPublicStats = createServerFn({ method: "GET" }).handler(
 );
 
 export async function loadPublicStats(): Promise<PublicStats> {
-    const supabase = createPublicClient();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabase = createPublicClient();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [activeRes, verifiedRes, hoodRes, trust] = await Promise.all([
-      supabase
-        .from("properties")
-        .select("id", { count: "exact", head: true })
-        .eq("is_active", true),
-      supabase
-        .from("properties")
-        .select("id", { count: "exact", head: true })
-        .eq("is_active", true)
-        .eq("is_verified", true),
-      supabase.from("properties").select("neighborhood").eq("is_active", true).limit(500),
-      loadTrustMetrics(supabaseAdmin),
-    ]);
-
-    const neighborhoods = new Set((hoodRes.data ?? []).map((r) => r.neighborhood));
-    const viewsRes = await supabase
+  const [activeRes, verifiedRes, hoodRes, trust] = await Promise.all([
+    supabase.from("properties").select("id", { count: "exact", head: true }).eq("is_active", true),
+    supabase
       .from("properties")
-      .select("views")
+      .select("id", { count: "exact", head: true })
       .eq("is_active", true)
-      .limit(500);
+      .eq("is_verified", true),
+    supabase.from("properties").select("neighborhood").eq("is_active", true).limit(500),
+    loadTrustMetrics(supabaseAdmin),
+  ]);
 
-    const totalViews = (viewsRes.data ?? []).reduce((sum, r) => sum + (r.views ?? 0), 0);
+  const neighborhoods = new Set((hoodRes.data ?? []).map((r) => r.neighborhood));
+  const viewsRes = await supabase
+    .from("properties")
+    .select("views")
+    .eq("is_active", true)
+    .limit(500);
 
-    return {
-      activeListings: activeRes.count ?? 0,
-      verifiedListings: verifiedRes.count ?? 0,
-      neighborhoodCount: neighborhoods.size,
-      totalViews,
-      noAgentFeesPct: trust.noAgentFeesPct,
-      avgResponseHours: trust.avgResponseHours,
-      tenantRating: trust.tenantRating,
-    };
+  const totalViews = (viewsRes.data ?? []).reduce((sum, r) => sum + (r.views ?? 0), 0);
+
+  return {
+    activeListings: activeRes.count ?? 0,
+    verifiedListings: verifiedRes.count ?? 0,
+    neighborhoodCount: neighborhoods.size,
+    totalViews,
+    noAgentFeesPct: trust.noAgentFeesPct,
+    avgResponseHours: trust.avgResponseHours,
+    tenantRating: trust.tenantRating,
+  };
 }
 
 export const getMarketReportTeaser = createServerFn({ method: "GET" }).handler(

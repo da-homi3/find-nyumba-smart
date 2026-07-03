@@ -65,7 +65,11 @@ export async function handleWhatsAppWebhookRequest(request: Request): Promise<Re
 
     const limited = await checkWhatsAppRateLimit(supabaseAdmin, msg.phone);
     if (limited) {
-      await sendText(msg.phone, "You're sending messages too fast. Please wait a moment. ⏳", supabaseAdmin);
+      await sendText(
+        msg.phone,
+        "You're sending messages too fast. Please wait a moment. ⏳",
+        supabaseAdmin,
+      );
       continue;
     }
 

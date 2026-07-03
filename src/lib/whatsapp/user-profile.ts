@@ -150,9 +150,9 @@ export async function loadUserAssistantProfile(
 
   const roles = (rolesRes.data ?? []).map((r) => r.role);
   const listings = listingsRes.data ?? [];
-  const propertyIds = (
-    await admin.from("properties").select("id").eq("owner_id", userId)
-  ).data?.map((p) => p.id) ?? [];
+  const propertyIds =
+    (await admin.from("properties").select("id").eq("owner_id", userId)).data?.map((p) => p.id) ??
+    [];
 
   let totalLeads = 0;
   if (propertyIds.length > 0) {
@@ -294,7 +294,11 @@ export function formatProfileDigest(profile: UserAssistantProfile): string {
   return lines.join("\n");
 }
 
-function formatSavedHomeSummary(home: { title: string; neighborhood: string; rentKes: number }): string {
+function formatSavedHomeSummary(home: {
+  title: string;
+  neighborhood: string;
+  rentKes: number;
+}): string {
   return `${home.title} in ${home.neighborhood} KES ${home.rentKes}`;
 }
 
@@ -403,7 +407,7 @@ export async function getCachedUserProfile(
 export async function hydrateSessionFromProfile(
   admin: Admin,
   session: WaSession,
-  senderName: string,
+  _senderName: string,
 ): Promise<UserAssistantProfile | null> {
   if (!session.userId) {
     const { data } = await admin
@@ -432,10 +436,7 @@ export async function hydrateSessionFromProfile(
   return profile;
 }
 
-export function displayFirstName(
-  profile: UserAssistantProfile | null,
-  senderName: string,
-): string {
+export function displayFirstName(profile: UserAssistantProfile | null, senderName: string): string {
   if (profile?.firstName) return profile.firstName;
   return senderName.split(/\s+/)[0] ?? "there";
 }

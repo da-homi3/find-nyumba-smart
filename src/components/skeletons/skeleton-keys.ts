@@ -5,7 +5,12 @@ export function skeletonKeys(count: number): readonly string[] {
   return KEY_POOL.slice(0, Math.min(count, KEY_POOL.length));
 }
 
-export const STAT_SKELETON_KEYS = ["sk-stat-homes", "sk-stat-fees", "sk-stat-response", "sk-stat-rating"] as const;
+export const STAT_SKELETON_KEYS = [
+  "sk-stat-homes",
+  "sk-stat-fees",
+  "sk-stat-response",
+  "sk-stat-rating",
+] as const;
 
 export const FILTER_CHIP_WIDTHS = [
   { id: "sk-chip-100", width: 100 },

@@ -45,6 +45,8 @@ export interface Property {
   featured_until?: string | null;
   boost_package?: string | null;
   nyumba_verified_at?: string | null;
+  /** Set client-side when map pin uses neighborhood centroid */
+  map_approximate?: boolean;
 }
 
 export const formatKes = (n: number) => "KES " + n.toLocaleString("en-KE");

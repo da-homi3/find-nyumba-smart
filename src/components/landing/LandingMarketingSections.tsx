@@ -294,6 +294,7 @@ export function Testimonials({
 
 export function DownloadApp() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -303,20 +304,20 @@ export function DownloadApp() {
         <div className="max-w-xl">
           <p className="text-xs font-semibold uppercase tracking-wider text-gold">Coming soon</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
-            NyumbaSearch on mobile — coming soon
+            NyumbaSearch on mobile — launching soon
           </h2>
           <p className="mt-3 text-primary-foreground/80">
-            Be the first to know when the app launches. Save searches, get instant alerts, and
-            message landlords on the go.
+            Be first to get the app. Save searches, instant alerts, and WhatsApp handoff to
+            landlords — built for Nairobi renters on the move.
           </p>
         </div>
         {done ? (
           <p className="rounded-2xl border border-primary-foreground/30 bg-background/10 px-5 py-4 text-sm backdrop-blur">
-            You&apos;re on the list — we&apos;ll email you when the app is ready.
+            You&apos;re on the list — check your email for confirmation.
           </p>
         ) : (
           <form
-            className="flex w-full max-w-md flex-col gap-2 sm:flex-row"
+            className="flex w-full max-w-md flex-col gap-3"
             onSubmit={async (e) => {
               e.preventDefault();
               if (submitting || !email.includes("@")) return;
@@ -325,31 +326,41 @@ export function DownloadApp() {
                 {
                   inquiryType: "app_notify",
                   email,
+                  name: name.trim() || undefined,
                   subject: "Mobile app launch notification",
                   message: "Notify when NyumbaSearch mobile app launches",
                   metadata: { source: "homepage_download_section" },
                 },
-                "You're on the list!",
+                "You're on the list — check your email for confirmation.",
               );
               setSubmitting(false);
               if (ok) setDone(true);
             }}
           >
             <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="min-w-0 flex-1 rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name (optional)"
+              className="rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
             />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-xl bg-background px-5 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
-            >
-              {submitting ? "Saving…" : "Notify me"}
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="min-w-0 flex-1 rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-xl bg-background px-5 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+              >
+                {submitting ? "Saving…" : "Notify me"}
+              </button>
+            </div>
           </form>
         )}
       </div>

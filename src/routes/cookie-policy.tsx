@@ -39,7 +39,7 @@ function CookiePolicyPage() {
       <LegalSection title="Managing cookies" id="manage">
         <p>
           Use the cookie banner on first visit or clear cookies in your browser. You can also email
-          privacy@nyumbasearch.com. See our{" "}
+          hello@nyumbasearch.com. See our{" "}
           <a href="/privacy" className="text-primary hover:underline">
             Privacy Policy
           </a>{" "}

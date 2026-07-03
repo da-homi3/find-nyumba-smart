@@ -27,9 +27,14 @@ function escapeXml(value: string): string {
     .replaceAll("'", "&apos;");
 }
 
-function urlEntry(loc: string, options?: { lastmod?: string; changefreq?: string; priority?: string }): string {
+function urlEntry(
+  loc: string,
+  options?: { lastmod?: string; changefreq?: string; priority?: string },
+): string {
   const lastmod = options?.lastmod ? `\n    <lastmod>${escapeXml(options.lastmod)}</lastmod>` : "";
-  const changefreq = options?.changefreq ? `\n    <changefreq>${options.changefreq}</changefreq>` : "";
+  const changefreq = options?.changefreq
+    ? `\n    <changefreq>${options.changefreq}</changefreq>`
+    : "";
   const priority = options?.priority ? `\n    <priority>${options.priority}</priority>` : "";
   return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmod}${changefreq}${priority}\n  </url>`;
 }
@@ -37,7 +42,11 @@ function urlEntry(loc: string, options?: { lastmod?: string; changefreq?: string
 export function buildStaticSitemapXml(baseUrl = getSiteUrl()): string {
   const today = new Date().toISOString().slice(0, 10);
   const urls = SITEMAP_STATIC_PATHS.map((path) =>
-    urlEntry(`${baseUrl}${path}`, { lastmod: today, changefreq: "daily", priority: path === "" ? "1.0" : "0.8" }),
+    urlEntry(`${baseUrl}${path}`, {
+      lastmod: today,
+      changefreq: "daily",
+      priority: path === "" ? "1.0" : "0.8",
+    }),
   ).join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;

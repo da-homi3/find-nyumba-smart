@@ -17,7 +17,9 @@ export function LegalLayout({
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">Legal</p>
         <h1 className="mt-2 font-display text-4xl font-semibold">{title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Effective: {effectiveDate}</p>
-        <div className="mt-8 space-y-8 text-sm leading-relaxed text-muted-foreground">{children}</div>
+        <div className="mt-8 space-y-8 text-sm leading-relaxed text-muted-foreground">
+          {children}
+        </div>
         <p className="mt-12 border-t pt-6 text-xs text-muted-foreground">
           Questions?{" "}
           <a href="mailto:hello@nyumbasearch.com" className="text-primary hover:underline">

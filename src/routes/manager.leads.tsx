@@ -5,6 +5,7 @@ import { formatKes } from "@/lib/properties";
 import { ConversationThread } from "@/components/ConversationThread";
 import { useEffect, useState } from "react";
 import { Inbox } from "lucide-react";
+import { BrandLogoLink } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/manager/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -50,13 +51,18 @@ function ManagerLeadsPage() {
     <div className="min-h-screen bg-secondary">
       <header className="border-b bg-foreground px-5 py-4 text-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-background/60">
-              Property manager
-            </p>
-            <h1 className="flex items-center gap-2 font-display text-lg font-semibold">
-              <Inbox className="h-5 w-5" /> Leads inbox
-            </h1>
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
+              <BrandLogoLink to="/" logoClassName="h-7" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-background/60">
+                Property manager
+              </p>
+              <h1 className="flex items-center gap-2 font-display text-lg font-semibold">
+                <Inbox className="h-5 w-5" /> Leads inbox
+              </h1>
+            </div>
           </div>
           <Link to="/manager/dashboard" className="text-sm text-gold">
             ← Dashboard

@@ -50,6 +50,42 @@ export type Database = {
           },
         ];
       };
+      alert_log: {
+        Row: {
+          id: string;
+          severity: string;
+          category: string;
+          title: string;
+          body: string | null;
+          context: Json;
+          resolved: boolean;
+          notified: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          severity: string;
+          category: string;
+          title: string;
+          body?: string | null;
+          context?: Json;
+          resolved?: boolean;
+          notified?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          severity?: string;
+          category?: string;
+          title?: string;
+          body?: string | null;
+          context?: Json;
+          resolved?: boolean;
+          notified?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       caretaker_property_assignments: {
         Row: {
           caretaker_id: string;
@@ -289,6 +325,111 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      import_batches: {
+        Row: {
+          id: string;
+          user_id: string;
+          filename: string;
+          file_type: string;
+          total_rows: number;
+          imported_rows: number;
+          failed_rows: number;
+          duplicate_rows: number;
+          status: string;
+          error_report: Json | null;
+          property_ids: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          filename: string;
+          file_type?: string;
+          total_rows?: number;
+          imported_rows?: number;
+          failed_rows?: number;
+          duplicate_rows?: number;
+          status?: string;
+          error_report?: Json | null;
+          property_ids?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          filename?: string;
+          file_type?: string;
+          total_rows?: number;
+          imported_rows?: number;
+          failed_rows?: number;
+          duplicate_rows?: number;
+          status?: string;
+          error_report?: Json | null;
+          property_ids?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      integration_api_keys: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          scope: string;
+          created_at: string;
+          revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+          scope?: string;
+          created_at?: string;
+          revoked_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          key_prefix?: string;
+          key_hash?: string;
+          scope?: string;
+          created_at?: string;
+          revoked_at?: string | null;
+        };
+        Relationships: [];
+      };
+      integration_webhooks: {
+        Row: {
+          id: string;
+          user_id: string;
+          url: string;
+          events: string[];
+          secret: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          url: string;
+          events?: string[];
+          secret?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          url?: string;
+          events?: string[];
+          secret?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       inquiry_messages: {
         Row: {
@@ -708,6 +849,39 @@ export type Database = {
           payment_id?: string | null;
           unlocked_at?: string;
           user_id?: string;
+        };
+        Relationships: [];
+      };
+      cookie_consent: {
+        Row: {
+          id: string;
+          ip_hash: string;
+          necessary: boolean;
+          analytics: boolean;
+          marketing: boolean;
+          preferences: boolean;
+          consent_version: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          ip_hash: string;
+          necessary?: boolean;
+          analytics?: boolean;
+          marketing?: boolean;
+          preferences?: boolean;
+          consent_version?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          ip_hash?: string;
+          necessary?: boolean;
+          analytics?: boolean;
+          marketing?: boolean;
+          preferences?: boolean;
+          consent_version?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -1215,10 +1389,12 @@ export type Database = {
           created_at: string;
           deposit_kes: number | null;
           description: string | null;
+          duplicate_hash: string | null;
           featured_until: string | null;
           health_score: number;
           id: string;
           images: string[];
+          import_batch_id: string | null;
           is_active: boolean;
           is_vacant: boolean;
           is_verified: boolean;
@@ -1245,13 +1421,16 @@ export type Database = {
           bathrooms?: number;
           bedrooms?: number;
           boost_package?: string | null;
+          contact_phone?: string | null;
           created_at?: string;
           deposit_kes?: number | null;
           description?: string | null;
+          duplicate_hash?: string | null;
           featured_until?: string | null;
           health_score?: number;
           id?: string;
           images?: string[];
+          import_batch_id?: string | null;
           is_active?: boolean;
           is_vacant?: boolean;
           is_verified?: boolean;
@@ -1278,13 +1457,16 @@ export type Database = {
           bathrooms?: number;
           bedrooms?: number;
           boost_package?: string | null;
+          contact_phone?: string | null;
           created_at?: string;
           deposit_kes?: number | null;
           description?: string | null;
+          duplicate_hash?: string | null;
           featured_until?: string | null;
           health_score?: number;
           id?: string;
           images?: string[];
+          import_batch_id?: string | null;
           is_active?: boolean;
           is_vacant?: boolean;
           is_verified?: boolean;
@@ -1538,6 +1720,36 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      rate_limit_log: {
+        Row: {
+          id: string;
+          identifier: string;
+          endpoint: string;
+          request_count: number;
+          window_start: string;
+          blocked: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          identifier: string;
+          endpoint: string;
+          request_count?: number;
+          window_start?: string;
+          blocked?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          identifier?: string;
+          endpoint?: string;
+          request_count?: number;
+          window_start?: string;
+          blocked?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       saved_properties: {
         Row: {

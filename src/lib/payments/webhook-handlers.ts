@@ -245,32 +245,32 @@ export async function handleDailyCron(request: Request): Promise<Response> {
 
   const [renewals, trial, reengagement, savedSearch, emailRetry, viewingReminders, sales] =
     await Promise.all([
-    runSubscriptionRenewalCron(supabaseAdmin),
-    runTrialReminderCron(supabaseAdmin).catch((e) => {
-      console.warn("[cron] trial reminders:", e);
-      return { trialEnding: 0, trialExpired: 0 };
-    }),
-    runReengagementCron(supabaseAdmin).catch((e) => {
-      console.warn("[cron] re-engagement:", e);
-      return { sent: 0 };
-    }),
-    runSavedSearchDigestCron(supabaseAdmin).catch((e) => {
-      console.warn("[cron] saved search digest:", e);
-      return { sent: 0 };
-    }),
-    runEmailRetryCron(supabaseAdmin).catch((e) => {
-      console.warn("[cron] email retry:", e);
-      return { retried: 0, succeeded: 0 };
-    }),
-    runViewingReminderCron(supabaseAdmin).catch((e) => {
-      console.warn("[cron] whatsapp viewing reminders:", e);
-      return { tomorrow: 0, today: 0, skipped: true };
-    }),
-    runSalesBotCron(supabaseAdmin).catch((e) => {
-      console.warn("[cron] sales bot:", e);
-      return { upgrade: { sent: 0 }, landlord: { sent: 0 } };
-    }),
-  ]);
+      runSubscriptionRenewalCron(supabaseAdmin),
+      runTrialReminderCron(supabaseAdmin).catch((e) => {
+        console.warn("[cron] trial reminders:", e);
+        return { trialEnding: 0, trialExpired: 0 };
+      }),
+      runReengagementCron(supabaseAdmin).catch((e) => {
+        console.warn("[cron] re-engagement:", e);
+        return { sent: 0 };
+      }),
+      runSavedSearchDigestCron(supabaseAdmin).catch((e) => {
+        console.warn("[cron] saved search digest:", e);
+        return { sent: 0 };
+      }),
+      runEmailRetryCron(supabaseAdmin).catch((e) => {
+        console.warn("[cron] email retry:", e);
+        return { retried: 0, succeeded: 0 };
+      }),
+      runViewingReminderCron(supabaseAdmin).catch((e) => {
+        console.warn("[cron] whatsapp viewing reminders:", e);
+        return { tomorrow: 0, today: 0, skipped: true };
+      }),
+      runSalesBotCron(supabaseAdmin).catch((e) => {
+        console.warn("[cron] sales bot:", e);
+        return { upgrade: { sent: 0 }, landlord: { sent: 0 } };
+      }),
+    ]);
 
   return new Response(
     JSON.stringify({

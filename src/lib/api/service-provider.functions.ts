@@ -88,7 +88,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
 
     if (!provider) return { provider: null, subscription: null, inquiries: [] };
 
-    const [{ data: subscription }, { data: inquiries }] = await Promise.all([
+    const [{ data: subscription }, { data: inquiries }, { data: quoteLeads }] = await Promise.all([
       provider.subscription_id
         ? supabaseAdmin
             .from("subscriptions")
@@ -109,9 +109,30 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
         .eq("provider_id", provider.id)
         .order("created_at", { ascending: false })
         .limit(50),
+      supabaseAdmin
+        .from("partnership_inquiries")
+        .select("*")
+        .eq("inquiry_type", "service_quote")
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
 
-    return { provider, subscription, inquiries: inquiries ?? [] };
+    const mergedQuotes = [
+      ...(inquiries ?? []),
+      ...(quoteLeads ?? [])
+        .filter((row) => {
+          const meta = row.metadata as Record<string, string> | null;
+          return meta?.providerId === provider.id || meta?.provider === provider.business_name;
+        })
+        .map((row) => ({
+          id: row.id,
+          message: `${row.message}\n\n${row.contact_name} · ${row.phone}`,
+          created_at: row.created_at,
+          profiles: { full_name: row.contact_name, phone: row.phone },
+        })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return { provider, subscription, inquiries: mergedQuotes };
   });
 
 import { PROVIDER_TIERS } from "@/lib/revenue/plans";

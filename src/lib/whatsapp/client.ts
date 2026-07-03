@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { isWhatsAppConfigured, whatsappApiVersion, whatsappPhoneId, whatsappToken } from "@/lib/whatsapp/env";
+import {
+  isWhatsAppConfigured,
+  whatsappApiVersion,
+  whatsappPhoneId,
+  whatsappToken,
+} from "@/lib/whatsapp/env";
 
 type Admin = SupabaseClient<Database>;
 
@@ -152,10 +157,9 @@ export async function downloadMedia(mediaId: string): Promise<ArrayBuffer> {
   const token = whatsappToken();
   if (!token) throw new Error("WHATSAPP_TOKEN not configured");
 
-  const urlRes = await fetch(
-    `https://graph.facebook.com/${whatsappApiVersion()}/${mediaId}`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
+  const urlRes = await fetch(`https://graph.facebook.com/${whatsappApiVersion()}/${mediaId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   const urlJson: { url?: string } = await urlRes.json();
   if (!urlJson.url) throw new Error("WhatsApp media URL missing");
 

@@ -11,12 +11,17 @@ import {
   filterMappableProperties,
   priceTagSvg,
 } from "@/components/tenant-map/map-constants";
+import {
+  buildRentHeatCircles,
+  createClusterMarker,
+  createListingMarkers,
+  type PropertyMarker,
+} from "@/lib/tenant-map/google-map-build";
 
 type MarkerClustererType = import("@googlemaps/markerclusterer").MarkerClusterer;
 type MarkerClustererModule = typeof import("@googlemaps/markerclusterer") & {
   default?: typeof import("@googlemaps/markerclusterer");
 };
-type PropertyMarker = google.maps.Marker & { __property?: Property };
 
 export function useTenantGoogleMap(properties: Property[]) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -26,7 +31,7 @@ export function useTenantGoogleMap(properties: Property[]) {
   const allHeatCircles = useRef<google.maps.Circle[]>([]);
   const rebuildTimer = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const cullRaf = useRef<number | null>(null);
-  const markers = useRef<google.maps.Marker[]>([]);
+  const markers = useRef<PropertyMarker[]>([]);
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +66,7 @@ export function useTenantGoogleMap(properties: Property[]) {
   }
 
   useEffect(() => {
-    if (typeof globalThis.document === "undefined") return;
+    if (globalThis.document == null) return;
     const handleOnline = () => {
       setIsOnline(true);
       setError((prev) =>
@@ -137,8 +142,9 @@ export function useTenantGoogleMap(properties: Property[]) {
 
     async function rebuild() {
       const g = getGoogleMapsWindow().google;
-      if (!g) return;
-      const map = mapInstance.current!;
+      const map = mapInstance.current;
+      if (!g || !map) return;
+
       const mcMod = (await import("@googlemaps/markerclusterer")) as MarkerClustererModule;
       const MarkerClusterer = mcMod.MarkerClusterer ?? mcMod.default?.MarkerClusterer;
       const SuperClusterAlgorithm =
@@ -152,24 +158,7 @@ export function useTenantGoogleMap(properties: Property[]) {
       markers.current = [];
       setMarkerCount(0);
 
-      const filtered = filterMappableProperties(properties, query);
-      const newMarkers = filtered.map((p) => {
-        const marker = new g.maps.Marker({
-          position: { lat: p.latitude!, lng: p.longitude! },
-          icon: {
-            url: priceTagSvg(compactKes(p.rent_kes).replaceAll("KES ", ""), false),
-            scaledSize: new g.maps.Size(86, 38),
-            anchor: new g.maps.Point(43, 36),
-          },
-          title: p.title,
-        });
-        marker.addListener("click", () => {
-          setSelected(p);
-          map.panTo({ lat: p.latitude!, lng: p.longitude! });
-        });
-        (marker as PropertyMarker).__property = p;
-        return marker;
-      });
+      const newMarkers = createListingMarkers(g.maps, map, properties, query, setSelected);
       markers.current = newMarkers;
       setMarkerCount(newMarkers.length);
 
@@ -178,76 +167,15 @@ export function useTenantGoogleMap(properties: Property[]) {
         markers: newMarkers,
         algorithm: new SuperClusterAlgorithm({ radius: 70, maxZoom: 15 }),
         renderer: {
-          render: ({ count, position }: { count: number; position: google.maps.LatLng }) => {
-            const size = Math.min(72, 40 + Math.log2(count) * 8);
-            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
-              <circle cx='${size / 2}' cy='${size / 2}' r='${size / 2 - 4}' fill='#c9a84c' fill-opacity='0.22'/>
-              <circle cx='${size / 2}' cy='${size / 2}' r='${size / 2 - 10}' fill='#0d4f3c' stroke='#c9a84c' stroke-width='2'/>
-              <text x='50%' y='52%' text-anchor='middle' dominant-baseline='middle' font-family='Space Grotesk, system-ui, sans-serif' font-weight='700' font-size='${size / 3.2}' fill='#f5f0e0'>${count}</text>
-            </svg>`;
-            return new g.maps.Marker({
-              position,
-              icon: {
-                url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-                scaledSize: new g.maps.Size(size, size),
-                anchor: new g.maps.Point(size / 2, size / 2),
-              },
-              zIndex: 999 + count,
-            });
-          },
+          render: ({ count, position }: { count: number; position: google.maps.LatLng }) =>
+            createClusterMarker(g.maps, count, position),
         },
       });
 
       allHeatCircles.current.forEach((c) => c.setMap(null));
-      allHeatCircles.current = [];
+      allHeatCircles.current = buildRentHeatCircles(g.maps, properties, query);
       heatmap.current = [];
-
-      if (filtered.length) {
-        const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
-        const CELL = 0.004;
-        const grid = new Map<string, { lat: number; lng: number; w: number; n: number }>();
-        for (const p of filtered) {
-          const gx = Math.round(p.latitude! / CELL);
-          const gy = Math.round(p.longitude! / CELL);
-          const key = `${gx}:${gy}`;
-          const w = 0.4 + (p.rent_kes / maxRent) * 1.6;
-          const cell = grid.get(key);
-          if (cell) {
-            cell.lat += p.latitude!;
-            cell.lng += p.longitude!;
-            cell.w += w;
-            cell.n += 1;
-          } else {
-            grid.set(key, { lat: p.latitude!, lng: p.longitude!, w, n: 1 });
-          }
-        }
-
-        const layers = [
-          { mult: 1.0, color: "#ff6b35", opacity: 0.22 },
-          { mult: 1.8, color: "#e8b84a", opacity: 0.14 },
-          { mult: 2.8, color: "#0d4f3c", opacity: 0.1 },
-        ];
-        const circles: google.maps.Circle[] = [];
-        grid.forEach((cell) => {
-          const center = { lat: cell.lat / cell.n, lng: cell.lng / cell.n };
-          const weight = Math.min(3.5, cell.w);
-          layers.forEach(({ mult, color, opacity }) => {
-            circles.push(
-              new g.maps.Circle({
-                center,
-                radius: 140 * weight * mult,
-                strokeOpacity: 0,
-                fillColor: color,
-                fillOpacity: opacity,
-                clickable: false,
-                map: null,
-              }),
-            );
-          });
-        });
-        allHeatCircles.current = circles;
-        if (showHeat) cullHeatmap();
-      }
+      if (showHeat) cullHeatmap();
     }
   }, [ready, properties, query, showHeat]);
 
@@ -281,7 +209,7 @@ export function useTenantGoogleMap(properties: Property[]) {
     const g = getGoogleMapsWindow().google;
     if (!g) return;
     markers.current.forEach((m) => {
-      const p = (m as PropertyMarker).__property;
+      const p = m.__property;
       if (!p) return;
       const isActive = selected?.id === p.id;
       m.setIcon({

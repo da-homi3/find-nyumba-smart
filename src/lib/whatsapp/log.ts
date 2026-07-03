@@ -8,9 +8,7 @@ export async function logInboundMessage(
   waPhone: string,
   message: { type?: string; id?: string; text?: { body?: string } },
 ): Promise<void> {
-  const body =
-    message.text?.body ??
-    JSON.stringify(message).slice(0, 500);
+  const body = message.text?.body ?? JSON.stringify(message).slice(0, 500);
   await admin.from("whatsapp_message_log").insert({
     wa_phone: waPhone,
     direction: "inbound",

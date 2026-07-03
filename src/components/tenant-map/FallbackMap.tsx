@@ -1,6 +1,16 @@
 import { formatKes, type Property } from "@/lib/properties";
 import { compactKes, projectToFallbackMap } from "./map-constants";
 
+function fallbackPinClass(active: boolean, approx: boolean | undefined): string {
+  if (active) {
+    return "z-20 border-background bg-gradient-gold text-gold-foreground";
+  }
+  if (approx) {
+    return "z-10 border-dashed border-background/70 bg-primary/80 text-primary-foreground";
+  }
+  return "z-10 border-background/70 bg-primary text-primary-foreground hover:bg-primary/90";
+}
+
 export function FallbackMap({
   properties,
   selected,
@@ -14,10 +24,10 @@ export function FallbackMap({
 }>) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#0e1a14]">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(201,168,76,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(201,168,76,0.08)_1px,transparent_1px)] bg-[size:56px_56px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(201,168,76,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(201,168,76,0.08)_1px,transparent_1px)] bg-size-[56px_56px]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgba(13,79,60,0.85),transparent_32%),radial-gradient(circle_at_68%_58%,rgba(201,168,76,0.28),transparent_26%),radial-gradient(circle_at_52%_78%,rgba(255,107,53,0.18),transparent_24%)]" />
       <div className="absolute left-[16%] top-[34%] h-28 w-[68%] rotate-[-14deg] rounded-full border-y border-gold/25" />
-      <div className="absolute left-[8%] top-[55%] h-20 w-[86%] rotate-[10deg] rounded-full border-y border-primary/35" />
+      <div className="absolute left-[8%] top-[55%] h-20 w-[86%] rotate-10 rounded-full border-y border-primary/35" />
 
       {["Westlands", "Kilimani", "Lavington", "Karen", "Kasarani"].map((hood, i) => (
         <span
@@ -48,16 +58,13 @@ export function FallbackMap({
       {properties.map((p) => {
         const point = projectToFallbackMap(p);
         const active = selected?.id === p.id;
+        const approx = p.map_approximate;
         return (
           <button
             type="button"
             key={p.id}
             onClick={() => onSelect(p)}
-            className={`absolute -translate-x-1/2 -translate-y-full rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-elegant transition ${
-              active
-                ? "z-20 border-background bg-gradient-gold text-gold-foreground"
-                : "z-10 border-background/70 bg-primary text-primary-foreground hover:bg-primary/90"
-            }`}
+            className={`absolute -translate-x-1/2 -translate-y-full rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-elegant transition ${fallbackPinClass(active, approx)}`}
             style={point}
             aria-label={`${p.title}, ${formatKes(p.rent_kes)}`}
           >

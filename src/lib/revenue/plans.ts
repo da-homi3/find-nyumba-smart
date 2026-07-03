@@ -263,8 +263,34 @@ export function planMonthlyPrice(planId: LandlordPlan, cycle: "monthly" | "quart
   return base;
 }
 
-export function boostPrice(packageId: BoostPackage): number {
+export function boostPrice(packageId: BoostPackage, customCampaignKes?: number): number {
+  if (packageId === "campaign" && customCampaignKes) {
+    return Math.min(Math.max(customCampaignKes, 20_000), 100_000);
+  }
   return BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 2000;
+}
+
+export const ADVERTISE_PACKAGES = [
+  { id: "banner", name: "Banner ads", placement: "Homepage + browse", priceKes: 5000 },
+  {
+    id: "featured",
+    name: "Featured content",
+    placement: "Property detail pages",
+    priceKes: 15000,
+  },
+  {
+    id: "newsletter",
+    name: "Newsletter inclusion",
+    placement: "Weekly tenant email",
+    priceKes: 10000,
+  },
+  { id: "campaign", name: "Full campaign", placement: "All placements", priceKes: 50000 },
+] as const;
+
+export type AdvertisePackageId = (typeof ADVERTISE_PACKAGES)[number]["id"];
+
+export function advertisePackagePrice(packageId: string): number {
+  return ADVERTISE_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 5000;
 }
 
 export function transactionReference(): string {

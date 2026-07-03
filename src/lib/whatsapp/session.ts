@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import type { WaRole, WaSession } from "@/lib/whatsapp/types";
 
 type Admin = SupabaseClient<Database>;
@@ -54,7 +54,7 @@ export async function saveSession(admin: Admin, session: WaSession): Promise<voi
       user_id: session.userId,
       role: session.role,
       state: session.state,
-      context: session.context,
+      context: session.context as Json,
       last_message_at: now,
     },
     { onConflict: "wa_phone" },

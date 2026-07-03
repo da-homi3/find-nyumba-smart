@@ -20,7 +20,12 @@ export type ListingsResult = {
 };
 
 type Db = SupabaseClient<Database>;
-type PropertyQuery = ReturnType<ReturnType<Db["from"]>["select"]>;
+
+function buildPropertySelect(supabase: Db, columns: string) {
+  return supabase.from("properties").select(columns, { count: "exact" });
+}
+
+type PropertyQuery = ReturnType<typeof buildPropertySelect>;
 
 function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters | undefined) {
   let next = query.eq("is_active", true);
@@ -75,6 +80,10 @@ function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters |
   return next;
 }
 
+function isCurrentlyBoosted(featuredUntil: string | null | undefined, now: number): boolean {
+  return Boolean(featuredUntil && new Date(featuredUntil).getTime() > now);
+}
+
 async function runListingsSelect(
   supabase: Db,
   columns: string,
@@ -82,10 +91,10 @@ async function runListingsSelect(
 ) {
   const limit = Math.min(Math.max(data?.limit ?? 50, 1), 500);
   const offset = Math.max(data?.offset ?? 0, 0);
-  const query = applyListingFilters(
-    supabase.from("properties").select(columns, { count: "exact" }),
-    data,
-  ).range(offset, offset + limit - 1);
+  const query = applyListingFilters(buildPropertySelect(supabase, columns), data).range(
+    offset,
+    offset + limit - 1,
+  );
 
   const { data: rows, error, count } = await query;
   return { rows, error, count, limit, offset };
@@ -113,7 +122,14 @@ export async function queryListings(
 
   if (error) throw error;
 
-  let items = mapPropertyRows(rows ?? []);
+  let items = mapPropertyRows((rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0]);
+  const now = Date.now();
+  items = [...items].sort((a, b) => {
+    const aBoosted = isCurrentlyBoosted(a.featured_until, now) ? 1 : 0;
+    const bBoosted = isCurrentlyBoosted(b.featured_until, now) ? 1 : 0;
+    if (aBoosted !== bBoosted) return bBoosted - aBoosted;
+    return 0;
+  });
   let total = count ?? items.length;
 
   if (mockListingsEnabled()) {

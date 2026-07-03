@@ -5,6 +5,7 @@ export { VERIFICATION_STATUS_CLASS, SCAM_STATUS_CLASS } from "@/components/admin
 export type {
   AdminTab,
   AdminVerification,
+  AdminPropertyCheck,
   AdminScamReport,
   AdminProperty,
   AdminAuditLog,

@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import type { Database } from "@/integrations/supabase/types";
+
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 import { callGeminiChat } from "@/lib/api/ai-client";
@@ -237,7 +239,7 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
     if (data.appendImages?.length) images = [...images, ...data.appendImages];
     if (data.removeImages?.length) {
       const remove = new Set(data.removeImages);
-      images = images.filter((u) => !remove.has(u));
+      images = images.filter((u: string) => !remove.has(u));
     }
 
     const admin = await adminClient();
@@ -250,7 +252,7 @@ export const updatePropertyMedia = createServerFn({ method: "POST" })
 
     const { data: property, error } = await admin
       .from("properties")
-      .update(patch)
+      .update(patch as Database["public"]["Tables"]["properties"]["Update"])
       .eq("id", data.propertyId)
       .select("*")
       .single();

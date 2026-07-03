@@ -29,9 +29,7 @@ function RefundPage() {
         </p>
       </LegalSection>
       <LegalSection title="How to request">
-        <p>
-          Email hello@nyumbasearch.com with your account email, payment reference, and reason.
-        </p>
+        <p>Email hello@nyumbasearch.com with your account email, payment reference, and reason.</p>
       </LegalSection>
     </LegalLayout>
   );

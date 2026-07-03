@@ -51,6 +51,13 @@ function Page() {
               <p className="font-semibold">{p.title}</p>
               <p className="text-xs text-muted-foreground">{p.neighborhood}</p>
               <p className="mt-2 text-sm font-semibold">{formatKes(p.rent_kes)}</p>
+              <Link
+                to="/agency/properties/$id/edit"
+                params={{ id: p.id }}
+                className="mt-3 inline-block text-xs font-semibold text-primary hover:underline"
+              >
+                Edit listing →
+              </Link>
               <PropertyMediaManager property={p} />
             </div>
           ))}

@@ -152,7 +152,7 @@ function SettingsPage() {
       return;
     }
     if (portal === "admin") {
-      navigate({ to: "/admin" });
+      navigate({ to: "/admin", search: { tab: undefined } });
       return;
     }
     const def = PORTALS.find((p) => p.id === portal);

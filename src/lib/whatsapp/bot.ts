@@ -34,7 +34,8 @@ function coerceWebhookString(value: unknown, fallback: string): string {
 }
 
 /** Parse Meta webhook payload into normalized inbound messages. */
-export function parseWhatsAppWebhook(body: unknown): WaInboundMessage[] {  const payload = body as {
+export function parseWhatsAppWebhook(body: unknown): WaInboundMessage[] {
+  const payload = body as {
     entry?: Array<{
       changes?: Array<{
         value?: {
@@ -64,7 +65,8 @@ export function parseWhatsAppWebhook(body: unknown): WaInboundMessage[] {  const
       id: msg.id as string | undefined,
       phone,
       senderName,
-      type: coerceWebhookString(msg.type, "text"),      text: extractText(msg),
+      type: coerceWebhookString(msg.type, "text"),
+      text: extractText(msg),
       interactiveId: extractInteractiveId(msg),
       location:
         location?.latitude != null && location?.longitude != null

@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 import { getCacheKv } from "@/lib/kv/bindings";
 
 export type AlertSeverity = "critical" | "warning" | "info";
@@ -20,7 +21,9 @@ const DEDUP_WINDOWS: Record<AlertSeverity, number> = {
 };
 
 function alertEmail(): string {
-  return process.env.OPS_ALERT_EMAIL ?? process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";
+  return (
+    process.env.OPS_ALERT_EMAIL ?? process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com"
+  );
 }
 
 function hashTitle(title: string): string {
@@ -43,7 +46,11 @@ function severityColor(severity: AlertSeverity): string {
   return "#1eb88a";
 }
 
-async function isDuplicate(severity: AlertSeverity, category: AlertCategory, title: string): Promise<boolean> {
+async function isDuplicate(
+  severity: AlertSeverity,
+  category: AlertCategory,
+  title: string,
+): Promise<boolean> {
   const dedupeKey = `alert:${severity}:${category}:${hashTitle(title)}`;
   const kv = getCacheKv();
   if (kv) {
@@ -70,7 +77,7 @@ async function persistAlert(
       category,
       title,
       body: JSON.stringify(context ?? {}),
-      context: context ?? {},
+      context: (context ?? {}) as Json,
       resolved: false,
       notified: false,
     });

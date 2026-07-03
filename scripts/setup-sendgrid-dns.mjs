@@ -12,8 +12,18 @@ const DOMAIN = "nyumbasearch.com";
 
 const SENDGRID_RECORDS = [
   { type: "CNAME", name: "em2954", content: "u109129355.wl106.sendgrid.net", proxied: false },
-  { type: "CNAME", name: "s1._domainkey", content: "s1.domainkey.u109129355.wl106.sendgrid.net", proxied: false },
-  { type: "CNAME", name: "s2._domainkey", content: "s2.domainkey.u109129355.wl106.sendgrid.net", proxied: false },
+  {
+    type: "CNAME",
+    name: "s1._domainkey",
+    content: "s1.domainkey.u109129355.wl106.sendgrid.net",
+    proxied: false,
+  },
+  {
+    type: "CNAME",
+    name: "s2._domainkey",
+    content: "s2.domainkey.u109129355.wl106.sendgrid.net",
+    proxied: false,
+  },
   { type: "TXT", name: "_dmarc", content: "v=DMARC1; p=none;", proxied: false },
   { type: "CNAME", name: "url7389", content: "sendgrid.net", proxied: false },
   { type: "CNAME", name: "109129355", content: "sendgrid.net", proxied: false },
@@ -41,7 +51,8 @@ function getCloudflareToken() {
     join(process.env.APPDATA ?? "", "xdg.config", ".wrangler", "config", "default.toml"),
   ];
   const configPath = candidates.find((p) => existsSync(p));
-  if (!configPath) throw new Error("No CLOUDFLARE_DNS_API_TOKEN in .env and wrangler config not found");
+  if (!configPath)
+    throw new Error("No CLOUDFLARE_DNS_API_TOKEN in .env and wrangler config not found");
   const toml = readFileSync(configPath, "utf8");
   const oauthMatch = OAUTH_TOKEN_RE.exec(toml);
   const token = oauthMatch?.[1];
@@ -76,9 +87,7 @@ async function listRecords() {
 
 async function upsertRecord(rec) {
   const fullName = fqdn(rec.name);
-  const existing = (await listRecords()).find(
-    (r) => r.type === rec.type && r.name === fullName,
-  );
+  const existing = (await listRecords()).find((r) => r.type === rec.type && r.name === fullName);
 
   const body = {
     type: rec.type,
@@ -118,7 +127,9 @@ async function main() {
     results.push(await upsertRecord(rec));
   }
   console.log("\nDone. Verify in SendGrid → Settings → Sender Authentication → nyumbasearch.com");
-  console.log("Then set SENDGRID_FROM_EMAIL=hello@nyumbasearch.com and run: node scripts/sync-wrangler-env.mjs");
+  console.log(
+    "Then set SENDGRID_FROM_EMAIL=hello@nyumbasearch.com and run: node scripts/sync-wrangler-env.mjs",
+  );
   return results;
 }
 

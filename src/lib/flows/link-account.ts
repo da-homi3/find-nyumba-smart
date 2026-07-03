@@ -137,11 +137,7 @@ export async function handleAccountLinkOtp(
     return;
   }
 
-  await sendText(
-    waPhone,
-    "✅ *Account linked!* Reply *MENU* to continue.",
-    admin,
-  );
+  await sendText(waPhone, "✅ *Account linked!* Reply *MENU* to continue.", admin);
   await updateState(admin, waPhone, `${session.role}_menu`);
 }
 
@@ -154,7 +150,10 @@ export async function promptAccountLink(admin: Admin, waPhone: string): Promise<
   await updateState(admin, waPhone, "account_link_email");
 }
 
-export async function tryResolveSessionUser(admin: Admin, session: WaSession): Promise<string | null> {
+export async function tryResolveSessionUser(
+  admin: Admin,
+  session: WaSession,
+): Promise<string | null> {
   if (session.userId) return session.userId;
   const byPhone = await admin
     .from("profiles")

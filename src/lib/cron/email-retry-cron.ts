@@ -6,7 +6,9 @@ import { baseLayout } from "@/lib/email/base-layout";
 type Admin = SupabaseClient<Database>;
 
 /** Retry failed email_log rows from the last 2 hours (daily/5-min cron). */
-export async function runEmailRetryCron(admin: Admin): Promise<{ retried: number; succeeded: number }> {
+export async function runEmailRetryCron(
+  admin: Admin,
+): Promise<{ retried: number; succeeded: number }> {
   const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const { data: failed, error } = await admin
     .from("email_log")

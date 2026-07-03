@@ -40,6 +40,7 @@
     "rotate:gemini": "node scripts/rotate-gemini-key.mjs",
     "mapbox": "node scripts/provision-mapbox.mjs",
     "mapbox:fetch": "node scripts/fetch-mapbox-token.mjs",
+    "db:backfill:coords": "node scripts/backfill-property-coords.mjs",
     "db:migrate:email": "node scripts/apply-email-system.mjs",
     "test:email": "node scripts/test-email-system.mjs",
     "sendgrid:check": "node scripts/check-sendgrid-domain.mjs",

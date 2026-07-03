@@ -18,7 +18,7 @@ import {
   VerifiedSection,
   WhyNyumba,
 } from "@/components/landing/LandingMarketingSections";
-import { getSiteUrl, HOMEPAGE_TITLE } from "@/lib/site";
+import { getBrandLogoUrl, getSiteUrl, HOMEPAGE_TITLE } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
@@ -159,10 +159,7 @@ function Landing() {
       <VerifiedSection />
       <PropertyIntelSection stats={intelligenceStats} loading={intelligenceLoading} />
       <WhyNyumba />
-      <Testimonials
-        items={testimonials ?? FALLBACK_TESTIMONIALS}
-        loading={testimonialsLoading}
-      />
+      <Testimonials items={testimonials ?? FALLBACK_TESTIMONIALS} loading={testimonialsLoading} />
       <DownloadApp />
       <LandlordBand />
       <SiteFooter />
@@ -190,7 +187,7 @@ function Landing() {
                 "@type": "Organization",
                 name: "NyumbaSearch",
                 url: getSiteUrl(),
-                logo: `${getSiteUrl()}/og-image.jpg`,
+                logo: getBrandLogoUrl(),
                 contactPoint: {
                   "@type": "ContactPoint",
                   contactType: "customer service",

@@ -196,6 +196,7 @@ function FinancePage() {
                       inquiryType: "finance",
                       name: formFieldValue(fd, "name"),
                       phone: formFieldValue(fd, "phone"),
+                      email: formFieldValue(fd, "email") || undefined,
                       subject: "Mortgage / finance eligibility",
                       message: `Estimated loan: ${formatKes(result ?? 0)}`,
                       metadata: {
@@ -219,6 +220,12 @@ function FinancePage() {
                   required
                   name="phone"
                   placeholder="Phone"
+                  className="rounded-xl border px-3 py-2 text-sm"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email (for confirmation)"
                   className="rounded-xl border px-3 py-2 text-sm"
                 />
                 <button

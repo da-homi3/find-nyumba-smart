@@ -76,7 +76,10 @@ export async function notifyContactUnlockEmails(
       .select("fee_charged")
       .eq("user_id", opts.userId)
       .eq("method", "paid")
-      .gte("unlocked_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+      .gte(
+        "unlocked_at",
+        new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+      );
     const monthlySpend = (spendRows ?? []).reduce((s, r) => s + (r.fee_charged ?? 0), 0);
 
     const tpl = contactUnlockEmail({

@@ -13,6 +13,13 @@ import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
 import { reportClientError } from "@/lib/error-reporting";
+import {
+  APPLE_TOUCH_ICON_PATH,
+  BRAND_LOGO_PATH,
+  BRAND_THEME_COLOR,
+  FAVICON_PATH,
+  WEB_MANIFEST_PATH,
+} from "@/lib/brand";
 import { getOgImageUrl, HOMEPAGE_TITLE } from "@/lib/site";
 import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -90,6 +97,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
       },
       { name: "author", content: "NyumbaSearch" },
+      { name: "theme-color", content: BRAND_THEME_COLOR },
+      { name: "apple-mobile-web-app-title", content: "NyumbaSearch" },
+      { name: "application-name", content: "NyumbaSearch" },
       { property: "og:title", content: HOMEPAGE_TITLE },
       {
         property: "og:description",
@@ -109,6 +119,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: FAVICON_PATH, type: "image/png" },
+      { rel: "apple-touch-icon", href: APPLE_TOUCH_ICON_PATH },
+      { rel: "manifest", href: WEB_MANIFEST_PATH },
+      { rel: "preload", as: "image", href: BRAND_LOGO_PATH, fetchPriority: "high" },
       { rel: "preload", as: "image", href: heroImg, fetchPriority: "high" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },

@@ -118,5 +118,8 @@ export const listTransactions = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return rows;
+    return (rows ?? []).map((row) => ({
+      ...row,
+      metadata: row.metadata as Record<string, string | number | boolean | null>,
+    }));
   });

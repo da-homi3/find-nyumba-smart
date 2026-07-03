@@ -69,7 +69,9 @@ export function NeighborhoodCard3D({ name, minPrice, image, count = 0 }: Readonl
         />
         <div className="absolute inset-x-0 bottom-0 p-5">
           <h3 className="m-0 font-display text-xl font-bold text-white">{name}</h3>
-          <p className="mt-1 text-sm text-white/70">From KES {minPrice.toLocaleString("en-KE")}/mo</p>
+          <p className="mt-1 text-sm text-white/70">
+            From KES {minPrice.toLocaleString("en-KE")}/mo
+          </p>
           <motion.div
             initial={false}
             animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : 8 }}

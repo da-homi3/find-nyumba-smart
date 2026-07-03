@@ -166,6 +166,13 @@ export async function runSubscriptionRenewalCron(supabaseAdmin: Admin): Promise<
     stats.pastDue += 1;
   }
 
+  const { data: overdue } = await supabaseAdmin
+    .from("subscriptions")
+    .select("*")
+    .eq("status", "past_due")
+    .not("grace_period_end", "is", null)
+    .lte("grace_period_end", now);
+
   for (const sub of overdue ?? []) {
     await downgradeUser(supabaseAdmin, sub);
     stats.cancelled += 1;

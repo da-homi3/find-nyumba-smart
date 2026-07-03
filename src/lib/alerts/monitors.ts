@@ -9,11 +9,16 @@ export const Monitors = {
     }),
 
   paymentFulfillFailed: (paymentId: string, purpose: string, error: string) =>
-    fireAlert("critical", "payment", "Payment fulfilment failed — user may have paid without access", {
-      paymentId,
-      purpose,
-      error,
-    }),
+    fireAlert(
+      "critical",
+      "payment",
+      "Payment fulfilment failed — user may have paid without access",
+      {
+        paymentId,
+        purpose,
+        error,
+      },
+    ),
 
   cronJobFailed: (cronName: string, error: string) =>
     fireAlert("critical", "cron", `Cron job failed: ${cronName}`, { cronName, error }),

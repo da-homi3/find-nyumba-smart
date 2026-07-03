@@ -4,10 +4,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const site = (process.env.PUBLIC_APP_URL ?? process.env.SITE_URL ?? "https://nyumbasearch.com").replace(
-  /\/$/,
-  "",
-);
+const site = (
+  process.env.PUBLIC_APP_URL ??
+  process.env.SITE_URL ??
+  "https://nyumbasearch.com"
+).replace(/\/$/, "");
 
 const paths = [
   "",

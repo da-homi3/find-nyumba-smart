@@ -158,7 +158,10 @@ async function checkListingsApi() {
       return;
     }
     if ((json.items?.length ?? 0) > 0) {
-      pass("Listings API", `${json.total ?? json.items.length} total, ${json.items.length} returned`);
+      pass(
+        "Listings API",
+        `${json.total ?? json.items.length} total, ${json.items.length} returned`,
+      );
     } else {
       fail("Listings API", "empty items array");
     }

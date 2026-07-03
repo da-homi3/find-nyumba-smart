@@ -2,7 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { LandlordShell } from "@/components/LandlordShell";
-import { Building2, Eye, Users, TrendingUp, Plus, Calendar, Check, X } from "lucide-react";
+import {
+  Building2,
+  Eye,
+  Users,
+  TrendingUp,
+  Plus,
+  Calendar,
+  Check,
+  X,
+  KeyRound,
+} from "lucide-react";
 import { getLandlordDashboard } from "@/lib/api/nyumba.functions";
 import {
   listMyViewings,
@@ -112,6 +122,30 @@ function Dashboard() {
           hint="potential"
         />
       </div>
+
+      <section className="mt-8 rounded-2xl border bg-card p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Caretaker access
+            </h2>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Add caretaker phone numbers and PINs so on-site staff can log vacancies and updates at{" "}
+              <Link to="/caretaker" className="font-medium text-primary">
+                nyumbasearch.com/caretaker
+              </Link>
+              .
+            </p>
+          </div>
+          <Link
+            to="/landlord/caretakers"
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold hover:bg-secondary"
+          >
+            Manage caretakers →
+          </Link>
+        </div>
+      </section>
 
       {/* Main Grid */}
       <div className="mt-10 grid gap-8 lg:grid-cols-3">

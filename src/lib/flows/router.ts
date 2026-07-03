@@ -1,9 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  handlePersonalAssistantCommand,
-  showPersonalHome,
-} from "@/lib/flows/assistant";
+import { handlePersonalAssistantCommand, showPersonalHome } from "@/lib/flows/assistant";
 import { handleLandlordFlow } from "@/lib/flows/landlord";
 import { handleProviderFlow } from "@/lib/flows/provider";
 import { handleTenantFlow } from "@/lib/flows/tenant";
@@ -89,7 +86,15 @@ async function handleAwaitingRole(
     if (session.role === "provider") session.role = "landlord";
     session.state = "landlord_menu";
     await saveSession(admin, session);
-    await handleLandlordFlow(admin, waPhone, senderName, session, message, "landlord_menu", profile);
+    await handleLandlordFlow(
+      admin,
+      waPhone,
+      senderName,
+      session,
+      message,
+      "landlord_menu",
+      profile,
+    );
     return;
   }
 
@@ -97,7 +102,15 @@ async function handleAwaitingRole(
     session.role = "provider";
     session.state = "provider_menu";
     await saveSession(admin, session);
-    await handleProviderFlow(admin, waPhone, senderName, session, message, "provider_menu", profile);
+    await handleProviderFlow(
+      admin,
+      waPhone,
+      senderName,
+      session,
+      message,
+      "provider_menu",
+      profile,
+    );
     return;
   }
 
@@ -131,7 +144,13 @@ async function handleOnboarding(
 
   if (session.state === "personal_home" && profile) {
     const handled = await handlePersonalAssistantCommand(
-      admin, waPhone, session, profile, senderName, message, input,
+      admin,
+      waPhone,
+      session,
+      profile,
+      senderName,
+      message,
+      input,
     );
     if (handled) return;
   }
@@ -206,14 +225,26 @@ export async function routeMessage(
 
   if (profile) {
     const handled = await handlePersonalAssistantCommand(
-      admin, waPhone, session, profile, senderName, message, input,
+      admin,
+      waPhone,
+      session,
+      profile,
+      senderName,
+      message,
+      input,
     );
     if (handled) return;
   }
 
   if (session.state === "personal_home" && profile) {
     const handled = await handlePersonalAssistantCommand(
-      admin, waPhone, session, profile, senderName, message, input,
+      admin,
+      waPhone,
+      session,
+      profile,
+      senderName,
+      message,
+      input,
     );
     if (handled) return;
   }

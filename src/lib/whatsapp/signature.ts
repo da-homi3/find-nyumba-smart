@@ -25,4 +25,5 @@ export async function verifyWebhookSignature(
     const b = receivedSig.codePointAt(i) ?? 0;
     diff |= a ^ b;
   }
-  return diff === 0;}
+  return diff === 0;
+}

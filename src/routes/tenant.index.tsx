@@ -109,14 +109,7 @@ function TenantHome() {
       limit: PAGE_SIZE * page,
       offset: 0,
     }),
-    [
-      debouncedQ,
-      filters.neighborhood,
-      filters.maxRent,
-      filters.minRent,
-      filters.sort,
-      page,
-    ],
+    [debouncedQ, filters.neighborhood, filters.maxRent, filters.minRent, filters.sort, page],
   );
 
   const {
@@ -168,7 +161,17 @@ function TenantHome() {
     });
   }, [debouncedQ, filters.neighborhood, filtered.length, isLoading, isError, user?.id]);
 
-  const visible = filtered.slice(0, page * PAGE_SIZE);
+  const sortedFiltered = useMemo(() => {
+    const now = Date.now();
+    return [...filtered].sort((a, b) => {
+      const aBoost = a.featured_until && new Date(a.featured_until).getTime() > now ? 1 : 0;
+      const bBoost = b.featured_until && new Date(b.featured_until).getTime() > now ? 1 : 0;
+      if (aBoost !== bBoost) return bBoost - aBoost;
+      return 0;
+    });
+  }, [filtered]);
+
+  const visible = sortedFiltered.slice(0, page * PAGE_SIZE);
   const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
   const boostedPool = useMemo(
     () =>
@@ -246,7 +249,9 @@ function TenantHome() {
       />
 
       {isFetching && !isLoading ? (
-        <p className="mx-auto max-w-2xl px-5 pt-2 text-xs text-muted-foreground">Updating results…</p>
+        <p className="mx-auto max-w-2xl px-5 pt-2 text-xs text-muted-foreground">
+          Updating results…
+        </p>
       ) : null}
 
       <RecentlyViewedStrip />
@@ -359,9 +364,7 @@ function TenantListingsGrid({
     return (
       <div className="mt-8 rounded-2xl border border-destructive/30 p-10 text-center">
         <p className="text-sm font-medium text-destructive">Couldn&apos;t load listings</p>
-        {errorMessage ? (
-          <p className="mt-2 text-xs text-muted-foreground">{errorMessage}</p>
-        ) : null}
+        {errorMessage ? <p className="mt-2 text-xs text-muted-foreground">{errorMessage}</p> : null}
         <button
           type="button"
           onClick={onRetry}

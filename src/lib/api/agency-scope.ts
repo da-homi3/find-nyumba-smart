@@ -7,7 +7,7 @@ type Db = SupabaseClient<Database>;
 
 export type PropertyScopeRow = {
   id: string;
-  owner_id: string;
+  owner_id: string | null;
   organization_id: string | null;
 };
 

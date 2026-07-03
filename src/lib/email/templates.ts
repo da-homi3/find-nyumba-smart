@@ -137,7 +137,9 @@ export function verificationCompleteEmail(opts: {
     <p><a class="btn btn-outline" href="${opts.statusUrl}">View details</a></p>
   `;
   return {
-    subject: opts.passed ? "Your property verification passed" : "Verification results — action needed",
+    subject: opts.passed
+      ? "Your property verification passed"
+      : "Verification results — action needed",
     html: baseLayout({
       preheader: opts.passed ? "Verification passed" : "Verification did not pass",
       body,

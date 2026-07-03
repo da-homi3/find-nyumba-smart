@@ -1,5 +1,6 @@
 import {
   listAdminVerifications,
+  listAdminVerificationRequests,
   listAdminScamReports,
   listAdminAuditLogs,
 } from "@/lib/api/admin.functions";
@@ -8,6 +9,7 @@ import { listProperties } from "@/lib/api/nyumba.functions";
 
 export type AdminTab =
   | "verifications"
+  | "property_checks"
   | "scams"
   | "properties"
   | "audits"
@@ -15,6 +17,7 @@ export type AdminTab =
   | "announcements";
 
 export type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
+export type AdminPropertyCheck = Awaited<ReturnType<typeof listAdminVerificationRequests>>[number];
 export type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];
 export type AdminProperty = NonNullable<
   Awaited<ReturnType<typeof listProperties>>["items"]

@@ -30,26 +30,39 @@ export async function sendSavedHomes(
   profile: UserAssistantProfile,
 ): Promise<void> {
   if (profile.savedHomes.length === 0) {
-    await sendButtons(waPhone, "You haven't saved any homes yet.", [
-      { id: "search_start", label: "🔍 Search homes" },
-      { id: "tenant_menu", label: "🏠 Menu" },
-    ], admin);
+    await sendButtons(
+      waPhone,
+      "You haven't saved any homes yet.",
+      [
+        { id: "search_start", label: "🔍 Search homes" },
+        { id: "tenant_menu", label: "🏠 Menu" },
+      ],
+      admin,
+    );
     return;
   }
 
   await sendText(
     waPhone,
     `❤️ *Your saved homes* (${profile.savedCount}):\n\n${profile.savedHomes
-      .map((h, i) => `${i + 1}. *${h.title}*\n   ${h.neighborhood} · KES ${h.rentKes.toLocaleString()}/mo`)
+      .map(
+        (h, i) =>
+          `${i + 1}. *${h.title}*\n   ${h.neighborhood} · KES ${h.rentKes.toLocaleString()}/mo`,
+      )
       .join("\n\n")}`,
     admin,
   );
 
   for (const h of profile.savedHomes.slice(0, 3)) {
-    await sendButtons(waPhone, h.title, [
-      { id: `view_${h.id}`, label: "👁 View" },
-      { id: `unlock_${h.id}`, label: "📞 Contact" },
-    ], admin);
+    await sendButtons(
+      waPhone,
+      h.title,
+      [
+        { id: `view_${h.id}`, label: "👁 View" },
+        { id: `unlock_${h.id}`, label: "📞 Contact" },
+      ],
+      admin,
+    );
   }
 
   await sendText(waPhone, `See all saved: ${getSiteUrl()}/tenant/saved`, admin);
@@ -90,9 +103,7 @@ export async function sendAccountStatus(
     `👤 *${profile.fullName}*`,
     profile.email ? `📧 ${profile.email}` : null,
     `Plan: ${profile.isPlus ? "Plus ✨" : profile.tenantPlan}`,
-    profile.trialActive
-      ? `Trial unlocks: ${profile.trialUnlocksRemaining}`
-      : null,
+    profile.trialActive ? `Trial unlocks: ${profile.trialUnlocksRemaining}` : null,
     profile.landlordPlan === "free" ? null : `Landlord plan: ${profile.landlordPlan}`,
     `Saved homes: ${profile.savedCount}`,
     `Contact unlocks: ${profile.recentUnlockCount}`,
@@ -111,7 +122,11 @@ export async function sendRoleSwitcher(
 ): Promise<void> {
   const roles = availableWaRoles(profile);
   if (roles.length <= 1) {
-    await sendText(waPhone, `You're set up as a *${roles[0]}*. Reply *MENU* for your options.`, admin);
+    await sendText(
+      waPhone,
+      `You're set up as a *${roles[0]}*. Reply *MENU* for your options.`,
+      admin,
+    );
     return;
   }
 
@@ -155,10 +170,22 @@ export async function showPersonalHome(
           title: "Your account",
           rows: [
             ...(roles.includes("tenant")
-              ? [{ id: "role_tenant", title: "Find a home", description: "Search & unlock contacts" }]
+              ? [
+                  {
+                    id: "role_tenant",
+                    title: "Find a home",
+                    description: "Search & unlock contacts",
+                  },
+                ]
               : []),
             ...(roles.includes("landlord") || roles.includes("agent")
-              ? [{ id: "role_landlord", title: "My listings", description: "Add or manage properties" }]
+              ? [
+                  {
+                    id: "role_landlord",
+                    title: "My listings",
+                    description: "Add or manage properties",
+                  },
+                ]
               : []),
             ...(roles.includes("provider")
               ? [{ id: "role_provider", title: "My services", description: "Provider dashboard" }]
@@ -166,7 +193,11 @@ export async function showPersonalHome(
             { id: "my_status", title: "Account summary", description: "Plan, unlocks, stats" },
             { id: "saved_homes", title: "Saved homes", description: `${profile.savedCount} saved` },
             { id: "my_viewings", title: "My viewings", description: "Upcoming appointments" },
-            { id: "nyumbaai_start", title: "Ask NyumbaAI", description: "Personal property advice" },
+            {
+              id: "nyumbaai_start",
+              title: "Ask NyumbaAI",
+              description: "Personal property advice",
+            },
             { id: "switch_role", title: "Switch role", description: "Change assistant mode" },
           ].slice(0, 10),
         },
@@ -186,7 +217,15 @@ export async function showPersonalHome(
     return;
   }
   if (session.role === "landlord" || session.role === "agent") {
-    await handleLandlordFlow(admin, waPhone, senderName, session, message, "landlord_menu", profile);
+    await handleLandlordFlow(
+      admin,
+      waPhone,
+      senderName,
+      session,
+      message,
+      "landlord_menu",
+      profile,
+    );
     return;
   }
   await handleProviderFlow(admin, waPhone, senderName, session, message, "provider_menu", profile);
@@ -206,7 +245,15 @@ async function routeToRoleMenu(
     return;
   }
   if (role === "landlord" || role === "agent") {
-    await handleLandlordFlow(admin, waPhone, senderName, session, message, "landlord_menu", profile);
+    await handleLandlordFlow(
+      admin,
+      waPhone,
+      senderName,
+      session,
+      message,
+      "landlord_menu",
+      profile,
+    );
     return;
   }
   await handleProviderFlow(admin, waPhone, senderName, session, message, "provider_menu", profile);
@@ -254,13 +301,29 @@ async function handlePersonalHomeInput(
   if (input === "role_landlord") {
     session.role = session.role === "agent" ? "agent" : "landlord";
     await updateState(admin, waPhone, "landlord_menu");
-    await handleLandlordFlow(admin, waPhone, senderName, session, message, "landlord_menu", profile);
+    await handleLandlordFlow(
+      admin,
+      waPhone,
+      senderName,
+      session,
+      message,
+      "landlord_menu",
+      profile,
+    );
     return true;
   }
   if (input === "role_provider") {
     session.role = "provider";
     await updateState(admin, waPhone, "provider_menu");
-    await handleProviderFlow(admin, waPhone, senderName, session, message, "provider_menu", profile);
+    await handleProviderFlow(
+      admin,
+      waPhone,
+      senderName,
+      session,
+      message,
+      "provider_menu",
+      profile,
+    );
     return true;
   }
   return false;

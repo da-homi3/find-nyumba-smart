@@ -96,6 +96,80 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
     return row;
   });
 
+export const listAdminVerificationRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+
+    const { data: rows, error } = await supabase
+      .from("verification_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const updateVerificationRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["pending", "in_progress", "completed", "cancelled"]).optional(),
+      report_url: z.string().url().optional().nullable(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const patch: {
+      status?: string;
+      report_url?: string | null;
+    } = {};
+    if (data.status) patch.status = data.status;
+    if (data.report_url !== undefined) patch.report_url = data.report_url;
+
+    const { data: row, error } = await supabaseAdmin
+      .from("verification_requests")
+      .update(patch)
+      .eq("id", data.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "VERIFICATION_REQUEST_UPDATED",
+      target_id: data.id,
+      details: `Updated verification request. status=${data.status ?? "unchanged"} report_url=${data.report_url ?? "unchanged"}`,
+    });
+
+    if (row.status === "completed" && row.report_url) {
+      const { sendEmail } = await import("@/lib/email/send");
+      const { getSiteUrl } = await import("@/lib/site");
+      const { verificationCompleteEmail } = await import("@/lib/email/templates");
+      const tpl = verificationCompleteEmail({
+        name: row.requester_name,
+        propertyAddress: row.property_address,
+        passed: true,
+        findings: "Your paid property verification report is ready to download.",
+        statusUrl: `${getSiteUrl()}/verify/status/${row.id}`,
+      });
+      void sendEmail({
+        to: row.requester_email,
+        templateId: "verification-complete",
+        ...tpl,
+        metadata: { verificationRequestId: row.id, status: row.status },
+      });
+    }
+
+    return row;
+  });
+
 export const listAdminScamReports = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

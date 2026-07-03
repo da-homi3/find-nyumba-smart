@@ -111,6 +111,9 @@ export async function initiateStkPush(opts: {
   accountReference: string;
   transactionDesc: string;
 }): Promise<StkPushResult> {
+  if (opts.amountKes < 1 || opts.amountKes > 150_000) {
+    throw new Error("M-Pesa amount must be between KES 1 and KES 150,000");
+  }
   const token = await getAccessToken();
   const { encodedCredential, timestamp } = buildStkCredentials();
   const shortcode = process.env.MPESA_SHORTCODE!;
@@ -160,8 +163,7 @@ function extractMpesaReceipt(json: object): string | undefined {
   const metadata = json.CallbackMetadata;
   if (typeof metadata !== "object" || metadata === null) return undefined;
 
-  const items =
-    "Item" in metadata && Array.isArray(metadata.Item) ? metadata.Item : [];
+  const items = "Item" in metadata && Array.isArray(metadata.Item) ? metadata.Item : [];
   for (const item of items) {
     if (
       item &&

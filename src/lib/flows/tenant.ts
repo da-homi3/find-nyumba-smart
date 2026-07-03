@@ -166,7 +166,11 @@ export async function pollUnlockPayment(
   for (let attempt = 0; attempt < 18; attempt++) {
     await new Promise((r) => setTimeout(r, 5000));
 
-    const { data: payment } = await admin.from("payments").select("*").eq("id", paymentId).maybeSingle();
+    const { data: payment } = await admin
+      .from("payments")
+      .select("*")
+      .eq("id", paymentId)
+      .maybeSingle();
     if (!payment) continue;
 
     if (payment.status === "failed") {
@@ -205,8 +209,10 @@ export async function pollUnlockPayment(
       return;
     }
 
-    if (attempt === 6) await sendText(waPhone, "⏳ Still waiting for M-Pesa confirmation...", admin);
-    if (attempt === 12) await sendText(waPhone, "⏳ Complete the M-Pesa prompt on your phone.", admin);
+    if (attempt === 6)
+      await sendText(waPhone, "⏳ Still waiting for M-Pesa confirmation...", admin);
+    if (attempt === 12)
+      await sendText(waPhone, "⏳ Complete the M-Pesa prompt on your phone.", admin);
   }
 
   await sendButtons(
@@ -226,7 +232,8 @@ function buildMenuHints(profile: UserAssistantProfile): string[] {
   if (profile.isPlus) hints.push("Plus member ✨");
   else if (profile.trialActive) hints.push(`${profile.trialUnlocksRemaining} free unlocks`);
   if (profile.savedCount > 0) hints.push(`${profile.savedCount} saved`);
-  if (profile.upcomingViewings.length > 0) hints.push(`${profile.upcomingViewings.length} viewing(s) soon`);
+  if (profile.upcomingViewings.length > 0)
+    hints.push(`${profile.upcomingViewings.length} viewing(s) soon`);
   if (profile.lastSearchArea) hints.push(`Last: ${profile.lastSearchArea}`);
   return hints;
 }
@@ -305,7 +312,11 @@ async function promptSearchArea(admin: Admin, waPhone: string): Promise<void> {
   await updateState(admin, waPhone, "search_area");
 }
 
-async function handleSearchAreaInput(admin: Admin, waPhone: string, input: string): Promise<boolean> {
+async function handleSearchAreaInput(
+  admin: Admin,
+  waPhone: string,
+  input: string,
+): Promise<boolean> {
   if (!input.startsWith("area_")) return false;
   const key = input.replace("area_", "");
   const area =
@@ -316,7 +327,11 @@ async function handleSearchAreaInput(admin: Admin, waPhone: string, input: strin
 }
 
 async function handleSearchBudgetStep(admin: Admin, waPhone: string, input: string): Promise<void> {
-  const budgetMap: Record<string, number> = { budget_20k: 20000, budget_50k: 50000, budget_100k: 100000 };
+  const budgetMap: Record<string, number> = {
+    budget_20k: 20000,
+    budget_50k: 50000,
+    budget_100k: 100000,
+  };
   let maxBudget = budgetMap[input];
   if (!maxBudget && /^\d+$/.test(input)) maxBudget = Number.parseInt(input, 10);
   if (!maxBudget) {
@@ -324,18 +339,24 @@ async function handleSearchBudgetStep(admin: Admin, waPhone: string, input: stri
     return;
   }
   await updateState(admin, waPhone, "search_beds", { maxBudget });
-  await sendList(waPhone, `Budget KES ${maxBudget.toLocaleString()}/mo. Bedrooms?`, "Choose", [
-    {
-      title: "Bedrooms",
-      rows: [
-        { id: "beds_0", title: "Bedsitter", description: "Studio" },
-        { id: "beds_1", title: "1 Bedroom", description: "1BR" },
-        { id: "beds_2", title: "2 Bedrooms", description: "2BR" },
-        { id: "beds_3", title: "3 Bedrooms", description: "3BR" },
-        { id: "beds_any", title: "Any", description: "All" },
-      ],
-    },
-  ], admin);
+  await sendList(
+    waPhone,
+    `Budget KES ${maxBudget.toLocaleString()}/mo. Bedrooms?`,
+    "Choose",
+    [
+      {
+        title: "Bedrooms",
+        rows: [
+          { id: "beds_0", title: "Bedsitter", description: "Studio" },
+          { id: "beds_1", title: "1 Bedroom", description: "1BR" },
+          { id: "beds_2", title: "2 Bedrooms", description: "2BR" },
+          { id: "beds_3", title: "3 Bedrooms", description: "3BR" },
+          { id: "beds_any", title: "Any", description: "All" },
+        ],
+      },
+    ],
+    admin,
+  );
 }
 
 async function handleSearchBedsStep(
@@ -345,7 +366,11 @@ async function handleSearchBedsStep(
   session: WaSession,
 ): Promise<void> {
   const bedsMap: Record<string, number | null> = {
-    beds_0: 0, beds_1: 1, beds_2: 2, beds_3: 3, beds_any: null,
+    beds_0: 0,
+    beds_1: 1,
+    beds_2: 2,
+    beds_3: 3,
+    beds_any: null,
   };
   if (!(input in bedsMap)) {
     await sendText(waPhone, "Choose bedrooms from the list.", admin);
@@ -368,10 +393,15 @@ async function handleSearchBedsStep(
 
   const { data: listings } = await query;
   if (!listings?.length) {
-    await sendButtons(waPhone, `No listings in *${searchArea}* under KES ${maxBudget.toLocaleString()}.`, [
-      { id: "search_start", label: "🔁 Search again" },
-      { id: "nyumbaai_start", label: "🤖 NyumbaAI" },
-    ], admin);
+    await sendButtons(
+      waPhone,
+      `No listings in *${searchArea}* under KES ${maxBudget.toLocaleString()}.`,
+      [
+        { id: "search_start", label: "🔁 Search again" },
+        { id: "nyumbaai_start", label: "🤖 NyumbaAI" },
+      ],
+      admin,
+    );
     await updateState(admin, waPhone, "tenant_menu");
     return;
   }
@@ -396,14 +426,24 @@ async function handleSearchBedsStep(
 }
 
 async function showListingDetail(admin: Admin, waPhone: string, listingId: string): Promise<void> {
-  const { data: listing } = await admin.from("properties").select("*").eq("id", listingId).eq("is_active", true).maybeSingle();
+  const { data: listing } = await admin
+    .from("properties")
+    .select("*")
+    .eq("id", listingId)
+    .eq("is_active", true)
+    .maybeSingle();
   if (!listing) {
     await sendText(waPhone, "Listing no longer available.", admin);
     return;
   }
   const badge = verificationBadge(listing.is_verified, listing.authenticity_score ?? 0);
   if (listing.images?.[0]) {
-    await sendImage(waPhone, listing.images[0], `${listing.title} — KES ${listing.rent_kes.toLocaleString()}`, admin);
+    await sendImage(
+      waPhone,
+      listing.images[0],
+      `${listing.title} — KES ${listing.rent_kes.toLocaleString()}`,
+      admin,
+    );
   }
   await sendButtons(
     waPhone,
@@ -448,7 +488,11 @@ async function handleUnlockRequest(
     }
   } else {
     await updateState(admin, waPhone, "account_link_email", { pendingUnlockId: listingId });
-    await sendText(waPhone, "Link your account to unlock contacts. Type your registered email:", admin);
+    await sendText(
+      waPhone,
+      "Link your account to unlock contacts. Type your registered email:",
+      admin,
+    );
     return;
   }
 
@@ -459,7 +503,10 @@ async function handleUnlockRequest(
     .maybeSingle();
   if (!property) return;
   const fee = unlockFeeForRent(property.rent_kes);
-  await updateState(admin, waPhone, "unlock_mpesa_number", { unlockListingId: listingId, unlockFee: fee });
+  await updateState(admin, waPhone, "unlock_mpesa_number", {
+    unlockListingId: listingId,
+    unlockFee: fee,
+  });
   await sendButtons(
     waPhone,
     `Unlock *${property.title}* — KES ${fee} via M-Pesa`,
@@ -514,10 +561,15 @@ async function handleUnlockMpesaStep(
     });
     runInBackground(pollUnlockPayment(admin, waPhone, paymentId, listingId));
   } catch {
-    await sendButtons(waPhone, "M-Pesa failed. Try again?", [
-      { id: `unlock_${listingId}`, label: "🔄 Retry" },
-      { id: "tenant_menu", label: "🏠 Menu" },
-    ], admin);
+    await sendButtons(
+      waPhone,
+      "M-Pesa failed. Try again?",
+      [
+        { id: `unlock_${listingId}`, label: "🔄 Retry" },
+        { id: "tenant_menu", label: "🏠 Menu" },
+      ],
+      admin,
+    );
   }
 }
 
@@ -548,11 +600,19 @@ async function handleViewingTimeStep(
   const viewingDate = sessionContextString(session.context.viewingDate);
   const userId = await tryResolveSessionUser(admin, session);
   if (!userId) {
-    await updateState(admin, waPhone, "account_link_email", { viewingListingId: listingId, viewingDate, viewingTime: time });
+    await updateState(admin, waPhone, "account_link_email", {
+      viewingListingId: listingId,
+      viewingDate,
+      viewingTime: time,
+    });
     await sendText(waPhone, "Link account to confirm viewing. Type your email:", admin);
     return;
   }
-  const { data: property } = await admin.from("properties").select("owner_id, title").eq("id", listingId).maybeSingle();
+  const { data: property } = await admin
+    .from("properties")
+    .select("owner_id, title")
+    .eq("id", listingId)
+    .maybeSingle();
   if (!property?.owner_id) {
     await sendText(waPhone, "Viewing not available for this listing.", admin);
     return;
@@ -565,7 +625,11 @@ async function handleViewingTimeStep(
     status: "pending",
     notes: "WhatsApp",
   });
-  await sendText(waPhone, `✅ Viewing requested: ${property.title} on ${viewingDate} at ${time}`, admin);
+  await sendText(
+    waPhone,
+    `✅ Viewing requested: ${property.title} on ${viewingDate} at ${time}`,
+    admin,
+  );
   await refreshSessionProfile(admin, session);
   await updateState(admin, waPhone, "tenant_menu");
 }
@@ -588,21 +652,34 @@ async function handleNyumbaAiMode(
 
   const history = (session.context.aiHistory as { role: string; content: string }[]) ?? [];
   const reply = await callNyumbaAI(input, history, profile);
-  const updated = [...history, { role: "user", content: input }, { role: "assistant", content: reply }].slice(-20);
+  const updated = [
+    ...history,
+    { role: "user", content: input },
+    { role: "assistant", content: reply },
+  ].slice(-20);
   await updateState(admin, waPhone, "nyumbaai_mode", { aiHistory: updated });
-  await sendButtons(waPhone, `🤖 ${reply}`, [
-    { id: "nyumbaai_start", label: "🔄 Another" },
-    { id: "search_start", label: "🔍 Search" },
-  ], admin);
+  await sendButtons(
+    waPhone,
+    `🤖 ${reply}`,
+    [
+      { id: "nyumbaai_start", label: "🔄 Another" },
+      { id: "search_start", label: "🔍 Search" },
+    ],
+    admin,
+  );
 }
 
 async function handleScheduleDateStep(admin: Admin, waPhone: string, input: string): Promise<void> {
   const date = input.replace("date_", "");
   await updateState(admin, waPhone, "schedule_time", { viewingDate: date });
   const times = ["08:00", "10:00", "12:00", "14:00", "16:00", "17:00"];
-  await sendList(waPhone, `Date: ${date}. Pick time:`, "Times", [
-    { title: "Times", rows: times.map((t) => ({ id: `time_${t}`, title: t })) },
-  ], admin);
+  await sendList(
+    waPhone,
+    `Date: ${date}. Pick time:`,
+    "Times",
+    [{ title: "Times", rows: times.map((t) => ({ id: `time_${t}`, title: t })) }],
+    admin,
+  );
 }
 
 type TenantFlowContext = {
@@ -649,14 +726,19 @@ async function trySearchFlow(ctx: TenantFlowContext): Promise<boolean> {
   }
   if (input === "search_repeat" && profile?.lastSearchArea) {
     await updateState(admin, waPhone, "search_budget", { searchArea: profile.lastSearchArea });
-    await sendButtons(waPhone, `Searching in *${profile.lastSearchArea}* again. Max budget?`, [...BUDGET_BUTTONS], admin);
+    await sendButtons(
+      waPhone,
+      `Searching in *${profile.lastSearchArea}* again. Max budget?`,
+      [...BUDGET_BUTTONS],
+      admin,
+    );
     return true;
   }
   if (input === "search_start") {
     await promptSearchArea(admin, waPhone);
     return true;
   }
-  if (session.state === "search_area" && await handleSearchAreaInput(admin, waPhone, input)) {
+  if (session.state === "search_area" && (await handleSearchAreaInput(admin, waPhone, input))) {
     return true;
   }
   if (session.state === "search_budget") {
@@ -749,9 +831,14 @@ export async function handleTenantFlow(
   if (await tryViewingFlow(ctx)) return;
   if (await tryAiAndAccountFlow(ctx)) return;
 
-  await sendButtons(waPhone, "What next?", [
-    { id: "search_start", label: "🔍 Search" },
-    { id: "nyumbaai_start", label: "🤖 NyumbaAI" },
-    { id: "tenant_menu", label: "🏠 Menu" },
-  ], admin);
+  await sendButtons(
+    waPhone,
+    "What next?",
+    [
+      { id: "search_start", label: "🔍 Search" },
+      { id: "nyumbaai_start", label: "🤖 NyumbaAI" },
+      { id: "tenant_menu", label: "🏠 Menu" },
+    ],
+    admin,
+  );
 }

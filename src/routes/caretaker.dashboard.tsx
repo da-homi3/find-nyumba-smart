@@ -12,6 +12,7 @@ import { getCaretakerToken, clearCaretakerToken } from "@/lib/caretaker-session"
 import { Building2, Calendar, ToggleLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { Property } from "@/lib/properties";
+import { BrandLogoLink } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/caretaker/dashboard")({
@@ -39,9 +40,7 @@ function propertyIsVacant(p: Property): boolean {
 }
 
 function vacancyBadgeClass(isVacant: boolean): string {
-  return isVacant
-    ? "bg-amber-500/15 text-amber-700"
-    : "bg-emerald-500/15 text-emerald-700";
+  return isVacant ? "bg-amber-500/15 text-amber-700" : "bg-emerald-500/15 text-emerald-700";
 }
 
 function CaretakerViewingsPanel({
@@ -200,11 +199,14 @@ function CaretakerDashboard() {
     <div className="min-h-screen bg-secondary">
       <header className="border-b bg-background px-5 py-4">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-lg font-semibold">Caretaker dashboard</h1>
-            {session?.name ? (
-              <p className="text-xs text-muted-foreground">Signed in as {session.name}</p>
-            ) : null}
+          <div className="flex items-center gap-3">
+            <BrandLogoLink to="/tenant" compact />
+            <div>
+              <h1 className="font-display text-lg font-semibold">Caretaker dashboard</h1>
+              {session?.name ? (
+                <p className="text-xs text-muted-foreground">Signed in as {session.name}</p>
+              ) : null}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">

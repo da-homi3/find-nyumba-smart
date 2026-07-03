@@ -144,7 +144,7 @@ function ProviderCard({
                   providerId: p.id,
                   provider: p.businessName,
                   category,
-                  isPlaceholder: p.isPlaceholder ?? false,
+                  isPlaceholder: String(p.isPlaceholder ?? false),
                   address: formFieldValue(fd, "address"),
                 },
               },

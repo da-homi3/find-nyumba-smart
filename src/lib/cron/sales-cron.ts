@@ -126,7 +126,10 @@ async function eligibleForSearchNudge(
   admin: Admin,
   userId: string,
   tplId: string,
-): Promise<{ profile: { tenant_plan: string | null }; ctx: { email: string; name: string } } | null> {
+): Promise<{
+  profile: { tenant_plan: string | null };
+  ctx: { email: string; name: string };
+} | null> {
   if (await alreadySent(admin, userId, tplId)) return null;
 
   const { data: unlock } = await admin

@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { ArrowLeft, Building2, ClipboardList, Users } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/manager/")({
   head: () => ({ meta: [{ title: "Property Manager Portal — NyumbaSearch" }] }),
@@ -32,7 +33,11 @@ function ManagerEntry() {
             <ArrowLeft className="h-4 w-4" /> Back to tenants
           </Link>
 
-          <div className="mt-10 flex-1">
+          <div className="mt-6 w-fit rounded-xl bg-white px-4 py-2 shadow-sm">
+            <BrandLogo logoClassName="h-8" />
+          </div>
+
+          <div className="mt-6 flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-background/20 bg-background/10 px-3 py-1 text-xs font-medium">
               <Building2 className="h-3 w-3 text-gold" /> Property Manager Portal
             </div>
@@ -75,14 +80,14 @@ function ManagerEntry() {
             </p>
             <Link
               to="/auth"
-              search={{ role: "manager", mode: "signup", redirect: "/manager/dashboard" }}
+              search={{ signupFor: "manager", mode: "signup", redirect: "/manager/dashboard" }}
               className="mt-6 block w-full rounded-xl bg-foreground px-6 py-3 text-center text-sm font-semibold text-background"
             >
               Create manager account
             </Link>
             <Link
               to="/auth"
-              search={{ role: "manager", mode: "signin", redirect: "/manager/dashboard" }}
+              search={{ signupFor: "manager", mode: "signin", redirect: "/manager/dashboard" }}
               className="mt-3 block text-center text-sm font-semibold text-primary"
             >
               Already approved? Sign in

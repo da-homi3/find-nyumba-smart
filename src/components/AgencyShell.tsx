@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutDashboard, Building2, Inbox, Users, Settings, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { BrandLogoLink } from "@/components/BrandLogo";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -16,13 +17,12 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div className="flex min-h-screen bg-secondary">
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-foreground text-background lg:flex">
-        <div className="flex items-center gap-2 px-6 py-6">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
-            N
+        <div className="px-4 py-6">
+          <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
+            <BrandLogoLink to="/" logoClassName="h-7" />
           </div>
-          <div>
-            <div className="font-display text-sm font-semibold">NyumbaSearch</div>
-            <div className="text-[10px] uppercase tracking-wider text-background/60">Agency</div>
+          <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-background/60">
+            Agency portal
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">

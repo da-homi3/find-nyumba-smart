@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { Building2, BarChart3, Users, Sparkles, ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { LANDLORD_PLANS } from "@/lib/revenue/plans";
 import { formatKes } from "@/lib/properties";
 
@@ -34,7 +35,11 @@ function LandlordEntry() {
             <ArrowLeft className="h-4 w-4" /> Back to tenants
           </Link>
 
-          <div className="mt-10 flex-1">
+          <div className="mt-6 w-fit rounded-xl bg-white px-4 py-2 shadow-sm">
+            <BrandLogo logoClassName="h-8" />
+          </div>
+
+          <div className="mt-6 flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-background/20 bg-background/10 px-3 py-1 text-xs font-medium">
               <Building2 className="h-3 w-3 text-gold" /> Landlord Portal
             </div>
@@ -105,14 +110,14 @@ function LandlordEntry() {
             </p>
             <Link
               to="/auth"
-              search={{ role: "landlord", mode: "signup", redirect: "/landlord/dashboard" }}
+              search={{ signupFor: "landlord", mode: "signup", redirect: "/landlord/dashboard" }}
               className="mt-6 block w-full rounded-xl bg-foreground px-6 py-3 text-center text-sm font-semibold text-background"
             >
               Create landlord account
             </Link>
             <Link
               to="/auth"
-              search={{ role: "landlord", mode: "signin", redirect: "/landlord/dashboard" }}
+              search={{ signupFor: "landlord", mode: "signin", redirect: "/landlord/dashboard" }}
               className="mt-3 block text-center text-sm font-semibold text-primary"
             >
               Already approved? Sign in
@@ -121,7 +126,7 @@ function LandlordEntry() {
               Property manager?{" "}
               <Link
                 to="/auth"
-                search={{ redirect: "/manager/dashboard", role: "manager", mode: "signup" }}
+                search={{ redirect: "/manager/dashboard", signupFor: "manager", mode: "signup" }}
                 className="font-semibold text-primary"
               >
                 Apply as manager
@@ -129,7 +134,7 @@ function LandlordEntry() {
               {" · "}
               <Link
                 to="/auth"
-                search={{ redirect: "/agency/dashboard", role: "agency", mode: "signup" }}
+                search={{ redirect: "/agency/dashboard", signupFor: "agency", mode: "signup" }}
                 className="font-semibold text-primary"
               >
                 Real estate agency

@@ -19,7 +19,7 @@ function AgencyLayout() {
     if (!user) {
       navigate({
         to: "/auth",
-        search: { redirect: pathname, role: "agency", mode: "signin" },
+        search: { redirect: pathname, signupFor: "agency", mode: "signin" },
         replace: true,
       });
       return;
@@ -28,7 +28,7 @@ function AgencyLayout() {
       const pending = hasPendingApplicationForRole(pendingApplications, "agency");
       navigate({
         to: pending ? "/auth/pending" : "/auth",
-        search: pending ? undefined : { redirect: pathname, role: "agency", mode: "signup" },
+        search: pending ? undefined : { redirect: pathname, signupFor: "agency", mode: "signup" },
         replace: true,
       });
     }

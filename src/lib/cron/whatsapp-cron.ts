@@ -96,7 +96,11 @@ async function sendViewingReminder(
   const title = property?.title ?? "your viewing";
   const address = property?.address ?? property?.neighborhood ?? "See listing on NyumbaSearch";
   const when = new Date(viewing.scheduled_at);
-  const time = when.toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Nairobi" });
+  const time = when.toLocaleTimeString("en-KE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Nairobi",
+  });
   const date = when.toLocaleDateString("en-KE", {
     weekday: "short",
     month: "short",
@@ -136,14 +140,18 @@ export async function runViewingReminderCron(admin: Admin): Promise<{
 
   const { data: tomorrowRows } = await admin
     .from("viewings")
-    .select("id, scheduled_at, status, tenant_id, landlord_id, properties(title, neighborhood, address)")
+    .select(
+      "id, scheduled_at, status, tenant_id, landlord_id, properties(title, neighborhood, address)",
+    )
     .in("status", ["pending", "confirmed"])
     .gte("scheduled_at", tomorrow.start)
     .lte("scheduled_at", tomorrow.end);
 
   const { data: todayRows } = await admin
     .from("viewings")
-    .select("id, scheduled_at, status, tenant_id, landlord_id, properties(title, neighborhood, address)")
+    .select(
+      "id, scheduled_at, status, tenant_id, landlord_id, properties(title, neighborhood, address)",
+    )
     .in("status", ["pending", "confirmed"])
     .gte("scheduled_at", today.start)
     .lte("scheduled_at", today.end);

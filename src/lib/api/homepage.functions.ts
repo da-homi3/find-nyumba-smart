@@ -51,9 +51,7 @@ export async function loadFeaturedTestimonials(): Promise<FeaturedTestimonial[]>
       neighborhood: string;
       owner_id: string | null;
     } | null;
-    const isLandlord = Boolean(
-      property?.owner_id && property.owner_id === row.reviewer_id,
-    );
+    const isLandlord = Boolean(property?.owner_id && property.owner_id === row.reviewer_id);
 
     items.push({
       name: maskName(nameById.get(row.reviewer_id)),
@@ -85,7 +83,9 @@ export async function loadPropertyIntelligenceStats(): Promise<PropertyIntellige
 
   const kilimaniBorehole =
     kilimani.length > 0
-      ? Math.round((kilimani.filter((r) => hasBorehole(r.amenities)).length / kilimani.length) * 100)
+      ? Math.round(
+          (kilimani.filter((r) => hasBorehole(r.amenities)).length / kilimani.length) * 100,
+        )
       : null;
 
   const westlandsFibre =
@@ -116,8 +116,7 @@ export async function loadPropertyIntelligenceStats(): Promise<PropertyIntellige
       .map((r) => r.security_rating)
       .filter((n): n is number => n != null);
     if (ratings.length > 0) {
-      avgSecurity =
-        Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10;
+      avgSecurity = Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10;
     }
   }
 

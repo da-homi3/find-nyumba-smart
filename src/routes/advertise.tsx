@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { formatKes } from "@/lib/properties";
 import { submitInquiry } from "@/lib/submit-inquiry";
+import { ADVERTISE_PACKAGES } from "@/lib/revenue/plans";
+import { formFieldValue } from "@/lib/utils";
 import { useState } from "react";
 
 export const Route = createFileRoute("/advertise")({
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/advertise")({
 
 function AdvertisePage() {
   const [submitting, setSubmitting] = useState(false);
+  const [packageId, setPackageId] = useState<(typeof ADVERTISE_PACKAGES)[number]["id"]>("banner");
 
   return (
     <PublicPageShell>
@@ -28,22 +31,15 @@ function AdvertisePage() {
               <tr className="border-b bg-secondary/50 text-left">
                 <th className="p-4">Package</th>
                 <th className="p-4">Placement</th>
-                <th className="p-4">Impressions</th>
                 <th className="p-4">Price</th>
               </tr>
             </thead>
             <tbody>
-              {[
-                ["Banner ads", "Homepage + browse", "~10,000/month", 5000],
-                ["Featured content", "Property detail pages", "~5,000/month", 15000],
-                ["Newsletter inclusion", "Weekly tenant email", "~8,000 opens", 10000],
-                ["Full campaign", "All placements", "~30,000/month", 50000],
-              ].map(([pkg, place, imp, price]) => (
-                <tr key={pkg as string} className="border-b">
-                  <td className="p-4 font-medium">{pkg}</td>
-                  <td className="p-4 text-muted-foreground">{place}</td>
-                  <td className="p-4">{imp}</td>
-                  <td className="p-4 font-semibold">{formatKes(price as number)}/mo</td>
+              {ADVERTISE_PACKAGES.map((row) => (
+                <tr key={row.id} className="border-b">
+                  <td className="p-4 font-medium">{row.name}</td>
+                  <td className="p-4 text-muted-foreground">{row.placement}</td>
+                  <td className="p-4 font-semibold">{formatKes(row.priceKes)}/mo</td>
                 </tr>
               ))}
             </tbody>
@@ -55,21 +51,26 @@ function AdvertisePage() {
             e.preventDefault();
             if (submitting) return;
             const fd = new FormData(e.currentTarget);
+            const email = formFieldValue(fd, "email").trim();
+            const phone = formFieldValue(fd, "phone").trim();
+            const company = formFieldValue(fd, "company");
             setSubmitting(true);
             const ok = await submitInquiry(
               {
                 inquiryType: "advertise",
-                name: String(fd.get("contactName") ?? ""),
-                phone: String(fd.get("contact") ?? ""),
-                company: String(fd.get("company") ?? ""),
-                subject: `Advertising inquiry — ${fd.get("company")}`,
-                message: String(fd.get("goal") ?? "Advertising inquiry"),
+                name: formFieldValue(fd, "contactName"),
+                phone: phone || undefined,
+                email: email || undefined,
+                company,
+                subject: `Advertising inquiry — ${company}`,
+                message: formFieldValue(fd, "goal", "Advertising inquiry"),
                 metadata: {
-                  budget: String(fd.get("budget") ?? ""),
-                  contact: String(fd.get("contact") ?? ""),
+                  package: packageId,
+                  budget: formFieldValue(fd, "budget"),
+                  contact: email || phone,
                 },
               },
-              "Thanks — our partnerships team will contact you within 1 business day.",
+              "Approved — check your email for the payment link to activate your campaign.",
             );
             setSubmitting(false);
             if (ok) e.currentTarget.reset();
@@ -90,13 +91,35 @@ function AdvertisePage() {
           />
           <input
             required
-            name="contact"
-            placeholder="Phone / email"
+            type="email"
+            name="email"
+            placeholder="Email (for approval & payment link)"
             className="rounded-xl border px-3 py-2 text-sm"
           />
           <input
+            name="phone"
+            placeholder="Phone (optional)"
+            className="rounded-xl border px-3 py-2 text-sm"
+          />
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium">Package</span>
+            <select
+              value={packageId}
+              onChange={(e) =>
+                setPackageId(e.target.value as (typeof ADVERTISE_PACKAGES)[number]["id"])
+              }
+              className="rounded-xl border px-3 py-2"
+            >
+              {ADVERTISE_PACKAGES.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} — {formatKes(p.priceKes)}/mo
+                </option>
+              ))}
+            </select>
+          </label>
+          <input
             name="budget"
-            placeholder="Budget range"
+            placeholder="Budget range (optional)"
             className="rounded-xl border px-3 py-2 text-sm"
           />
           <textarea

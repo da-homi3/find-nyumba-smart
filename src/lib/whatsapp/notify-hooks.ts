@@ -1,10 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { isWhatsAppConfigured } from "@/lib/whatsapp/env";
-import {
-  notifyLandlordNewLead,
-  notifyPaymentConfirmed,
-} from "@/lib/whatsapp/templates";
+import { notifyLandlordNewLead, notifyPaymentConfirmed } from "@/lib/whatsapp/templates";
 
 type Admin = SupabaseClient<Database>;
 
@@ -56,10 +53,7 @@ export async function notifyWhatsAppContactUnlock(
 }
 
 /** Notify landlord when listing goes active (call from admin/moderation flows). */
-export async function notifyWhatsAppListingLive(
-  admin: Admin,
-  propertyId: string,
-): Promise<void> {
+export async function notifyWhatsAppListingLive(admin: Admin, propertyId: string): Promise<void> {
   if (!isWhatsAppConfigured()) return;
 
   const { data: property } = await admin

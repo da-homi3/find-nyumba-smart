@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Clock, LogOut } from "lucide-react";
+import { BrandLogoLink } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/auth/pending")({
@@ -24,7 +25,10 @@ function PendingApproval() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-md px-6 pt-16 text-center">
+      <div className="flex justify-center px-6 pt-10">
+        <BrandLogoLink to="/tenant" />
+      </div>
+      <div className="mx-auto max-w-md px-6 pt-8 text-center">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-amber-500/15">
           <Clock className="h-7 w-7 text-amber-600" />
         </div>

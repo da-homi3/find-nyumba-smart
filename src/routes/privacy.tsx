@@ -85,8 +85,8 @@ function PrivacyPage() {
               content, and delivery metadata needed to respond and improve the service.
             </li>
             <li>
-              <strong className="text-foreground">Technical data:</strong> IP address, browser
-              type, device information, pages visited, and cookies or similar identifiers used for
+              <strong className="text-foreground">Technical data:</strong> IP address, browser type,
+              device information, pages visited, and cookies or similar identifiers used for
               security, analytics, and session management.
             </li>
           </ul>
@@ -125,8 +125,8 @@ function PrivacyPage() {
               similar) to complete transactions you initiate.
             </li>
             <li>
-              <strong className="text-foreground">Meta / WhatsApp</strong> when you use our
-              WhatsApp or social integrations — governed also by Meta&apos;s policies.
+              <strong className="text-foreground">Meta / WhatsApp</strong> when you use our WhatsApp
+              or social integrations — governed also by Meta&apos;s policies.
             </li>
             <li>
               <strong className="text-foreground">Law enforcement or regulators</strong> when
@@ -138,9 +138,9 @@ function PrivacyPage() {
 
         <Section title="6. International transfers">
           <p>
-            Our service providers may process data outside Kenya (including the EU and United States).
-            Where required, we use appropriate safeguards such as standard contractual clauses or
-            equivalent mechanisms.
+            Our service providers may process data outside Kenya (including the EU and United
+            States). Where required, we use appropriate safeguards such as standard contractual
+            clauses or equivalent mechanisms.
           </p>
         </Section>
 
@@ -155,8 +155,8 @@ function PrivacyPage() {
         <Section title="8. Your rights">
           <p>
             Depending on your location, you may have the right to access, correct, delete, restrict,
-            or port your personal data, and to object to certain processing. To exercise these
-            To exercise these rights, email{" "}
+            or port your personal data, and to object to certain processing. To exercise these To
+            exercise these rights, email{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:underline">
               {CONTACT_EMAIL}
             </a>{" "}
@@ -174,13 +174,15 @@ function PrivacyPage() {
 
         <Section title="10. Children">
           <p>
-            NyumbaSearch is not directed at children under 18. We do not knowingly collect data
-            from minors. Contact us if you believe a child has provided personal data.
+            NyumbaSearch is not directed at children under 18. We do not knowingly collect data from
+            minors. Contact us if you believe a child has provided personal data.
           </p>
         </Section>
 
         <section id="data-deletion" className="mt-10 scroll-mt-24">
-          <h2 className="font-display text-xl font-semibold">11. Data deletion (Meta / WhatsApp)</h2>
+          <h2 className="font-display text-xl font-semibold">
+            11. Data deletion (Meta / WhatsApp)
+          </h2>
           <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
             <p>
               If you connected NyumbaSearch through Facebook, Instagram, Threads, or WhatsApp and

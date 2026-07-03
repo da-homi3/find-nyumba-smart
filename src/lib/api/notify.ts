@@ -7,7 +7,10 @@ import {
 import { sendEmail } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
 
-export const OPS_EMAIL = process.env.OPS_NOTIFICATION_EMAIL ?? "kevinbuluma9@gmail.com";
+export const OPS_EMAIL = process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";
+
+/** Partnership & advertising inquiries */
+export const ADVERTISE_OPS_EMAIL = process.env.ADVERTISE_OPS_EMAIL ?? "nyumbasearch101@gmail.com";
 
 /** @deprecated Use sendEmail from @/lib/email/send — kept for backward compatibility */
 export async function sendEmailNotification(payload: {

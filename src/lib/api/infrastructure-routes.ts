@@ -35,10 +35,7 @@ function withPublicRateLimit(
     return handler(req).then((res) => {
       const headers = new Headers(res.headers);
       headers.set("X-Cache", headers.get("X-Cache") ?? "MISS");
-      return applyRateLimitHeaders(
-        new Response(res.body, { status: res.status, headers }),
-        result,
-      );
+      return applyRateLimitHeaders(new Response(res.body, { status: res.status, headers }), result);
     });
   });
 }
@@ -116,22 +113,15 @@ async function handleListingsApi(req: Request): Promise<Response> {
     query: url.searchParams.get("q") ?? undefined,
     neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
     propertyType: parsedType?.success ? parsedType.data : undefined,
-    minRent: url.searchParams.get("minRent")
-      ? Number(url.searchParams.get("minRent"))
-      : undefined,
-    maxRent: url.searchParams.get("maxRent")
-      ? Number(url.searchParams.get("maxRent"))
-      : undefined,
+    minRent: url.searchParams.get("minRent") ? Number(url.searchParams.get("minRent")) : undefined,
+    maxRent: url.searchParams.get("maxRent") ? Number(url.searchParams.get("maxRent")) : undefined,
     verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
     minBedrooms: url.searchParams.get("minBedrooms")
       ? Number(url.searchParams.get("minBedrooms"))
       : undefined,
-    sortBy: (url.searchParams.get("sortBy") as
-      | "newest"
-      | "price_asc"
-      | "price_desc"
-      | "score"
-      | null) ?? "newest",
+    sortBy:
+      (url.searchParams.get("sortBy") as "newest" | "price_asc" | "price_desc" | "score" | null) ??
+      "newest",
   };
 
   const result = await queryListings(filters);
@@ -181,10 +171,14 @@ async function handleTestimonialsApi(): Promise<Response> {
 }
 
 async function handleIntelligenceStatsApi(): Promise<Response> {
-  const { data, cacheHit } = await withCache("intelligence_stats", "intelligence_stats", async () => {
-    const { loadPropertyIntelligenceStats } = await import("@/lib/api/homepage.functions");
-    return loadPropertyIntelligenceStats();
-  });
+  const { data, cacheHit } = await withCache(
+    "intelligence_stats",
+    "intelligence_stats",
+    async () => {
+      const { loadPropertyIntelligenceStats } = await import("@/lib/api/homepage.functions");
+      return loadPropertyIntelligenceStats();
+    },
+  );
   return new Response(JSON.stringify(data), {
     headers: {
       "Content-Type": "application/json",
@@ -355,7 +349,11 @@ function handleRobotsTxt(): Response {
 
 async function handleSitemapXml(): Promise<Response> {
   try {
-    const { data: xml, cacheHit } = await withCache("sitemap_xml", "sitemap_xml", buildFullSitemapXml);
+    const { data: xml, cacheHit } = await withCache(
+      "sitemap_xml",
+      "sitemap_xml",
+      buildFullSitemapXml,
+    );
     return sitemapResponse(xml, cacheHit);
   } catch (error) {
     console.error("[sitemap] fallback to static:", error);
@@ -375,10 +373,7 @@ async function handleEmailUnsubscribe(req: Request): Promise<Response> {
     return new Response("Invalid or expired link", { status: 400 });
   }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await supabaseAdmin
-    .from("profiles")
-    .update({ email_marketing_opt_in: false })
-    .eq("id", userId);
+  await supabaseAdmin.from("profiles").update({ email_marketing_opt_in: false }).eq("id", userId);
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center">
     <h1>Unsubscribed</h1>
     <p>You will no longer receive marketing emails from NyumbaSearch.</p>

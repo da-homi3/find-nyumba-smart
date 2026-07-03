@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import {
   recoveryUrlError,
 } from "@/lib/auth-reset";
 import { requestPasswordReset } from "@/lib/api/auth.functions";
+import { BrandLogoLink } from "@/components/BrandLogo";
 import { errorMessage } from "@/lib/utils";
 
 const OTP_PATTERN = /^\d{6}$/;
@@ -150,12 +151,12 @@ function ResetPasswordPage() {
     }
   }
 
-  async function requestReset(e: SubmitEvent) {
+  async function requestReset(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     await sendResetEmail();
   }
 
-  async function verifyOtp(e: SubmitEvent) {
+  async function verifyOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!OTP_PATTERN.test(otp)) {
       toast.error("Enter the 6-digit code");
@@ -192,7 +193,7 @@ function ResetPasswordPage() {
     }
   }
 
-  async function updatePassword(e: SubmitEvent) {
+  async function updatePassword(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const passwordError = validatePasswordPair(password, confirmPassword);
     if (passwordError) {
@@ -232,6 +233,7 @@ function ResetPasswordPage() {
         <Link to="/auth" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Back to sign in
         </Link>
+        <BrandLogoLink className="mt-6" logoClassName="h-10" />
         <h1 className="mt-6 font-display text-3xl font-semibold">{stepTitle}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{stepSubtitle}</p>
 

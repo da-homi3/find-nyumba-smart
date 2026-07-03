@@ -125,8 +125,13 @@ export function TenantMapChrome({
             <Layers className="h-3.5 w-3.5" /> Security
           </button>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-card backdrop-blur">
-            {visibleCount} listings
+            {visibleCount} listing{visibleCount === 1 ? "" : "s"}
           </span>
+          {visibleCount === 0 && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-xs text-amber-800 shadow-card backdrop-blur">
+              No listings match — try another area
+            </span>
+          )}
         </div>
       </div>
 
@@ -202,6 +207,9 @@ export function TenantMapChrome({
               <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
               <p className="text-xs text-muted-foreground">
                 {prettyType(selected.property_type)} · {selected.neighborhood}
+                {selected.map_approximate ? (
+                  <span className="ml-1 text-amber-600">· approx. area</span>
+                ) : null}
               </p>
               <div className="mt-1 flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-primary">

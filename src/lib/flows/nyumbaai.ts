@@ -1,5 +1,8 @@
 import { callGeminiChat } from "@/lib/api/ai-client";
-import { buildNyumbaAiProfileContext, type UserAssistantProfile } from "@/lib/whatsapp/user-profile";
+import {
+  buildNyumbaAiProfileContext,
+  type UserAssistantProfile,
+} from "@/lib/whatsapp/user-profile";
 
 const NYUMBAAI_BASE = `You are NyumbaAI, the personal property assistant for NyumbaSearch — Kenya's verified home search platform at nyumbasearch.com.
 
@@ -55,7 +58,10 @@ export async function callNyumbaAI(
   return reply ?? "I'm having trouble connecting right now. Please try again in a moment.";
 }
 
-export async function enhanceListingDescription(rawDesc: string, draft: Record<string, unknown>): Promise<string> {
+export async function enhanceListingDescription(
+  rawDesc: string,
+  draft: Record<string, unknown>,
+): Promise<string> {
   const system =
     "Clean and improve Nairobi rental property descriptions. Fix grammar, improve clarity, keep honest. Return only the improved description.";
   const propertyType = draftField(draft.property_type);

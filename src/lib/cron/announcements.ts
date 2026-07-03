@@ -26,11 +26,14 @@ export async function sendProductAnnouncement(
   const ctaUrl = sanitiseText(announcement.ctaUrl, 500);
   const roles = announcement.targetRoles.includes("all")
     ? null
-    : announcement.targetRoles;
+    : announcement.targetRoles.filter((role) => role !== "all");
 
   let userIds: string[] = [];
   if (roles) {
-    const { data: roleRows } = await admin.from("user_roles").select("user_id, role").in("role", roles);
+    const { data: roleRows } = await admin
+      .from("user_roles")
+      .select("user_id, role")
+      .in("role", roles);
     userIds = [...new Set((roleRows ?? []).map((r) => r.user_id))];
   } else {
     const { data: profiles } = await admin.from("profiles").select("id").limit(2000);

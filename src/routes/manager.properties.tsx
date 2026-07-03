@@ -4,6 +4,7 @@ import { listManagerProperties, updatePropertyVacancy } from "@/lib/api/nyumba.f
 import { formatKes, type Property } from "@/lib/properties";
 import { PropertyMediaManager } from "@/components/PropertyMediaManager";
 import { Plus, Building2 } from "lucide-react";
+import { BrandLogoLink } from "@/components/BrandLogo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/manager/properties")({
@@ -37,12 +38,17 @@ function ManagerPropertiesPage() {
     <div className="min-h-screen bg-secondary">
       <header className="border-b bg-foreground px-5 py-4 text-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-background/60">
-              Property manager
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
+              <BrandLogoLink to="/" logoClassName="h-7" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-background/60">
+                Property manager
+              </p>
 
-            <h1 className="font-display text-lg font-semibold">Managed properties</h1>
+              <h1 className="font-display text-lg font-semibold">Managed properties</h1>
+            </div>
           </div>
 
           <Link to="/manager/dashboard" className="text-sm text-gold">
@@ -142,6 +148,13 @@ function ManagerPortfolioBody({
             >
               Mark as {isVacant ? "filled" : "vacant"}
             </button>
+            <Link
+              to="/manager/properties/$id/edit"
+              params={{ id: p.id }}
+              className="mt-2 block text-xs font-semibold text-primary hover:underline"
+            >
+              Edit listing →
+            </Link>
             <PropertyMediaManager property={p} />
           </div>
         );

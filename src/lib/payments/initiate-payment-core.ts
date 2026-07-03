@@ -25,7 +25,11 @@ export const checkoutMetaSchema = z.object({
 
 export const initiatePaymentSchema = z.object({
   propertyId: z.string().uuid().optional(),
-  amountKes: z.number().int().positive(),
+  amountKes: z
+    .number()
+    .int()
+    .positive()
+    .max(150_000, "M-Pesa STK push supports up to KES 150,000 per transaction"),
   paymentType: z.enum([
     "featured_listing",
     "premium_subscription",
@@ -40,10 +44,6 @@ export const initiatePaymentSchema = z.object({
     "provider_subscription",
   ]),
   phoneNumber: z.string().refine((p) => !p || isKenyanPhone(p), "Invalid Safaricom phone number"),
-  plan: z.string().optional(),
-  providerId: z.string().uuid().optional(),
-  boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
-  billingCycle: z.enum(["monthly", "quarterly"]).optional(),
   paymentMethod: z.enum(["mpesa", "card"]).default("mpesa"),
   idempotencyKey: z.string().min(8).max(64),
   email: z.string().email().optional(),

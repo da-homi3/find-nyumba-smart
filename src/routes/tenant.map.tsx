@@ -147,7 +147,7 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
       map={{
         mapRef: { current: null },
         ready: true,
-        error: "Map preview mode — add VITE_MAPBOX_TOKEN for the full 3D map.",
+        error: null,
         selected,
         setSelected,
         showHeat,

@@ -11,6 +11,7 @@ import {
 import { listPortfolioViewingStatuses } from "@/lib/api/booking.functions";
 
 import { Building2, Download, Inbox } from "lucide-react";
+import { BrandLogoLink } from "@/components/BrandLogo";
 
 import { toast } from "sonner";
 
@@ -157,12 +158,17 @@ function ManagerDashboard() {
     <div className="min-h-screen bg-secondary">
       <header className="border-b bg-foreground px-5 py-4 text-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-background/60">
-              Property manager
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
+              <BrandLogoLink to="/" logoClassName="h-7" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-background/60">
+                Property manager
+              </p>
 
-            <h1 className="font-display text-lg font-semibold">Portfolio overview</h1>
+              <h1 className="font-display text-lg font-semibold">Portfolio overview</h1>
+            </div>
           </div>
 
           <Link to="/settings" className="text-sm text-gold">

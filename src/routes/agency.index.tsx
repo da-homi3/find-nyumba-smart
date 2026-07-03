@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { ArrowLeft, Building2, Globe, TrendingUp } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/agency/")({
   head: () => ({ meta: [{ title: "Real Estate Agency Portal — NyumbaSearch" }] }),
@@ -32,7 +33,11 @@ function AgencyEntry() {
             <ArrowLeft className="h-4 w-4" /> Back to tenants
           </Link>
 
-          <div className="mt-10 flex-1">
+          <div className="mt-6 w-fit rounded-xl bg-white px-4 py-2 shadow-sm">
+            <BrandLogo logoClassName="h-8" />
+          </div>
+
+          <div className="mt-6 flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-background/20 bg-background/10 px-3 py-1 text-xs font-medium">
               <Globe className="h-3 w-3 text-gold" /> Real Estate Agency Portal
             </div>
@@ -79,14 +84,14 @@ function AgencyEntry() {
             </p>
             <Link
               to="/auth"
-              search={{ role: "agency", mode: "signup", redirect: "/agency/dashboard" }}
+              search={{ signupFor: "agency", mode: "signup", redirect: "/agency/dashboard" }}
               className="mt-6 block w-full rounded-xl bg-foreground px-6 py-3 text-center text-sm font-semibold text-background"
             >
               Create agency account
             </Link>
             <Link
               to="/auth"
-              search={{ role: "agency", mode: "signin", redirect: "/agency/dashboard" }}
+              search={{ signupFor: "agency", mode: "signin", redirect: "/agency/dashboard" }}
               className="mt-3 block text-center text-sm font-semibold text-primary"
             >
               Already approved? Sign in

@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import {
   listAdminVerifications,
   updateVerificationStatus,
+  listAdminVerificationRequests,
+  updateVerificationRequest,
   listAdminScamReports,
   updateScamReportStatus,
   listAdminAuditLogs,
@@ -18,7 +20,9 @@ import { AdminAuditsTab } from "@/components/admin/AdminAuditsTab";
 import { AdminPropertiesTab } from "@/components/admin/AdminPropertiesTab";
 import { AdminScamsTab } from "@/components/admin/AdminScamsTab";
 import { AdminVerificationsTab } from "@/components/admin/AdminVerificationsTab";
+import { AdminPropertyChecksTab } from "@/components/admin/AdminPropertyChecksTab";
 import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab";
+import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/admin/")({
@@ -41,11 +45,18 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (tabFromUrl === "applications") setActiveTab("applications");
+    if (tabFromUrl === "property_checks") setActiveTab("property_checks");
   }, [tabFromUrl]);
 
   const { data: verifications = [], isLoading: verLoading } = useQuery({
     queryKey: ["admin-verifications"],
     queryFn: () => listAdminVerifications(),
+  });
+
+  const { data: propertyChecks = [], isLoading: checksLoading } = useQuery({
+    queryKey: ["admin-property-checks"],
+    queryFn: () => listAdminVerificationRequests(),
+    enabled: activeTab === "property_checks",
   });
 
   const { data: scams = [], isLoading: scamsLoading } = useQuery({
@@ -103,6 +114,19 @@ function AdminDashboard() {
     },
   });
 
+  const updatePropertyCheck = useMutation({
+    mutationFn: (payload: {
+      id: string;
+      status?: "pending" | "in_progress" | "completed" | "cancelled";
+      report_url?: string | null;
+    }) => updateVerificationRequest({ data: payload }),
+    onSuccess: () => {
+      toast.success("Property verification updated");
+      qc.invalidateQueries({ queryKey: ["admin-property-checks"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const resolveScam = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "reviewed" | "dismissed" }) => {
       await updateScamReportStatus({ data: { id, status } });
@@ -120,6 +144,12 @@ function AdminDashboard() {
       count: verifications.filter((v) => v.status === "pending").length,
     },
     {
+      id: "property_checks" as const,
+      label: "Property checks",
+      count: propertyChecks.filter((r) => r.status === "pending" || r.status === "in_progress")
+        .length,
+    },
+    {
       id: "scams" as const,
       label: "Scam Reports",
       count: scams.filter((s) => s.status === "pending").length,
@@ -134,14 +164,17 @@ function AdminDashboard() {
     <div className="min-h-screen bg-background pb-12">
       <header className="border-b bg-card py-4 px-6">
         <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Link
               to="/tenant"
               aria-label="Back to tenant home"
-              className="p-1.5 rounded-full hover:bg-secondary"
+              className="rounded-full p-1.5 hover:bg-secondary"
             >
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
+            <div className="rounded-lg bg-white px-2 py-1 shadow-sm">
+              <BrandLogo logoClassName="h-6" />
+            </div>
             <h1 className="font-display text-xl font-bold">Admin Control Center</h1>
           </div>
           <div className="text-xs text-muted-foreground">Logged in as Administrator</div>
@@ -178,6 +211,13 @@ function AdminDashboard() {
               loading={verLoading}
               approve={approveVerification}
               reject={rejectVerification}
+            />
+          )}
+          {activeTab === "property_checks" && (
+            <AdminPropertyChecksTab
+              requests={propertyChecks}
+              loading={checksLoading}
+              update={updatePropertyCheck}
             />
           )}
           {activeTab === "scams" && (

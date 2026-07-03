@@ -16,3 +16,11 @@ export function getSiteUrl(): string {
 export function getOgImageUrl(): string {
   return `${getSiteUrl()}/og-image.jpg`;
 }
+
+export function getBrandLogoUrl(): string {
+  return `${getSiteUrl()}/brand/nyumbasearch-logo.png`;
+}
+
+export function getBrandIconUrl(): string {
+  return `${getSiteUrl()}/brand/nyumbasearch-icon.png`;
+}

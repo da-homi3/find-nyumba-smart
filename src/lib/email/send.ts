@@ -1,4 +1,5 @@
 import sgMail from "@sendgrid/mail";
+import type { Json } from "@/integrations/supabase/types";
 
 export type EmailPayload = {
   to: string;
@@ -28,7 +29,7 @@ async function logEmailAttempt(
       subject: payload.subject,
       status,
       provider_id: providerId ?? null,
-      metadata: payload.metadata ?? {},
+      metadata: (payload.metadata ?? {}) as Json,
     });
   } catch (err) {
     console.warn("[email] Could not write email_log:", err);

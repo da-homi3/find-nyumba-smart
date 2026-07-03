@@ -28,6 +28,8 @@ type Report = {
   created_at: string;
 };
 
+type QualityReport = Awaited<ReturnType<typeof analyzePropertyQuality>>;
+
 function Page() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -56,7 +58,7 @@ function Page() {
 
   const analyze = useMutation({
     mutationFn: (propertyId: string) => analyzePropertyQuality({ data: { propertyId } }),
-    onSuccess: (report) => {
+    onSuccess: (report: QualityReport) => {
       toast.success(`Quality ${report.grade} · ${report.score}/100`, {
         description: report.summary,
       });
@@ -142,6 +144,13 @@ function Page() {
                   </p>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    to="/landlord/properties/$id/edit"
+                    params={{ id: p.id }}
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+                  >
+                    Edit
+                  </Link>
                   <Link
                     to="/landlord/boost"
                     search={{ propertyId: p.id }}

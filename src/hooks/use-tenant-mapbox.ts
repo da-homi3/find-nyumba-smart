@@ -8,6 +8,7 @@ import {
   filterMappableProperties,
   NAIROBI_CENTER,
 } from "@/components/tenant-map/map-constants";
+import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
 
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -63,19 +64,22 @@ function isBoostedListing(p: Property): 0 | 1 {
 function listingsGeoJson(properties: Property[]): GeoJSON.FeatureCollection {
   return {
     type: "FeatureCollection",
-    features: properties.map((p) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [p.longitude!, p.latitude!] },
-      properties: {
-        id: p.id,
-        price: p.rent_kes,
-        priceLabel: compactKes(p.rent_kes).replace("KES ", ""),
-        verificationLevel: verificationLevel(p),
-        waterScore: waterScoreLabel(p),
-        securityScore: securityScore(p),
-        isBoosted: isBoostedListing(p),
-      },
-    })),
+    features: properties.map((p) => {
+      const coords = resolvePropertyMapCoords(p);
+      return {
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [coords.lng, coords.lat] },
+        properties: {
+          id: p.id,
+          price: p.rent_kes,
+          priceLabel: compactKes(p.rent_kes).replace("KES ", ""),
+          verificationLevel: verificationLevel(p),
+          waterScore: waterScoreLabel(p),
+          securityScore: securityScore(p),
+          isBoosted: isBoostedListing(p),
+        },
+      };
+    }),
   };
 }
 
@@ -566,9 +570,10 @@ export function useTenantMapbox(properties: Property[]) {
 
   useEffect(() => {
     const map = mapInstance.current;
-    if (!map || !ready || !selected?.longitude || !selected.latitude) return;
+    if (!map || !ready || !selected) return;
+    const coords = resolvePropertyMapCoords(selected);
     map.flyTo({
-      center: [selected.longitude, selected.latitude],
+      center: [coords.lng, coords.lat],
       zoom: 15,
       pitch: 60,
       duration: 1500,

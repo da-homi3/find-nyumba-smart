@@ -9,10 +9,11 @@ import {
 } from "@/lib/api/nyumba.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, CheckCheck, Loader2, Send } from "lucide-react";
+import { Check, CheckCheck, Loader2, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { whatsAppUrl } from "@/lib/phone";
 
 type Message = {
   id: string;
@@ -164,6 +165,15 @@ export function ConversationThread({
   const tenantNeedsPlus = inquiry?.tenant_id === user?.id && !isPlus;
   const propertyTitle = inquiry?.properties?.title ?? "Listing";
   const propertyId = inquiry?.property_id ?? inquiry?.properties?.id;
+  const isTenantViewer = inquiry?.tenant_id === user?.id;
+  const landlordPhone = counterparty?.phone?.trim() ?? null;
+  const waLink =
+    isTenantViewer && landlordPhone
+      ? whatsAppUrl(
+          landlordPhone,
+          `Hi, I'm interested in ${propertyTitle} on NyumbaSearch. Can we continue our conversation here?`,
+        )
+      : null;
 
   if (loadError) {
     return (
@@ -196,6 +206,23 @@ export function ConversationThread({
           )}
         </div>
       </header>
+
+      {waLink ? (
+        <div className="border-b bg-secondary/40 px-4 py-3">
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-95"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Continue on WhatsApp
+          </a>
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            Opens a chat with the landlord for faster replies.
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {isLoading ? (

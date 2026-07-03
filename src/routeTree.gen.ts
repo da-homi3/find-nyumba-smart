@@ -69,6 +69,7 @@ import { Route as AgencyTeamRouteImport } from './routes/agency.team'
 import { Route as AgencyPropertiesRouteImport } from './routes/agency.properties'
 import { Route as AgencyLeadsRouteImport } from './routes/agency.leads'
 import { Route as AgencyDashboardRouteImport } from './routes/agency.dashboard'
+import { Route as AdvertisePayRouteImport } from './routes/advertise.pay'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as TenantMessagesIndexRouteImport } from './routes/tenant.messages.index'
 import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.status.$requestId'
@@ -82,6 +83,9 @@ import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.pro
 import { Route as LandlordDashboardPlanRouteImport } from './routes/landlord.dashboard.plan'
 import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.dashboard.billing'
 import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
+import { Route as ManagerPropertiesIdEditRouteImport } from './routes/manager.properties.$id.edit'
+import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
+import { Route as AgencyPropertiesIdEditRouteImport } from './routes/agency.properties.$id.edit'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
@@ -383,6 +387,11 @@ const AgencyDashboardRoute = AgencyDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AgencyRoute,
 } as any)
+const AdvertisePayRoute = AdvertisePayRouteImport.update({
+  id: '/pay',
+  path: '/pay',
+  getParentRoute: () => AdvertiseRoute,
+} as any)
 const AdminRevenueRoute = AdminRevenueRouteImport.update({
   id: '/revenue',
   path: '/revenue',
@@ -450,13 +459,29 @@ const AgencyPropertiesNewRoute = AgencyPropertiesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AgencyPropertiesRoute,
 } as any)
+const ManagerPropertiesIdEditRoute = ManagerPropertiesIdEditRouteImport.update({
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => ManagerPropertiesRoute,
+} as any)
+const LandlordPropertiesIdEditRoute =
+  LandlordPropertiesIdEditRouteImport.update({
+    id: '/$id/edit',
+    path: '/$id/edit',
+    getParentRoute: () => LandlordPropertiesRoute,
+  } as any)
+const AgencyPropertiesIdEditRoute = AgencyPropertiesIdEditRouteImport.update({
+  id: '/$id/edit',
+  path: '/$id/edit',
+  getParentRoute: () => AgencyPropertiesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use-policy': typeof AcceptableUsePolicyRoute
   '/admin': typeof AdminRouteWithChildren
-  '/advertise': typeof AdvertiseRoute
+  '/advertise': typeof AdvertiseRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/caretaker': typeof CaretakerRouteWithChildren
@@ -479,6 +504,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/admin/revenue': typeof AdminRevenueRoute
+  '/advertise/pay': typeof AdvertisePayRoute
   '/agency/dashboard': typeof AgencyDashboardRoute
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
@@ -525,12 +551,15 @@ export interface FileRoutesByFullPath {
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
+  '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/properties/$id/edit': typeof ManagerPropertiesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/acceptable-use-policy': typeof AcceptableUsePolicyRoute
-  '/advertise': typeof AdvertiseRoute
+  '/advertise': typeof AdvertiseRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -548,6 +577,7 @@ export interface FileRoutesByTo {
   '/verify': typeof VerifyRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/admin/revenue': typeof AdminRevenueRoute
+  '/advertise/pay': typeof AdvertisePayRoute
   '/agency/dashboard': typeof AgencyDashboardRoute
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
@@ -593,6 +623,9 @@ export interface FileRoutesByTo {
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/tenant/messages': typeof TenantMessagesIndexRoute
+  '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/properties/$id/edit': typeof ManagerPropertiesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -600,7 +633,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/acceptable-use-policy': typeof AcceptableUsePolicyRoute
   '/admin': typeof AdminRouteWithChildren
-  '/advertise': typeof AdvertiseRoute
+  '/advertise': typeof AdvertiseRouteWithChildren
   '/agency': typeof AgencyRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/caretaker': typeof CaretakerRouteWithChildren
@@ -623,6 +656,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/admin/revenue': typeof AdminRevenueRoute
+  '/advertise/pay': typeof AdvertisePayRoute
   '/agency/dashboard': typeof AgencyDashboardRoute
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
@@ -669,6 +703,9 @@ export interface FileRoutesById {
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
+  '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/properties/$id/edit': typeof ManagerPropertiesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -700,6 +737,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/whatsapp'
     | '/admin/revenue'
+    | '/advertise/pay'
     | '/agency/dashboard'
     | '/agency/leads'
     | '/agency/properties'
@@ -746,6 +784,9 @@ export interface FileRouteTypes {
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/tenant/messages/'
+    | '/agency/properties/$id/edit'
+    | '/landlord/properties/$id/edit'
+    | '/manager/properties/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -769,6 +810,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/whatsapp'
     | '/admin/revenue'
+    | '/advertise/pay'
     | '/agency/dashboard'
     | '/agency/leads'
     | '/agency/properties'
@@ -814,6 +856,9 @@ export interface FileRouteTypes {
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/tenant/messages'
+    | '/agency/properties/$id/edit'
+    | '/landlord/properties/$id/edit'
+    | '/manager/properties/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -843,6 +888,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/whatsapp'
     | '/admin/revenue'
+    | '/advertise/pay'
     | '/agency/dashboard'
     | '/agency/leads'
     | '/agency/properties'
@@ -889,6 +935,9 @@ export interface FileRouteTypes {
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/tenant/messages/'
+    | '/agency/properties/$id/edit'
+    | '/landlord/properties/$id/edit'
+    | '/manager/properties/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -896,7 +945,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AcceptableUsePolicyRoute: typeof AcceptableUsePolicyRoute
   AdminRoute: typeof AdminRouteWithChildren
-  AdvertiseRoute: typeof AdvertiseRoute
+  AdvertiseRoute: typeof AdvertiseRouteWithChildren
   AgencyRoute: typeof AgencyRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   CaretakerRoute: typeof CaretakerRouteWithChildren
@@ -1342,6 +1391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyDashboardRouteImport
       parentRoute: typeof AgencyRoute
     }
+    '/advertise/pay': {
+      id: '/advertise/pay'
+      path: '/pay'
+      fullPath: '/advertise/pay'
+      preLoaderRoute: typeof AdvertisePayRouteImport
+      parentRoute: typeof AdvertiseRoute
+    }
     '/admin/revenue': {
       id: '/admin/revenue'
       path: '/revenue'
@@ -1433,6 +1489,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyPropertiesNewRouteImport
       parentRoute: typeof AgencyPropertiesRoute
     }
+    '/manager/properties/$id/edit': {
+      id: '/manager/properties/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/manager/properties/$id/edit'
+      preLoaderRoute: typeof ManagerPropertiesIdEditRouteImport
+      parentRoute: typeof ManagerPropertiesRoute
+    }
+    '/landlord/properties/$id/edit': {
+      id: '/landlord/properties/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/landlord/properties/$id/edit'
+      preLoaderRoute: typeof LandlordPropertiesIdEditRouteImport
+      parentRoute: typeof LandlordPropertiesRoute
+    }
+    '/agency/properties/$id/edit': {
+      id: '/agency/properties/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/agency/properties/$id/edit'
+      preLoaderRoute: typeof AgencyPropertiesIdEditRouteImport
+      parentRoute: typeof AgencyPropertiesRoute
+    }
   }
 }
 
@@ -1448,12 +1525,26 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface AdvertiseRouteChildren {
+  AdvertisePayRoute: typeof AdvertisePayRoute
+}
+
+const AdvertiseRouteChildren: AdvertiseRouteChildren = {
+  AdvertisePayRoute: AdvertisePayRoute,
+}
+
+const AdvertiseRouteWithChildren = AdvertiseRoute._addFileChildren(
+  AdvertiseRouteChildren,
+)
+
 interface AgencyPropertiesRouteChildren {
   AgencyPropertiesNewRoute: typeof AgencyPropertiesNewRoute
+  AgencyPropertiesIdEditRoute: typeof AgencyPropertiesIdEditRoute
 }
 
 const AgencyPropertiesRouteChildren: AgencyPropertiesRouteChildren = {
   AgencyPropertiesNewRoute: AgencyPropertiesNewRoute,
+  AgencyPropertiesIdEditRoute: AgencyPropertiesIdEditRoute,
 }
 
 const AgencyPropertiesRouteWithChildren =
@@ -1519,10 +1610,12 @@ const LandlordDashboardRouteWithChildren =
 
 interface LandlordPropertiesRouteChildren {
   LandlordPropertiesNewRoute: typeof LandlordPropertiesNewRoute
+  LandlordPropertiesIdEditRoute: typeof LandlordPropertiesIdEditRoute
 }
 
 const LandlordPropertiesRouteChildren: LandlordPropertiesRouteChildren = {
   LandlordPropertiesNewRoute: LandlordPropertiesNewRoute,
+  LandlordPropertiesIdEditRoute: LandlordPropertiesIdEditRoute,
 }
 
 const LandlordPropertiesRouteWithChildren =
@@ -1560,10 +1653,12 @@ const LandlordRouteWithChildren = LandlordRoute._addFileChildren(
 
 interface ManagerPropertiesRouteChildren {
   ManagerPropertiesNewRoute: typeof ManagerPropertiesNewRoute
+  ManagerPropertiesIdEditRoute: typeof ManagerPropertiesIdEditRoute
 }
 
 const ManagerPropertiesRouteChildren: ManagerPropertiesRouteChildren = {
   ManagerPropertiesNewRoute: ManagerPropertiesNewRoute,
+  ManagerPropertiesIdEditRoute: ManagerPropertiesIdEditRoute,
 }
 
 const ManagerPropertiesRouteWithChildren =
@@ -1663,7 +1758,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AcceptableUsePolicyRoute: AcceptableUsePolicyRoute,
   AdminRoute: AdminRouteWithChildren,
-  AdvertiseRoute: AdvertiseRoute,
+  AdvertiseRoute: AdvertiseRouteWithChildren,
   AgencyRoute: AgencyRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   CaretakerRoute: CaretakerRouteWithChildren,

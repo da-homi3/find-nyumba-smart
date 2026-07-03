@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { useTheme } from "@/hooks/use-theme";
+import { BrandLogoLink } from "@/components/BrandLogo";
 import { ChevronDown } from "lucide-react";
 
 const SERVICE_LINKS = [
@@ -68,12 +69,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
       <div
         className={`flex items-center justify-between px-4 py-3 transition-colors sm:px-5 ${glassClass}`}
       >
-        <Link to="/" className={`flex items-center gap-2 ${textClass}`}>
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
-            N
-          </div>
-          <span className="font-display text-xl font-semibold tracking-tight">NyumbaSearch</span>
-        </Link>
+        <BrandLogoLink className={textClass} logoClassName="h-9 sm:h-10" />
 
         <nav className={`hidden items-center gap-1 md:flex ${mutedClass}`}>
           <Link
@@ -211,12 +207,7 @@ export function SiteFooter() {
     <footer className="border-t bg-secondary/40">
       <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:grid-cols-2 lg:grid-cols-6">
         <div className="sm:col-span-2 lg:col-span-2">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-gold text-gold-foreground font-bold">
-              N
-            </div>
-            <span className="font-display text-lg font-semibold">NyumbaSearch</span>
-          </div>
+          <BrandLogoLink logoClassName="h-8" />
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">
             The trusted way to find a home in Nairobi — built for tenants and landlords, free of
             brokers.

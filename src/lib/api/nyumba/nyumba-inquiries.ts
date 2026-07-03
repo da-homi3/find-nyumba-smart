@@ -225,7 +225,26 @@ export const getInquiryThread = createServerFn({ method: "POST" })
       .select("id, full_name, phone, avatar_url")
       .eq("id", counterpartyId)
       .maybeSingle();
-    return { inquiry, counterparty };
+
+    let phone = counterparty?.phone?.trim() ?? null;
+    if (!phone && inquiry.property_id) {
+      const { data: property } = await supabase
+        .from("properties")
+        .select("contact_phone")
+        .eq("id", inquiry.property_id)
+        .maybeSingle();
+      phone = property?.contact_phone?.trim() ?? null;
+    }
+
+    return {
+      inquiry,
+      counterparty: {
+        id: counterparty?.id ?? counterpartyId,
+        full_name: counterparty?.full_name ?? "Contact",
+        phone,
+        avatar_url: counterparty?.avatar_url ?? null,
+      },
+    };
   });
 
 export const sendInquiryMessage = createServerFn({ method: "POST" })
