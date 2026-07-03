@@ -4,7 +4,7 @@ import { createSignedMediaUrls, updatePropertyMedia } from "@/lib/api/media.func
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { Property } from "@/lib/properties";
-import { Compass, Film, Image as ImageIcon, Loader2, Sparkles, X } from "lucide-react";
+import { Compass, Film, Image as ImageIcon, Link2, Loader2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 const MAX_IMG_MB = 10;
@@ -47,6 +47,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
       void qc.invalidateQueries({ queryKey: ["manager-properties"] });
       void qc.invalidateQueries({ queryKey: ["agency-properties"] });
       void qc.invalidateQueries({ queryKey: ["my-property-reports"] });
+      void qc.invalidateQueries({ queryKey: ["manageable-property", property.id] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -173,14 +174,29 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           />
         </label>
       </div>
+      <div className="space-y-2">
+        <div className="relative">
+          <Link2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="url"
+            value={videoUrl ?? ""}
+            onChange={(e) => setVideoUrl(e.target.value || null)}
+            placeholder="Video link (YouTube, etc.)"
+            className="w-full rounded-lg border py-1.5 pl-8 pr-2 text-xs"
+          />
+        </div>
+        <div className="relative">
+          <Link2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="url"
+            value={tourUrl ?? ""}
+            onChange={(e) => setTourUrl(e.target.value || null)}
+            placeholder="360° tour link (Matterport, etc.)"
+            className="w-full rounded-lg border py-1.5 pl-8 pr-2 text-xs"
+          />
+        </div>
+      </div>
       <div className="flex gap-2">
-        <input
-          type="url"
-          value={tourUrl ?? ""}
-          onChange={(e) => setTourUrl(e.target.value || null)}
-          placeholder="Or paste Matterport / 360 tour URL"
-          className="flex-1 rounded-lg border px-2 py-1.5 text-xs"
-        />
         <button
           type="button"
           disabled={busy}
@@ -188,7 +204,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
         >
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          Save & analyze
+          Save media & analyze
         </button>
       </div>
     </div>

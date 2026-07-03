@@ -17,10 +17,20 @@ export async function resolveMapboxToken(): Promise<string | null> {
   if (baked?.startsWith("pk.")) return baked;
   try {
     const cfg = await getMapboxPublicToken();
-    return cfg.token?.startsWith("pk.") ? cfg.token : null;
+    if (cfg.token?.startsWith("pk.")) return cfg.token;
+  } catch {
+    // fall through to public API route
+  }
+  try {
+    const res = await fetch("/api/mapbox-token");
+    if (res.ok) {
+      const cfg = (await res.json()) as { token?: string | null };
+      if (cfg.token?.startsWith("pk.")) return cfg.token;
+    }
   } catch {
     return null;
   }
+  return null;
 }
 
 export function hasMapboxTokenSync() {

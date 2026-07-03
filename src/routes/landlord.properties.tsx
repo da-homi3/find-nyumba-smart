@@ -92,6 +92,12 @@ function Page() {
           <p className="mt-1 text-sm text-muted-foreground">
             Add a property to start collecting leads.
           </p>
+          <Link
+            to="/landlord/properties/new"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-emerald px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" /> Add your first property
+          </Link>
         </div>
       );
     }

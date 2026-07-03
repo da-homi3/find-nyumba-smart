@@ -54,6 +54,18 @@ async function withErrorHandler(
   }
 }
 
+async function handleMapboxTokenApi(): Promise<Response> {
+  const fromEnv =
+    process.env.MAPBOX_PUBLIC_TOKEN?.trim() ?? process.env.VITE_MAPBOX_TOKEN?.trim() ?? "";
+  const enabled = fromEnv.startsWith("pk.");
+  return new Response(JSON.stringify({ token: enabled ? fromEnv : null, enabled }), {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+}
+
 async function handleMpesaCallback(req: Request): Promise<Response> {
   const { handleMpesaWebhook } = await import("@/lib/payments/webhook-handlers");
   return handleMpesaWebhook(req);
@@ -523,6 +535,20 @@ const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/health" && method === "GET",
     run: () => withErrorHandler("Health check", new Request("http://local"), handleHealthCheck),
+  },
+  {
+    match: (url, method) => url.pathname === "/api/mapbox-token" && method === "GET",
+    run: (req) =>
+      withPublicRateLimit(req, "api", async () => {
+        try {
+          return await handleMapboxTokenApi();
+        } catch (err) {
+          console.error("Mapbox token error:", err);
+          return new Response(JSON.stringify({ token: null, enabled: false }), {
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      }),
   },
   {
     match: (url, method) => url.pathname === "/api/cookie-consent" && method === "POST",

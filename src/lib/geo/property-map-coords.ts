@@ -31,6 +31,7 @@ export const NEIGHBORHOOD_COORDS: Record<string, { lat: number; lng: number }> =
   Ruaka: { lat: -1.185, lng: 36.775 },
   Ruiru: { lat: -1.15, lng: 36.96 },
   Rongai: { lat: -1.395, lng: 36.73 },
+  Tumaini: { lat: -1.3912, lng: 36.7368 },
   Umoja: { lat: -1.285, lng: 36.885 },
   Nairobi: { lat: NAIROBI_CENTER.lat, lng: NAIROBI_CENTER.lng },
 };
