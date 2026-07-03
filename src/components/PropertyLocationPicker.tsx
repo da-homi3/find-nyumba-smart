@@ -3,8 +3,8 @@ import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import { resolveMapboxToken } from "@/hooks/use-tenant-mapbox";
 import { neighborhoodCentroid } from "@/lib/geo/property-map-coords";
 import { NAIROBI_CENTER } from "@/components/tenant-map/map-constants";
-import { loadMapboxGl } from "@/lib/mapbox/mapbox-init";
-import { fitMapboxToKenya, MAPBOX_MAP_INIT, syncMapbox3DForZoom } from "@/lib/mapbox/mapbox-3d";
+import { createPropertyLocationMap, flyToPin } from "@/lib/mapbox/property-location-map";
+import { fitMapboxToKenya } from "@/lib/mapbox/mapbox-3d";
 import { Loader2, MapPin, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,18 +15,6 @@ type PropertyLocationPickerProps = Readonly<{
   onChange: (lat: number, lng: number) => void;
   className?: string;
 }>;
-
-function flyToPin(map: MapboxMap, lng: number, lat: number) {
-  map.flyTo({
-    center: [lng, lat],
-    zoom: 15,
-    pitch: 50,
-    bearing: -15,
-    duration: 1000,
-    essential: true,
-  });
-  syncMapbox3DForZoom(map);
-}
 
 export function PropertyLocationPicker({
   latitude,
@@ -46,8 +34,10 @@ export function PropertyLocationPicker({
 
   useEffect(() => {
     let cancelled = false;
+    const container = mapRef.current;
+    if (!container) return;
 
-    async function init() {
+    void (async () => {
       const token = await resolveMapboxToken();
       if (cancelled) return;
       if (!token) {
@@ -56,80 +46,28 @@ export function PropertyLocationPicker({
         return;
       }
 
-      const mapboxgl = await loadMapboxGl();
-      mapboxgl.accessToken = token;
-
-      const centroid = neighborhood ? neighborhoodCentroid(neighborhood) : null;
-      const hasPin = latitude != null && longitude != null;
-      const center = {
-        lng: hasPin ? longitude! : (centroid?.lng ?? NAIROBI_CENTER.lng),
-        lat: hasPin ? latitude! : (centroid?.lat ?? NAIROBI_CENTER.lat),
-      };
-
-      const map = new mapboxgl.Map({
-        container: mapRef.current!,
-        style: "mapbox://styles/mapbox/streets-v12",
-        center: [center.lng, center.lat],
-        zoom: hasPin ? 14 : 11,
-        ...MAPBOX_MAP_INIT,
+      const map = await createPropertyLocationMap({
+        container,
+        token,
+        latitude,
+        longitude,
+        neighborhood,
+        markerRef,
+        onPinChange: (lat, lng) => onChangeRef.current(lat, lng),
+        onReady: () => {
+          if (!cancelled) setLoading(false);
+        },
+        isCancelled: () => cancelled,
       });
 
-      map.addControl(
-        new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }),
-        "top-right",
-      );
-
-      const placeMarker = (lng: number, lat: number) => {
-        markerRef.current?.remove();
-        const marker = new mapboxgl.Marker({ color: "#0d4f3c", draggable: true })
-          .setLngLat([lng, lat])
-          .addTo(map);
-        marker.on("dragend", () => {
-          const pos = marker.getLngLat();
-          onChangeRef.current(pos.lat, pos.lng);
-        });
-        markerRef.current = marker;
-      };
-
-      const onLoad = () => {
-        if (cancelled) return;
-        syncMapbox3DForZoom(map);
-        map.resize();
-        if (latitude != null && longitude != null) {
-          placeMarker(longitude, latitude);
-          flyToPin(map, longitude, latitude);
-        } else if (centroid) {
-          map.flyTo({
-            center: [centroid.lng, centroid.lat],
-            zoom: 13,
-            pitch: 0,
-            duration: 800,
-          });
-        } else {
-          fitMapboxToKenya(map, { padding: 24, pitch: 0, duration: 0, maxZoom: 6.5 });
-        }
-        setLoading(false);
-      };
-
-      map.on("load", onLoad);
-      map.on("style.load", () => syncMapbox3DForZoom(map));
-      map.on("zoomend", () => syncMapbox3DForZoom(map));
-
-      map.on("click", (e) => {
-        placeMarker(e.lngLat.lng, e.lngLat.lat);
-        onChangeRef.current(e.lngLat.lat, e.lngLat.lng);
-        flyToPin(map, e.lngLat.lng, e.lngLat.lat);
-      });
-
+      if (cancelled || !map) return;
       mapInstance.current = map;
 
-      if (mapRef.current && typeof ResizeObserver !== "undefined") {
+      if (typeof ResizeObserver !== "undefined") {
         resizeObserverRef.current = new ResizeObserver(() => map.resize());
-        resizeObserverRef.current.observe(mapRef.current);
+        resizeObserverRef.current.observe(container);
       }
-    }
-
-    void init();
+    })();
 
     return () => {
       cancelled = true;
@@ -224,7 +162,7 @@ export function PropertyLocationPicker({
         </div>
       </div>
 
-      <div className="relative min-h-[22rem] h-[min(70vh,36rem)] overflow-hidden rounded-xl border">
+      <div className="relative min-h-88 h-[min(70vh,36rem)] overflow-hidden rounded-xl border">
         {loading ? (
           <div className="absolute inset-0 z-10 grid place-items-center bg-muted">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

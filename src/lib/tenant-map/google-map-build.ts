@@ -16,14 +16,21 @@ type LegacyMarkerOptions = {
   zIndex?: number;
 };
 
-/** Wraps deprecated google.maps.Marker — required by @googlemaps/markerclusterer. */
-function legacyMarker(g: MapsLibrary, options: LegacyMarkerOptions) {
-  return new g.Marker(options); // NOSONAR
-}
-
-export type PropertyMarker = ReturnType<typeof legacyMarker> & {
+/** Classic map pin — markerclusterer still requires the Maps JS Marker constructor. */
+export type PropertyMarker = google.maps.MVCObject & {
   __property?: Property;
+  addListener(
+    eventName: string,
+    handler: (...args: unknown[]) => void,
+  ): google.maps.MapsEventListener;
+  setMap(map: google.maps.Map | null): void;
+  setIcon(icon: google.maps.Icon | google.maps.Symbol | string | null): void;
+  setZIndex(zIndex: number | undefined): void;
 };
+
+function legacyMarker(g: MapsLibrary, options: LegacyMarkerOptions): PropertyMarker {
+  return new g.Marker(options) as PropertyMarker; // NOSONAR — markerclusterer requires classic Marker
+}
 
 function clusterMarkerSvg(size: number, count: number): string {
   return `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
@@ -68,7 +75,7 @@ export function createListingMarkers(
         anchor: new g.Point(43, 36),
       },
       title: property.title,
-    }) as PropertyMarker;
+    });
     marker.__property = property;
 
     marker.addListener("click", () => {

@@ -1,33 +1,34 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BrandLogoLink } from "@/components/BrandLogo";
 import { PropertyListingWizard } from "@/components/PropertyListingWizard";
+import { ManagerShell } from "@/components/ManagerShell";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/manager/properties/new")({
   head: () => ({ meta: [{ title: "Add listing — Property manager — NyumbaSearch" }] }),
-  component: ManagerNewPropertyPage,
+  component: () => (
+    <ManagerShell>
+      <ManagerNewPropertyPage />
+    </ManagerShell>
+  ),
 });
 
 function ManagerNewPropertyPage() {
   return (
-    <div className="min-h-screen bg-secondary">
-      <header className="border-b bg-foreground px-5 py-4 text-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
-              <BrandLogoLink to="/" logoClassName="h-7" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-background/60">
-                Property manager
-              </p>
-              <h1 className="font-display text-lg font-semibold">Add listing</h1>
-            </div>
-          </div>
-          <Link to="/manager/properties" className="text-sm text-gold">
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 lg:px-10">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            New listing
+          </p>
+          <h1 className="font-display text-xl font-semibold">Add property</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <DashboardSettingsLink variant="pill" />
+          <Link to="/manager/properties" className="text-sm font-semibold text-primary">
             ← Properties
           </Link>
         </div>
-      </header>
+      </div>
       <PropertyListingWizard portalLabel="Property manager" />
     </div>
   );

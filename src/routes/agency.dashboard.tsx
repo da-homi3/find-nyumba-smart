@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AgencyShell } from "@/components/AgencyShell";
 import { listAgencyProperties, listLandlordLeads } from "@/lib/api/nyumba.functions";
 import { Building2, Inbox } from "lucide-react";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/agency/dashboard")({
   head: () => ({ meta: [{ title: "Agency dashboard — NyumbaSearch" }] }),
@@ -28,8 +29,13 @@ function AgencyDashboard() {
 
   return (
     <div className="px-6 py-8 lg:px-10">
-      <h1 className="font-display text-3xl font-semibold">Agency dashboard</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Portfolio-wide listings and leads</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold">Agency dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Portfolio-wide listings and leads</p>
+        </div>
+        <DashboardSettingsLink variant="pill" />
+      </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Stat label="Total listings" value={String(properties.length)} icon={Building2} />
         <Stat label="Active listings" value={String(active)} icon={Building2} />

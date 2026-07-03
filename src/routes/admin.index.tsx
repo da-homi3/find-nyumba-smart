@@ -24,6 +24,7 @@ import { AdminPropertyChecksTab } from "@/components/admin/AdminPropertyChecksTa
 import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -177,7 +178,10 @@ function AdminDashboard() {
             </div>
             <h1 className="font-display text-xl font-bold">Admin Control Center</h1>
           </div>
-          <div className="text-xs text-muted-foreground">Logged in as Administrator</div>
+          <div className="flex items-center gap-3">
+            <DashboardSettingsLink variant="pill" />
+            <span className="text-xs text-muted-foreground">Logged in as Administrator</span>
+          </div>
         </div>
       </header>
 

@@ -1,18 +1,23 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { listLandlordLeads } from "@/lib/api/nyumba.functions";
 import { formatKes } from "@/lib/properties";
 import { ConversationThread } from "@/components/ConversationThread";
 import { useEffect, useState } from "react";
 import { Inbox } from "lucide-react";
-import { BrandLogoLink } from "@/components/BrandLogo";
+import { ManagerShell } from "@/components/ManagerShell";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/manager/leads")({
   validateSearch: (search: Record<string, unknown>) => ({
     thread: typeof search.thread === "string" ? search.thread : undefined,
   }),
   head: () => ({ meta: [{ title: "Leads — Property manager — NyumbaSearch" }] }),
-  component: ManagerLeadsPage,
+  component: () => (
+    <ManagerShell>
+      <ManagerLeadsPage />
+    </ManagerShell>
+  ),
 });
 
 function ManagerLeadsPage() {
@@ -41,66 +46,69 @@ function ManagerLeadsPage() {
 
   if (activeThread) {
     return (
-      <div className="min-h-screen bg-secondary px-4 py-6">
+      <div className="px-4 py-6 lg:px-10">
         <ConversationThread inquiryId={activeThread} onBack={closeThread} showQuickReplies />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-secondary">
-      <header className="border-b bg-foreground px-5 py-4 text-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
-              <BrandLogoLink to="/" logoClassName="h-7" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-background/60">
-                Property manager
-              </p>
-              <h1 className="flex items-center gap-2 font-display text-lg font-semibold">
-                <Inbox className="h-5 w-5" /> Leads inbox
-              </h1>
-            </div>
-          </div>
-          <Link to="/manager/dashboard" className="text-sm text-gold">
-            ← Dashboard
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-5 py-8">
-        <p className="text-sm text-muted-foreground">
-          {leads.length} inquiries across your managed portfolio
-        </p>
-        {isLoading ? (
-          <div className="mt-8 h-32 animate-pulse rounded-2xl bg-muted" />
-        ) : leads.length === 0 ? (
-          <p className="mt-8 rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">
-            No leads yet. Inquiries from tenants on your portfolio properties will appear here.
+    <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Inbox
           </p>
-        ) : (
-          <div className="mt-8 grid gap-4">
-            {leads.map((lead) => (
-              <article key={lead.id} className="rounded-2xl border bg-card p-5">
-                <p className="font-semibold">{lead.profiles?.full_name ?? "Tenant"}</p>
-                <p className="text-sm text-muted-foreground">
-                  {lead.properties?.title} ·{" "}
-                  {lead.properties ? formatKes(lead.properties.rent_kes) : ""}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => openThread(lead.id)}
-                  className="mt-3 text-sm font-semibold text-primary"
-                >
-                  Open thread →
-                </button>
-              </article>
-            ))}
-          </div>
-        )}
-      </main>
+          <h1 className="mt-1 flex items-center gap-2 font-display text-2xl font-semibold">
+            <Inbox className="h-6 w-6" /> Leads
+          </h1>
+        </div>
+        <DashboardSettingsLink variant="pill" />
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {leads.length} inquiries across your managed portfolio
+      </p>
+      <ManagerLeadsBody isLoading={isLoading} leads={leads} onOpenThread={openThread} />
+    </div>
+  );
+}
+
+function ManagerLeadsBody({
+  isLoading,
+  leads,
+  onOpenThread,
+}: Readonly<{
+  isLoading: boolean;
+  leads: Awaited<ReturnType<typeof listLandlordLeads>>;
+  onOpenThread: (id: string) => void;
+}>) {
+  if (isLoading) {
+    return <div className="mt-8 h-32 animate-pulse rounded-2xl bg-muted" />;
+  }
+  if (leads.length === 0) {
+    return (
+      <p className="mt-8 rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">
+        No leads yet. Inquiries from tenants on your portfolio properties will appear here.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-8 grid gap-4">
+      {leads.map((lead) => (
+        <article key={lead.id} className="rounded-2xl border bg-card p-5">
+          <p className="font-semibold">{lead.profiles?.full_name ?? "Tenant"}</p>
+          <p className="text-sm text-muted-foreground">
+            {lead.properties?.title} · {lead.properties ? formatKes(lead.properties.rent_kes) : ""}
+          </p>
+          <button
+            type="button"
+            onClick={() => onOpenThread(lead.id)}
+            className="mt-3 text-sm font-semibold text-primary"
+          >
+            Open thread →
+          </button>
+        </article>
+      ))}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import type { Property } from "@/lib/properties";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/caretaker/dashboard")({
   head: () => ({ meta: [{ title: "Caretaker dashboard — NyumbaSearch" }] }),
@@ -209,6 +210,7 @@ function CaretakerDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <DashboardSettingsLink variant="header" />
             <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
               Home
             </Link>

@@ -22,6 +22,7 @@ import {
 import { formatKes } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { toast } from "sonner";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/landlord/dashboard")({
   component: () => (
@@ -87,12 +88,15 @@ function Dashboard() {
           </p>
           <h1 className="mt-1 font-display text-3xl font-semibold">Welcome back, landlord</h1>
         </div>
-        <Link
-          to="/landlord/properties/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background"
-        >
-          <Plus className="h-4 w-4" /> Add property
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <DashboardSettingsLink variant="pill" />
+          <Link
+            to="/landlord/properties/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background"
+          >
+            <Plus className="h-4 w-4" /> Add property
+          </Link>
+        </div>
       </header>
 
       {/* KPIs */}

@@ -3,18 +3,21 @@ import {
   LayoutDashboard,
   Building2,
   Inbox,
-  BarChart3,
   Settings,
   LogOut,
   Plus,
+  BarChart3,
   KeyRound,
   CreditCard,
   Upload,
   Plug,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
 import { BrandLogoLink } from "@/components/BrandLogo";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { PortalMobileHeader } from "@/components/dashboard/PortalMobileHeader";
 
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -24,9 +27,12 @@ const nav = [
   { to: "/landlord/leads", label: "Messages", icon: Inbox },
   { to: "/landlord/caretakers", label: "Caretakers", icon: KeyRound },
   { to: "/landlord/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/landlord/dashboard/plan", label: "Plan", icon: Settings },
+  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/landlord/dashboard/plan", label: "Plan", icon: Crown },
   { to: "/landlord/dashboard/billing", label: "Billing", icon: CreditCard },
 ] as const;
+
+const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));
 
 export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
   const { user, isLandlord, loading, signOut } = useAuth();
@@ -66,12 +72,7 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
           >
             <Plus className="h-4 w-4" /> Add property
           </Link>
-          <Link
-            to="/settings"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10"
-          >
-            <Settings className="h-4 w-4" /> Settings
-          </Link>
+          <DashboardSettingsLink variant="sidebar" />
           <button
             type="button"
             onClick={signOut}
@@ -82,7 +83,8 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-x-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
+        <PortalMobileHeader portalLabel="Landlord portal" nav={mobileNav} />
         {!loading && user && !isLandlord && (
           <div className="border-b bg-gold/20 px-6 py-3 text-sm text-foreground">
             This account isn't registered as a landlord.{" "}

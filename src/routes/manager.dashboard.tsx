@@ -11,7 +11,8 @@ import {
 import { listPortfolioViewingStatuses } from "@/lib/api/booking.functions";
 
 import { Building2, Download, Inbox } from "lucide-react";
-import { BrandLogoLink } from "@/components/BrandLogo";
+import { ManagerShell } from "@/components/ManagerShell";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 import { toast } from "sonner";
 
@@ -30,7 +31,11 @@ import { useMemo } from "react";
 export const Route = createFileRoute("/manager/dashboard")({
   head: () => ({ meta: [{ title: "Property manager — NyumbaSearch" }] }),
 
-  component: ManagerDashboard,
+  component: () => (
+    <ManagerShell>
+      <ManagerDashboard />
+    </ManagerShell>
+  ),
 });
 
 function ManagerDashboard() {
@@ -139,7 +144,7 @@ function ManagerDashboard() {
 
         String(p.rent_kes),
 
-        p.is_vacant !== false ? "Yes" : "No",
+        p.is_vacant === false ? "No" : "Yes",
 
         p.is_active ? "Yes" : "No",
 
@@ -155,119 +160,104 @@ function ManagerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-secondary">
-      <header className="border-b bg-foreground px-5 py-4 text-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
-              <BrandLogoLink to="/" logoClassName="h-7" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-background/60">
-                Property manager
-              </p>
+    <div className="mx-auto max-w-6xl space-y-8 px-5 py-8 lg:px-10">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Portfolio overview
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold">Manager dashboard</h1>
+        </div>
+        <DashboardSettingsLink variant="pill" />
+      </div>
 
-              <h1 className="font-display text-lg font-semibold">Portfolio overview</h1>
-            </div>
-          </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Properties managed" value={String(properties.length)} />
 
-          <Link to="/settings" className="text-sm text-gold">
-            Settings →
+        <StatCard label="Vacant units" value={String(vacant)} />
+
+        <StatCard
+          label="Occupancy rate"
+          value={`${properties.length ? Math.round((occupied / properties.length) * 100) : 0}%`}
+        />
+      </div>
+
+      <section>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Your portfolio</h2>
+
+          <Link to="/manager/properties" className="text-sm font-semibold text-primary">
+            View all →
           </Link>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-6xl space-y-8 px-5 py-8">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Properties managed" value={String(properties.length)} />
-
-          <StatCard label="Vacant units" value={String(vacant)} />
-
-          <StatCard
-            label="Occupancy rate"
-            value={`${properties.length ? Math.round((occupied / properties.length) * 100) : 0}%`}
-          />
-        </div>
-
-        <section>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Your portfolio</h2>
-
-            <Link to="/manager/properties" className="text-sm font-semibold text-primary">
-              View all →
-            </Link>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Link
-              to="/manager/properties/new"
-              className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-card p-4 text-sm font-semibold text-primary"
-            >
-              + Add listing
-            </Link>
-
-            {properties.slice(0, 8).map((p) => (
-              <PropertyCard
-                key={p.id}
-                property={p}
-                onToggleVacancy={(isVacant) =>
-                  vacancyMutation.mutate({ propertyId: p.id, isVacant })
-                }
-                busy={vacancyMutation.isPending}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Vacancy pipeline</h2>
-
-            <button
-              type="button"
-              onClick={exportVacancyReport}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
-            >
-              <Download className="h-3.5 w-3.5" /> Export CSV
-            </button>
-          </div>
-
-          <div className="mt-4 grid gap-3 lg:grid-cols-5">
-            {VACANCY_PIPELINE_STAGES.map((col) => (
-              <div key={col} className="rounded-2xl border bg-card p-3">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">{col}</p>
-
-                <p className="text-[10px] text-muted-foreground">{pipeline[col].length} units</p>
-
-                <div className="mt-2 space-y-2">
-                  {pipeline[col].slice(0, 5).map((p) => (
-                    <div
-                      key={p.id}
-                      className="rounded-lg bg-secondary px-2 py-1.5 text-xs font-medium"
-                    >
-                      {p.title}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-            <Inbox className="h-5 w-5" /> Leads ({leads.length})
-          </h2>
-
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Link
-            to="/manager/leads"
-            search={{ thread: undefined }}
-            className="mt-3 inline-block text-sm font-semibold text-primary"
+            to="/manager/properties/new"
+            className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-card p-4 text-sm font-semibold text-primary"
           >
-            Open leads inbox →
+            + Add listing
           </Link>
-        </section>
-      </main>
+
+          {properties.slice(0, 8).map((p) => (
+            <PropertyCard
+              key={p.id}
+              property={p}
+              onToggleVacancy={(isVacant) => vacancyMutation.mutate({ propertyId: p.id, isVacant })}
+              busy={vacancyMutation.isPending}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Vacancy pipeline</h2>
+
+          <button
+            type="button"
+            onClick={exportVacancyReport}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary"
+          >
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-5">
+          {VACANCY_PIPELINE_STAGES.map((col) => (
+            <div key={col} className="rounded-2xl border bg-card p-3">
+              <p className="text-[10px] font-bold uppercase text-muted-foreground">{col}</p>
+
+              <p className="text-[10px] text-muted-foreground">{pipeline[col].length} units</p>
+
+              <div className="mt-2 space-y-2">
+                {pipeline[col].slice(0, 5).map((p) => (
+                  <div
+                    key={p.id}
+                    className="rounded-lg bg-secondary px-2 py-1.5 text-xs font-medium"
+                  >
+                    {p.title}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          <Inbox className="h-5 w-5" /> Leads ({leads.length})
+        </h2>
+
+        <Link
+          to="/manager/leads"
+          search={{ thread: undefined }}
+          className="mt-3 inline-block text-sm font-semibold text-primary"
+        >
+          Open leads inbox →
+        </Link>
+      </section>
     </div>
   );
 }

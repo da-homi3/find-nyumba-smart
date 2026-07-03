@@ -5,6 +5,7 @@ import { getProviderDashboard } from "@/lib/api/service-provider.functions";
 import { providerTierPrice } from "@/lib/revenue/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/services/provider/dashboard")({
   component: ProviderDashboardPage,
@@ -67,9 +68,12 @@ function ProviderDashboardPage() {
   return (
     <PublicPageShell>
       <main className="mx-auto max-w-2xl px-5 py-12">
-        <Link to="/services" className="text-sm text-primary">
-          ← Services
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to="/services" className="text-sm text-primary">
+            ← Services
+          </Link>
+          <DashboardSettingsLink variant="pill" />
+        </div>
 
         {trialDaysLeft !== null && trialDaysLeft > 0 && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">

@@ -4,12 +4,17 @@ import { listManagerProperties, updatePropertyVacancy } from "@/lib/api/nyumba.f
 import { formatKes, type Property } from "@/lib/properties";
 import { PropertyMediaManager } from "@/components/PropertyMediaManager";
 import { Plus, Building2 } from "lucide-react";
-import { BrandLogoLink } from "@/components/BrandLogo";
+import { ManagerShell } from "@/components/ManagerShell";
+import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/manager/properties")({
   head: () => ({ meta: [{ title: "Portfolio — Property manager — NyumbaSearch" }] }),
-  component: ManagerPropertiesPage,
+  component: () => (
+    <ManagerShell>
+      <ManagerPropertiesPage />
+    </ManagerShell>
+  ),
 });
 
 function ManagerPropertiesPage() {
@@ -35,32 +40,17 @@ function ManagerPropertiesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-secondary">
-      <header className="border-b bg-foreground px-5 py-4 text-background">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="shrink-0 rounded-xl bg-white px-3 py-2 shadow-sm">
-              <BrandLogoLink to="/" logoClassName="h-7" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-background/60">
-                Property manager
-              </p>
-
-              <h1 className="font-display text-lg font-semibold">Managed properties</h1>
-            </div>
-          </div>
-
-          <Link to="/manager/dashboard" className="text-sm text-gold">
-            ← Dashboard
-          </Link>
+    <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Managed properties
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold">Portfolio</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{data.length} properties</p>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-5 py-8">
-        <div className="flex items-end justify-between gap-4">
-          <p className="text-sm text-muted-foreground">{data.length} properties in portfolio</p>
-
+        <div className="flex flex-wrap items-center gap-2">
+          <DashboardSettingsLink variant="pill" />
           <Link
             to="/manager/properties/new"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -68,16 +58,14 @@ function ManagerPropertiesPage() {
             <Plus className="h-4 w-4" /> Add listing
           </Link>
         </div>
+      </div>
 
-        <ManagerPortfolioBody
-          data={data}
-          isLoading={isLoading}
-          vacancyPending={vacancyMutation.isPending}
-          onToggleVacancy={(propertyId, isVacant) =>
-            vacancyMutation.mutate({ propertyId, isVacant })
-          }
-        />
-      </main>
+      <ManagerPortfolioBody
+        data={data}
+        isLoading={isLoading}
+        vacancyPending={vacancyMutation.isPending}
+        onToggleVacancy={(propertyId, isVacant) => vacancyMutation.mutate({ propertyId, isVacant })}
+      />
     </div>
   );
 }

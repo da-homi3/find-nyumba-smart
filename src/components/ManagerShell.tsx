@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Building2, Inbox, Users, Settings, LogOut, Plus } from "lucide-react";
+import { LayoutDashboard, Building2, Inbox, Settings, LogOut, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -7,16 +7,15 @@ import { PortalMobileHeader } from "@/components/dashboard/PortalMobileHeader";
 import type { ReactNode } from "react";
 
 const nav = [
-  { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/agency/properties", label: "Listings", icon: Building2 },
-  { to: "/agency/leads", label: "Leads", icon: Inbox },
-  { to: "/agency/team", label: "Team", icon: Users },
+  { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/manager/properties", label: "Properties", icon: Building2 },
+  { to: "/manager/leads", label: "Leads", icon: Inbox },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));
 
-export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
+export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
   const { signOut } = useAuth();
 
   return (
@@ -27,7 +26,7 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
             <BrandLogoLink to="/" logoClassName="h-7" />
           </div>
           <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-background/60">
-            Agency portal
+            Property manager
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
@@ -44,10 +43,10 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
         </nav>
         <div className="space-y-1 px-3 pb-6">
           <Link
-            to="/agency/properties/new"
+            to="/manager/properties/new"
             className="flex items-center justify-center gap-2 rounded-lg bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground"
           >
-            <Plus className="h-4 w-4" /> Add listing
+            <Plus className="h-4 w-4" /> Add property
           </Link>
           <DashboardSettingsLink variant="sidebar" />
           <button
@@ -60,7 +59,7 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
         </div>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
-        <PortalMobileHeader portalLabel="Agency portal" nav={mobileNav} />
+        <PortalMobileHeader portalLabel="Property manager" nav={mobileNav} />
         {children}
       </main>
     </div>
