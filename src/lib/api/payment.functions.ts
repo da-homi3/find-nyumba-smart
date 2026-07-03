@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { isKenyanPhone } from "@/lib/phone";
 import { initiatePaymentCore, initiatePaymentSchema } from "@/lib/payments/initiate-payment-core";
 
@@ -13,7 +12,6 @@ export const initiatePayment = createServerFn({ method: "POST" })
   .inputValidator(initiatePaymentSchema)
   .handler(async ({ context, data }) => {
     const { userId } = getAuthContext(context);
-    checkRateLimit(`payment:${userId}`, RATE_LIMITS.payment);
     return initiatePaymentCore(userId, data);
   });
 

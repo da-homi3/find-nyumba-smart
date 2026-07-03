@@ -114,6 +114,8 @@ export async function initiateStkPush(opts: {
   if (opts.amountKes < 1 || opts.amountKes > 150_000) {
     throw new Error("M-Pesa amount must be between KES 1 and KES 150,000");
   }
+  const { assertStkPromptRateLimit } = await import("@/lib/payments/rate-limit");
+  await assertStkPromptRateLimit({ phone254: opts.phone254 });
   const token = await getAccessToken();
   const { encodedCredential, timestamp } = buildStkCredentials();
   const shortcode = process.env.MPESA_SHORTCODE!;

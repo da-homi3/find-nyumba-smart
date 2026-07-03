@@ -1,23 +1,24 @@
-const WINDOW_MS = 60_000;
-const MAX_REQUESTS = 5;
+import { rateLimitDistributed, RATE_LIMITS } from "@/lib/api/rate-limit";
 
-type Bucket = { count: number; resetAt: number };
+const STK_LIMIT_MESSAGE =
+  "Too many M-Pesa prompt requests. Please wait a few minutes and try again.";
 
-const buckets = new Map<string, Bucket>();
-
-/** Per-user sliding window rate limit for payment initiation. */
-export function assertPaymentRateLimit(userId: string): void {
-  const now = Date.now();
-  const bucket = buckets.get(userId);
-
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(userId, { count: 1, resetAt: now + WINDOW_MS });
-    return;
+/** KV-backed rate limit for STK prompt initiation (checkout, unlock, WhatsApp, renewals). */
+export async function assertStkPromptRateLimit(opts: {
+  userId?: string;
+  phone254?: string;
+}): Promise<void> {
+  if (opts.userId) {
+    const user = await rateLimitDistributed(`stk:user:${opts.userId}`, RATE_LIMITS.stk);
+    if (user.limited) throw new Error(STK_LIMIT_MESSAGE);
   }
-
-  if (bucket.count >= MAX_REQUESTS) {
-    throw new Error("Too many payment attempts. Please wait a minute and try again.");
+  if (opts.phone254) {
+    const phone = await rateLimitDistributed(`stk:phone:${opts.phone254}`, RATE_LIMITS.stkPhone);
+    if (phone.limited) throw new Error(STK_LIMIT_MESSAGE);
   }
+}
 
-  bucket.count += 1;
+/** Per-user STK limit for payment initiation. */
+export async function assertPaymentRateLimit(userId: string, phone254?: string): Promise<void> {
+  await assertStkPromptRateLimit({ userId, phone254 });
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
 import { isKenyanPhone } from "@/lib/phone";
 import { metadataFromCheckout } from "@/lib/payments/payment-metadata";
-import { assertPaymentRateLimit } from "@/lib/payments/rate-limit";
+import { assertStkPromptRateLimit } from "@/lib/payments/rate-limit";
 
 export const checkoutMetaSchema = z.object({
   plan: z.string().optional(),
@@ -267,7 +267,7 @@ async function completeMpesaPayment(
 
 /** Shared payment initiation — call from server handlers with a known userId. */
 export async function initiatePaymentCore(userId: string, data: InitiatePaymentInput) {
-  assertPaymentRateLimit(userId);
+  await assertStkPromptRateLimit({ userId });
   await assertPaymentAuthorization(userId, data);
 
   const trialStarted = await tryFirstSubscriptionTrial(userId, data);
