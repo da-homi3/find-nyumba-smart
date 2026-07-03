@@ -3,7 +3,7 @@ import { Home, Map, Heart, MessageCircle, Search } from "lucide-react";
 
 const items: Array<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
   { to: "/", label: "Home", icon: Home, exact: true },
-  { to: "/tenant", label: "Browse", icon: Search },
+  { to: "/tenant", label: "Browse", icon: Search, exact: true },
   { to: "/tenant/map", label: "Map", icon: Map },
   { to: "/tenant/saved", label: "Saved", icon: Heart },
   { to: "/tenant/messages", label: "Messages", icon: MessageCircle },

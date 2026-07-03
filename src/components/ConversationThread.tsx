@@ -53,6 +53,8 @@ type ConversationThreadProps = {
   backTo?: string;
   onBack?: () => void;
   showQuickReplies?: boolean;
+  /** Full-viewport chat (hides tenant bottom nav). */
+  fullHeight?: boolean;
 };
 
 export function ConversationThread({
@@ -60,6 +62,7 @@ export function ConversationThread({
   backTo,
   onBack,
   showQuickReplies = false,
+  fullHeight = false,
 }: Readonly<ConversationThreadProps>) {
   const { user } = useAuth();
   const { isPlus } = useEntitlements();
@@ -186,8 +189,14 @@ export function ConversationThread({
   }
 
   return (
-    <div className="flex h-full min-h-[60vh] flex-col">
-      <header className="flex items-center gap-3 border-b px-4 py-3">
+    <div
+      className={
+        fullHeight
+          ? "flex h-dvh flex-col bg-background"
+          : "flex h-full min-h-[60vh] flex-col"
+      }
+    >
+      <header className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
         <BackControl backTo={backTo} onBack={onBack} />
         <div className="min-w-0 flex-1">
           <h2 className="line-clamp-1 font-display font-semibold">
@@ -208,7 +217,7 @@ export function ConversationThread({
       </header>
 
       {waLink ? (
-        <div className="border-b bg-secondary/40 px-4 py-3">
+        <div className="shrink-0 border-b bg-secondary/40 px-4 py-3">
           <a
             href={waLink}
             target="_blank"
@@ -224,7 +233,7 @@ export function ConversationThread({
         </div>
       ) : null}
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -265,7 +274,7 @@ export function ConversationThread({
       </div>
 
       {showQuickReplies && !tenantNeedsPlus && (
-        <div className="flex flex-wrap gap-1.5 border-t px-3 pt-2">
+        <div className="flex shrink-0 flex-wrap gap-1.5 border-t px-3 pt-2">
           {LANDLORD_QUICK_REPLIES.map((text) => (
             <button
               key={text}
@@ -280,7 +289,7 @@ export function ConversationThread({
       )}
 
       {tenantNeedsPlus ? (
-        <div className="border-t p-4 text-center text-sm text-muted-foreground">
+        <div className="shrink-0 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-center text-sm text-muted-foreground">
           Messaging requires{" "}
           <Link
             to="/tenant/checkout"
@@ -292,7 +301,7 @@ export function ConversationThread({
         </div>
       ) : (
         <form
-          className="flex items-end gap-2 border-t p-3"
+          className="flex shrink-0 items-end gap-2 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
           onSubmit={(e) => {
             e.preventDefault();
             const body = draft.trim();

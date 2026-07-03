@@ -1,19 +1,17 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { ConversationThread } from "@/components/ConversationThread";
-import { MessagingGate } from "@/components/MessagingGate";
 import { useAuth } from "@/hooks/use-auth";
-import { useEntitlements } from "@/hooks/use-entitlements";
 import { MessageCircle } from "lucide-react";
 import { currentRedirectPath } from "@/lib/navigation";
 
 export const Route = createFileRoute("/tenant/messages/$id")({
+  head: () => ({ meta: [{ title: "Conversation — NyumbaSearch" }] }),
   component: ThreadPage,
 });
 
 function ThreadPage() {
   const { id } = Route.useParams();
   const { user } = useAuth();
-  const { isPlus } = useEntitlements();
   const location = useLocation();
 
   if (!user) {
@@ -32,15 +30,5 @@ function ThreadPage() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-2xl pt-4">
-      {isPlus ? (
-        <ConversationThread inquiryId={id} backTo="/tenant/messages" />
-      ) : (
-        <MessagingGate>
-          <span />
-        </MessagingGate>
-      )}
-    </div>
-  );
+  return <ConversationThread inquiryId={id} backTo="/tenant/messages" fullHeight />;
 }

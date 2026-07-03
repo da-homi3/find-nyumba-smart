@@ -9,9 +9,12 @@ import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
 import { MessagingGate } from "@/components/MessagingGate";
 import { PropertyImage } from "@/components/PropertyImage";
+import { SiteNav } from "@/components/SiteNav";
+import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { useEntitlements } from "@/hooks/use-entitlements";
 
 export const Route = createFileRoute("/tenant/messages/")({
+  head: () => ({ meta: [{ title: "Messages — NyumbaSearch" }] }),
   component: Messages,
 });
 
@@ -32,49 +35,96 @@ function Messages() {
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-md px-6 pt-24 text-center">
-        <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h1 className="mt-4 font-display text-2xl font-semibold">Message landlords</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Sign in to keep all your property conversations in one place.
-        </p>
-        <Link
-          to="/auth"
-          search={{ redirect: currentRedirectPath(location) }}
-          className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
-        >
-          Sign in
-        </Link>
+      <div>
+        <SiteNav variant="light" />
+        <div className="mx-auto max-w-md px-6 pt-16 text-center">
+          <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h1 className="mt-4 font-display text-2xl font-semibold">Message landlords</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in to keep all your property conversations in one place.
+          </p>
+          <Link
+            to="/auth"
+            search={{ redirect: currentRedirectPath(location) }}
+            className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+          >
+            Sign in
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-5 pt-10">
-      <h1 className="font-display text-2xl font-semibold">Messages</h1>
-      {isPlus ? (
-        <>
-          <p className="text-sm text-muted-foreground">{inquiries.length} conversations</p>
-          <MessagesBody
-            inquiries={inquiries}
-            userId={user.id}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => void refetch()}
-          />
-        </>
-      ) : (
-        <div className="mt-6">
-          <MessagingGate>
-            <span />
-          </MessagingGate>
-        </div>
-      )}
+    <div>
+      <SiteNav variant="light" />
+      <div className="mx-auto max-w-2xl px-5 pt-6 pb-8">
+        <h1 className="font-display text-2xl font-semibold">Messages</h1>
+        <p className="text-sm text-muted-foreground">
+          {isLoading ? "Loading…" : `${inquiries.length} conversations`}
+        </p>
+
+        {!isPlus && (
+          <div className="mt-4">
+            <PlusUpsellBanner
+              dismissKey="messages-inbox"
+              title="Reply to landlords with Plus"
+              body="View your inbox anytime. Sending new messages requires NyumbaSearch Plus."
+            />
+          </div>
+        )}
+
+        <MessagesInbox
+          inquiries={inquiries}
+          userId={user.id}
+          isPlus={isPlus}
+          isLoading={isLoading}
+          error={error}
+          onRetry={() => void refetch()}
+        />
+      </div>
     </div>
   );
 }
 
 type InquiryItem = Awaited<ReturnType<typeof listTenantInquiries>>[number];
+
+function MessagesInbox({
+  inquiries,
+  userId,
+  isPlus,
+  isLoading,
+  error,
+  onRetry,
+}: Readonly<{
+  inquiries: InquiryItem[];
+  userId: string;
+  isPlus: boolean;
+  isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
+}>) {
+  if (!isPlus && inquiries.length === 0) {
+    return (
+      <div className="mt-6">
+        <MessagingGate>
+          <span />
+        </MessagingGate>
+      </div>
+    );
+  }
+
+  return (
+    <MessagesBody
+      inquiries={inquiries}
+      userId={userId}
+      isLoading={isLoading}
+      error={error}
+      onRetry={onRetry}
+      readOnly={!isPlus}
+    />
+  );
+}
 
 function MessagesBody({
   inquiries,
@@ -82,12 +132,14 @@ function MessagesBody({
   isLoading,
   error,
   onRetry,
+  readOnly = false,
 }: Readonly<{
   inquiries: InquiryItem[];
   userId: string;
   isLoading: boolean;
   error: unknown;
   onRetry: () => void;
+  readOnly?: boolean;
 }>) {
   if (isLoading) {
     return (
@@ -172,8 +224,9 @@ function MessagesBody({
                       : "Nairobi"}
                   </p>
                   <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{last}</p>
-                  <div className="mt-2 text-[11px] text-muted-foreground">
-                    {new Date(inquiry.updated_at).toLocaleDateString()}
+                  <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                    <span>{new Date(inquiry.updated_at).toLocaleDateString()}</span>
+                    {readOnly ? <span className="text-gold">Plus required to reply</span> : null}
                   </div>
                 </div>
               </div>

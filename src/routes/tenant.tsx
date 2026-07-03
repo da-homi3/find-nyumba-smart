@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { AiAssistant } from "@/components/AiAssistant";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
 
@@ -7,11 +7,13 @@ export const Route = createFileRoute("/tenant")({
 });
 
 function TenantLayout() {
+  const isMessageThread = Boolean(useMatchRoute({ to: "/tenant/messages/$id", fuzzy: false }));
+
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className={`min-h-screen bg-background ${isMessageThread ? "" : "pb-24"}`}>
       <Outlet />
-      <AiAssistant />
-      <TenantBottomNav />
+      {!isMessageThread && <AiAssistant />}
+      {!isMessageThread && <TenantBottomNav />}
     </div>
   );
 }

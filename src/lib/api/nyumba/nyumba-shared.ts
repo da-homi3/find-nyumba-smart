@@ -181,7 +181,9 @@ export function mapInquiryWithDetails(
     ...row,
     properties: normalizedProperties ?? null,
     profiles: (row.profiles as InquiryWithDetails["profiles"]) ?? null,
-    inquiry_messages: (row.inquiry_messages as InquiryMessageRecord[] | undefined) ?? [],
+    inquiry_messages: [...((row.inquiry_messages as InquiryMessageRecord[] | undefined) ?? [])].sort(
+      (a, b) => a.created_at.localeCompare(b.created_at),
+    ),
   };
 }
 

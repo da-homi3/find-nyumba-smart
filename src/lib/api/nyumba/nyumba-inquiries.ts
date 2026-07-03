@@ -99,11 +99,6 @@ export const listTenantInquiries = createServerFn({ method: "GET" })
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "tenant");
 
-    const plus = await getTenantPlusStatus(supabase, userId);
-    if (plus.tenantPlan !== "plus") {
-      return [];
-    }
-
     const { data, error } = await supabase
       .from("inquiries")
       .select(
