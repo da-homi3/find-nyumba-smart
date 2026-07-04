@@ -14,6 +14,11 @@ import { AnimatePresence } from "framer-motion";
 import appCss from "../styles.css?url";
 import { reportClientError } from "@/lib/error-reporting";
 import {
+  clearChunkReloadGuard,
+  isChunkLoadError,
+  reloadOnceForStaleChunk,
+} from "@/lib/chunk-load-recovery";
+import {
   APPLE_TOUCH_ICON_PATH,
   BRAND_LOGO_PATH,
   BRAND_THEME_COLOR,
@@ -53,25 +58,41 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: Readonly<{ error: Error; reset: () => void }>) {
   console.error(error);
   const router = useRouter();
+  const chunkError = isChunkLoadError(error);
+
   useEffect(() => {
+    if (chunkError) {
+      reloadOnceForStaleChunk();
+      return;
+    }
     reportClientError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+  }, [error, chunkError]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Something went wrong on our end.</p>
+        <h1 className="text-xl font-semibold">
+          {chunkError ? "App update available" : "This page didn't load"}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {chunkError
+            ? "A newer version of NyumbaSearch is live. Refresh to load it."
+            : "Something went wrong on our end."}
+        </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             type="button"
             onClick={() => {
+              if (chunkError) {
+                globalThis.location.reload();
+                return;
+              }
               router.invalidate();
               reset();
             }}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Try again
+            {chunkError ? "Refresh" : "Try again"}
           </button>
           <a
             href="/"
@@ -169,6 +190,11 @@ function AnimatedOutlet() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    clearChunkReloadGuard();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
