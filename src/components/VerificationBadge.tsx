@@ -1,11 +1,23 @@
 import { ShieldCheck, CheckCircle2, Building, ShieldAlert } from "lucide-react";
 
+const VERIFY_COLORS: Record<number, string> = {
+  1: "var(--verify-l1)",
+  2: "var(--verify-l2)",
+  3: "var(--verify-l3)",
+  4: "var(--verify-l4)",
+};
+
 interface VerificationBadgeProps {
   level: number;
   showText?: boolean;
+  variant?: "default" | "glass";
 }
 
-export function VerificationBadge({ level, showText = true }: Readonly<VerificationBadgeProps>) {
+export function VerificationBadge({
+  level,
+  showText = true,
+  variant = "default",
+}: Readonly<VerificationBadgeProps>) {
   if (level <= 0) return null;
 
   const config = {
@@ -35,6 +47,19 @@ export function VerificationBadge({ level, showText = true }: Readonly<Verificat
     label: "Unverified",
     icon: ShieldAlert,
   };
+
+  if (variant === "glass") {
+    const dotColor = VERIFY_COLORS[level] ?? "var(--verify-l1)";
+    return (
+      <span
+        className="verify-badge-glass pointer-events-none"
+        style={{ ["--badge-color" as string]: dotColor }}
+      >
+        <span className="verify-dot" aria-hidden />
+        {showText && <span>{config.label}</span>}
+      </span>
+    );
+  }
 
   const Icon = config.icon;
 

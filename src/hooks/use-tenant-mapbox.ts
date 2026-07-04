@@ -80,6 +80,7 @@ function listingsGeoJson(properties: Property[]): GeoJSON.FeatureCollection {
       const coords = resolvePropertyMapCoords(p);
       return {
         type: "Feature",
+        id: p.id,
         geometry: { type: "Point", coordinates: [coords.lng, coords.lat] },
         properties: {
           id: p.id,
@@ -103,6 +104,7 @@ function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
       cluster: true,
       clusterMaxZoom: 13,
       clusterRadius: 50,
+      promoteId: "id",
     });
   }
 
@@ -145,7 +147,12 @@ function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
       filter: ["!", ["has", "point_count"]],
       paint: {
         "circle-color": ["case", ["==", ["get", "isBoosted"], 1], "#f6ad55", "#1eb88a"],
-        "circle-radius": 22,
+        "circle-radius": [
+          "case",
+          ["boolean", ["feature-state", "hover"], false],
+          29,
+          22,
+        ],
         "circle-opacity": 0.95,
         "circle-stroke-width": 2,
         "circle-stroke-color": "rgba(30,184,138,0.4)",
@@ -421,11 +428,32 @@ export function useTenantMapbox(properties: Property[]) {
       handleListingClick(event, () => propertiesRef.current, setSelected);
     const onClusterClick = (event: MapMouseEvent) =>
       handleClusterClick(mapInstance.current!, event);
+    const hoveredPinId: { current: string | number | null } = { current: null };
     const setPointer = () => {
       mapInstance.current?.getCanvas().style.setProperty("cursor", "pointer");
     };
     const clearPointer = () => {
       mapInstance.current?.getCanvas().style.removeProperty("cursor");
+    };
+    const onPinEnter = (event: MapMouseEvent) => {
+      const map = mapInstance.current;
+      if (!map) return;
+      const feature = event.features?.[0];
+      if (!feature?.id) return;
+      if (hoveredPinId.current != null) {
+        map.setFeatureState({ source: "listings", id: hoveredPinId.current }, { hover: false });
+      }
+      hoveredPinId.current = feature.id;
+      map.setFeatureState({ source: "listings", id: feature.id }, { hover: true });
+      setPointer();
+    };
+    const onPinLeave = () => {
+      const map = mapInstance.current;
+      if (map && hoveredPinId.current != null) {
+        map.setFeatureState({ source: "listings", id: hoveredPinId.current }, { hover: false });
+        hoveredPinId.current = null;
+      }
+      clearPointer();
     };
     const onLoad = () => {
       const map = mapInstance.current;
@@ -477,8 +505,8 @@ export function useTenantMapbox(properties: Property[]) {
       map.on("zoomend", onZoomEnd);
       map.on("click", "unclustered-point-bg", onListingClick);
       map.on("click", "clusters", onClusterClick);
-      map.on("mouseenter", "unclustered-point-bg", setPointer);
-      map.on("mouseleave", "unclustered-point-bg", clearPointer);
+      map.on("mouseenter", "unclustered-point-bg", onPinEnter);
+      map.on("mouseleave", "unclustered-point-bg", onPinLeave);
       map.on("mouseenter", "clusters", setPointer);
       map.on("mouseleave", "clusters", clearPointer);
 
@@ -502,8 +530,8 @@ export function useTenantMapbox(properties: Property[]) {
         map.off("zoomend", onZoomEnd);
         map.off("click", "unclustered-point-bg", onListingClick);
         map.off("click", "clusters", onClusterClick);
-        map.off("mouseenter", "unclustered-point-bg", setPointer);
-        map.off("mouseleave", "unclustered-point-bg", clearPointer);
+        map.off("mouseenter", "unclustered-point-bg", onPinEnter);
+        map.off("mouseleave", "unclustered-point-bg", onPinLeave);
         map.off("mouseenter", "clusters", setPointer);
         map.off("mouseleave", "clusters", clearPointer);
         map.remove();

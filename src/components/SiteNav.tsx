@@ -52,7 +52,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const mutedClass = isHero ? "text-white/85" : "text-muted-foreground";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 40);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);

@@ -69,20 +69,20 @@ export function PropertyCard({
         scale: isHovered ? 1.02 : 1,
       }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      style={{ transformStyle: "preserve-3d", willChange: "transform" }}
-      className={`group relative overflow-hidden rounded-2xl border bg-card shadow-soft ${
+      style={{ transformStyle: "preserve-3d", willChange: "transform", transformPerspective: 1000 }}
+      className={`group relative overflow-hidden rounded-[20px] border border-white/6 bg-(--surface-1) shadow-[0_4px_24px_rgba(0,0,0,0.24)] ${
         isFeatured ? "ring-2 ring-gold/40" : ""
       } ${isHovered ? "shadow-[0_32px_80px_rgba(0,0,0,0.25),0_0_0_1px_rgba(30,184,138,0.2)]" : ""}`}
     >
       <Link
         to="/tenant/property/$id"
         params={{ id: p.id }}
-        className="absolute inset-0 z-0 rounded-2xl"
+        className="absolute inset-0 z-0 rounded-[20px]"
         aria-label={`View ${p.title}`}
       />
 
       <div className="relative z-10 pointer-events-none">
-        <div className="relative aspect-video overflow-hidden bg-muted">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           <motion.div
             animate={{
               scale: isHovered ? 1.08 : 1,
@@ -90,7 +90,7 @@ export function PropertyCard({
               y: isHovered ? mousePos.y * 0.3 : 0,
             }}
             transition={{ type: "spring", stiffness: 200, damping: 30 }}
-            className="h-full w-full"
+            className="h-[112%] w-[112%] -m-[6%]"
           >
             <PropertyImage
               src={coverImage}
@@ -99,6 +99,10 @@ export function PropertyCard({
               className="h-full w-full object-cover"
             />
           </motion.div>
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-50% to-[rgba(13,17,23,0.7)]"
+            aria-hidden
+          />
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {isFeatured && (
               <span className="inline-flex rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
@@ -110,7 +114,7 @@ export function PropertyCard({
                 NyumbaSearch Verified ✓
               </span>
             )}
-            {level > 0 && <VerificationBadge level={level} />}
+            {level > 0 && <VerificationBadge level={level} variant="glass" />}
             {plusMember ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">
                 <Flame className="h-3 w-3 text-orange-400" aria-hidden /> Scam risk {100 - score}%
@@ -134,10 +138,13 @@ export function PropertyCard({
           {showSave && onToggleSave && (
             <SaveButton saved={saved} onToggle={onToggleSave} className="absolute top-3 right-3" />
           )}
-          <span className="absolute bottom-3 left-3 rounded-full bg-gradient-gold px-3 py-1 text-xs font-semibold text-gold-foreground">
+          <motion.span
+            whileHover={{ scale: 1.05 }}
+            className="listing-price-chip absolute bottom-3 left-3"
+          >
             {formatKes(p.rent_kes)}
-            <span className="font-normal opacity-70"> / mo</span>
-          </span>
+            <span>/ mo</span>
+          </motion.span>
           <span className="absolute bottom-3 right-3 rounded-md bg-background/90 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
             {prettyType(p.property_type)}
           </span>
@@ -189,6 +196,7 @@ export function PropertyCard({
             </div>
             <motion.span
               whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
               className="shrink-0 rounded-lg bg-gradient-emerald px-3 py-1.5 text-[11px] font-semibold text-white"
             >
               View details

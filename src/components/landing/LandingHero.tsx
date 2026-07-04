@@ -1,10 +1,15 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState, type SubmitEvent } from "react";
+import { lazy, Suspense, useState, type SubmitEvent } from "react";
 import { motion } from "framer-motion";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import heroImg from "@/assets/hero-garden-city.jpg";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import type { PropertyType } from "@/lib/properties";
+import { useDeviceCapability } from "@/hooks/useDeviceCapability";
+
+const HeroScene3D = lazy(() =>
+  import("@/components/hero/HeroScene3D").then((m) => ({ default: m.HeroScene3D })),
+);
 
 const POPULAR_HOODS = ["Kilimani", "Westlands", "Karen", "Lavington", "Kasarani"] as const;
 
@@ -27,6 +32,7 @@ export function LandingHero({
   hoodCount,
 }: Readonly<{ verifiedCount: number; hoodCount: number }>) {
   const navigate = useNavigate();
+  const capable3D = useDeviceCapability();
   const [hood, setHood] = useState("");
   const [maxRent, setMaxRent] = useState("");
   const [propType, setPropType] = useState<PropertyType | "">("");
@@ -51,42 +57,55 @@ export function LandingHero({
   };
 
   return (
-    <section className="relative isolate min-h-screen overflow-hidden bg-(--color-obsidian)">
-      <div className="absolute inset-0 z-0 bg-[#0a5c47]" aria-hidden>
+    <section className="relative isolate min-h-[92vh] overflow-hidden bg-(--surface-0)">
+      <div className="hero-photo-layer z-0" aria-hidden>
         <img
           src={heroImg}
-          alt="Aerial view of a garden city with green-roof buildings, winding paths, and a central pond at golden hour"
+          alt=""
           width={1920}
           height={1280}
           sizes="100vw"
           fetchPriority="high"
           loading="eager"
           decoding="async"
-          className="h-full w-full object-cover object-center"
+          className="hero-kenburns"
         />
+        <div className="hero-gradient-overlay" />
       </div>
 
-      <div className="pointer-events-none absolute inset-0 z-1 bg-linear-to-b from-[rgba(13,17,23,0.35)] via-[rgba(13,17,23,0.15)] to-[rgba(13,17,23,0.88)]" />
+      {capable3D ? (
+        <Suspense fallback={null}>
+          <div className="pointer-events-none absolute inset-0 z-1">
+            <HeroScene3D />
+          </div>
+        </Suspense>
+      ) : null}
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 py-32 text-center sm:px-6">
-        <motion.div
-          initial={false}
+      <div
+        className="pointer-events-none absolute inset-0 z-1 opacity-60"
+        style={{ background: "var(--surface-glow)" }}
+        aria-hidden
+      />
+
+      <div className="relative z-10 mx-auto flex min-h-[92vh] max-w-7xl flex-col items-center justify-center px-5 py-32 text-center sm:px-6">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(30,184,138,0.4)] bg-[rgba(30,184,138,0.15)] px-4 py-1.5 text-sm font-medium text-[#1eb88a]"
+          transition={{ duration: 0.6 }}
+          className="hero-eyebrow mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(30,184,138,0.4)] bg-[rgba(30,184,138,0.15)] px-4 py-1.5 text-sm font-medium text-[#1eb88a]"
         >
           <span className="h-2 w-2 animate-pulse-dot rounded-full bg-[#1eb88a]" />
           {verifiedCount > 0
             ? `${verifiedCount.toLocaleString("en-KE")} verified homes`
             : "Verified listings"}{" "}
           · {hoodCount > 0 ? `${hoodCount} neighborhoods` : "Nairobi"}
-        </motion.div>
+        </motion.p>
 
         <motion.h1
-          initial={false}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.8, ease: [0.19, 1, 0.22, 1] }}
-          className="max-w-4xl text-white"
+          transition={{ duration: 0.7, delay: 0.1, ease: [0.19, 1, 0.22, 1] }}
+          className="display-heading hero-title max-w-4xl text-4xl text-white sm:text-5xl lg:text-6xl"
         >
           Your next home in Nairobi —
           <br />
@@ -94,9 +113,9 @@ export function LandingHero({
         </motion.h1>
 
         <motion.p
-          initial={false}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
+          transition={{ delay: 0.25, duration: 0.6 }}
           className="mt-5 max-w-xl text-lg text-white/70"
         >
           Map-first search across Nairobi. Real reviews. AI that warns about red flags before you
@@ -105,9 +124,9 @@ export function LandingHero({
 
         <motion.form
           onSubmit={submit}
-          initial={false}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.6 }}
+          transition={{ delay: 0.35, duration: 0.6 }}
           className="mt-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-(--glass-border) bg-glass-bg shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl"
         >
           <div className="grid gap-0 sm:grid-cols-[1fr_1fr_1fr_auto]">
@@ -118,7 +137,7 @@ export function LandingHero({
                 value={hood}
                 onChange={(e) => setHood(e.target.value)}
                 placeholder="Neighborhood"
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+                className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40 focus:shadow-[0_0_0_3px_rgba(30,184,138,0.15)]"
                 aria-label="Neighborhood"
               />
               <datalist id="hood-suggestions">
@@ -137,7 +156,7 @@ export function LandingHero({
                 value={maxRent}
                 onChange={(e) => setMaxRent(e.target.value)}
                 placeholder="Max budget"
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+                className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40 focus:shadow-[0_0_0_3px_rgba(30,184,138,0.15)]"
                 aria-label="Maximum rent"
               />
             </label>
@@ -162,7 +181,7 @@ export function LandingHero({
             <motion.button
               type="submit"
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               className="flex items-center justify-center gap-2 bg-[#1eb88a] px-6 py-3.5 text-sm font-semibold text-white"
             >
               Search
@@ -185,9 +204,9 @@ export function LandingHero({
         </motion.form>
 
         <motion.div
-          initial={false}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.4 }}
+          transition={{ delay: 0.55 }}
           className="mt-8 flex flex-col gap-3 sm:flex-row"
         >
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>

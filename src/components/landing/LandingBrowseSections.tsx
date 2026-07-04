@@ -6,6 +6,7 @@ import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import { AnimatedStat } from "@/components/motion/AnimatedStat";
 import { NeighborhoodCard3D } from "@/components/landing/NeighborhoodCard3D";
+import { ScrollReveal, ScrollRevealStagger, ScrollRevealItem } from "@/components/motion/ScrollReveal";
 import { StatsSkeleton } from "@/components/skeletons/StatsSkeleton";
 import { NeighborhoodGridSkeleton } from "@/components/skeletons/NeighborhoodGridSkeleton";
 import { FEATURED_SKELETON_KEYS } from "@/components/skeletons/skeleton-keys";
@@ -77,12 +78,12 @@ export function FeaturedListings({
   if (!featured.length) return null;
   return (
     <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
-      <div className="flex items-end justify-between gap-4">
+      <ScrollReveal className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">
             {isBoosted ? "Featured listings" : "Featured"}
           </p>
-          <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
+          <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
             {isBoosted ? "Boosted homes, top of search" : "Verified homes, ready to view"}
           </h2>
         </div>
@@ -92,14 +93,17 @@ export function FeaturedListings({
         >
           See all →
         </Link>
-      </div>
-      <div className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+      </ScrollReveal>
+      <ScrollRevealStagger
+        className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
+        stagger={0.08}
+      >
         {featured.map((p) => (
-          <div key={p.id} className="w-72 shrink-0 sm:w-auto">
+          <ScrollRevealItem key={p.id} className="w-72 shrink-0 sm:w-auto">
             <PropertyCard p={p} />
-          </div>
+          </ScrollRevealItem>
         ))}
-      </div>
+      </ScrollRevealStagger>
     </section>
   );
 }
@@ -138,31 +142,32 @@ export function PopularNeighborhoods({
   return (
     <section className="border-t bg-secondary/40">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
-        <div className="flex items-end justify-between gap-4">
+        <ScrollReveal className="flex items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">
               Where Nairobi lives
             </p>
-            <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
+            <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
               Popular neighborhoods
             </h2>
           </div>
-        </div>
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        </ScrollReveal>
+        <ScrollRevealStagger className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" stagger={0.06}>
           {items.map((h) => {
             const meta = HOOD_META[h.name];
             const liveMin = minRentByHood?.[h.name];
             return (
-              <NeighborhoodCard3D
-                key={h.name}
-                name={h.name}
-                minPrice={liveMin ?? meta?.from ?? 15000}
-                image={meta?.img}
-                count={h.count}
-              />
+              <ScrollRevealItem key={h.name}>
+                <NeighborhoodCard3D
+                  name={h.name}
+                  minPrice={liveMin ?? meta?.from ?? 15000}
+                  image={meta?.img}
+                  count={h.count}
+                />
+              </ScrollRevealItem>
             );
           })}
-        </div>
+        </ScrollRevealStagger>
         <div className="mt-8">
           <AdUnit
             variant="banner"

@@ -21,20 +21,30 @@ function initialSrc(src: string | null | undefined, seed: string): string {
   return trimmed;
 }
 
+function photoClass(loaded: boolean, className?: string): string {
+  const base = loaded ? "property-photo property-photo-loaded" : "property-photo property-photo-loading";
+  return className ? `${base} ${className}` : base;
+}
+
 export function PropertyImage({ src, alt, className, seed, loading = "lazy" }: PropertyImageProps) {
   const [current, setCurrent] = useState(() => initialSrc(src, seed));
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setCurrent(initialSrc(src, seed));
+    setLoaded(false);
   }, [src, seed]);
 
   return (
     <img
       src={current}
       alt={alt}
-      className={className}
+      className={photoClass(loaded, className)}
       loading={loading}
+      decoding="async"
+      onLoad={() => setLoaded(true)}
       onError={() => {
+        setLoaded(true);
         setCurrent((prev) =>
           prev === LOCAL_PROPERTY_PLACEHOLDER ? prev : LOCAL_PROPERTY_PLACEHOLDER,
         );

@@ -78,6 +78,26 @@ export function createListingMarkers(
     });
     marker.__property = property;
 
+    const defaultIcon = {
+      url: priceTagSvg(compactKes(property.rent_kes).replaceAll("KES ", ""), false),
+      scaledSize: new g.Size(86, 38),
+      anchor: new g.Point(43, 36),
+    };
+    const hoverIcon = {
+      url: priceTagSvg(compactKes(property.rent_kes).replaceAll("KES ", ""), false),
+      scaledSize: new g.Size(112, 49),
+      anchor: new g.Point(56, 47),
+    };
+
+    marker.addListener("mouseover", () => {
+      marker.setIcon(hoverIcon);
+      marker.setZIndex(1000);
+    });
+    marker.addListener("mouseout", () => {
+      marker.setIcon(defaultIcon);
+      marker.setZIndex(undefined);
+    });
+
     marker.addListener("click", () => {
       onSelect(property);
       map.panTo({ lat: coords.lat, lng: coords.lng });
