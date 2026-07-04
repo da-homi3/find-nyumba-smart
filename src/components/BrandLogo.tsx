@@ -32,7 +32,7 @@ export function BrandLogo({
     <img
       src={BRAND_LOGO_PATH}
       alt="NyumbaSearch — Verified homes in Nairobi"
-      width={220}
+      width={48}
       height={48}
       className={cn("h-9 w-auto shrink-0 object-contain object-left", logoClassName, className)}
     />
