@@ -54,6 +54,7 @@ import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
 import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
 import { Route as ServicesRegisterRouteImport } from './routes/services.register'
 import { Route as ServicesCategoryRouteImport } from './routes/services.$category'
+import { Route as ManagerTeamRouteImport } from './routes/manager.team'
 import { Route as ManagerPropertiesRouteImport } from './routes/manager.properties'
 import { Route as ManagerLeadsRouteImport } from './routes/manager.leads'
 import { Route as ManagerDashboardRouteImport } from './routes/manager.dashboard'
@@ -320,6 +321,11 @@ const ServicesCategoryRoute = ServicesCategoryRouteImport.update({
   path: '/$category',
   getParentRoute: () => ServicesRoute,
 } as any)
+const ManagerTeamRoute = ManagerTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => ManagerRoute,
+} as any)
 const ManagerPropertiesRoute = ManagerPropertiesRouteImport.update({
   id: '/properties',
   path: '/properties',
@@ -572,6 +578,7 @@ export interface FileRoutesByFullPath {
   '/manager/dashboard': typeof ManagerDashboardRoute
   '/manager/leads': typeof ManagerLeadsRoute
   '/manager/properties': typeof ManagerPropertiesRouteWithChildren
+  '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
@@ -645,6 +652,7 @@ export interface FileRoutesByTo {
   '/landlord/leads': typeof LandlordLeadsRoute
   '/manager/dashboard': typeof ManagerDashboardRoute
   '/manager/leads': typeof ManagerLeadsRoute
+  '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
@@ -732,6 +740,7 @@ export interface FileRoutesById {
   '/manager/dashboard': typeof ManagerDashboardRoute
   '/manager/leads': typeof ManagerLeadsRoute
   '/manager/properties': typeof ManagerPropertiesRouteWithChildren
+  '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
@@ -821,6 +830,7 @@ export interface FileRouteTypes {
     | '/manager/dashboard'
     | '/manager/leads'
     | '/manager/properties'
+    | '/manager/team'
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
@@ -894,6 +904,7 @@ export interface FileRouteTypes {
     | '/landlord/leads'
     | '/manager/dashboard'
     | '/manager/leads'
+    | '/manager/team'
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
@@ -980,6 +991,7 @@ export interface FileRouteTypes {
     | '/manager/dashboard'
     | '/manager/leads'
     | '/manager/properties'
+    | '/manager/team'
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
@@ -1365,6 +1377,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/services/$category'
       preLoaderRoute: typeof ServicesCategoryRouteImport
       parentRoute: typeof ServicesRoute
+    }
+    '/manager/team': {
+      id: '/manager/team'
+      path: '/team'
+      fullPath: '/manager/team'
+      preLoaderRoute: typeof ManagerTeamRouteImport
+      parentRoute: typeof ManagerRoute
     }
     '/manager/properties': {
       id: '/manager/properties'
@@ -1816,6 +1835,7 @@ interface ManagerRouteChildren {
   ManagerDashboardRoute: typeof ManagerDashboardRoute
   ManagerLeadsRoute: typeof ManagerLeadsRoute
   ManagerPropertiesRoute: typeof ManagerPropertiesRouteWithChildren
+  ManagerTeamRoute: typeof ManagerTeamRoute
   ManagerIndexRoute: typeof ManagerIndexRoute
 }
 
@@ -1823,6 +1843,7 @@ const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerDashboardRoute: ManagerDashboardRoute,
   ManagerLeadsRoute: ManagerLeadsRoute,
   ManagerPropertiesRoute: ManagerPropertiesRouteWithChildren,
+  ManagerTeamRoute: ManagerTeamRoute,
   ManagerIndexRoute: ManagerIndexRoute,
 }
 

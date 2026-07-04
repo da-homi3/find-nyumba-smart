@@ -1,22 +1,77 @@
-import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Building2, Inbox, Settings, LogOut, Plus } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  LayoutDashboard,
+  Building2,
+  Inbox,
+  Users,
+  Settings,
+  LogOut,
+  Plus,
+  Loader2,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 import { PortalMobileHeader } from "@/components/dashboard/PortalMobileHeader";
-import type { ReactNode } from "react";
+import { useOrgMembership } from "@/hooks/use-org-membership";
+import { useEffect, type ReactNode } from "react";
 
-const nav = [
+const ownerNav = [
   { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/manager/properties", label: "Properties", icon: Building2 },
-  { to: "/manager/leads", label: "Leads", icon: Inbox },
+  { to: "/manager/leads", label: "Messages", icon: Inbox },
+  { to: "/manager/team", label: "Team", icon: Users },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
-const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));
+const memberNav = [
+  { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/manager/properties", label: "Properties", icon: Building2 },
+  { to: "/manager/leads", label: "Messages", icon: Inbox },
+  { to: "/settings", label: "Settings", icon: Settings },
+] as const;
 
 export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
-  const { signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { membership, isOwner, isPending, loading: membershipLoading } = useOrgMembership();
+  const navigate = useNavigate();
+  const loading = authLoading || membershipLoading;
+  const nav = isOwner ? ownerNav : memberNav;
+  const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));
+
+  useEffect(() => {
+    if (!authLoading && !user) navigate({ to: "/manager" });
+  }, [user, authLoading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-secondary">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isPending || (membership && membership.isPending)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-secondary px-6 text-center">
+        <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
+          <BrandLogoLink to="/" logoClassName="h-7" />
+        </div>
+        <h1 className="font-display text-2xl font-semibold">Awaiting owner approval</h1>
+        <p className="max-w-md text-sm text-muted-foreground">
+          Your property-manager team invite is pending. Ask the owner to approve you on the Team
+          page before you can access this dashboard.
+        </p>
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="rounded-xl border px-4 py-2 text-sm font-semibold"
+        >
+          Sign out
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-secondary">
@@ -27,6 +82,7 @@ export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
           </div>
           <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-background/60">
             Property manager
+            {isOwner ? " · Owner" : " · Team"}
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
