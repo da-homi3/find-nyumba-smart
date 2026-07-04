@@ -82,7 +82,7 @@ export function PropertyCard({
       />
 
       <div className="relative z-10 pointer-events-none">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className="relative aspect-4/3 overflow-hidden bg-muted">
           <motion.div
             animate={{
               scale: isHovered ? 1.08 : 1,
@@ -90,7 +90,7 @@ export function PropertyCard({
               y: isHovered ? mousePos.y * 0.3 : 0,
             }}
             transition={{ type: "spring", stiffness: 200, damping: 30 }}
-            className="h-[112%] w-[112%] -m-[6%]"
+            className="h-[112%] w-[112%] m-[-6%]"
           >
             <PropertyImage
               src={coverImage}
