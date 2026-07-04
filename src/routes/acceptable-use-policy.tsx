@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, CUSTOMER_CARE_EMAIL } from "@/lib/site";
 
 export const Route = createFileRoute("/acceptable-use-policy")({
   head: () => ({
@@ -25,7 +25,7 @@ function AupPage() {
       <LegalSection title="Enforcement">
         <p>
           Violations may result in listing removal, account suspension, or referral to authorities.
-          Report abuse to hello@nyumbasearch.com.
+          Report abuse to {CUSTOMER_CARE_EMAIL}.
         </p>
       </LegalSection>
     </LegalLayout>

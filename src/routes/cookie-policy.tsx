@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, CUSTOMER_CARE_EMAIL } from "@/lib/site";
 
 export const Route = createFileRoute("/cookie-policy")({
   head: () => ({
@@ -38,8 +38,8 @@ function CookiePolicyPage() {
       </LegalSection>
       <LegalSection title="Managing cookies" id="manage">
         <p>
-          Use the cookie banner on first visit or clear cookies in your browser. You can also email
-          hello@nyumbasearch.com. See our{" "}
+          Use the cookie banner on first visit or clear cookies in your browser. You can also email{" "}
+          {CUSTOMER_CARE_EMAIL}. See our{" "}
           <a href="/privacy" className="text-primary hover:underline">
             Privacy Policy
           </a>{" "}

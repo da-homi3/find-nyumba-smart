@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { useTheme } from "@/hooks/use-theme";
 import { BrandLogoLink } from "@/components/BrandLogo";
+import { CustomerCareInfo } from "@/components/CustomerCareInfo";
 import { ChevronDown } from "lucide-react";
 
 const SERVICE_LINKS = [
@@ -222,6 +223,7 @@ export function SiteFooter() {
             The trusted way to find a home in Nairobi — built for tenants and landlords, free of
             brokers.
           </p>
+          <CustomerCareInfo className="mt-5" layout="inline" />
         </div>
         <FooterCol
           title="Tenants"

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { PublicPageShell } from "@/components/SiteNav";
+import { CustomerCareInfo } from "@/components/CustomerCareInfo";
 import { getProviderDashboard } from "@/lib/api/service-provider.functions";
 import { providerTierPrice } from "@/lib/revenue/plans";
 import { useAuth } from "@/hooks/use-auth";
@@ -90,6 +91,7 @@ function ProviderDashboardPage() {
           >
             Update application details
           </Link>
+          <CustomerCareInfo className="mt-8 text-left" />
         </main>
       </PublicPageShell>
     );
@@ -110,6 +112,7 @@ function ProviderDashboardPage() {
           >
             Update &amp; resubmit
           </Link>
+          <CustomerCareInfo className="mt-8 text-left" />
         </main>
       </PublicPageShell>
     );
@@ -121,8 +124,10 @@ function ProviderDashboardPage() {
         <main className="mx-auto max-w-lg px-5 py-12 text-center">
           <h1 className="font-display text-2xl font-semibold">Dashboard unavailable</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Your provider account status is {provider.status}. Contact support if you need help.
+            Your provider account status is {provider.status}. Contact customer care if you need
+            help.
           </p>
+          <CustomerCareInfo className="mt-6 text-left" />
         </main>
       </PublicPageShell>
     );

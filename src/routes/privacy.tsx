@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { PublicPageShell } from "@/components/SiteNav";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, CUSTOMER_CARE_EMAIL, customerCareMailtoHref } from "@/lib/site";
 
-const CONTACT_EMAIL = "hello@nyumbasearch.com";
 const LAST_UPDATED = "1 July 2026";
 
 export const Route = createFileRoute("/privacy")({
@@ -40,8 +39,8 @@ function PrivacyPage() {
         <h1 className="mt-2 font-display text-4xl font-semibold">Privacy Policy</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Last updated: {LAST_UPDATED} ·{" "}
-          <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:underline">
-            {CONTACT_EMAIL}
+          <a href={customerCareMailtoHref()} className="text-primary hover:underline">
+            {CUSTOMER_CARE_EMAIL}
           </a>
         </p>
 
@@ -157,8 +156,8 @@ function PrivacyPage() {
             Depending on your location, you may have the right to access, correct, delete, restrict,
             or port your personal data, and to object to certain processing. To exercise these To
             exercise these rights, email{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:underline">
-              {CONTACT_EMAIL}
+            <a href={customerCareMailtoHref()} className="text-primary hover:underline">
+              {CUSTOMER_CARE_EMAIL}
             </a>{" "}
             and we will respond within a reasonable time.
           </p>
@@ -191,8 +190,8 @@ function PrivacyPage() {
             <ol className="list-decimal space-y-2 pl-5">
               <li>
                 Email{" "}
-                <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:underline">
-                  {CONTACT_EMAIL}
+                <a href={customerCareMailtoHref()} className="text-primary hover:underline">
+                  {CUSTOMER_CARE_EMAIL}
                 </a>{" "}
                 from the address or phone linked to your account with the subject line{" "}
                 <strong className="text-foreground">Data deletion request</strong>.
@@ -229,8 +228,8 @@ function PrivacyPage() {
             NyumbaSearch · Nairobi, Kenya
             <br />
             Email:{" "}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary hover:underline">
-              {CONTACT_EMAIL}
+            <a href={customerCareMailtoHref()} className="text-primary hover:underline">
+              {CUSTOMER_CARE_EMAIL}
             </a>
             <br />
             Web:{" "}

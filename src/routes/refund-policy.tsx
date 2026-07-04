@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, CUSTOMER_CARE_EMAIL } from "@/lib/site";
 
 export const Route = createFileRoute("/refund-policy")({
   head: () => ({
@@ -29,7 +29,7 @@ function RefundPage() {
         </p>
       </LegalSection>
       <LegalSection title="How to request">
-        <p>Email hello@nyumbasearch.com with your account email, payment reference, and reason.</p>
+        <p>Email {CUSTOMER_CARE_EMAIL} with your account email, payment reference, and reason.</p>
       </LegalSection>
     </LegalLayout>
   );

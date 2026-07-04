@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, type ChangeEvent, type SyntheticEvent } from "react";
 import { LegalLayout, LegalSection } from "@/components/legal/LegalLayout";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, CUSTOMER_CARE_EMAIL } from "@/lib/site";
 import { useAuth } from "@/hooks/use-auth";
 
 const DELETION_SUBJECT = "Data deletion request";
-const CONTACT_EMAIL = "hello@nyumbasearch.com";
 
 export const Route = createFileRoute("/data-deletion")({
   head: () => ({
@@ -19,7 +18,7 @@ function buildMailtoHref(email: string, message: string): string {
   const subject = encodeURIComponent(DELETION_SUBJECT);
   const bodyText = `Email: ${email}\n\n${message}`;
   const body = encodeURIComponent(bodyText);
-  return `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+  return `mailto:${CUSTOMER_CARE_EMAIL}?subject=${subject}&body=${body}`;
 }
 
 function preventFormSubmit(event: SyntheticEvent<HTMLFormElement>) {
@@ -103,7 +102,7 @@ function DataDeletionPage() {
       </LegalSection>
       <LegalSection title="Request deletion">
         <p>
-          Email {CONTACT_EMAIL} with subject line &quot;{DELETION_SUBJECT}&quot; and include:
+          Email {CUSTOMER_CARE_EMAIL} with subject line &quot;{DELETION_SUBJECT}&quot; and include:
         </p>
         <ul className="list-disc space-y-1 pl-5">
           <li>Full name and account email or phone</li>

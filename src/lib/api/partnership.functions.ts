@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
 import { checkRateLimit } from "@/lib/api/rate-limit";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteUrl, CUSTOMER_CARE_EMAIL } from "@/lib/site";
 import { formatKes } from "@/lib/properties";
 import { ADVERTISE_PACKAGES } from "@/lib/revenue/plans";
 
@@ -124,7 +124,7 @@ async function sendSubmitterConfirmation(data: InquiryPayload, inquiryId?: strin
       "",
       site,
       "",
-      "Questions? hello@nyumbasearch.com",
+      `Questions? ${CUSTOMER_CARE_EMAIL}`,
     ].join("\n");
     return sendEmail({
       to: submitterEmail,
@@ -230,7 +230,7 @@ export const approveAdvertiseInquiry = createServerFn({ method: "POST" })
       "",
       "Your ads will go live within 48 hours of payment confirmation.",
       "",
-      "Pay by M-Pesa or card. Questions? hello@nyumbasearch.com",
+      `Pay by M-Pesa or card. Questions? ${CUSTOMER_CARE_EMAIL}`,
     ]
       .filter((line) => line !== undefined)
       .join("\n");

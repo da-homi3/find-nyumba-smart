@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
+import { CUSTOMER_CARE_EMAIL, customerCareMailtoHref } from "@/lib/site";
 
 export function LegalLayout({
   title,
@@ -22,9 +23,13 @@ export function LegalLayout({
         </div>
         <p className="mt-12 border-t pt-6 text-xs text-muted-foreground">
           Questions?{" "}
-          <a href="mailto:hello@nyumbasearch.com" className="text-primary hover:underline">
-            hello@nyumbasearch.com
+          <a href={customerCareMailtoHref()} className="text-primary hover:underline">
+            {CUSTOMER_CARE_EMAIL}
           </a>
+          {" · "}
+          <Link to="/contact" className="text-primary hover:underline">
+            Contact us
+          </Link>
           {" · "}
           <Link to="/privacy" className="text-primary hover:underline">
             Privacy Policy

@@ -1,11 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CustomerCareInfo } from "@/components/CustomerCareInfo";
+import { PublicPageShell } from "@/components/SiteNav";
 import { submitContactMessage } from "@/lib/api/contact.functions";
+import { getSiteUrl } from "@/lib/site";
 import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({ meta: [{ title: "Contact — NyumbaSearch" }] }),
+  head: () => ({
+    meta: [
+      { title: "Contact — NyumbaSearch" },
+      {
+        name: "description",
+        content:
+          "Reach NyumbaSearch customer care for help, assistance, and inquiries about listings, verification, or landlord plans.",
+      },
+      { property: "og:title", content: "Contact — NyumbaSearch" },
+      { property: "og:url", content: `${getSiteUrl()}/contact` },
+    ],
+    links: [{ rel: "canonical", href: `${getSiteUrl()}/contact` }],
+  }),
   component: ContactPage,
 });
 
@@ -15,17 +30,16 @@ function ContactPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b px-5 py-4">
-        <Link to="/" className="font-display text-lg font-semibold">
-          ← NyumbaSearch
-        </Link>
-      </header>
-      <main className="mx-auto max-w-md px-5 py-16">
+    <PublicPageShell>
+      <main className="mx-auto max-w-lg px-5 py-16">
         <h1 className="font-display text-3xl font-semibold">Contact us</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Questions about listings, verification, or landlord plans? We reply within 24 hours.
+          Questions about listings, verification, landlord plans, or your account? Our customer care
+          team is here to help — we typically reply within 24 hours.
         </p>
+
+        <CustomerCareInfo className="mt-8" />
+
         <form
           className="mt-8 space-y-4"
           onSubmit={async (e) => {
@@ -44,7 +58,7 @@ function ContactPage() {
           }}
         >
           <label className="block text-sm font-medium">
-            Email
+            Your email
             <input
               type="email"
               required
@@ -71,10 +85,14 @@ function ContactPage() {
             {loading ? "Sending…" : "Send message"}
           </button>
         </form>
+
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          WhatsApp support: +254 7XX XXX XXX (business hours)
+          Prefer email or phone? Use the customer care details above.{" "}
+          <Link to="/about" className="text-primary hover:underline">
+            About NyumbaSearch
+          </Link>
         </p>
       </main>
-    </div>
+    </PublicPageShell>
   );
 }

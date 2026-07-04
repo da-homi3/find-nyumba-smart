@@ -18,7 +18,7 @@ import {
   VerifiedSection,
   WhyNyumba,
 } from "@/components/landing/LandingMarketingSections";
-import { getBrandLogoUrl, getSiteUrl, HOMEPAGE_TITLE } from "@/lib/site";
+import { getBrandLogoUrl, getSiteUrl, HOMEPAGE_TITLE, CUSTOMER_CARE_EMAIL, CUSTOMER_CARE_PHONE_E164 } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
@@ -195,7 +195,8 @@ function Landing() {
                 contactPoint: {
                   "@type": "ContactPoint",
                   contactType: "customer service",
-                  email: "hello@nyumbasearch.com",
+                  email: CUSTOMER_CARE_EMAIL,
+                  telephone: CUSTOMER_CARE_PHONE_E164,
                   areaServed: "KE",
                 },
               },
