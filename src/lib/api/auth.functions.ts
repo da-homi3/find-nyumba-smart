@@ -42,10 +42,8 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
       // Always return ok to avoid email enumeration.
       if (!user) return { ok: true as const };
 
-      const {
-        generateSixDigitResetCode,
-        storePasswordResetCode,
-      } = await import("@/lib/auth/password-reset-store");
+      const { generateSixDigitResetCode, storePasswordResetCode } =
+        await import("@/lib/auth/password-reset-store");
 
       const otpCode = generateSixDigitResetCode();
       await storePasswordResetCode({ email, userId: user.id, code: otpCode });
@@ -73,11 +71,8 @@ export const verifyPasswordResetCode = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const code = data.code.trim();
-    const {
-      readPasswordReset,
-      codesMatch,
-      markPasswordResetVerified,
-    } = await import("@/lib/auth/password-reset-store");
+    const { readPasswordReset, codesMatch, markPasswordResetVerified } =
+      await import("@/lib/auth/password-reset-store");
 
     const record = await readPasswordReset(email);
     if (!record || !codesMatch(record.code, code)) {
@@ -93,11 +88,8 @@ export const completePasswordReset = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const code = data.code.trim();
-    const {
-      readPasswordReset,
-      codesMatch,
-      consumePasswordReset,
-    } = await import("@/lib/auth/password-reset-store");
+    const { readPasswordReset, codesMatch, consumePasswordReset } =
+      await import("@/lib/auth/password-reset-store");
 
     const record = await readPasswordReset(email);
     if (!record || !codesMatch(record.code, code)) {

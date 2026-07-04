@@ -96,7 +96,9 @@ function BoostPage() {
               >
                 <div className="font-semibold">{p.badge ?? p.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{p.placement}</div>
-                <div className="mt-2 font-display text-lg text-primary">{formatKes(p.priceKes)}</div>
+                <div className="mt-2 font-display text-lg text-primary">
+                  {formatKes(p.priceKes)}
+                </div>
                 <div className="text-[10px] text-muted-foreground">{p.durationDays} days</div>
               </button>
             ))}

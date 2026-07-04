@@ -47,7 +47,9 @@ export function IntelligenceMetric({
           transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
         />
       </div>
-      <span className="intel-metric-number mt-3 block text-sm font-semibold text-primary">{stat}</span>
+      <span className="intel-metric-number mt-3 block text-sm font-semibold text-primary">
+        {stat}
+      </span>
     </motion.div>
   );
 }

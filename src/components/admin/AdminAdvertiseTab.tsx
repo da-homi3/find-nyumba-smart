@@ -1,9 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  approveAdvertiseInquiry,
-  listAdvertiseInquiries,
-} from "@/lib/api/partnership.functions";
+import { approveAdvertiseInquiry, listAdvertiseInquiries } from "@/lib/api/partnership.functions";
 import { ADVERTISE_PACKAGES } from "@/lib/revenue/plans";
 import { formatKes } from "@/lib/properties";
 

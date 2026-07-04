@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
-import { listMyViewings, updateViewingStatus, type ViewingListItem } from "@/lib/api/booking.functions";
+import {
+  listMyViewings,
+  updateViewingStatus,
+  type ViewingListItem,
+} from "@/lib/api/booking.functions";
 import { PORTAL_PATHS } from "@/lib/portal-paths";
 import { formatKes, type Property } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
@@ -342,7 +346,9 @@ function Kpi({
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-soft">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
         <Icon className="h-4 w-4 text-primary" />
       </div>
       <p className="mt-2 font-display text-2xl font-semibold">{value}</p>

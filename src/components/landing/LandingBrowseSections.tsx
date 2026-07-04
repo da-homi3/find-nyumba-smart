@@ -6,7 +6,11 @@ import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import { AnimatedStat } from "@/components/motion/AnimatedStat";
 import { NeighborhoodCard3D } from "@/components/landing/NeighborhoodCard3D";
-import { ScrollReveal, ScrollRevealStagger, ScrollRevealItem } from "@/components/motion/ScrollReveal";
+import {
+  ScrollReveal,
+  ScrollRevealStagger,
+  ScrollRevealItem,
+} from "@/components/motion/ScrollReveal";
 import { StatsSkeleton } from "@/components/skeletons/StatsSkeleton";
 import { NeighborhoodGridSkeleton } from "@/components/skeletons/NeighborhoodGridSkeleton";
 import { FEATURED_SKELETON_KEYS } from "@/components/skeletons/skeleton-keys";
@@ -152,7 +156,10 @@ export function PopularNeighborhoods({
             </h2>
           </div>
         </ScrollReveal>
-        <ScrollRevealStagger className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" stagger={0.06}>
+        <ScrollRevealStagger
+          className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+          stagger={0.06}
+        >
           {items.map((h) => {
             const meta = HOOD_META[h.name];
             const liveMin = minRentByHood?.[h.name];
@@ -182,9 +189,7 @@ export function PopularNeighborhoods({
   );
 }
 
-export function ServiceTeaserRow({
-  counts,
-}: Readonly<{ counts?: Record<string, number> }>) {
+export function ServiceTeaserRow({ counts }: Readonly<{ counts?: Record<string, number> }>) {
   return (
     <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6">
       <div className="flex items-end justify-between gap-4">

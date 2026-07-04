@@ -93,7 +93,7 @@ function opsRecipientFor(data: InquiryPayload): string {
   return process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";
 }
 
-async function sendSubmitterConfirmation(data: InquiryPayload, inquiryId?: string) {
+async function sendSubmitterConfirmation(data: InquiryPayload, _inquiryId?: string) {
   const submitterEmail =
     parseEmailFromContact(data.metadata?.contact, data.email ?? undefined) ??
     (data.email?.includes("@") ? data.email : null);

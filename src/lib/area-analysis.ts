@@ -427,7 +427,8 @@ export function analyzePropertyArea(
     4,
     cleanlinessScore + amenityBoost(amenities, /cleaning|housekeep|furnished/i, 0.5),
   );
-  if (property.latitude != null && property.longitude != null) accessibilityScore = Math.min(4, accessibilityScore + 0.5);
+  if (property.latitude != null && property.longitude != null)
+    accessibilityScore = Math.min(4, accessibilityScore + 0.5);
 
   const dimensionAvg =
     (waterScore +
@@ -459,7 +460,9 @@ export function analyzePropertyArea(
     const sorted = [...rentPool].sort((a, b) => a - b);
     areaMedianRent = sorted[Math.floor(sorted.length / 2)] ?? null;
     if (areaMedianRent && areaMedianRent > 0) {
-      rentVsAreaMedianPct = Math.round(((property.rent_kes - areaMedianRent) / areaMedianRent) * 100);
+      rentVsAreaMedianPct = Math.round(
+        ((property.rent_kes - areaMedianRent) / areaMedianRent) * 100,
+      );
       if (rentVsAreaMedianPct <= -10) healthScore += 4;
       else if (rentVsAreaMedianPct >= 25) healthScore -= 4;
     }

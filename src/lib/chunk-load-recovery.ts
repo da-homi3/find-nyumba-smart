@@ -2,11 +2,7 @@
 export function isChunkLoadError(error: unknown): boolean {
   if (!error) return false;
   const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : String(error);
+    error instanceof Error ? error.message : typeof error === "string" ? error : String(error);
   const name = error instanceof Error ? error.name : "";
   return (
     name === "ChunkLoadError" ||

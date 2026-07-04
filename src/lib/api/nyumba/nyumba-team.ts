@@ -4,11 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole, ForbiddenError } from "@/lib/api/_authz";
 import { notifyOrgTeamApproved, notifyOrgTeamInvited } from "@/lib/api/notify";
 import { getSiteUrl } from "@/lib/site";
-import {
-  authContext,
-  getUserOrganizationId,
-  adminClient,
-} from "@/lib/api/nyumba/nyumba-shared";
+import { authContext, getUserOrganizationId, adminClient } from "@/lib/api/nyumba/nyumba-shared";
 
 export type OrgMemberRole = "owner" | "member" | "pending";
 
@@ -299,10 +295,7 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
       if (normalizeRole(existing.role) === "owner") {
         throw new Error("This user is already the owner");
       }
-      await admin
-        .from("organization_members")
-        .update({ role: "pending" })
-        .eq("id", existing.id);
+      await admin.from("organization_members").update({ role: "pending" }).eq("id", existing.id);
     } else {
       const { error } = await admin.from("organization_members").insert({
         organization_id: orgId,
@@ -318,14 +311,18 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
       .eq("id", orgId)
       .maybeSingle();
     const portalRole = org?.type === "property_manager" ? "manager" : "agency";
-    await admin.from("user_roles").upsert(
-      { user_id: invitee.id, role: portalRole },
-      { onConflict: "user_id,role", ignoreDuplicates: true },
-    );
-    await admin.from("user_roles").upsert(
-      { user_id: invitee.id, role: "tenant" },
-      { onConflict: "user_id,role", ignoreDuplicates: true },
-    );
+    await admin
+      .from("user_roles")
+      .upsert(
+        { user_id: invitee.id, role: portalRole },
+        { onConflict: "user_id,role", ignoreDuplicates: true },
+      );
+    await admin
+      .from("user_roles")
+      .upsert(
+        { user_id: invitee.id, role: "tenant" },
+        { onConflict: "user_id,role", ignoreDuplicates: true },
+      );
 
     await sendTeamInviteEmail({
       email,

@@ -46,8 +46,13 @@ const memberNav = [
 
 export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { membership, isOwner, isMember, isPending, loading: membershipLoading } =
-    useOrgMembership();
+  const {
+    membership,
+    isOwner,
+    isMember,
+    isPending,
+    loading: membershipLoading,
+  } = useOrgMembership();
   const navigate = useNavigate();
   const loading = authLoading || membershipLoading;
   // Full landlord-parity tools for owners and solo accounts; limited nav for staff.

@@ -210,9 +210,7 @@ export function CheckoutFlow({
         title: lineItem.title,
       };
 
-      const res = initiateFn
-        ? await initiateFn(payload)
-        : await initiatePayment({ data: payload });
+      const res = initiateFn ? await initiateFn(payload) : await initiatePayment({ data: payload });
 
       if (res.status === "trial_started") {
         setRef("TRIAL");

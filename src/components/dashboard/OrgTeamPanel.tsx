@@ -28,7 +28,9 @@ export function OrgTeamPanel({ portalLabel }: Props) {
 
   const invite = useMutation({
     mutationFn: () =>
-      inviteOrgTeamMember({ data: { email: email.trim(), fullName: fullName.trim() || undefined } }),
+      inviteOrgTeamMember({
+        data: { email: email.trim(), fullName: fullName.trim() || undefined },
+      }),
     onSuccess: () => {
       toast.success("Invite email sent — approve them when ready to grant dashboard access");
       setEmail("");

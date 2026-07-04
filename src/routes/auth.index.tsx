@@ -190,156 +190,156 @@ function TenantAuth() {
           </div>
         ) : (
           <>
-        <h1 className="mt-6 font-display text-3xl font-semibold">
-          {mode === "signin" ? "Welcome back" : "Create your account"}
-        </h1>
+            <h1 className="mt-6 font-display text-3xl font-semibold">
+              {mode === "signin" ? "Welcome back" : "Create your account"}
+            </h1>
 
-        <p className="mt-2 text-sm text-muted-foreground">
-          {mode === "signin"
-            ? "Sign in to save homes and contact landlords — no agents."
-            : signupSubtitle(role)}
-        </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {mode === "signin"
+                ? "Sign in to save homes and contact landlords — no agents."
+                : signupSubtitle(role)}
+            </p>
 
-        <div className="mt-6 flex rounded-xl border bg-secondary p-1">
-          {(["signin", "signup"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
-                mode === m ? "bg-background shadow-sm" : "text-muted-foreground"
-              }`}
-            >
-              {m === "signin" ? "Sign in" : "Sign up"}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          {mode === "signup" && (
-            <>
-              <Field label="Full name">
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  className={inputCls}
-                />
-              </Field>
-
-              <Field label="Phone (M-Pesa number)">
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="07XX XXX XXX"
-                  required
-                  className={inputCls}
-                />
-              </Field>
-
-              <Field label="Account type">
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as AccountRole)}
-                  className={inputCls}
+            <div className="mt-6 flex rounded-xl border bg-secondary p-1">
+              {(["signin", "signup"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
+                    mode === m ? "bg-background shadow-sm" : "text-muted-foreground"
+                  }`}
                 >
-                  <option value="tenant">Tenant</option>
-                  <option value="landlord">Landlord</option>
-                  <option value="manager">Property manager</option>
-                  <option value="agency">Real estate agency</option>
-                </select>
+                  {m === "signin" ? "Sign in" : "Sign up"}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={onSubmit} className="mt-6 space-y-4">
+              {mode === "signup" && (
+                <>
+                  <Field label="Full name">
+                    <input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      className={inputCls}
+                    />
+                  </Field>
+
+                  <Field label="Phone (M-Pesa number)">
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="07XX XXX XXX"
+                      required
+                      className={inputCls}
+                    />
+                  </Field>
+
+                  <Field label="Account type">
+                    <select
+                      value={role}
+                      onChange={(e) => setRole(e.target.value as AccountRole)}
+                      className={inputCls}
+                    >
+                      <option value="tenant">Tenant</option>
+                      <option value="landlord">Landlord</option>
+                      <option value="manager">Property manager</option>
+                      <option value="agency">Real estate agency</option>
+                    </select>
+                  </Field>
+
+                  {ORG_REQUIRED_ROLES.has(role) && (
+                    <Field label={organizationFieldLabel(role)}>
+                      <input
+                        value={organizationName}
+                        onChange={(e) => setOrganizationName(e.target.value)}
+                        required
+                        placeholder={organizationFieldPlaceholder(role)}
+                        className={inputCls}
+                      />
+                    </Field>
+                  )}
+
+                  {isPrivilegedAccountRole(role) && (
+                    <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                      Landlord, property manager, and agency accounts are reviewed by NyumbaSearch
+                      operations before dashboard access is granted.
+                    </p>
+                  )}
+                </>
+              )}
+
+              <Field label="Email">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className={inputCls}
+                />
               </Field>
 
-              {ORG_REQUIRED_ROLES.has(role) && (
-                <Field label={organizationFieldLabel(role)}>
+              <Field label="Password">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={mode === "signup" ? 8 : 6}
+                  className={inputCls}
+                />
+              </Field>
+
+              {mode === "signup" && (
+                <Field label="Confirm password">
                   <input
-                    value={organizationName}
-                    onChange={(e) => setOrganizationName(e.target.value)}
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    placeholder={organizationFieldPlaceholder(role)}
+                    minLength={8}
                     className={inputCls}
                   />
                 </Field>
               )}
 
-              {isPrivilegedAccountRole(role) && (
-                <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
-                  Landlord, property manager, and agency accounts are reviewed by NyumbaSearch
-                  operations before dashboard access is granted.
-                </p>
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("reset");
+                    void navigate({
+                      to: "/auth",
+                      search: { redirect, mode: "reset" },
+                      replace: true,
+                    });
+                  }}
+                  className="block w-full text-right text-xs font-semibold text-primary"
+                >
+                  Forgot password?
+                </button>
               )}
-            </>
-          )}
 
-          <Field label="Email">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={inputCls}
-            />
-          </Field>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
+              >
+                {submitLabel}
+              </button>
+            </form>
 
-          <Field label="Password">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={mode === "signup" ? 8 : 6}
-              className={inputCls}
-            />
-          </Field>
-
-          {mode === "signup" && (
-            <Field label="Confirm password">
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={8}
-                className={inputCls}
-              />
-            </Field>
-          )}
-
-          {mode === "signin" && (
-            <button
-              type="button"
-              onClick={() => {
-                setMode("reset");
-                void navigate({
-                  to: "/auth",
-                  search: { redirect, mode: "reset" },
-                  replace: true,
-                });
-              }}
-              className="block w-full text-right text-xs font-semibold text-primary"
-            >
-              Forgot password?
-            </button>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
-          >
-            {submitLabel}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Link to="/settings" className="font-semibold text-foreground">
-            Settings & portals
-          </Link>
-          {" · "}
-          <Link to="/caretaker" className="font-semibold text-foreground">
-            Caretaker PIN sign in
-          </Link>
-        </p>
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              <Link to="/settings" className="font-semibold text-foreground">
+                Settings & portals
+              </Link>
+              {" · "}
+              <Link to="/caretaker" className="font-semibold text-foreground">
+                Caretaker PIN sign in
+              </Link>
+            </p>
           </>
         )}
       </div>

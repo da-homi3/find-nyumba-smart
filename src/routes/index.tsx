@@ -18,7 +18,13 @@ import {
   VerifiedSection,
   WhyNyumba,
 } from "@/components/landing/LandingMarketingSections";
-import { getBrandLogoUrl, getSiteUrl, HOMEPAGE_TITLE, CUSTOMER_CARE_EMAIL, CUSTOMER_CARE_PHONE_E164 } from "@/lib/site";
+import {
+  getBrandLogoUrl,
+  getSiteUrl,
+  HOMEPAGE_TITLE,
+  CUSTOMER_CARE_EMAIL,
+  CUSTOMER_CARE_PHONE_E164,
+} from "@/lib/site";
 import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";

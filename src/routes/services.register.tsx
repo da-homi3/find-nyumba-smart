@@ -125,8 +125,8 @@ function RegisterProviderPage() {
           </p>
           <h1 className="mt-2 font-display text-2xl font-semibold">Application submitted</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            {existing.provider.business_name} is waiting for NyumbaSearch admin approval. You&apos;ll
-            get an email when your listing is live and the provider dashboard unlocks.
+            {existing.provider.business_name} is waiting for NyumbaSearch admin approval.
+            You&apos;ll get an email when your listing is live and the provider dashboard unlocks.
           </p>
           <Link
             to="/services/provider/dashboard"

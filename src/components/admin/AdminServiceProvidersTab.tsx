@@ -109,9 +109,7 @@ export function AdminServiceProvidersTab({ providers, loading, review }: Props) 
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      review.mutate({ providerId: provider.id, action: "approve" })
-                    }
+                    onClick={() => review.mutate({ providerId: provider.id, action: "approve" })}
                     className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" /> Approve

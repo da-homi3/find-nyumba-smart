@@ -7,11 +7,7 @@ import {
   previewListingImport,
   rollbackListingImport,
 } from "@/lib/api/import.functions";
-import {
-  PORTAL_PATHS,
-  PORTAL_PROPERTY_QUERY_KEY,
-  type ListingPortal,
-} from "@/lib/portal-paths";
+import { PORTAL_PATHS, PORTAL_PROPERTY_QUERY_KEY, type ListingPortal } from "@/lib/portal-paths";
 import { formatKes } from "@/lib/properties";
 import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";

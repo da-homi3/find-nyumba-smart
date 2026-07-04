@@ -29,7 +29,12 @@ export function CustomerCareInfo({ className = "", layout = "stack" }: CustomerC
         {waUrl ? (
           <>
             {" · "}
-            <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
               WhatsApp
             </a>
           </>

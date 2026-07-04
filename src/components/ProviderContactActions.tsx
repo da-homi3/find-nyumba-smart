@@ -12,7 +12,10 @@ type ProviderContactProps = Readonly<{
   size?: "sm" | "md";
 }>;
 
-export function ProviderContactDetails({ provider, size = "md" }: Omit<ProviderContactProps, "category">) {
+export function ProviderContactDetails({
+  provider,
+  size = "md",
+}: Omit<ProviderContactProps, "category">) {
   const textClass = size === "sm" ? "text-xs" : "text-sm";
   const canCall = provider.phoneVerified && provider.phone;
 
@@ -51,11 +54,7 @@ export function ProviderContactDetails({ provider, size = "md" }: Omit<ProviderC
   return contactLine;
 }
 
-export function ProviderContactActions({
-  provider,
-  category,
-  size = "md",
-}: ProviderContactProps) {
+export function ProviderContactActions({ provider, category, size = "md" }: ProviderContactProps) {
   const cat = category ?? provider.category;
   const btnClass =
     size === "sm"
@@ -83,10 +82,7 @@ export function ProviderContactActions({
         </a>
       ) : null}
       {canCall ? (
-        <a
-          href={`tel:${provider.phone}`}
-          className={`${btnClass} border hover:bg-secondary`}
-        >
+        <a href={`tel:${provider.phone}`} className={`${btnClass} border hover:bg-secondary`}>
           <Phone className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
           Call
         </a>

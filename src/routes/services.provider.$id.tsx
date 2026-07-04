@@ -3,7 +3,10 @@ import { PublicPageShell } from "@/components/SiteNav";
 import { getProviderById } from "@/lib/api/service-provider.functions";
 import { formatKes } from "@/lib/properties";
 import { Star, MapPin } from "lucide-react";
-import { ProviderContactActions, ProviderContactDetails } from "@/components/ProviderContactActions";
+import {
+  ProviderContactActions,
+  ProviderContactDetails,
+} from "@/components/ProviderContactActions";
 import { useState } from "react";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";

@@ -12,6 +12,7 @@ export default [
       ".wrangler",
       ".output",
       ".vinxi",
+      ".cursor",
       "src/routeTree.gen.ts",
       "src/components/ui/**",
       "src/integrations/supabase/types.ts",

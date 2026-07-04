@@ -29,8 +29,7 @@ const tree = fs.readFileSync(routeTreePath, "utf8");
 
 /** Map route id (e.g. /landlord/dashboard) → import path segment (landlord.dashboard) */
 const importToId = new Map();
-const importRe =
-  /import\s+\{\s*Route\s+as\s+(\w+)RouteImport\s*\}\s+from\s+'\.\/routes\/([^']+)'/g;
+const importRe = /import\s+\{\s*Route\s+as\s+(\w+)RouteImport\s*\}\s+from\s+'\.\/routes\/([^']+)'/g;
 let m;
 while ((m = importRe.exec(tree)) !== null) {
   const varBase = m[1]; // e.g. LandlordDashboard
@@ -46,8 +45,7 @@ while ((m = withChildrenRe.exec(tree)) !== null) {
 }
 
 // Also match single-line form
-const withChildrenOneLine =
-  /const\s+(\w+)RouteWithChildren\s*=\s*(\w+)Route\._addFileChildren/g;
+const withChildrenOneLine = /const\s+(\w+)RouteWithChildren\s*=\s*(\w+)Route\._addFileChildren/g;
 while ((m = withChildrenOneLine.exec(tree)) !== null) {
   parentsWithChildren.add(m[2]);
 }

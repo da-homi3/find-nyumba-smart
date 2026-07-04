@@ -7,7 +7,11 @@ import { FALLBACK_INTELLIGENCE } from "@/lib/api/homepage-shared";
 import { VerificationPipeline } from "@/components/VerificationPipeline";
 import { IntelligenceMetric } from "@/components/IntelligenceMetric";
 import { TestimonialCarousel } from "@/components/TestimonialCarousel";
-import { ScrollReveal, ScrollRevealStagger, ScrollRevealItem } from "@/components/motion/ScrollReveal";
+import {
+  ScrollReveal,
+  ScrollRevealStagger,
+  ScrollRevealItem,
+} from "@/components/motion/ScrollReveal";
 import {
   ShieldCheck,
   MapPin,
@@ -35,32 +39,34 @@ export function VerifiedSection() {
       />
       <div className="relative mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.15fr]">
-        <ScrollReveal>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Trust system</p>
-          <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
-            4 levels of verification.
-            <br />
-            Zero room for scams.
-          </h2>
-          <p className="mt-4 max-w-md text-muted-foreground">
-            Every listing on NyumbaSearch is screened. Landlords build trust by verifying phone, ID,
-            business, and property ownership — visible to you on every card.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> Verified Landlord
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/30 px-3 py-1 text-xs font-semibold text-foreground">
-              <BadgeCheck className="h-3.5 w-3.5" /> Verified Property
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
-              <TrendingUp className="h-3.5 w-3.5" /> Trust score
-            </span>
-          </div>
-        </ScrollReveal>
-        <ScrollReveal delay={0.1}>
-          <VerificationPipeline />
-        </ScrollReveal>
+          <ScrollReveal>
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+              Trust system
+            </p>
+            <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
+              4 levels of verification.
+              <br />
+              Zero room for scams.
+            </h2>
+            <p className="mt-4 max-w-md text-muted-foreground">
+              Every listing on NyumbaSearch is screened. Landlords build trust by verifying phone,
+              ID, business, and property ownership — visible to you on every card.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <ShieldCheck className="h-3.5 w-3.5" /> Verified Landlord
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/30 px-3 py-1 text-xs font-semibold text-foreground">
+                <BadgeCheck className="h-3.5 w-3.5" /> Verified Property
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-xs font-semibold text-success">
+                <TrendingUp className="h-3.5 w-3.5" /> Trust score
+              </span>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal delay={0.1}>
+            <VerificationPipeline />
+          </ScrollReveal>
         </div>
       </div>
     </section>
@@ -164,7 +170,10 @@ export function WhyNyumba() {
             Built for the Nairobi tenant.
           </h2>
         </ScrollReveal>
-        <ScrollRevealStagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" stagger={0.08}>
+        <ScrollRevealStagger
+          className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
+          stagger={0.08}
+        >
           {items.map((f) => {
             const inner = (
               <>

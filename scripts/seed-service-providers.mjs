@@ -97,7 +97,9 @@ async function main() {
 
   const verified = SEED_PROVIDERS.filter((r) => r.verified === 1).length;
   console.log(`\nDone: ${inserted} inserted, ${updated} updated, ${failed} failed.`);
-  console.log(`${verified} with verified phone · ${SEED_PROVIDERS.length - verified} website-only until confirmed.`);
+  console.log(
+    `${verified} with verified phone · ${SEED_PROVIDERS.length - verified} website-only until confirmed.`,
+  );
 }
 
 main().catch((e) => {

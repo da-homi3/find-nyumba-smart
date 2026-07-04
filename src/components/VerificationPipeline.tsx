@@ -1,11 +1,5 @@
 import { useRef, useState } from "react";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  AnimatePresence,
-} from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { Smartphone, BadgeCheck, Building2, Camera, type LucideIcon } from "lucide-react";
 import { isTouchDevice } from "@/lib/motion/performance";
 import { prefersReducedMotion } from "@/hooks/useDeviceCapability";

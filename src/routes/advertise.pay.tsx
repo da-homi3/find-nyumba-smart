@@ -50,14 +50,9 @@ function AdvertisePayPage() {
 
   const defaultEmail = inquiry?.email ?? user?.email ?? "";
   const defaultPhone =
-    inquiry?.phone ??
-    (user?.user_metadata?.phone as string | undefined) ??
-    user?.phone ??
-    "";
+    inquiry?.phone ?? (user?.user_metadata?.phone as string | undefined) ?? user?.phone ?? "";
   const requesterName =
-    inquiry?.contactName ??
-    (user?.user_metadata?.full_name as string | undefined) ??
-    undefined;
+    inquiry?.contactName ?? (user?.user_metadata?.full_name as string | undefined) ?? undefined;
 
   return (
     <PublicPageShell>

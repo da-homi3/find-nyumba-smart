@@ -147,12 +147,7 @@ function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
       filter: ["!", ["has", "point_count"]],
       paint: {
         "circle-color": ["case", ["==", ["get", "isBoosted"], 1], "#f6ad55", "#1eb88a"],
-        "circle-radius": [
-          "case",
-          ["boolean", ["feature-state", "hover"], false],
-          29,
-          22,
-        ],
+        "circle-radius": ["case", ["boolean", ["feature-state", "hover"], false], 29, 22],
         "circle-opacity": 0.95,
         "circle-stroke-width": 2,
         "circle-stroke-color": "rgba(30,184,138,0.4)",

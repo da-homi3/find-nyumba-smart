@@ -67,7 +67,9 @@ export function TestimonialCarousel({
             aria-label={`Show testimonial ${i + 1}`}
             onClick={() => setActive(i)}
             className={`h-2 rounded-full transition-all ${
-              i === active ? "dot-active w-8 bg-primary" : "dot w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+              i === active
+                ? "dot-active w-8 bg-primary"
+                : "dot w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
             }`}
           />
         ))}

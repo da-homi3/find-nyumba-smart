@@ -5,7 +5,10 @@ import { listActiveProvidersByCategory } from "@/lib/api/service-provider.functi
 import type { PublicServiceProvider } from "@/lib/api/service-provider.functions";
 import { formatKes } from "@/lib/properties";
 import { MapPin, Star } from "lucide-react";
-import { ProviderContactActions, ProviderContactDetails } from "@/components/ProviderContactActions";
+import {
+  ProviderContactActions,
+  ProviderContactDetails,
+} from "@/components/ProviderContactActions";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
 import { useState } from "react";
@@ -151,9 +154,7 @@ function ProviderCard({
                 ({p.reviewCount} review{p.reviewCount === 1 ? "" : "s"})
               </span>
             </span>
-            <span className="font-semibold text-primary">
-              From {formatKes(p.startingPriceKes)}
-            </span>
+            <span className="font-semibold text-primary">From {formatKes(p.startingPriceKes)}</span>
           </p>
 
           {p.description ? (

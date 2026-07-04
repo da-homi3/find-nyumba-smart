@@ -191,9 +191,7 @@ export function ConversationThread({
   return (
     <div
       className={
-        fullHeight
-          ? "flex h-dvh flex-col bg-background"
-          : "flex h-full min-h-[60vh] flex-col"
+        fullHeight ? "flex h-dvh flex-col bg-background" : "flex h-full min-h-[60vh] flex-col"
       }
     >
       <header className="flex shrink-0 items-center gap-3 border-b px-4 py-3">

@@ -123,7 +123,10 @@ async function testPortal(admin, url, anonKey, ownerEmail, portalRole, orgType, 
   if (rlsErr) {
     fail(`${label}: read own membership (RLS)`, rlsErr.message);
   } else if (!(rlsMembers ?? []).some((m) => m.user_id === owner.id)) {
-    fail(`${label}: read own membership (RLS)`, `owner row not visible (${rlsMembers?.length ?? 0} rows)`);
+    fail(
+      `${label}: read own membership (RLS)`,
+      `owner row not visible (${rlsMembers?.length ?? 0} rows)`,
+    );
   } else {
     pass(`${label}: read own membership (RLS)`, `${rlsMembers?.length ?? 0} visible to owner`);
   }
@@ -168,14 +171,18 @@ async function testPortal(admin, url, anonKey, ownerEmail, portalRole, orgType, 
   }
   pass(`${label}: pending member added`);
 
-  await admin.from("user_roles").upsert(
-    { user_id: invitee.id, role: portalRole },
-    { onConflict: "user_id,role", ignoreDuplicates: true },
-  );
-  await admin.from("user_roles").upsert(
-    { user_id: invitee.id, role: "tenant" },
-    { onConflict: "user_id,role", ignoreDuplicates: true },
-  );
+  await admin
+    .from("user_roles")
+    .upsert(
+      { user_id: invitee.id, role: portalRole },
+      { onConflict: "user_id,role", ignoreDuplicates: true },
+    );
+  await admin
+    .from("user_roles")
+    .upsert(
+      { user_id: invitee.id, role: "tenant" },
+      { onConflict: "user_id,role", ignoreDuplicates: true },
+    );
 
   const { data: afterInvite, error: afterErr } = await admin
     .from("organization_members")
@@ -184,7 +191,10 @@ async function testPortal(admin, url, anonKey, ownerEmail, portalRole, orgType, 
   if (afterErr) {
     fail(`${label}: admin list after invite`, afterErr.message);
   } else if ((afterInvite?.length ?? 0) < 2) {
-    fail(`${label}: admin list after invite`, `expected 2+ members, got ${afterInvite?.length ?? 0}`);
+    fail(
+      `${label}: admin list after invite`,
+      `expected 2+ members, got ${afterInvite?.length ?? 0}`,
+    );
   } else {
     pass(`${label}: admin list after invite`, `${afterInvite.length} members in org`);
   }

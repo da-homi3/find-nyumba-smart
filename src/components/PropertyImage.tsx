@@ -22,7 +22,9 @@ function initialSrc(src: string | null | undefined, seed: string): string {
 }
 
 function photoClass(loaded: boolean, className?: string): string {
-  const base = loaded ? "property-photo property-photo-loaded" : "property-photo property-photo-loading";
+  const base = loaded
+    ? "property-photo property-photo-loaded"
+    : "property-photo property-photo-loading";
   return className ? `${base} ${className}` : base;
 }
 

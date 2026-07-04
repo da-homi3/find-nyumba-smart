@@ -233,7 +233,11 @@ async function fulfillBoost(
   });
 
   // Campaign newsletter/push are ops-assisted — notify team to schedule them.
-  if (packageId === "campaign" || placements.includes("newsletter") || placements.includes("push")) {
+  if (
+    packageId === "campaign" ||
+    placements.includes("newsletter") ||
+    placements.includes("push")
+  ) {
     const { sendEmail } = await import("@/lib/email/send");
     const { formatKes } = await import("@/lib/properties");
     const opsTo = process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";

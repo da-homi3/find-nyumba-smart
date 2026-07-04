@@ -41,9 +41,7 @@ function ServicesIndexPage() {
                 </span>
                 <p className="mt-2 text-sm font-semibold group-hover:text-primary">{c.label}</p>
                 <p className="mt-1 text-xs font-medium text-muted-foreground">
-                  {count > 0
-                    ? `${count} provider${count === 1 ? "" : "s"}`
-                    : "View category →"}
+                  {count > 0 ? `${count} provider${count === 1 ? "" : "s"}` : "View category →"}
                 </p>
               </Link>
             );

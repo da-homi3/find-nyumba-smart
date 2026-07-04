@@ -193,8 +193,7 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
 
       // Magic-link recovery path (email button), if present.
       const authed =
-        (sessionReady && (await hasAuthSession())) ||
-        (await bootstrapPasswordRecoverySession());
+        (sessionReady && (await hasAuthSession())) || (await bootstrapPasswordRecoverySession());
       if (!authed) {
         toast.error("Your reset session expired. Enter a new 6-digit code from your email.");
         setStep("otp");

@@ -38,7 +38,8 @@ function GlowOrb({
   const mesh = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (!mesh.current) return;
-    mesh.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.5 + position[0]) * 0.3;
+    mesh.current.position.y =
+      position[1] + Math.sin(state.clock.elapsedTime * 0.5 + position[0]) * 0.3;
   });
   return (
     <mesh ref={mesh} position={position} scale={scale}>

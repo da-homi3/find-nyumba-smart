@@ -4,6 +4,7 @@ const GEMINI_OPENAI_BASE =
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const WORKERS_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct";
 const GEMINI_MODEL_FALLBACKS = [
+  "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
   "gemini-2.0-flash-lite",
   "gemini-2.0-flash",
@@ -145,16 +146,16 @@ export async function probeNyumbaAi(): Promise<{
   const systemPrompt = "You are NyumbaAI. Reply in under 10 words.";
   const userPrompt = "Say exactly: NyumbaAI is live";
 
+  const workers = await callWorkersAi(systemPrompt, userPrompt);
+  if (workers) {
+    return { live: true, provider: "workers-ai", sample: workers.slice(0, 80) };
+  }
+
   if (getGeminiApiKey()) {
     const gemini = await callGemini(systemPrompt, userPrompt);
     if (gemini) {
       return { live: true, provider: "gemini", sample: gemini.slice(0, 80) };
     }
-  }
-
-  const workers = await callWorkersAi(systemPrompt, userPrompt);
-  if (workers) {
-    return { live: true, provider: "workers-ai", sample: workers.slice(0, 80) };
   }
 
   return { live: false, provider: "none", sample: "" };

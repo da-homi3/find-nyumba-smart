@@ -4,10 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
 import { getSiteUrl } from "@/lib/site";
-import {
-  isProviderPhoneVerified,
-  providerWebsiteHref,
-} from "@/lib/service-provider-contact";
+import { isProviderPhoneVerified, providerWebsiteHref } from "@/lib/service-provider-contact";
 
 const categories = [
   "electricians",
