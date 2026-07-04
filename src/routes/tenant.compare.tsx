@@ -19,8 +19,8 @@ function ComparePage() {
   const { ids: idsParam } = Route.useSearch();
   const ids = (idsParam ?? "")
     .split(",")
-    .map((s) => s.trim())
-    .filter((s) => /^[0-9a-f-]{36}$/i.test(s))
+    .map((s: string) => s.trim())
+    .filter((s: string) => /^[0-9a-f-]{36}$/i.test(s))
     .slice(0, 4);
 
   const {

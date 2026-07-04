@@ -36,6 +36,7 @@ import { Route as AcceptableUsePolicyRouteImport } from './routes/acceptable-use
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantIndexRouteImport } from './routes/tenant.index'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as ManagerIndexRouteImport } from './routes/manager.index'
 import { Route as LandlordIndexRouteImport } from './routes/landlord.index'
 import { Route as CaretakerIndexRouteImport } from './routes/caretaker.index'
@@ -221,6 +222,11 @@ const TenantIndexRoute = TenantIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => TenantRoute,
+} as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServicesRoute,
 } as any)
 const ManagerIndexRoute = ManagerIndexRouteImport.update({
   id: '/',
@@ -538,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/caretaker/': typeof CaretakerIndexRoute
   '/landlord/': typeof LandlordIndexRoute
   '/manager/': typeof ManagerIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
@@ -571,7 +578,6 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
   '/reports': typeof ReportsRoute
-  '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/verify': typeof VerifyRouteWithChildren
@@ -610,6 +616,7 @@ export interface FileRoutesByTo {
   '/caretaker': typeof CaretakerIndexRoute
   '/landlord': typeof LandlordIndexRoute
   '/manager': typeof ManagerIndexRoute
+  '/services': typeof ServicesIndexRoute
   '/tenant': typeof TenantIndexRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
@@ -690,6 +697,7 @@ export interface FileRoutesById {
   '/caretaker/': typeof CaretakerIndexRoute
   '/landlord/': typeof LandlordIndexRoute
   '/manager/': typeof ManagerIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
@@ -771,6 +779,7 @@ export interface FileRouteTypes {
     | '/caretaker/'
     | '/landlord/'
     | '/manager/'
+    | '/services/'
     | '/tenant/'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
@@ -804,7 +813,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/refund-policy'
     | '/reports'
-    | '/services'
     | '/settings'
     | '/terms-of-service'
     | '/verify'
@@ -843,6 +851,7 @@ export interface FileRouteTypes {
     | '/caretaker'
     | '/landlord'
     | '/manager'
+    | '/services'
     | '/tenant'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
@@ -922,6 +931,7 @@ export interface FileRouteTypes {
     | '/caretaker/'
     | '/landlord/'
     | '/manager/'
+    | '/services/'
     | '/tenant/'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
@@ -1159,6 +1169,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tenant/'
       preLoaderRoute: typeof TenantIndexRouteImport
       parentRoute: typeof TenantRoute
+    }
+    '/services/': {
+      id: '/services/'
+      path: '/'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof ServicesRoute
     }
     '/manager/': {
       id: '/manager/'
@@ -1684,6 +1701,7 @@ const ManagerRouteWithChildren =
 interface ServicesRouteChildren {
   ServicesCategoryRoute: typeof ServicesCategoryRoute
   ServicesRegisterRoute: typeof ServicesRegisterRoute
+  ServicesIndexRoute: typeof ServicesIndexRoute
   ServicesProviderIdRoute: typeof ServicesProviderIdRoute
   ServicesProviderDashboardRoute: typeof ServicesProviderDashboardRoute
 }
@@ -1691,6 +1709,7 @@ interface ServicesRouteChildren {
 const ServicesRouteChildren: ServicesRouteChildren = {
   ServicesCategoryRoute: ServicesCategoryRoute,
   ServicesRegisterRoute: ServicesRegisterRoute,
+  ServicesIndexRoute: ServicesIndexRoute,
   ServicesProviderIdRoute: ServicesProviderIdRoute,
   ServicesProviderDashboardRoute: ServicesProviderDashboardRoute,
 }
@@ -1784,13 +1803,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

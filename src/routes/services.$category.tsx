@@ -37,10 +37,10 @@ export const Route = createFileRoute("/services/$category")({
 
 function CategoryPage() {
   const { category } = Route.useParams();
-  const { providers } = Route.useLoaderData();
+  const { providers } = Route.useLoaderData() as { providers: PublicServiceProvider[] };
   const meta = SERVICE_CATEGORIES.find((c) => c.id === category);
   const [quoteOpen, setQuoteOpen] = useState<string | null>(null);
-  const showingPlaceholders = providers.every((p) => p.isPlaceholder);
+  const showingPlaceholders = providers.every((p: PublicServiceProvider) => p.isPlaceholder);
 
   return (
     <PublicPageShell>
@@ -66,7 +66,7 @@ function CategoryPage() {
         {category === "movers" && <MovingEstimator />}
 
         <div className="mt-8 grid gap-4">
-          {providers.map((p) => (
+          {providers.map((p: PublicServiceProvider) => (
             <ProviderCard
               key={p.id}
               provider={p}
