@@ -170,6 +170,7 @@ export const getMyOrgMembership = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
+    const admin = await adminClient();
     const { data: roleRows } = await supabase
       .from("user_roles")
       .select("role")
@@ -179,7 +180,7 @@ export const getMyOrgMembership = createServerFn({ method: "GET" })
       return null as OrgMembership | null;
     }
 
-    const { data: membership } = await supabase
+    const { data: membership } = await admin
       .from("organization_members")
       .select("organization_id, role, organizations(id, name, type)")
       .eq("user_id", userId)
@@ -215,7 +216,8 @@ export const listOrgTeamMembers = createServerFn({ method: "GET" })
     const orgId = await getUserOrganizationId(supabase, userId);
     if (!orgId) return [];
 
-    const { data: members, error } = await supabase
+    const admin = await adminClient();
+    const { data: members, error } = await admin
       .from("organization_members")
       .select("user_id, role, created_at")
       .eq("organization_id", orgId)
@@ -224,9 +226,8 @@ export const listOrgTeamMembers = createServerFn({ method: "GET" })
     if (!members?.length) return [];
 
     const userIds = members.map((m) => m.user_id);
-    const admin = await adminClient();
     const [{ data: profiles }, authUsers] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, phone").in("id", userIds),
+      admin.from("profiles").select("id, full_name, phone").in("id", userIds),
       Promise.all(userIds.map((id) => admin.auth.admin.getUserById(id))),
     ]);
     const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));

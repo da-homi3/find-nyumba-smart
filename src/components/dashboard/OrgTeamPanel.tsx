@@ -34,6 +34,7 @@ export function OrgTeamPanel({ portalLabel }: Props) {
       setEmail("");
       setFullName("");
       void qc.invalidateQueries({ queryKey: ["org-team"] });
+      void qc.invalidateQueries({ queryKey: ["org-membership"] });
     },
     onError: (e: Error) => toast.error(errorMessage(e)),
   });

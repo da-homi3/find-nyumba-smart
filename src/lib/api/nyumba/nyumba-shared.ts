@@ -217,10 +217,11 @@ export async function adminClient() {
 }
 
 export async function getUserOrganizationId(
-  supabase: SupabaseClient<Database>,
+  _supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<string | null> {
-  const { data } = await supabase
+  const admin = await adminClient();
+  const { data } = await admin
     .from("organization_members")
     .select("organization_id")
     .eq("user_id", userId)
