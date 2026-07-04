@@ -1,8 +1,16 @@
 import { verifyPaymentStatus } from "@/lib/api/payment.functions";
 
+export type PollPaymentStatus = {
+  status: string;
+  receipt?: string;
+  message?: string;
+};
+
 export type PollPaymentCallbacks = {
   onPhase?: (phase: "awaiting_pin" | "confirming") => void;
   onMessage?: (message: string) => void;
+  /** Override status check (e.g. guest advertise checkout). */
+  verify?: (paymentId: string) => Promise<PollPaymentStatus>;
 };
 
 /** Poll until M-Pesa/card payment completes or fails (shared by checkout + contact unlock). */
@@ -10,6 +18,17 @@ export async function pollPaymentUntilComplete(
   paymentId: string,
   callbacks: PollPaymentCallbacks = {},
 ): Promise<{ receipt?: string }> {
+  const verify =
+    callbacks.verify ??
+    (async (id: string) => {
+      const status = await verifyPaymentStatus({ data: { paymentId: id } });
+      return {
+        status: status.status,
+        receipt: status.receipt,
+        message: status.message,
+      };
+    });
+
   const maxAttempts = 30;
   for (let i = 0; i < maxAttempts; i++) {
     let delay = 2500;
@@ -19,7 +38,7 @@ export async function pollPaymentUntilComplete(
     await new Promise((r) => setTimeout(r, delay));
 
     callbacks.onPhase?.(i < 3 ? "awaiting_pin" : "confirming");
-    const status = await verifyPaymentStatus({ data: { paymentId } });
+    const status = await verify(paymentId);
     callbacks.onMessage?.(status.message ?? "Confirming payment…");
 
     if (status.status === "completed") {

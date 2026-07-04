@@ -1,24 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { PublicPageShell } from "@/components/SiteNav";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
+import {
+  getAdvertiseInquiryCheckout,
+  initiateAdvertisePayment,
+  verifyAdvertisePayment,
+} from "@/lib/api/payment.functions";
 import { ADVERTISE_PACKAGES, advertisePackagePrice } from "@/lib/revenue/plans";
 import { formatKes } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";
+import type { InitiatePaymentInput } from "@/lib/payments/initiate-payment-core";
+
+const packageEnum = z.enum([
+  "listing_banner",
+  "homepage_hero",
+  "neighbourhood",
+  "email_newsletter",
+  "category_sponsor",
+  "whatsapp_blast",
+  "custom",
+]);
 
 const searchSchema = z.object({
-  package: z
-    .enum([
-      "listing_banner",
-      "homepage_hero",
-      "neighbourhood",
-      "email_newsletter",
-      "category_sponsor",
-      "whatsapp_blast",
-      "custom",
-    ])
-    .default("listing_banner"),
-  ref: z.string().optional(),
+  package: packageEnum.default("listing_banner"),
+  ref: z.string().uuid().optional(),
 });
 
 export const Route = createFileRoute("/advertise/pay")({
@@ -29,11 +36,28 @@ export const Route = createFileRoute("/advertise/pay")({
 
 function AdvertisePayPage() {
   const { user } = useAuth();
-  const { package: packageId, ref } = Route.useSearch();
+  const { package: packageId, ref: inquiryId } = Route.useSearch();
   const pkg = ADVERTISE_PACKAGES.find((p) => p.id === packageId) ?? ADVERTISE_PACKAGES[0];
   const amountKes = advertisePackagePrice(packageId);
-  const refQuery = ref ? `&ref=${ref}` : "";
+  const refQuery = inquiryId ? `&ref=${inquiryId}` : "";
   const checkoutPath = `/advertise/pay?package=${packageId}${refQuery}`;
+
+  const { data: inquiry } = useQuery({
+    queryKey: ["advertise-inquiry-checkout", inquiryId],
+    enabled: !!inquiryId,
+    queryFn: () => getAdvertiseInquiryCheckout({ data: { inquiryId: inquiryId! } }),
+  });
+
+  const defaultEmail = inquiry?.email ?? user?.email ?? "";
+  const defaultPhone =
+    inquiry?.phone ??
+    (user?.user_metadata?.phone as string | undefined) ??
+    user?.phone ??
+    "";
+  const requesterName =
+    inquiry?.contactName ??
+    (user?.user_metadata?.full_name as string | undefined) ??
+    undefined;
 
   return (
     <PublicPageShell>
@@ -45,25 +69,66 @@ function AdvertisePayPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           {pkg.name} · {pkg.placement} · {formatKes(amountKes)}/month
         </p>
-        <div className="mt-8">
-          <CheckoutFlow
-            checkoutPath={checkoutPath}
-            lineItem={{
-              title: `NyumbaSearch — ${pkg.name}`,
-              subtitle: pkg.placement,
-              amountKes,
-            }}
-            metadata={{
-              paymentType: "invoice",
-            }}
-            defaultPhone={(user?.user_metadata?.phone as string | undefined) ?? user?.phone ?? ""}
-            allowQuarterly={false}
-            onSuccess={() => {}}
-          />
-        </div>
+        {inquiry?.company ? (
+          <p className="mt-1 text-xs text-muted-foreground">For {inquiry.company}</p>
+        ) : null}
+        {inquiry?.status === "paid" ? (
+          <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+            This enquiry is already paid. Our team will activate your ads within 48 hours.
+          </p>
+        ) : (
+          <div className="mt-8">
+            <CheckoutFlow
+              checkoutPath={checkoutPath}
+              lineItem={{
+                title: `NyumbaSearch — ${pkg.name}`,
+                subtitle: pkg.placement,
+                amountKes,
+              }}
+              metadata={{
+                paymentType: "invoice",
+                advertisePackage: packageId,
+                inquiryId,
+                plan: packageId,
+                requesterName,
+                requesterEmail: defaultEmail || undefined,
+                requesterPhone: defaultPhone || undefined,
+              }}
+              defaultPhone={defaultPhone}
+              defaultEmail={defaultEmail}
+              requireEmail
+              allowQuarterly={false}
+              initiateFn={async (data: InitiatePaymentInput) => {
+                const email = (data.email ?? defaultEmail).trim();
+                if (!email.includes("@")) throw new Error("Email is required");
+                return initiateAdvertisePayment({
+                  data: {
+                    ...data,
+                    paymentType: "invoice",
+                    advertisePackage: data.advertisePackage ?? packageId,
+                    inquiryId: data.inquiryId ?? inquiryId,
+                    email,
+                    name: data.name ?? requesterName,
+                  },
+                });
+              }}
+              verifyFn={async (paymentId) => {
+                const status = await verifyAdvertisePayment({
+                  data: { paymentId, inquiryId },
+                });
+                return {
+                  status: status.status,
+                  receipt: status.receipt,
+                  message: status.message,
+                };
+              }}
+              onSuccess={() => {}}
+            />
+          </div>
+        )}
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Payments via M-Pesa (Safaricom) or card through Pesapal. No PayPal — funds settle to
-          NyumbaSearch&apos;s registered M-Pesa paybill.
+          Pay with M-Pesa STK Push or card via Pesapal — same checkout as the rest of NyumbaSearch.
+          No account sign-in required; we email your receipt to the address above.
         </p>
       </main>
     </PublicPageShell>

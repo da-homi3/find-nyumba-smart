@@ -3,10 +3,14 @@ import { CreditCard, Lock, Phone, CheckCircle2, Loader2, ChevronDown } from "luc
 import { toast } from "sonner";
 import { formatKes } from "@/lib/properties";
 import { initiatePayment, verifyPaymentStatus } from "@/lib/api/payment.functions";
-import { pollPaymentUntilComplete } from "@/lib/payments/poll-payment-client";
+import {
+  pollPaymentUntilComplete,
+  type PollPaymentStatus,
+} from "@/lib/payments/poll-payment-client";
 import { transactionReference } from "@/lib/revenue/plans";
 import { isPesapalCheckoutEnabled } from "@/lib/pesapal-client";
 import { errorMessage } from "@/lib/utils";
+import type { InitiatePaymentInput } from "@/lib/payments/initiate-payment-core";
 
 type PaymentPhase = "idle" | "sending" | "awaiting_pin" | "confirming";
 
@@ -70,6 +74,8 @@ export type CheckoutMetadata = {
   requesterName?: string;
   requesterPhone?: string;
   requesterEmail?: string;
+  advertisePackage?: string;
+  inquiryId?: string;
 };
 
 type Props = {
@@ -77,8 +83,15 @@ type Props = {
   metadata: CheckoutMetadata;
   checkoutPath: string;
   defaultPhone?: string;
+  defaultEmail?: string;
+  /** Collect email on the form (guest advertise checkout). */
+  requireEmail?: boolean;
   allowQuarterly?: boolean;
   onSuccess: (ref: string) => void;
+  /** Override payment initiation (e.g. public advertise checkout). */
+  initiateFn?: (data: InitiatePaymentInput) => Promise<InitiatePaymentResult>;
+  /** Override status polling (e.g. public advertise verify). */
+  verifyFn?: (paymentId: string) => Promise<PollPaymentStatus>;
 };
 
 export function CheckoutFlow({
@@ -86,14 +99,19 @@ export function CheckoutFlow({
   metadata,
   checkoutPath,
   defaultPhone = "",
+  defaultEmail = "",
+  requireEmail = false,
   allowQuarterly = true,
   onSuccess,
+  initiateFn,
+  verifyFn,
 }: Readonly<Props>) {
   const cardEnabled = isPesapalCheckoutEnabled();
   const [step, setStep] = useState(1);
   const [cycle, setCycle] = useState<"monthly" | "quarterly">("monthly");
   const [showCard, setShowCard] = useState(false);
   const [phone, setPhone] = useState(defaultPhone);
+  const [email, setEmail] = useState(defaultEmail);
   const [phase, setPhase] = useState<PaymentPhase>("idle");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [ref, setRef] = useState("");
@@ -124,7 +142,9 @@ export function CheckoutFlow({
       setPhase("confirming");
       setStatusMessage("Verifying card payment…");
       try {
-        const status = await verifyPaymentStatus({ data: { paymentId } });
+        const status = verifyFn
+          ? await verifyFn(paymentId)
+          : await verifyPaymentStatus({ data: { paymentId } });
         if (status.status !== "completed") {
           toast.error(status.message ?? "Payment could not be verified");
           return;
@@ -142,11 +162,16 @@ export function CheckoutFlow({
         globalThis.history.replaceState({}, "", checkoutPath);
       }
     })();
-  }, [checkoutPath, onSuccess]);
+  }, [checkoutPath, onSuccess, verifyFn]);
 
   async function completePayment(method: "mpesa" | "card") {
     if (method === "mpesa" && !phone.trim()) {
       toast.error("Enter your M-Pesa phone number");
+      return;
+    }
+    const payerEmail = (email || defaultEmail || metadata.requesterEmail || "").trim();
+    if (requireEmail && !payerEmail.includes("@")) {
+      toast.error("Enter your email address for the receipt");
       return;
     }
 
@@ -156,32 +181,38 @@ export function CheckoutFlow({
     );
 
     try {
-      const res = await initiatePayment({
-        data: {
-          amountKes,
-          paymentType: metadata.paymentType,
-          phoneNumber: phone || defaultPhone,
-          propertyId: metadata.propertyId,
-          plan: metadata.plan,
-          boostPackage: metadata.boostPackage,
-          billingCycle,
-          paymentMethod: method,
-          idempotencyKey: idempotencyRef.current,
-          qty: metadata.qty,
-          reportType: metadata.reportType,
-          verificationTier: metadata.verificationTier,
-          verificationRequestId: metadata.verificationRequestId,
-          providerId: metadata.providerId,
-          propertyAddress: metadata.propertyAddress,
-          listingUrl: metadata.listingUrl,
-          requesterName: metadata.requesterName,
-          requesterPhone: metadata.requesterPhone,
-          requesterEmail: metadata.requesterEmail,
-          successPath: checkoutPath,
-          cancelPath: checkoutPath,
-          title: lineItem.title,
-        },
-      });
+      const payload: InitiatePaymentInput = {
+        amountKes,
+        paymentType: metadata.paymentType,
+        phoneNumber: phone || defaultPhone,
+        propertyId: metadata.propertyId,
+        plan: metadata.plan,
+        boostPackage: metadata.boostPackage,
+        billingCycle,
+        paymentMethod: method,
+        idempotencyKey: idempotencyRef.current,
+        qty: metadata.qty,
+        reportType: metadata.reportType,
+        verificationTier: metadata.verificationTier,
+        verificationRequestId: metadata.verificationRequestId,
+        providerId: metadata.providerId,
+        propertyAddress: metadata.propertyAddress,
+        listingUrl: metadata.listingUrl,
+        requesterName: metadata.requesterName,
+        requesterPhone: metadata.requesterPhone ?? (phone || defaultPhone),
+        requesterEmail: payerEmail || metadata.requesterEmail,
+        advertisePackage: metadata.advertisePackage,
+        inquiryId: metadata.inquiryId,
+        email: payerEmail || undefined,
+        name: metadata.requesterName,
+        successPath: checkoutPath,
+        cancelPath: checkoutPath,
+        title: lineItem.title,
+      };
+
+      const res = initiateFn
+        ? await initiateFn(payload)
+        : await initiatePayment({ data: payload });
 
       if (res.status === "trial_started") {
         setRef("TRIAL");
@@ -204,6 +235,7 @@ export function CheckoutFlow({
           await pollPaymentUntilComplete(res.paymentId, {
             onPhase: setPhase,
             onMessage: setStatusMessage,
+            verify: verifyFn,
           })
         ).receipt;
       } else if (res.status === "completed" && "receiptCode" in res && res.receiptCode) {
@@ -289,6 +321,20 @@ export function CheckoutFlow({
             </button>
           ))}
         </div>
+      )}
+
+      {requireEmail && (
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold">Email for receipt</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={waiting}
+            placeholder="you@company.com"
+            className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none disabled:opacity-60"
+          />
+        </label>
       )}
 
       <div className="rounded-2xl border-2 border-emerald-600/30 bg-emerald-50/50 p-5 dark:bg-emerald-950/20">

@@ -13,6 +13,8 @@ export type PaymentMetadata = {
   verificationRequestId?: string;
   reportType?: string;
   providerId?: string;
+  advertisePackage?: string;
+  inquiryId?: string;
   successPath?: string;
   cancelPath?: string;
   title?: string;
@@ -34,6 +36,8 @@ const STRING_METADATA_KEYS = [
   "verificationRequestId",
   "reportType",
   "providerId",
+  "advertisePackage",
+  "inquiryId",
   "successPath",
   "cancelPath",
   "title",
@@ -72,6 +76,8 @@ export function metadataFromCheckout(data: {
   verificationRequestId?: string;
   reportType?: string;
   providerId?: string;
+  advertisePackage?: string;
+  inquiryId?: string;
   successPath?: string;
   cancelPath?: string;
   title?: string;

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 import {
+  ADVERTISE_PACKAGES,
   BOOST_PACKAGES,
   LANDLORD_PLANS,
   PLUS_PLAN,
@@ -48,6 +49,11 @@ function productNameForPayment(
       return `Lead pack (${meta.qty ?? ""} leads)`;
     case "provider_subscription":
       return "Service provider listing";
+    case "invoice": {
+      const pkgId = meta.advertisePackage ?? meta.plan;
+      const pkg = ADVERTISE_PACKAGES.find((p) => p.id === pkgId);
+      return pkg ? `Advertising — ${pkg.name}` : "Advertising package";
+    }
     default:
       return "NyumbaSearch purchase";
   }
@@ -169,10 +175,9 @@ export async function sendPaymentLifecycleEmails(admin: Admin, payment: PaymentR
   const meta = parsePaymentMetadata(payment.metadata);
   const productName = productNameForPayment(payment, meta);
   const receiptRef = payment.mpesa_receipt ?? payment.id.slice(0, 8).toUpperCase();
-  const dashboardUrl =
-    payment.payment_type === "tenant_plus"
-      ? `${getSiteUrl()}/tenant/profile`
-      : `${getSiteUrl()}/landlord/dashboard/billing`;
+  let dashboardUrl = `${getSiteUrl()}/landlord/dashboard/billing`;
+  if (payment.payment_type === "tenant_plus") dashboardUrl = `${getSiteUrl()}/tenant/profile`;
+  if (payment.payment_type === "invoice") dashboardUrl = `${getSiteUrl()}/advertise`;
 
   const generic = paymentConfirmationEmail({
     name: user.name,

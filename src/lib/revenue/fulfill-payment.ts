@@ -51,6 +51,10 @@ export type PaymentFulfillment = {
 
     providerId?: string;
 
+    advertisePackage?: string;
+
+    inquiryId?: string;
+
     renewalSubscriptionId?: string;
   };
 };
@@ -211,6 +215,8 @@ async function fulfillBoost(
 
     .eq("id", propertyId);
 
+  const placements = boostPlacements(packageId);
+
   await supabaseAdmin.from("listing_boosts").insert({
     listing_id: propertyId,
 
@@ -222,8 +228,39 @@ async function fulfillBoost(
 
     amount_paid_kes: amountKes,
 
-    placements: boostPlacements(packageId),
+    placements,
   });
+
+  // Campaign newsletter/push are ops-assisted — notify team to schedule them.
+  if (packageId === "campaign" || placements.includes("newsletter") || placements.includes("push")) {
+    const { sendEmail } = await import("@/lib/email/send");
+    const { formatKes } = await import("@/lib/properties");
+    const opsTo = process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";
+    const { data: property } = await supabaseAdmin
+      .from("properties")
+      .select("title, neighborhood")
+      .eq("id", propertyId)
+      .maybeSingle();
+    const boostOpsText = [
+      "A boost payment includes placements that need ops action:",
+      "",
+      `Listing: ${property?.title ?? propertyId} (${property?.neighborhood ?? "—"})`,
+      `Package: ${packageId}`,
+      `Placements: ${placements.join(", ")}`,
+      `Amount: ${formatKes(amountKes)}`,
+      `Active until: ${end.toISOString()}`,
+      "",
+      "Search-top and homepage are automatic via featured_until.",
+      "Schedule newsletter mention and push notification before expiry.",
+    ].join("\n");
+    await sendEmail({
+      to: opsTo,
+      subject: `[NyumbaSearch] Boost placements to schedule — ${property?.title ?? propertyId}`,
+      text: boostOpsText,
+      html: boostOpsText.replaceAll("\n", "<br>"),
+      templateId: "boost-placements-ops",
+    });
+  }
 }
 
 async function fulfillLeadPack(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -438,8 +475,66 @@ async function fulfillReport(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfi
   });
 }
 
-async function fulfillInvoice(_supabaseAdmin: SupabaseAdmin, _payment: PaymentFulfillment) {
-  // Invoice checkout is not wired to the invoices table yet — payment is recorded in `payments`.
+async function fulfillInvoice(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
+  const meta = payment.metadata ?? {};
+  const inquiryId = typeof meta.inquiryId === "string" ? meta.inquiryId : undefined;
+  const advertisePackage =
+    (typeof meta.advertisePackage === "string" ? meta.advertisePackage : undefined) ??
+    (typeof meta.plan === "string" ? meta.plan : undefined);
+
+  if (inquiryId) {
+    const { data: inquiry } = await supabaseAdmin
+      .from("partnership_inquiries")
+      .select("id, metadata, email, contact_name, company")
+      .eq("id", inquiryId)
+      .eq("inquiry_type", "advertise")
+      .maybeSingle();
+
+    if (inquiry) {
+      const prev = (inquiry.metadata ?? {}) as Record<string, string>;
+      await supabaseAdmin
+        .from("partnership_inquiries")
+        .update({
+          metadata: {
+            ...prev,
+            package: advertisePackage ?? prev.package ?? "",
+            packageAmount: String(payment.amountKes),
+            status: "paid",
+            paidAt: new Date().toISOString(),
+            paymentId: payment.paymentId ?? "",
+          } as Record<string, string>,
+        })
+        .eq("id", inquiry.id);
+    }
+  }
+
+  const { sendEmail } = await import("@/lib/email/send");
+  const { ADVERTISE_PACKAGES } = await import("@/lib/revenue/plans");
+  const { formatKes } = await import("@/lib/properties");
+  const { getSiteUrl } = await import("@/lib/site");
+  const pkg = ADVERTISE_PACKAGES.find((p) => p.id === advertisePackage);
+  const packageLabel = pkg?.name ?? advertisePackage ?? "Advertising package";
+  const opsTo = process.env.ADVERTISE_OPS_EMAIL ?? "nyumbasearch101@gmail.com";
+
+  const opsText = [
+    "Advertising payment received.",
+    "",
+    `Package: ${packageLabel}`,
+    `Amount: ${formatKes(payment.amountKes)}`,
+    `Payment ID: ${payment.paymentId ?? "—"}`,
+    `Inquiry ID: ${inquiryId ?? "—"}`,
+    `Payer user: ${payment.userId}`,
+    "",
+    "Activate the campaign placements within 48 hours.",
+    `${getSiteUrl()}/admin`,
+  ].join("\n");
+  await sendEmail({
+    to: opsTo,
+    subject: `[NyumbaSearch] Ad package paid — ${packageLabel} — ${formatKes(payment.amountKes)}`,
+    text: opsText,
+    html: opsText.replaceAll("\n", "<br>"),
+    templateId: "advertise-paid-ops",
+  });
 }
 
 const FULFILLMENT_HANDLERS: Record<
@@ -529,6 +624,10 @@ export async function fulfillPaymentRow(
         reportType: meta.reportType,
 
         providerId: meta.providerId,
+
+        advertisePackage: meta.advertisePackage,
+
+        inquiryId: meta.inquiryId,
 
         renewalSubscriptionId: meta.renewalSubscriptionId,
       },
