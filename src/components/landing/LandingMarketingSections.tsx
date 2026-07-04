@@ -21,8 +21,20 @@ import {
 
 export function VerifiedSection() {
   return (
-    <section id="verification-section" className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
-      <div className="grid items-start gap-10 lg:grid-cols-[1fr_1.2fr]">
+    <section
+      id="verification-section"
+      className="relative overflow-hidden border-y border-white/6 bg-(--surface-0)"
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 60% at 70% 40%, rgba(30,184,138,0.07), transparent 70%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
+        <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.15fr]">
         <ScrollReveal>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Trust system</p>
           <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
@@ -49,6 +61,7 @@ export function VerifiedSection() {
         <ScrollReveal delay={0.1}>
           <VerificationPipeline />
         </ScrollReveal>
+        </div>
       </div>
     </section>
   );

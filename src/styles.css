@@ -456,6 +456,29 @@
   margin-left: 2px;
 }
 
+/* Verification pipeline 3D nodes */
+.verify-pipeline {
+  transform-style: preserve-3d;
+  perspective: 1200px;
+}
+.verify-node-3d {
+  transform-style: preserve-3d;
+}
+.verify-node-card {
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.verify-node-progress {
+  box-shadow: 0 0 12px currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verify-node-3d,
+  .verify-node-card {
+    transform: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-kenburns {
     animation: none;
