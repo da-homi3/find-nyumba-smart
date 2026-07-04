@@ -25,6 +25,7 @@ function RegisterProviderPage() {
   const [step, setStep] = useState<Step>("profile");
   const [saving, setSaving] = useState(false);
   const [providerId, setProviderId] = useState<string | null>(null);
+  const [editingApplication, setEditingApplication] = useState(false);
   const [tier, setTier] = useState<(typeof PROVIDER_TIERS)[number]["value"]>("basic");
   const [form, setForm] = useState({
     businessName: "",
@@ -115,6 +116,36 @@ function RegisterProviderPage() {
     );
   }
 
+  if (existing?.provider?.status === "pending" && !editingApplication && step === "profile") {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            Approval waitlist
+          </p>
+          <h1 className="mt-2 font-display text-2xl font-semibold">Application submitted</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {existing.provider.business_name} is waiting for NyumbaSearch admin approval. You&apos;ll
+            get an email when your listing is live and the provider dashboard unlocks.
+          </p>
+          <Link
+            to="/services/provider/dashboard"
+            className="mt-6 inline-flex rounded-xl border px-6 py-3 text-sm font-semibold"
+          >
+            Check waitlist status
+          </Link>
+          <button
+            type="button"
+            onClick={() => setEditingApplication(true)}
+            className="mt-3 block w-full text-sm text-primary"
+          >
+            Edit application details
+          </button>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
   async function saveProfile() {
     const areas = form.areasServed
       .split(",")
@@ -141,6 +172,8 @@ function RegisterProviderPage() {
         },
       });
       setProviderId(res.id);
+      setEditingApplication(false);
+      toast.success("Application submitted — waiting for admin approval");
       setStep("plan");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -170,7 +203,14 @@ function RegisterProviderPage() {
 
           {existing?.provider?.status === "pending" && (
             <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
-              You started a listing — finish your profile and choose a plan to go live.
+              You&apos;re on the approval waitlist. Update your details below if needed — an admin
+              must approve you before your listing goes live.
+            </p>
+          )}
+          {existing?.provider?.status === "rejected" && (
+            <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
+              Your previous application was not approved. Update your details and submit again to
+              rejoin the waitlist.
             </p>
           )}
 
@@ -286,9 +326,10 @@ function RegisterProviderPage() {
         <button type="button" onClick={() => setStep("plan")} className="text-sm text-primary">
           ← Change plan
         </button>
-        <h1 className="mt-4 font-display text-2xl font-semibold">Activate your listing</h1>
+        <h1 className="mt-4 font-display text-2xl font-semibold">Choose your plan</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Start your free trial for {selectedTier.label}. Your listing goes live immediately.
+          Start your free trial for {selectedTier.label}. Your listing stays on the admin waitlist
+          until NyumbaSearch approves your application — then it goes live.
         </p>
         <div className="mt-8">
           <CheckoutFlow
@@ -305,7 +346,10 @@ function RegisterProviderPage() {
             }}
             defaultPhone={defaultPhone}
             allowQuarterly={false}
-            onSuccess={() => navigate({ to: "/services/provider/dashboard" })}
+            onSuccess={() => {
+              toast.success("Plan saved — waiting for admin approval");
+              navigate({ to: "/services/provider/dashboard" });
+            }}
           />
         </div>
       </main>

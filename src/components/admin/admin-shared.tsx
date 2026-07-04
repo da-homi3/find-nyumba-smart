@@ -10,6 +10,7 @@ export type {
   AdminProperty,
   AdminAuditLog,
   PendingApplication,
+  PendingServiceProvider,
 } from "@/components/admin/admin-types";
 
 export function StatusBadge({

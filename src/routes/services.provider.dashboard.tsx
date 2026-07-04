@@ -61,6 +61,73 @@ function ProviderDashboardPage() {
     );
   }
 
+  if (provider.status === "pending") {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12 text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            Approval waitlist
+          </p>
+          <h1 className="mt-2 font-display text-2xl font-semibold">
+            {provider.business_name} is under review
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            NyumbaSearch operations reviews every service provider before they appear in the
+            directory or unlock the provider dashboard. You&apos;ll get an email when you&apos;re
+            approved.
+          </p>
+          <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-left text-sm text-amber-950 dark:text-amber-100">
+            <p className="font-semibold">What happens next</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+              <li>Our team checks your business details</li>
+              <li>You stay on this waitlist until approved</li>
+              <li>Once approved, tenants can find you and you can manage inquiries here</li>
+            </ul>
+          </div>
+          <Link
+            to="/services/register"
+            className="mt-6 inline-flex rounded-xl border px-5 py-2.5 text-sm font-semibold"
+          >
+            Update application details
+          </Link>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  if (provider.status === "rejected") {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12 text-center">
+          <h1 className="font-display text-2xl font-semibold">Application not approved</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Your service provider application for {provider.business_name} was not approved at this
+            time. You can update your details and resubmit for review.
+          </p>
+          <Link
+            to="/services/register"
+            className="mt-6 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Update &amp; resubmit
+          </Link>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
+  if (provider.status !== "active") {
+    return (
+      <PublicPageShell>
+        <main className="mx-auto max-w-lg px-5 py-12 text-center">
+          <h1 className="font-display text-2xl font-semibold">Dashboard unavailable</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Your provider account status is {provider.status}. Contact support if you need help.
+          </p>
+        </main>
+      </PublicPageShell>
+    );
+  }
+
   const trialDaysLeft =
     subscription?.status === "trialing" && subscription.trial_end
       ? Math.ceil((new Date(subscription.trial_end).getTime() - Date.now()) / 86400000)

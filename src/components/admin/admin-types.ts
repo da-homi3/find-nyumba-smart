@@ -5,6 +5,7 @@ import {
   listAdminAuditLogs,
 } from "@/lib/api/admin.functions";
 import { listPendingApplications } from "@/lib/api/portal.functions";
+import { listPendingServiceProviders } from "@/lib/api/service-provider.functions";
 import { listProperties } from "@/lib/api/nyumba.functions";
 
 export type AdminTab =
@@ -14,6 +15,7 @@ export type AdminTab =
   | "properties"
   | "audits"
   | "applications"
+  | "providers"
   | "advertise"
   | "announcements";
 
@@ -25,6 +27,9 @@ export type AdminProperty = NonNullable<
 >[number];
 export type AdminAuditLog = Awaited<ReturnType<typeof listAdminAuditLogs>>[number];
 export type PendingApplication = Awaited<ReturnType<typeof listPendingApplications>>[number];
+export type PendingServiceProvider = Awaited<
+  ReturnType<typeof listPendingServiceProviders>
+>[number];
 
 export const VERIFICATION_STATUS_CLASS: Record<string, string> = {
   approved: "bg-emerald-500/10 text-emerald-600",

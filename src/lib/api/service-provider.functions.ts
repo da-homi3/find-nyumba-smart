@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
+import { getSiteUrl } from "@/lib/site";
 
 const categories = [
   "electricians",
@@ -37,6 +39,13 @@ export const createServiceProvider = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (existing) {
+      const { data: current } = await supabaseAdmin
+        .from("service_providers")
+        .select("status")
+        .eq("id", existing.id)
+        .maybeSingle();
+      // Rejected applicants can re-submit into the waitlist.
+      const resubmit = current?.status === "rejected" ? { status: "pending" as const } : {};
       const { data: updated, error } = await supabaseAdmin
         .from("service_providers")
         .update({
@@ -46,11 +55,19 @@ export const createServiceProvider = createServerFn({ method: "POST" })
           description: data.description ?? null,
           price_range: data.priceRange ?? null,
           phone: data.phone,
+          ...resubmit,
         })
         .eq("id", existing.id)
         .select("id")
         .single();
       if (error) throw error;
+      if (resubmit.status === "pending") {
+        await notifyOpsProviderWaitlist({
+          userId,
+          businessName: data.businessName,
+          phone: data.phone,
+        });
+      }
       return { id: updated.id };
     }
 
@@ -71,8 +88,36 @@ export const createServiceProvider = createServerFn({ method: "POST" })
       .single();
 
     if (error) throw error;
+
+    await notifyOpsProviderWaitlist({
+      userId,
+      businessName: data.businessName,
+      phone: data.phone,
+    });
+
     return { id: row.id };
   });
+
+async function notifyOpsProviderWaitlist(opts: {
+  userId: string;
+  businessName: string;
+  phone: string;
+}) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { notifyOpsNewApplication } = await import("@/lib/api/notify");
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(opts.userId);
+    await notifyOpsNewApplication({
+      applicantName: opts.businessName,
+      applicantEmail: userData.user?.email ?? opts.phone,
+      role: "service_provider",
+      orgName: opts.businessName,
+      reviewUrl: `${getSiteUrl()}/admin?tab=providers`,
+    });
+  } catch (err) {
+    console.warn("[service-provider] ops waitlist notify failed", err);
+  }
+}
 
 export const getProviderDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -240,4 +285,113 @@ export const getProviderById = createServerFn({ method: "GET" })
     if (error) throw error;
     if (row?.status !== "active") return null;
     return { ...mapProviderRow(row), isPlaceholder: false };
+  });
+
+export const listPendingServiceProviders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("service_providers")
+      .select(
+        "id, user_id, business_name, categories, areas_served, description, price_range, phone, tier, status, created_at",
+      )
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    if (!rows?.length) return [];
+
+    const userIds = [...new Set(rows.map((r) => r.user_id))];
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, phone")
+      .in("id", userIds);
+    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    const emails = new Map<string, string>();
+    await Promise.all(
+      userIds.map(async (id) => {
+        const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+        if (data.user?.email) emails.set(id, data.user.email);
+      }),
+    );
+
+    return rows.map((row) => ({
+      ...row,
+      profiles: profileMap.get(row.user_id) ?? null,
+      email: emails.get(row.user_id) ?? null,
+    }));
+  });
+
+export const reviewServiceProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      providerId: z.string().uuid(),
+      action: z.enum(["approve", "reject"]),
+      rejectionReason: z.string().trim().max(500).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { notifyApplicantApproved, notifyApplicantRejected } = await import("@/lib/api/notify");
+
+    const { data: provider, error: fetchErr } = await supabaseAdmin
+      .from("service_providers")
+      .select("id, user_id, business_name, status")
+      .eq("id", data.providerId)
+      .single();
+    if (fetchErr || !provider) throw new Error("Provider application not found");
+
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(provider.user_id);
+    const email = userData.user?.email ?? "";
+    const name =
+      (userData.user?.user_metadata?.full_name as string | undefined) ??
+      provider.business_name ??
+      email;
+
+    if (data.action === "reject") {
+      await supabaseAdmin
+        .from("service_providers")
+        .update({ status: "rejected" })
+        .eq("id", data.providerId);
+      await notifyApplicantRejected({
+        email,
+        name,
+        role: "service provider",
+        reason: data.rejectionReason,
+      });
+      await supabaseAdmin.from("admin_audit_logs").insert({
+        admin_id: userId,
+        action: "SERVICE_PROVIDER_REJECTED",
+        target_id: data.providerId,
+        details: `Rejected ${provider.business_name}. ${data.rejectionReason ?? ""}`,
+      });
+      return { status: "rejected" as const };
+    }
+
+    await supabaseAdmin
+      .from("service_providers")
+      .update({ status: "active" })
+      .eq("id", data.providerId);
+
+    await notifyApplicantApproved({
+      email,
+      name,
+      role: "service_provider",
+    });
+
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "SERVICE_PROVIDER_APPROVED",
+      target_id: data.providerId,
+      details: `Approved ${provider.business_name}`,
+    });
+
+    return { status: "approved" as const };
   });

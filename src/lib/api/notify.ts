@@ -45,10 +45,13 @@ export async function notifyApplicantApproved(opts: { email: string; name: strin
     landlord: "/landlord/dashboard",
     manager: "/manager/dashboard",
     agency: "/agency/dashboard",
+    service_provider: "/services/provider/dashboard",
+    "service provider": "/services/provider/dashboard",
   };
+  const roleLabel = opts.role === "service_provider" ? "service provider" : opts.role;
   const tpl = portalApprovedEmail({
     name: opts.name,
-    role: opts.role,
+    role: roleLabel,
     dashboardUrl: `${getSiteUrl()}${portalPaths[opts.role] ?? "/tenant"}`,
   });
   return sendEmail({ to: opts.email, templateId: "portal-approved", ...tpl });

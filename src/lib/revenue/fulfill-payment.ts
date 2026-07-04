@@ -170,9 +170,10 @@ async function fulfillRenewalSubscription(
       .update({ tenant_plan: "plus", plus_expires_at: addBillingDays(days) })
       .eq("id", sub.user_id);
   } else if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
+    // Tier only — go-live requires admin approval (status stays pending until then).
     await supabaseAdmin
       .from("service_providers")
-      .update({ status: "active", tier: sub.plan })
+      .update({ tier: sub.plan })
       .eq("user_id", sub.user_id);
   } else {
     const plan = (payment.metadata?.plan ?? sub.plan) as LandlordPlan;
@@ -435,9 +436,10 @@ async function fulfillProviderSubscription(
     metadata.plan === "featured" || metadata.plan === "premium" ? metadata.plan : "basic";
   const cycle = billingCycle(metadata);
 
+  // Save paid tier but keep status pending until an admin approves the listing.
   let providerUpdate = supabaseAdmin
     .from("service_providers")
-    .update({ status: "active", tier })
+    .update({ tier })
     .eq("user_id", userId);
   if (metadata.providerId) {
     providerUpdate = providerUpdate.eq("id", metadata.providerId);

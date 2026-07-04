@@ -12,10 +12,15 @@ import {
   listAdminAuditLogs,
 } from "@/lib/api/admin.functions";
 import { listPendingApplications, reviewPortalApplication } from "@/lib/api/portal.functions";
+import {
+  listPendingServiceProviders,
+  reviewServiceProvider,
+} from "@/lib/api/service-provider.functions";
 import { listProperties } from "@/lib/api/nyumba.functions";
 import { toast } from "sonner";
 import type { AdminTab } from "@/components/admin/admin-shared";
 import { AdminApplicationsTab } from "@/components/admin/AdminApplicationsTab";
+import { AdminServiceProvidersTab } from "@/components/admin/AdminServiceProvidersTab";
 import { AdminAuditsTab } from "@/components/admin/AdminAuditsTab";
 import { AdminPropertiesTab } from "@/components/admin/AdminPropertiesTab";
 import { AdminScamsTab } from "@/components/admin/AdminScamsTab";
@@ -40,13 +45,17 @@ export const Route = createFileRoute("/admin/")({
 
 function AdminDashboard() {
   const { tab: tabFromUrl } = Route.useSearch();
-  const [activeTab, setActiveTab] = useState<AdminTab>(
-    tabFromUrl === "applications" ? "applications" : "verifications",
-  );
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    if (tabFromUrl === "applications") return "applications";
+    if (tabFromUrl === "providers") return "providers";
+    if (tabFromUrl === "property_checks") return "property_checks";
+    return "verifications";
+  });
   const qc = useQueryClient();
 
   useEffect(() => {
     if (tabFromUrl === "applications") setActiveTab("applications");
+    if (tabFromUrl === "providers") setActiveTab("providers");
     if (tabFromUrl === "property_checks") setActiveTab("property_checks");
   }, [tabFromUrl]);
 
@@ -83,6 +92,11 @@ function AdminDashboard() {
     enabled: activeTab === "applications",
   });
 
+  const { data: pendingProviders = [], isLoading: providersLoading } = useQuery({
+    queryKey: ["admin-service-providers"],
+    queryFn: () => listPendingServiceProviders(),
+  });
+
   const reviewApp = useMutation({
     mutationFn: (payload: {
       applicationId: string;
@@ -92,6 +106,23 @@ function AdminDashboard() {
     onSuccess: () => {
       toast.success("Application updated");
       qc.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reviewProvider = useMutation({
+    mutationFn: (payload: {
+      providerId: string;
+      action: "approve" | "reject";
+      rejectionReason?: string;
+    }) => reviewServiceProvider({ data: payload }),
+    onSuccess: (_data, vars) => {
+      toast.success(
+        vars.action === "approve"
+          ? "Service provider approved — listing is live"
+          : "Service provider rejected",
+      );
+      qc.invalidateQueries({ queryKey: ["admin-service-providers"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -159,6 +190,11 @@ function AdminDashboard() {
     { id: "properties" as const, label: "Moderate listings", count: properties.length },
     { id: "audits" as const, label: "Audit Logs", count: audits.length },
     { id: "applications" as const, label: "Portal applications", count: applications.length },
+    {
+      id: "providers" as const,
+      label: "Service providers",
+      count: pendingProviders.length,
+    },
     { id: "advertise" as const, label: "Advertise", count: 0 },
     { id: "announcements" as const, label: "Announcements", count: 0 },
   ];
@@ -238,6 +274,13 @@ function AdminDashboard() {
               applications={applications}
               loading={appsLoading}
               review={reviewApp}
+            />
+          )}
+          {activeTab === "providers" && (
+            <AdminServiceProvidersTab
+              providers={pendingProviders}
+              loading={providersLoading}
+              review={reviewProvider}
             />
           )}
           {activeTab === "advertise" && <AdminAdvertiseTab />}
