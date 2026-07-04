@@ -4,8 +4,8 @@ import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { listActiveProvidersByCategory } from "@/lib/api/service-provider.functions";
 import type { PublicServiceProvider } from "@/lib/api/service-provider.functions";
 import { formatKes } from "@/lib/properties";
-import { whatsAppUrl } from "@/lib/phone";
-import { MapPin, MessageCircle, Phone, Star } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
+import { ProviderContactActions, ProviderContactDetails } from "@/components/ProviderContactActions";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
 import { useState } from "react";
@@ -114,10 +114,6 @@ function ProviderCard({
   onToggleQuote: () => void;
   onQuoteSent: () => void;
 }>) {
-  const waLink = whatsAppUrl(
-    p.phone,
-    `Hi ${p.businessName}, I found you on NyumbaSearch and would like a quote for ${category}.`,
-  );
   const tierLabel = p.tier.charAt(0).toUpperCase() + p.tier.slice(1);
 
   return (
@@ -164,34 +160,12 @@ function ProviderCard({
             <span>{p.areasServed.join(" · ")}</span>
           </p>
 
-          <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium">
-            <Phone className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-            <a href={`tel:${p.phone}`} className="hover:text-primary">
-              {p.phone}
-            </a>
-          </p>
+          <ProviderContactDetails provider={p} category={category} size="sm" />
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {waLink ? (
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] px-4 py-2 text-xs font-semibold text-white hover:opacity-95"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-            WhatsApp
-          </a>
-        ) : null}
-        <a
-          href={`tel:${p.phone}`}
-          className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold hover:bg-secondary"
-        >
-          <Phone className="h-3.5 w-3.5" />
-          Call
-        </a>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <ProviderContactActions provider={p} category={category} size="sm" />
         <Link
           to="/services/provider/$id"
           params={{ id: p.id }}

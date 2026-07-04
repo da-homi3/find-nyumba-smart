@@ -4,6 +4,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
 import { getSiteUrl } from "@/lib/site";
+import {
+  isProviderPhoneVerified,
+  providerWebsiteHref,
+} from "@/lib/service-provider-contact";
 
 const categories = [
   "electricians",
@@ -14,6 +18,16 @@ const categories = [
   "movers",
   "cleaning",
   "solar",
+  "pest_control",
+  "carpentry",
+  "furniture",
+  "interior_design",
+  "appliance_repair",
+  "gardening",
+  "water_services",
+  "generators",
+  "moving_supplies",
+  "ac_repair",
 ] as const;
 
 export const createServiceProvider = createServerFn({ method: "POST" })
@@ -201,6 +215,9 @@ export type PublicServiceProvider = {
   startingPriceKes: number;
   description: string;
   phone: string;
+  phoneVerified: boolean;
+  sourceUrl: string | null;
+  websiteUrl: string | null;
   tier: string;
   isPlaceholder?: boolean;
 };
@@ -221,13 +238,18 @@ function mapProviderRow(
     areas_served: unknown;
     description: string | null;
     price_range: string | null;
-    phone: string;
+    phone: string | null;
     tier: string;
+    verified?: number | null;
+    source_url?: string | null;
   },
   category?: string,
 ): PublicServiceProvider {
   const categories = Array.isArray(row.categories) ? (row.categories as string[]) : [];
   const areasServed = Array.isArray(row.areas_served) ? (row.areas_served as string[]) : [];
+  const phone = row.phone?.trim() ?? "";
+  const sourceUrl = row.source_url?.trim() || null;
+  const phoneVerified = isProviderPhoneVerified(row.verified, phone);
   return {
     id: row.id,
     businessName: row.business_name,
@@ -238,7 +260,10 @@ function mapProviderRow(
     reviewCount: 0,
     startingPriceKes: parseStartingPrice(row.price_range),
     description: row.description ?? "",
-    phone: row.phone,
+    phone,
+    phoneVerified,
+    sourceUrl,
+    websiteUrl: providerWebsiteHref(sourceUrl),
     tier: row.tier,
   };
 }
@@ -250,7 +275,9 @@ export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
     const { mergeWithPlaceholders } = await import("@/data/service-placeholders");
     const { data: rows, error } = await supabaseAdmin
       .from("service_providers")
-      .select("id, business_name, categories, areas_served, description, price_range, phone, tier")
+      .select(
+        "id, business_name, categories, areas_served, description, price_range, phone, tier, verified, source_url",
+      )
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
@@ -277,7 +304,7 @@ export const getProviderById = createServerFn({ method: "GET" })
     const { data: row, error } = await supabaseAdmin
       .from("service_providers")
       .select(
-        "id, business_name, categories, areas_served, description, price_range, phone, tier, status",
+        "id, business_name, categories, areas_served, description, price_range, phone, tier, status, verified, source_url",
       )
       .eq("id", data.id)
       .maybeSingle();

@@ -9,6 +9,16 @@ export const SERVICE_CATEGORIES = [
   { id: "movers", label: "Movers & relocation", emoji: "🛋️" },
   { id: "cleaning", label: "Cleaning services", emoji: "🧹" },
   { id: "solar", label: "Solar installation", emoji: "☀️" },
+  { id: "pest_control", label: "Pest control & fumigation", emoji: "🐜" },
+  { id: "carpentry", label: "Carpentry", emoji: "🪚" },
+  { id: "furniture", label: "Furniture makers", emoji: "🪑" },
+  { id: "interior_design", label: "Interior design", emoji: "🏠" },
+  { id: "appliance_repair", label: "Appliance repair", emoji: "🔧" },
+  { id: "gardening", label: "Gardening & landscaping", emoji: "🌿" },
+  { id: "water_services", label: "Water & borehole services", emoji: "💧" },
+  { id: "generators", label: "Generators & backup power", emoji: "⚡" },
+  { id: "moving_supplies", label: "Moving supplies", emoji: "📦" },
+  { id: "ac_repair", label: "AC & refrigeration", emoji: "❄️" },
 ];
 
 export const MOCK_PROVIDERS: ServiceProvider[] = [

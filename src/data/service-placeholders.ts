@@ -10,6 +10,9 @@ export type ServiceProviderListing = {
   startingPriceKes: number;
   description: string;
   phone: string;
+  phoneVerified: boolean;
+  sourceUrl: string | null;
+  websiteUrl: string | null;
   tier: string;
   isPlaceholder: boolean;
 };
@@ -37,6 +40,9 @@ function entry(
     startingPriceKes,
     description,
     phone,
+    phoneVerified: true,
+    sourceUrl: null,
+    websiteUrl: null,
     tier,
     isPlaceholder: true,
   };
@@ -418,6 +424,9 @@ export function placeholderProvidersForCategory(category: string): ServiceProvid
       startingPriceKes: 2000,
       description: `Sample ${category} provider — request a quote and we'll match you with vetted pros.`,
       phone: "+254700000000",
+      phoneVerified: true,
+      sourceUrl: null,
+      websiteUrl: null,
       tier: "basic",
       isPlaceholder: true,
     },

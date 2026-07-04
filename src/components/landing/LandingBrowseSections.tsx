@@ -192,7 +192,7 @@ export function ServiceTeaserRow() {
         </Link>
       </div>
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-        {SERVICE_CATEGORIES.slice(0, 8).map((c) => (
+        {SERVICE_CATEGORIES.map((c) => (
           <Link
             key={c.id}
             to="/services/$category"

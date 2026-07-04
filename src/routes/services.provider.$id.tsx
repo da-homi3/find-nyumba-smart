@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { getProviderById } from "@/lib/api/service-provider.functions";
 import { formatKes } from "@/lib/properties";
-import { whatsAppUrl } from "@/lib/phone";
-import { Star, Phone, MapPin, MessageCircle } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
+import { ProviderContactActions, ProviderContactDetails } from "@/components/ProviderContactActions";
 import { useState } from "react";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
@@ -19,12 +19,6 @@ export const Route = createFileRoute("/services/provider/$id")({
 function ProviderPage() {
   const { provider } = Route.useLoaderData();
   const [sent, setSent] = useState(false);
-  const waLink = provider
-    ? whatsAppUrl(
-        provider.phone,
-        `Hi ${provider.businessName}, I found you on NyumbaSearch and would like a quote.`,
-      )
-    : null;
 
   if (!provider) {
     return (
@@ -70,32 +64,10 @@ function ProviderPage() {
           <MapPin className="h-3.5 w-3.5" />
           {provider.areasServed.join(", ")}
         </p>
-        <p className="mt-1 flex items-center gap-1 text-sm font-medium">
-          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-          <a href={`tel:${provider.phone}`} className="hover:text-primary">
-            {provider.phone}
-          </a>
-        </p>
+        <ProviderContactDetails provider={provider} />
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {waLink ? (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white"
-            >
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp
-            </a>
-          ) : null}
-          <a
-            href={`tel:${provider.phone}`}
-            className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold"
-          >
-            <Phone className="h-4 w-4" />
-            Call
-          </a>
+        <div className="mt-4">
+          <ProviderContactActions provider={provider} />
         </div>
 
         <p className="mt-8 text-[11px] text-muted-foreground">

@@ -950,13 +950,15 @@ export type Database = {
           created_at: string;
           description: string | null;
           id: string;
-          phone: string;
+          phone: string | null;
           photo_url: string | null;
           price_range: string | null;
+          source_url: string | null;
           status: string;
           subscription_id: string | null;
           tier: string;
-          user_id: string;
+          user_id: string | null;
+          verified: number;
         };
         Insert: {
           areas_served?: Json;
@@ -965,13 +967,15 @@ export type Database = {
           created_at?: string;
           description?: string | null;
           id?: string;
-          phone: string;
+          phone?: string | null;
           photo_url?: string | null;
           price_range?: string | null;
+          source_url?: string | null;
           status?: string;
           subscription_id?: string | null;
           tier?: string;
-          user_id: string;
+          user_id?: string | null;
+          verified?: number;
         };
         Update: {
           areas_served?: Json;
@@ -980,13 +984,15 @@ export type Database = {
           created_at?: string;
           description?: string | null;
           id?: string;
-          phone?: string;
+          phone?: string | null;
           photo_url?: string | null;
           price_range?: string | null;
+          source_url?: string | null;
           status?: string;
           subscription_id?: string | null;
           tier?: string;
-          user_id?: string;
+          user_id?: string | null;
+          verified?: number;
         };
         Relationships: [];
       };
