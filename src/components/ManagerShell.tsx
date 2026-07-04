@@ -26,7 +26,7 @@ const ownerNav = [
   { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/manager/properties", label: "Properties", icon: Building2 },
   { to: "/manager/import", label: "Bulk import", icon: Upload },
-  { to: "/manager/integrations", label: "API", icon: Plug },
+  { to: "/manager/integrations", label: "API & integrations", icon: Plug },
   { to: "/manager/leads", label: "Messages", icon: Inbox },
   { to: "/manager/caretakers", label: "Caretakers", icon: KeyRound },
   { to: "/manager/analytics", label: "Analytics", icon: BarChart3 },
@@ -46,10 +46,12 @@ const memberNav = [
 
 export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { membership, isOwner, isPending, loading: membershipLoading } = useOrgMembership();
+  const { membership, isOwner, isMember, isPending, loading: membershipLoading } =
+    useOrgMembership();
   const navigate = useNavigate();
   const loading = authLoading || membershipLoading;
-  const nav = isOwner ? ownerNav : memberNav;
+  // Full landlord-parity tools for owners and solo accounts; limited nav for staff.
+  const nav = isMember ? memberNav : ownerNav;
   const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));
 
   useEffect(() => {

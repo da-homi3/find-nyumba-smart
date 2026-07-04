@@ -4,15 +4,20 @@ import {
   Building2,
   Calendar,
   Check,
+  CreditCard,
+  Crown,
   Eye,
+  Plug,
   Plus,
   TrendingUp,
+  Upload,
   Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 import { listMyViewings, updateViewingStatus, type ViewingListItem } from "@/lib/api/booking.functions";
+import { PORTAL_PATHS } from "@/lib/portal-paths";
 import { formatKes, type Property } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { useOrgMembership } from "@/hooks/use-org-membership";
@@ -74,6 +79,8 @@ export function PortalOverviewDashboard({
   });
 
   const roleHint = isOwner ? "Owner" : isMember ? "Team member" : null;
+  const paths = PORTAL_PATHS[portal];
+  const showOwnerTools = !isMember;
 
   return (
     <div className="px-6 py-8 pb-20 lg:px-10">
@@ -122,6 +129,42 @@ export function PortalOverviewDashboard({
           hint="potential"
         />
       </div>
+
+      {showOwnerTools && (
+        <section className="mt-8">
+          <h2 className="font-display text-lg font-semibold">Tools</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Same portfolio tools as the landlord dashboard — import listings, connect your CRM, and
+            manage your plan.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ToolCard
+              to={paths.import}
+              icon={Upload}
+              title="Bulk import"
+              description="Upload a CSV to create draft listings in one go."
+            />
+            <ToolCard
+              to={paths.integrations}
+              icon={Plug}
+              title="API & integrations"
+              description="Create API keys and connect your property system."
+            />
+            <ToolCard
+              to={paths.plan}
+              icon={Crown}
+              title="Plan"
+              description="See your plan limits and upgrade for more listings."
+            />
+            <ToolCard
+              to={paths.billing}
+              icon={CreditCard}
+              title="Billing"
+              description="Invoices, lead packs, and payment history."
+            />
+          </div>
+        </section>
+      )}
 
       {isOwner ? (
         <section className="mt-8 rounded-2xl border bg-card p-5">
@@ -305,5 +348,31 @@ function Kpi({
       <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
+  );
+}
+
+function ToolCard({
+  to,
+  icon: Icon,
+  title,
+  description,
+}: Readonly<{
+  to: string;
+  icon: typeof Upload;
+  title: string;
+  description: string;
+}>) {
+  return (
+    <Link
+      to={to}
+      className="rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/40 hover:bg-secondary/40"
+    >
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="mt-3 font-semibold">{title}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <p className="mt-3 text-xs font-semibold text-primary">Open →</p>
+    </Link>
   );
 }

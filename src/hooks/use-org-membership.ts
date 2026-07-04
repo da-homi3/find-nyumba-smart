@@ -12,11 +12,16 @@ export function useOrgMembership() {
   });
 
   const membership = query.data ?? null;
+  // Solo manager/agency accounts have no org row yet — treat them as owners so
+  // tools (import, API, plan, billing) match the landlord dashboard.
+  const isOwner = membership ? membership.isOwner : !query.isLoading && !!user;
+  const isMember = membership?.isMember ?? false;
+  const isPending = membership?.isPending ?? false;
   return {
     membership,
-    isOwner: membership?.isOwner ?? false,
-    isMember: membership?.isMember ?? false,
-    isPending: membership?.isPending ?? false,
+    isOwner,
+    isMember,
+    isPending,
     loading: query.isLoading,
     refetch: query.refetch,
   };
