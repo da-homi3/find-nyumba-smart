@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole, ForbiddenError } from "@/lib/api/_authz";
+import { notifyOrgTeamApproved, notifyOrgTeamInvited } from "@/lib/api/notify";
+import { getSiteUrl } from "@/lib/site";
 import {
   authContext,
   getUserOrganizationId,
@@ -26,6 +28,16 @@ function normalizeRole(role: string): OrgMemberRole {
   return "member";
 }
 
+function slugify(name: string) {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "org"
+  );
+}
+
 async function findAuthUserByEmail(email: string) {
   const admin = await adminClient();
   const normalized = email.trim().toLowerCase();
@@ -42,12 +54,53 @@ async function findAuthUserByEmail(email: string) {
   return null;
 }
 
+/** Creates an organization for solo agency/manager owners who don't have one yet. */
+async function ensureOrgForOwner(
+  supabase: ReturnType<typeof authContext>["supabase"],
+  userId: string,
+): Promise<string> {
+  const existing = await getUserOrganizationId(supabase, userId);
+  if (existing) return existing;
+
+  const admin = await adminClient();
+  const [{ data: profile }, { data: roleRows }] = await Promise.all([
+    supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id", userId),
+  ]);
+
+  const roles = new Set((roleRows ?? []).map((r) => r.role));
+  const isManager = roles.has("manager");
+  const orgType = isManager ? "property_manager" : "agency";
+  const displayName = profile?.full_name?.trim();
+  const orgName = displayName
+    ? `${displayName}${isManager ? " Property Management" : " Agency"}`
+    : isManager
+      ? "My Property Management"
+      : "My Agency";
+  const slug = `${slugify(orgName)}-${userId.slice(0, 8)}`;
+
+  const { data: org, error } = await admin
+    .from("organizations")
+    .insert({ name: orgName, slug, type: orgType })
+    .select("id")
+    .single();
+  if (error || !org) throw new Error(error?.message ?? "Could not create organization");
+
+  const { error: memberError } = await admin.from("organization_members").insert({
+    organization_id: org.id,
+    user_id: userId,
+    role: "owner",
+  });
+  if (memberError) throw memberError;
+
+  return org.id;
+}
+
 async function assertOrgOwner(
   supabase: ReturnType<typeof authContext>["supabase"],
   userId: string,
 ) {
-  const orgId = await getUserOrganizationId(supabase, userId);
-  if (!orgId) throw new ForbiddenError("No organization found for this account");
+  const orgId = await ensureOrgForOwner(supabase, userId);
 
   const { data: membership } = await supabase
     .from("organization_members")
@@ -60,6 +113,56 @@ async function assertOrgOwner(
     throw new ForbiddenError("Only the organization owner can manage the team");
   }
   return orgId;
+}
+
+async function sendTeamInviteEmail(opts: {
+  email: string;
+  inviteeName: string;
+  inviterUserId: string;
+  orgId: string;
+  isNewAccount: boolean;
+}) {
+  const admin = await adminClient();
+  const [{ data: org }, { data: inviterProfile }, inviterAuth] = await Promise.all([
+    admin.from("organizations").select("name, type").eq("id", opts.orgId).maybeSingle(),
+    admin.from("profiles").select("full_name").eq("id", opts.inviterUserId).maybeSingle(),
+    admin.auth.admin.getUserById(opts.inviterUserId),
+  ]);
+
+  const portalLabel = org?.type === "property_manager" ? "property manager" : "agency";
+  const signInUrl = `${getSiteUrl()}/auth`;
+  let setupPasswordUrl: string | undefined;
+  let otpCode: string | undefined;
+
+  if (opts.isNewAccount) {
+    const user = await findAuthUserByEmail(opts.email);
+    if (user) {
+      const { generateSixDigitResetCode, storePasswordResetCode } =
+        await import("@/lib/auth/password-reset-store");
+      otpCode = generateSixDigitResetCode();
+      await storePasswordResetCode({ email: opts.email, userId: user.id, code: otpCode });
+      setupPasswordUrl = `${getSiteUrl()}/auth/reset?email=${encodeURIComponent(opts.email)}`;
+    }
+  }
+
+  const sent = await notifyOrgTeamInvited({
+    email: opts.email,
+    inviteeName: opts.inviteeName,
+    inviterName:
+      inviterProfile?.full_name?.trim() ||
+      inviterAuth.data.user?.email?.split("@")[0] ||
+      "Your team owner",
+    organizationName: org?.name ?? "your organization",
+    portalLabel,
+    signInUrl,
+    isNewAccount: opts.isNewAccount,
+    setupPasswordUrl,
+    otpCode,
+  });
+
+  if (!sent) {
+    console.warn("[team] invite email failed to send for", opts.email);
+  }
 }
 
 /** Current user's org membership for agency/manager portals. */
@@ -154,8 +257,10 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
     const orgId = await assertOrgOwner(supabase, userId);
 
     const email = data.email.trim().toLowerCase();
+    const inviteeName = data.fullName?.trim() || email.split("@")[0];
     let invitee = await findAuthUserByEmail(email);
     const admin = await adminClient();
+    const isNewAccount = !invitee;
 
     if (!invitee) {
       const password = `${crypto.randomUUID()}Aa1!`;
@@ -164,7 +269,7 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
         password,
         email_confirm: true,
         user_metadata: {
-          full_name: data.fullName?.trim() || email.split("@")[0],
+          full_name: inviteeName,
           source: "org_team_invite",
         },
       });
@@ -174,7 +279,7 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
       invitee = created.user;
       await admin.from("profiles").upsert({
         id: invitee.id,
-        full_name: data.fullName?.trim() || email.split("@")[0],
+        full_name: inviteeName,
       });
     }
 
@@ -206,7 +311,6 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
       if (error) throw error;
     }
 
-    // Grant portal role so they can sign in to the right portal after approval
     const { data: org } = await admin
       .from("organizations")
       .select("type")
@@ -222,7 +326,15 @@ export const inviteOrgTeamMember = createServerFn({ method: "POST" })
       { onConflict: "user_id,role", ignoreDuplicates: true },
     );
 
-    return { ok: true, userId: invitee.id, status: "pending" as const };
+    await sendTeamInviteEmail({
+      email,
+      inviteeName,
+      inviterUserId: userId,
+      orgId,
+      isNewAccount,
+    });
+
+    return { ok: true, userId: invitee.id, status: "pending" as const, emailSent: true };
   });
 
 export const approveOrgTeamMember = createServerFn({ method: "POST" })
@@ -244,6 +356,23 @@ export const approveOrgTeamMember = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw error;
     if (!row) throw new Error("No pending invite found for this user");
+
+    const [{ data: org }, { data: profile }, memberAuth] = await Promise.all([
+      admin.from("organizations").select("name, type").eq("id", orgId).maybeSingle(),
+      admin.from("profiles").select("full_name").eq("id", data.memberUserId).maybeSingle(),
+      admin.auth.admin.getUserById(data.memberUserId),
+    ]);
+
+    const memberEmail = memberAuth.data.user?.email;
+    if (memberEmail && org?.type) {
+      await notifyOrgTeamApproved({
+        email: memberEmail,
+        inviteeName: profile?.full_name?.trim() || memberEmail.split("@")[0],
+        organizationName: org.name,
+        portalType: org.type as "agency" | "property_manager",
+      });
+    }
+
     return { ok: true };
   });
 

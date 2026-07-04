@@ -74,8 +74,8 @@ export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
         </div>
         <h1 className="font-display text-2xl font-semibold">Awaiting owner approval</h1>
         <p className="max-w-md text-sm text-muted-foreground">
-          Your property-manager team invite is pending. Ask the owner to approve you on the Team
-          page before you can access this dashboard.
+          Your property-manager team invite is pending. Check your email for sign-in instructions,
+          then ask the owner to approve you on the Team page before you can access this dashboard.
         </p>
         <button
           type="button"

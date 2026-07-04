@@ -30,7 +30,7 @@ export function OrgTeamPanel({ portalLabel }: Props) {
     mutationFn: () =>
       inviteOrgTeamMember({ data: { email: email.trim(), fullName: fullName.trim() || undefined } }),
     onSuccess: () => {
-      toast.success("Invite sent — approve them when ready to grant access");
+      toast.success("Invite email sent — approve them when ready to grant dashboard access");
       setEmail("");
       setFullName("");
       void qc.invalidateQueries({ queryKey: ["org-team"] });
@@ -82,8 +82,9 @@ export function OrgTeamPanel({ portalLabel }: Props) {
       <form onSubmit={onInvite} className="rounded-2xl border bg-card p-5">
         <h2 className="font-display text-lg font-semibold">Invite team member</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Invited people stay pending until you approve them. Approved members can manage listings
-          and leads, but cannot invite others or change owner settings.
+          Enter their email address — we&apos;ll send an invite with sign-in instructions. They stay
+          pending until you approve them. Approved members can manage listings and leads, but cannot
+          invite others or change owner settings.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <input

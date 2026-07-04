@@ -1,6 +1,8 @@
 import {
   adminNewApplicationEmail,
   newMessageEmail,
+  orgTeamApprovedEmail,
+  orgTeamInviteEmail,
   portalApprovedEmail,
   portalRejectedEmail,
 } from "@/lib/email/templates";
@@ -85,4 +87,39 @@ export async function notifyNewMessage(opts: {
     threadUrl: opts.threadUrl,
   });
   return sendEmail({ to: opts.recipientEmail, templateId: "new-message", ...tpl });
+}
+
+export async function notifyOrgTeamInvited(opts: {
+  email: string;
+  inviteeName: string;
+  inviterName: string;
+  organizationName: string;
+  portalLabel: string;
+  signInUrl: string;
+  isNewAccount: boolean;
+  setupPasswordUrl?: string;
+  otpCode?: string;
+}) {
+  if (!opts.email) return false;
+  const tpl = orgTeamInviteEmail(opts);
+  return sendEmail({ to: opts.email, templateId: "org-team-invite", ...tpl });
+}
+
+export async function notifyOrgTeamApproved(opts: {
+  email: string;
+  inviteeName: string;
+  organizationName: string;
+  portalType: "agency" | "property_manager";
+}) {
+  if (!opts.email) return false;
+  const portalLabel = opts.portalType === "property_manager" ? "property manager" : "agency";
+  const dashboardPath =
+    opts.portalType === "property_manager" ? "/manager/dashboard" : "/agency/dashboard";
+  const tpl = orgTeamApprovedEmail({
+    inviteeName: opts.inviteeName,
+    organizationName: opts.organizationName,
+    portalLabel,
+    dashboardUrl: `${getSiteUrl()}${dashboardPath}`,
+  });
+  return sendEmail({ to: opts.email, templateId: "org-team-approved", ...tpl });
 }

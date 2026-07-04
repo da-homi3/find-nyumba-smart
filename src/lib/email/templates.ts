@@ -268,6 +268,67 @@ export function portalRejectedEmail(opts: { name: string; role: string; reason?:
   };
 }
 
+export function orgTeamInviteEmail(opts: {
+  inviteeName: string;
+  inviterName: string;
+  organizationName: string;
+  portalLabel: string;
+  signInUrl: string;
+  isNewAccount: boolean;
+  setupPasswordUrl?: string;
+  otpCode?: string;
+}) {
+  const setupBlock =
+    opts.isNewAccount && opts.setupPasswordUrl && opts.otpCode
+      ? `
+    <div class="highlight" style="text-align:center">
+      <p style="margin:0;font-size:13px;color:#64748b">Set your password — use this code</p>
+      <p style="margin:8px 0 0;font-size:32px;font-weight:800;letter-spacing:0.35em;color:#0A5C47">${opts.otpCode}</p>
+      <p style="margin:12px 0 0;font-size:13px;color:#64748b">Expires in 60 minutes</p>
+    </div>
+    <p style="text-align:center"><a class="btn" href="${opts.setupPasswordUrl}">Set your password</a></p>
+  `
+      : "";
+
+  const body = `
+    <h1>You&apos;re invited to ${opts.organizationName}</h1>
+    <p>Hi ${opts.inviteeName},</p>
+    <p><strong>${opts.inviterName}</strong> invited you to join <strong>${opts.organizationName}</strong> on NyumbaSearch as a ${opts.portalLabel} team member.</p>
+    ${setupBlock}
+    <p>After ${opts.isNewAccount ? "setting your password, " : ""}sign in with <strong>${opts.signInUrl.replace(/^https?:\/\//, "")}</strong>. Your access stays pending until the owner approves you on the Team page.</p>
+    <p style="text-align:center"><a class="btn" href="${opts.signInUrl}">Sign in to NyumbaSearch</a></p>
+    <p style="font-size:13px;color:#64748b">If you weren&apos;t expecting this invite, you can ignore this email.</p>
+  `;
+  const textSetup =
+    opts.isNewAccount && opts.otpCode && opts.setupPasswordUrl
+      ? `\n\nSet your password with code ${opts.otpCode} or open: ${opts.setupPasswordUrl}\n`
+      : "";
+  return {
+    subject: `You're invited to join ${opts.organizationName} on NyumbaSearch`,
+    html: baseLayout({ preheader: `Team invite from ${opts.inviterName}`, body }),
+    text: `${opts.inviterName} invited you to ${opts.organizationName} (${opts.portalLabel}).${textSetup}\nSign in: ${opts.signInUrl}\n\nYour access is pending owner approval.`,
+  };
+}
+
+export function orgTeamApprovedEmail(opts: {
+  inviteeName: string;
+  organizationName: string;
+  portalLabel: string;
+  dashboardUrl: string;
+}) {
+  const body = `
+    <h1>Team access approved</h1>
+    <p>Hi ${opts.inviteeName},</p>
+    <p>You&apos;ve been approved to join <strong>${opts.organizationName}</strong> as a ${opts.portalLabel} team member. You can now manage listings and leads.</p>
+    <p><a class="btn" href="${opts.dashboardUrl}">Open dashboard</a></p>
+  `;
+  return {
+    subject: `You're approved — ${opts.organizationName} team access`,
+    html: baseLayout({ preheader: "Your team access is live", body }),
+    text: `You're approved for ${opts.organizationName}. Dashboard: ${opts.dashboardUrl}`,
+  };
+}
+
 export function passwordResetEmail(opts: {
   resetLink: string;
   otpCode: string;
