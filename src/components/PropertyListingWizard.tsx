@@ -305,7 +305,9 @@ export function PropertyListingWizard({
         },
       });
 
-      toast.success("Property listed! Running quality analysis…");
+      toast.success(
+        `Property listed! Area stats: health ${created.health_score ?? "—"} · authenticity ${created.authenticity_score ?? "—"}`,
+      );
       try {
         const report = await analyzePropertyQuality({ data: { propertyId: created.id } });
         toast.success(`Listing quality: ${report.grade} (${report.score}/100)`, {

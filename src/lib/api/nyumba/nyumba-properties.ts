@@ -163,6 +163,27 @@ export const createProperty = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
+    // Automatic area analysis for landlord / manager / agency uploads
+    try {
+      const admin = await adminClient();
+      const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
+      await applyPropertyAreaAnalysis(admin, property.id);
+      const { data: refreshed } = await admin
+        .from("properties")
+        .select("*")
+        .eq("id", property.id)
+        .single();
+      if (refreshed) {
+        const mapped = mapPropertyRow(refreshed);
+        void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
+          notifyMatchingSearchAlerts(mapped),
+        );
+        return mapped;
+      }
+    } catch (err) {
+      console.error("[createProperty] area analysis failed:", err);
+    }
+
     const mapped = mapPropertyRow(property);
     void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
       notifyMatchingSearchAlerts(mapped),
@@ -408,6 +429,20 @@ export const updateProperty = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw error;
+
+    try {
+      const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
+      await applyPropertyAreaAnalysis(admin, propertyId);
+      const { data: refreshed } = await admin
+        .from("properties")
+        .select("*")
+        .eq("id", propertyId)
+        .single();
+      if (refreshed) return mapPropertyRow(refreshed);
+    } catch (err) {
+      console.error("[updateProperty] area analysis failed:", err);
+    }
+
     return mapPropertyRow(updated);
   });
 

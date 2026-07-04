@@ -149,6 +149,12 @@ export const executeListingImport = createServerFn({ method: "POST" })
       } else {
         imported += 1;
         propertyIds.push(property.id);
+        try {
+          const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
+          await applyPropertyAreaAnalysis(supabaseAdmin, property.id);
+        } catch (analysisErr) {
+          console.error("[import] area analysis failed:", property.id, analysisErr);
+        }
       }
     }
 
