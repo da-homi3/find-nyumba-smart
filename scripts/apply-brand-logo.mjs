@@ -24,9 +24,6 @@ const transparent = await sharp(out, {
   .png()
   .toBuffer();
 
-const trimmedMeta = await sharp(transparent).metadata();
-console.log("trimmed", trimmedMeta.width, "x", trimmedMeta.height);
-
 const masterSize = 1024;
 const master = await sharp(transparent)
   .resize(masterSize, masterSize, {
@@ -72,15 +69,17 @@ async function writeSquare(path, size, solidBg = null) {
   console.log("wrote", path);
 }
 
-// Primary logo + icon (icon-only mark)
-await writeSquare("public/brand/nyumbasearch-logo.png", 512);
-await writeSquare("public/brand/nyumbasearch-icon.png", 256);
-await writeSquare("public/brand/icon-192.png", 192);
-await writeSquare("public/brand/icon-512.png", 512);
-await writeSquare("public/brand/nyumbasearch-mark.png", 1024);
-
-// Favicon / apple-touch on dark plate so white outline stays visible in light UI chrome
-await writeSquare("public/favicon.png", 64, { r: 18, g: 18, b: 20, alpha: 1 });
-await writeSquare("public/apple-touch-icon.png", 180, { r: 18, g: 18, b: 20, alpha: 1 });
+// Versioned filenames so browsers never keep the old green pin lockup
+await writeSquare("public/brand/logo-mark.png", 512);
+await writeSquare("public/brand/icon-mark.png", 256);
+await writeSquare("public/brand/icon-192-mark.png", 192);
+await writeSquare("public/brand/icon-512-mark.png", 512);
+await writeSquare("public/favicon-mark.png", 64, { r: 18, g: 18, b: 20, alpha: 1 });
+await writeSquare("public/apple-touch-icon-mark.png", 180, {
+  r: 18,
+  g: 18,
+  b: 20,
+  alpha: 1,
+});
 
 console.log("Brand assets updated");

@@ -1,9 +1,9 @@
-/** Public brand assets — served from /public/brand */
-export const BRAND_LOGO_PATH = "/brand/nyumbasearch-logo.png";
-export const BRAND_ICON_PATH = "/brand/nyumbasearch-icon.png";
-export const BRAND_ICON_192_PATH = "/brand/icon-192.png";
-export const BRAND_ICON_512_PATH = "/brand/icon-512.png";
-export const FAVICON_PATH = "/favicon.png";
-export const APPLE_TOUCH_ICON_PATH = "/apple-touch-icon.png";
+/** Public brand assets — served from /public/brand (mark = house + magnifying glass). */
+export const BRAND_LOGO_PATH = "/brand/logo-mark.png";
+export const BRAND_ICON_PATH = "/brand/icon-mark.png";
+export const BRAND_ICON_192_PATH = "/brand/icon-192-mark.png";
+export const BRAND_ICON_512_PATH = "/brand/icon-512-mark.png";
+export const FAVICON_PATH = "/favicon-mark.png";
+export const APPLE_TOUCH_ICON_PATH = "/apple-touch-icon-mark.png";
 export const WEB_MANIFEST_PATH = "/manifest.webmanifest";
 export const BRAND_THEME_COLOR = "#0d4f3c";

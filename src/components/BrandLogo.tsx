@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH } from "@/lib/brand";
 
 type BrandLogoProps = Readonly<{
-  /** Full horizontal lockup, icon-only pin, or logo without link wrapper */
+  /** Full mark or compact icon-only mark */
   variant?: "full" | "icon";
   className?: string;
   iconClassName?: string;
@@ -23,6 +23,7 @@ export function BrandLogo({
         alt="NyumbaSearch"
         width={36}
         height={36}
+        decoding="async"
         className={cn("h-9 w-9 shrink-0 object-contain", iconClassName, className)}
       />
     );
@@ -34,7 +35,8 @@ export function BrandLogo({
       alt="NyumbaSearch — Verified homes in Nairobi"
       width={48}
       height={48}
-      className={cn("h-9 w-auto shrink-0 object-contain object-left", logoClassName, className)}
+      decoding="async"
+      className={cn("h-9 w-auto shrink-0 object-contain", logoClassName, className)}
     />
   );
 }
@@ -42,7 +44,7 @@ export function BrandLogo({
 type BrandLogoLinkProps = BrandLogoProps &
   Readonly<{
     to?: "/" | "/tenant";
-    /** When true, only show the pin on narrow headers */
+    /** When true, only show the compact mark on narrow headers */
     compact?: boolean;
   }>;
 
