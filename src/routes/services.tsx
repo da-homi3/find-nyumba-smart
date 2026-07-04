@@ -22,10 +22,15 @@ function ServicesPage() {
               key={c.id}
               to="/services/$category"
               params={{ category: c.id }}
-              className="rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/30"
+              className="group rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              <span className="text-2xl">{c.emoji}</span>
-              <p className="mt-2 text-sm font-semibold">{c.label}</p>
+              <span className="text-2xl" aria-hidden>
+                {c.emoji}
+              </span>
+              <p className="mt-2 text-sm font-semibold group-hover:text-primary">{c.label}</p>
+              <p className="mt-1 text-[11px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
+                View providers →
+              </p>
             </Link>
           ))}
         </div>

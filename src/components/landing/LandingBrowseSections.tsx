@@ -197,10 +197,12 @@ export function ServiceTeaserRow() {
             key={c.id}
             to="/services/$category"
             params={{ category: c.id }}
-            className="rounded-2xl border bg-card p-4 text-center text-xs font-semibold hover:border-primary/30"
+            className="group rounded-2xl border bg-card p-4 text-center text-xs font-semibold transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            <span className="text-2xl">{c.emoji}</span>
-            <p className="mt-2">{c.label}</p>
+            <span className="text-2xl" aria-hidden>
+              {c.emoji}
+            </span>
+            <p className="mt-2 group-hover:text-primary">{c.label}</p>
           </Link>
         ))}
       </div>

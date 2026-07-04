@@ -4,7 +4,8 @@ import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { listActiveProvidersByCategory } from "@/lib/api/service-provider.functions";
 import type { PublicServiceProvider } from "@/lib/api/service-provider.functions";
 import { formatKes } from "@/lib/properties";
-import { Star } from "lucide-react";
+import { whatsAppUrl } from "@/lib/phone";
+import { MapPin, MessageCircle, Phone, Star } from "lucide-react";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
 import { useState } from "react";
@@ -24,6 +25,13 @@ export const Route = createFileRoute("/services/$category")({
     const providers = await listActiveProvidersByCategory({ data: { category: params.category } });
     return { providers };
   },
+  head: ({ params }) => {
+    const meta = SERVICE_CATEGORIES.find((c) => c.id === params.category);
+    const label = meta?.label ?? params.category;
+    return {
+      meta: [{ title: `${label} in Nairobi — NyumbaSearch` }],
+    };
+  },
   component: CategoryPage,
 });
 
@@ -37,12 +45,16 @@ function CategoryPage() {
   return (
     <PublicPageShell>
       <main className="mx-auto max-w-4xl px-5 py-12">
-        <Link to="/services" className="text-sm text-primary">
+        <Link to="/services" className="text-sm font-medium text-primary hover:underline">
           ← All services
         </Link>
         <h1 className="mt-4 font-display text-3xl font-semibold">
           {meta?.emoji} {meta?.label ?? category}
         </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {providers.length} provider{providers.length === 1 ? "" : "s"} serving Nairobi and nearby
+          areas. Ratings, areas served, and contact details below.
+        </p>
 
         {showingPlaceholders && (
           <p className="mt-4 rounded-xl border border-dashed bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
@@ -65,6 +77,15 @@ function CategoryPage() {
             />
           ))}
         </div>
+
+        {providers.length === 0 && (
+          <div className="mt-10 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+            No providers in this category yet.{" "}
+            <Link to="/services/register" className="font-semibold text-primary">
+              List your business
+            </Link>
+          </div>
+        )}
 
         <div className="mt-10 rounded-2xl border bg-card p-5 text-center">
           <p className="text-sm text-muted-foreground">Offer this service in Nairobi?</p>
@@ -93,40 +114,100 @@ function ProviderCard({
   onToggleQuote: () => void;
   onQuoteSent: () => void;
 }>) {
+  const waLink = whatsAppUrl(
+    p.phone,
+    `Hi ${p.businessName}, I found you on NyumbaSearch and would like a quote for ${category}.`,
+  );
+  const tierLabel = p.tier.charAt(0).toUpperCase() + p.tier.slice(1);
+
   return (
-    <article className="rounded-2xl border bg-card p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <article className="rounded-2xl border bg-card p-5 shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/services/provider/$id"
               params={{ id: p.id }}
-              className="font-semibold hover:text-primary"
+              className="font-display text-lg font-semibold hover:text-primary"
             >
               {p.businessName}
             </Link>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {tierLabel}
+            </span>
             {p.isPlaceholder && (
               <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Sample
               </span>
             )}
           </div>
-          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-            <Star className="h-3.5 w-3.5 fill-gold text-gold" /> {p.rating} ({p.reviewCount})
+
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+              <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden />
+              {p.rating.toFixed(1)}
+              <span className="font-normal text-muted-foreground">
+                ({p.reviewCount} review{p.reviewCount === 1 ? "" : "s"})
+              </span>
+            </span>
+            <span className="font-semibold text-primary">
+              From {formatKes(p.startingPriceKes)}
+            </span>
           </p>
-          <p className="text-xs text-muted-foreground">{p.areasServed.join(", ")}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm font-semibold">From {formatKes(p.startingPriceKes)}</p>
-          <button
-            type="button"
-            onClick={onToggleQuote}
-            className="mt-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
-          >
-            Get a quote
-          </button>
+
+          {p.description ? (
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.description}</p>
+          ) : null}
+
+          <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{p.areasServed.join(" · ")}</span>
+          </p>
+
+          <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium">
+            <Phone className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            <a href={`tel:${p.phone}`} className="hover:text-primary">
+              {p.phone}
+            </a>
+          </p>
         </div>
       </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {waLink ? (
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] px-4 py-2 text-xs font-semibold text-white hover:opacity-95"
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            WhatsApp
+          </a>
+        ) : null}
+        <a
+          href={`tel:${p.phone}`}
+          className="inline-flex items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold hover:bg-secondary"
+        >
+          <Phone className="h-3.5 w-3.5" />
+          Call
+        </a>
+        <Link
+          to="/services/provider/$id"
+          params={{ id: p.id }}
+          className="inline-flex items-center rounded-xl border px-4 py-2 text-xs font-semibold hover:bg-secondary"
+        >
+          View profile
+        </Link>
+        <button
+          type="button"
+          onClick={onToggleQuote}
+          className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+        >
+          {quoteOpen ? "Close quote form" : "Get a quote"}
+        </button>
+      </div>
+
       {quoteOpen && (
         <form
           className="mt-4 grid gap-2 border-t pt-4 sm:grid-cols-2"
