@@ -22,6 +22,7 @@ import { AdminScamsTab } from "@/components/admin/AdminScamsTab";
 import { AdminVerificationsTab } from "@/components/admin/AdminVerificationsTab";
 import { AdminPropertyChecksTab } from "@/components/admin/AdminPropertyChecksTab";
 import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab";
+import { AdminAdvertiseTab } from "@/components/admin/AdminAdvertiseTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -158,6 +159,7 @@ function AdminDashboard() {
     { id: "properties" as const, label: "Moderate listings", count: properties.length },
     { id: "audits" as const, label: "Audit Logs", count: audits.length },
     { id: "applications" as const, label: "Portal applications", count: applications.length },
+    { id: "advertise" as const, label: "Advertise", count: 0 },
     { id: "announcements" as const, label: "Announcements", count: 0 },
   ];
 
@@ -238,6 +240,7 @@ function AdminDashboard() {
               review={reviewApp}
             />
           )}
+          {activeTab === "advertise" && <AdminAdvertiseTab />}
           {activeTab === "announcements" && <AdminAnnouncementsTab />}
         </div>
       </div>

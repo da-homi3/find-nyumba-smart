@@ -111,8 +111,13 @@ export async function initiateStkPush(opts: {
   accountReference: string;
   transactionDesc: string;
 }): Promise<StkPushResult> {
-  if (opts.amountKes < 1 || opts.amountKes > 150_000) {
-    throw new Error("M-Pesa amount must be between KES 1 and KES 150,000");
+  if (opts.amountKes < 1) {
+    throw new Error("Minimum STK push amount is KES 1");
+  }
+  if (opts.amountKes > 100_000) {
+    throw new Error(
+      `Amount KES ${opts.amountKes.toLocaleString()} exceeds STK Push limit. Use card payment for amounts over KES 100,000.`,
+    );
   }
   const { assertStkPromptRateLimit } = await import("@/lib/payments/rate-limit");
   await assertStkPromptRateLimit({ phone254: opts.phone254 });

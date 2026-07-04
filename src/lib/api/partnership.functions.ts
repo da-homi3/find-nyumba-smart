@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRole } from "@/lib/api/_authz";
+import { getAuthContext } from "@/lib/api/server-context";
 import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getSiteUrl } from "@/lib/site";
 import { formatKes } from "@/lib/properties";
@@ -100,29 +103,35 @@ async function sendSubmitterConfirmation(data: InquiryPayload, inquiryId?: strin
   const site = getSiteUrl();
 
   if (data.inquiryType === "advertise") {
-    const packageId = data.metadata?.package ?? "banner";
+    const firstName = (data.name ?? "there").split(/\s+/)[0];
+    const packageId = data.metadata?.package ?? "listing_banner";
     const pkg = ADVERTISE_PACKAGES.find((p) => p.id === packageId) ?? ADVERTISE_PACKAGES[0];
-    const refQuery = inquiryId ? `&ref=${inquiryId}` : "";
-    const payUrl = `${site}/advertise/pay?package=${packageId}${refQuery}`;
     const text = [
-      `Hi ${data.name ?? "there"},`,
+      `Hi ${firstName},`,
       "",
-      "Thank you for your interest in advertising on NyumbaSearch. Your inquiry has been approved.",
+      "We've received your advertising enquiry on NyumbaSearch.",
       "",
-      `Package: ${pkg.name} — ${formatKes(pkg.priceKes)}/month`,
-      `Placement: ${pkg.placement}`,
+      `Package interest: ${pkg.name}`,
+      `Company: ${data.company ?? "—"}`,
       "",
-      "Complete payment to activate your campaign:",
-      payUrl,
+      "What happens next:",
+      "1. Our team reviews your request",
+      "2. We prepare a personalised ad package",
+      "3. We email you a proposal with a payment link",
+      "4. You pay — ads go live within 48 hours",
       "",
-      "Questions? Reply to this email or contact nyumbasearch101@gmail.com",
+      `We'll reply at ${submitterEmail} within 24 hours.`,
+      "",
+      site,
+      "",
+      "Questions? hello@nyumbasearch.com",
     ].join("\n");
     return sendEmail({
       to: submitterEmail,
-      subject: "NyumbaSearch advertising — complete your payment",
+      subject: "Your NyumbaSearch advertising enquiry has been received",
       text,
       html: text.replaceAll("\n", "<br>"),
-      templateId: "advertise-approved",
+      templateId: "advertise-inquiry-ack",
     });
   }
 
@@ -165,6 +174,109 @@ async function sendSubmitterConfirmation(data: InquiryPayload, inquiryId?: strin
 
   return false;
 }
+
+/** Admin: send approval email with payment link for an advertise inquiry. */
+export const approveAdvertiseInquiry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      inquiryId: z.string().uuid(),
+      packageId: z.string().min(1).optional(),
+      amountKes: z.number().int().positive().optional(),
+      notes: z.string().max(2000).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { sendEmail } = await import("@/lib/email/send");
+    const site = getSiteUrl();
+
+    const { data: inquiry, error } = await supabaseAdmin
+      .from("partnership_inquiries")
+      .select("*")
+      .eq("id", data.inquiryId)
+      .eq("inquiry_type", "advertise")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!inquiry) throw new Error("Inquiry not found");
+
+    const meta = (inquiry.metadata ?? {}) as Record<string, string>;
+    const packageId = data.packageId ?? meta.package ?? "listing_banner";
+    const pkg = ADVERTISE_PACKAGES.find((p) => p.id === packageId) ?? ADVERTISE_PACKAGES[0];
+    const amountKes = data.amountKes ?? pkg.priceKes;
+    const payUrl = `${site}/advertise/pay?package=${pkg.id}&ref=${inquiry.id}`;
+    const submitterEmail = inquiry.email;
+    if (!submitterEmail?.includes("@")) {
+      throw new Error("Inquiry has no email address for approval");
+    }
+
+    const firstName = (inquiry.contact_name ?? "there").split(/\s+/)[0];
+    const notesLine = data.notes?.trim() ? `\nNotes: ${data.notes.trim()}\n` : "";
+    const text = [
+      `Hi ${firstName},`,
+      "",
+      "Great news — your NyumbaSearch ad package is approved.",
+      "",
+      `Package: ${pkg.name}`,
+      `Amount: ${formatKes(amountKes)}`,
+      `Company: ${inquiry.company ?? "—"}`,
+      notesLine,
+      "To activate your ads, complete payment:",
+      payUrl,
+      "",
+      "Your ads will go live within 48 hours of payment confirmation.",
+      "",
+      "Pay by M-Pesa or card. Questions? hello@nyumbasearch.com",
+    ]
+      .filter((line) => line !== undefined)
+      .join("\n");
+
+    const sent = await sendEmail({
+      to: submitterEmail,
+      subject: "Your NyumbaSearch ad package is ready — pay to go live",
+      text,
+      html: text.replaceAll("\n", "<br>"),
+      templateId: "advertise-approved",
+    });
+
+    await supabaseAdmin
+      .from("partnership_inquiries")
+      .update({
+        metadata: {
+          ...meta,
+          package: pkg.id,
+          packageAmount: String(amountKes),
+          paymentLink: payUrl,
+          status: "approved",
+          approvedAt: new Date().toISOString(),
+        } as Record<string, string>,
+      })
+      .eq("id", inquiry.id);
+
+    return { ok: sent, paymentLink: payUrl };
+  });
+
+export const listAdvertiseInquiries = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("partnership_inquiries")
+      .select("*")
+      .eq("inquiry_type", "advertise")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    return data ?? [];
+  });
 
 export const submitPartnershipInquiry = createServerFn({ method: "POST" })
   .inputValidator(inquirySchema)

@@ -14,6 +14,7 @@ export type AdminTab =
   | "properties"
   | "audits"
   | "applications"
+  | "advertise"
   | "announcements";
 
 export type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];

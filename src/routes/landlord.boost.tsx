@@ -31,7 +31,6 @@ function BoostPage() {
   const [step, setStep] = useState(initialProperty ? 2 : 1);
   const [packageId, setPackageId] = useState<BoostPackage>(pkgParam ?? "spotlight");
   const [propertyId, setPropertyId] = useState(initialProperty ?? "");
-  const [campaignAmount, setCampaignAmount] = useState(20_000);
 
   useEffect(() => {
     if (pkgParam) setPackageId(pkgParam);
@@ -53,8 +52,7 @@ function BoostPage() {
 
   const active = properties.filter((p) => p.is_active);
   const pkg = BOOST_PACKAGES.find((p) => p.id === packageId)!;
-  const boostAmount =
-    packageId === "campaign" ? boostPrice("campaign", campaignAmount) : boostPrice(packageId);
+  const boostAmount = boostPrice(packageId);
 
   if (step === 3) {
     return (
@@ -96,32 +94,13 @@ function BoostPage() {
                 onClick={() => setPackageId(p.id)}
                 className={`rounded-2xl border p-4 text-left ${packageId === p.id ? "border-primary ring-2 ring-primary/20" : ""}`}
               >
-                <div className="font-semibold">{p.name}</div>
+                <div className="font-semibold">{p.badge ?? p.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{p.placement}</div>
-                <div className="mt-2 font-display text-lg text-primary">
-                  {p.priceRange ?? formatKes(p.priceKes)}
-                </div>
+                <div className="mt-2 font-display text-lg text-primary">{formatKes(p.priceKes)}</div>
                 <div className="text-[10px] text-muted-foreground">{p.durationDays} days</div>
               </button>
             ))}
           </div>
-          {packageId === "campaign" && (
-            <label className="mt-4 block text-sm">
-              <span className="font-medium">Campaign budget (KES 20,000 – 100,000)</span>
-              <input
-                type="range"
-                min={20000}
-                max={100000}
-                step={5000}
-                value={campaignAmount}
-                onChange={(e) => setCampaignAmount(Number(e.target.value))}
-                className="mt-2 w-full"
-              />
-              <span className="mt-1 block font-semibold text-primary">
-                {formatKes(campaignAmount)}
-              </span>
-            </label>
-          )}
           <button
             type="button"
             onClick={() => setStep(2)}

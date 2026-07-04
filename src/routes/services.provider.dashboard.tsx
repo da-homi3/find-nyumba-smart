@@ -5,6 +5,7 @@ import { getProviderDashboard } from "@/lib/api/service-provider.functions";
 import { providerTierPrice } from "@/lib/revenue/plans";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
+import { whatsAppUrl } from "@/lib/phone";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/services/provider/dashboard")({
@@ -112,17 +113,45 @@ function ProviderDashboardPage() {
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {inquiries.map((inq) => (
-                <li key={inq.id} className="rounded-xl border p-4 text-sm">
-                  <p className="font-medium">
-                    {(inq.profiles as { full_name?: string } | null)?.full_name ?? "Tenant"}
-                  </p>
-                  <p className="mt-2 text-muted-foreground">{inq.message}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {new Date(inq.created_at).toLocaleString()}
-                  </p>
-                </li>
-              ))}
+              {inquiries.map((inq) => {
+                const profile = inq.profiles as { full_name?: string; phone?: string } | null;
+                const tenantPhone = profile?.phone?.trim();
+                const waLink = tenantPhone
+                  ? whatsAppUrl(
+                      tenantPhone,
+                      `Hi, thanks for your inquiry on NyumbaSearch. I am ${provider.business_name}. How can I help you?`,
+                    )
+                  : null;
+                return (
+                  <li key={inq.id} className="rounded-xl border p-4 text-sm">
+                    <p className="font-medium">{profile?.full_name ?? "Tenant"}</p>
+                    <p className="mt-2 text-muted-foreground">{inq.message}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {new Date(inq.created_at).toLocaleString()}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {waLink ? (
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                          WhatsApp reply
+                        </a>
+                      ) : null}
+                      {tenantPhone ? (
+                        <a
+                          href={`tel:${tenantPhone}`}
+                          className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                        >
+                          Call
+                        </a>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

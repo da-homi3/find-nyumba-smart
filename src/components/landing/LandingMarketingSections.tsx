@@ -294,7 +294,8 @@ export function Testimonials({
 
 export function DownloadApp() {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [platform, setPlatform] = useState<"ios" | "android" | "both">("both");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -304,17 +305,20 @@ export function DownloadApp() {
         <div className="max-w-xl">
           <p className="text-xs font-semibold uppercase tracking-wider text-gold">Coming soon</p>
           <h2 className="mt-1 font-display text-3xl font-semibold sm:text-4xl">
-            NyumbaSearch on mobile — launching soon
+            NyumbaSearch on your phone
           </h2>
           <p className="mt-3 text-primary-foreground/80">
-            Be first to get the app. Save searches, instant alerts, and WhatsApp handoff to
-            landlords — built for Nairobi renters on the move.
+            Map search, instant notifications, M-Pesa payments, and NyumbaAI — in your pocket. Be
+            first to know when it drops.
           </p>
         </div>
         {done ? (
-          <p className="rounded-2xl border border-primary-foreground/30 bg-background/10 px-5 py-4 text-sm backdrop-blur">
-            You&apos;re on the list — check your email for confirmation.
-          </p>
+          <div className="rounded-2xl border border-primary-foreground/30 bg-background/10 px-5 py-4 text-sm backdrop-blur">
+            <p className="font-semibold">You&apos;re on the list!</p>
+            <p className="mt-1 text-primary-foreground/80">
+              We&apos;ll notify you at {email} the moment the app launches.
+            </p>
+          </div>
         ) : (
           <form
             className="flex w-full max-w-md flex-col gap-3"
@@ -326,10 +330,14 @@ export function DownloadApp() {
                 {
                   inquiryType: "app_notify",
                   email,
-                  name: name.trim() || undefined,
+                  phone: phone.trim() || undefined,
                   subject: "Mobile app launch notification",
-                  message: "Notify when NyumbaSearch mobile app launches",
-                  metadata: { source: "homepage_download_section" },
+                  message: `Notify when NyumbaSearch mobile app launches (${platform})`,
+                  metadata: {
+                    source: "homepage_download_section",
+                    platform,
+                    phone: phone.trim(),
+                  },
                 },
                 "You're on the list — check your email for confirmation.",
               );
@@ -338,29 +346,49 @@ export function DownloadApp() {
             }}
           >
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name (optional)"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
               className="rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
             />
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="min-w-0 flex-1 rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
-              />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-xl bg-background px-5 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
-              >
-                {submitting ? "Saving…" : "Notify me"}
-              </button>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone / WhatsApp (optional)"
+              className="rounded-xl border border-primary-foreground/30 bg-background/10 px-4 py-3 text-sm text-primary-foreground placeholder:text-primary-foreground/50 backdrop-blur"
+            />
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["ios", "iOS"],
+                  ["android", "Android"],
+                  ["both", "Both"],
+                ] as const
+              ).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setPlatform(val)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    platform === val
+                      ? "border-gold bg-gold/20 text-gold"
+                      : "border-primary-foreground/30 text-primary-foreground/80"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="rounded-xl bg-background px-5 py-3 text-sm font-semibold text-foreground disabled:opacity-60"
+            >
+              {submitting ? "Saving…" : "Notify me at launch"}
+            </button>
           </form>
         )}
       </div>

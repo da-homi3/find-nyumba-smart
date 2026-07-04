@@ -29,7 +29,7 @@ export const initiatePaymentSchema = z.object({
     .number()
     .int()
     .positive()
-    .max(150_000, "M-Pesa STK push supports up to KES 150,000 per transaction"),
+    .max(100_000, "M-Pesa STK push supports up to KES 100,000 — use card for higher amounts"),
   paymentType: z.enum([
     "featured_listing",
     "premium_subscription",

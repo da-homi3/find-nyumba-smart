@@ -7,7 +7,8 @@ export const Route = createFileRoute("/tenant")({
 });
 
 function TenantLayout() {
-  const isMessageThread = Boolean(useMatchRoute({ to: "/tenant/messages/$id", fuzzy: false }));
+  const matchRoute = useMatchRoute();
+  const isMessageThread = Boolean(matchRoute({ to: "/tenant/messages/$id", fuzzy: false }));
 
   return (
     <div className={`min-h-screen bg-background ${isMessageThread ? "" : "pb-24"}`}>

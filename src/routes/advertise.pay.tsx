@@ -7,7 +7,17 @@ import { formatKes } from "@/lib/properties";
 import { useAuth } from "@/hooks/use-auth";
 
 const searchSchema = z.object({
-  package: z.enum(["banner", "featured", "newsletter", "campaign"]).default("banner"),
+  package: z
+    .enum([
+      "listing_banner",
+      "homepage_hero",
+      "neighbourhood",
+      "email_newsletter",
+      "category_sponsor",
+      "whatsapp_blast",
+      "custom",
+    ])
+    .default("listing_banner"),
   ref: z.string().optional(),
 });
 

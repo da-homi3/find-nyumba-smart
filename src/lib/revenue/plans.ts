@@ -128,28 +128,32 @@ export const BOOST_PACKAGES: {
   durationDays: number;
   priceKes: number;
   priceRange?: string;
+  badge?: string;
 }[] = [
   {
     id: "spotlight",
     name: "Spotlight",
-    placement: "Top of neighborhood search results",
+    placement: "Featured at the top of search results in your neighbourhood for 7 days",
     durationDays: 7,
-    priceKes: 2000,
+    priceKes: 2500,
+    badge: "⚡ Spotlight",
   },
   {
     id: "homepage",
     name: "Homepage Feature",
-    placement: "Homepage featured properties section",
+    placement: 'Listed in the "Featured Homes" section on the homepage for 14 days',
     durationDays: 14,
     priceKes: 5000,
+    badge: "🏠 Homepage",
   },
   {
     id: "campaign",
-    name: "Campaign",
-    placement: "Homepage + email newsletter + push notification",
+    name: "Full Campaign",
+    placement: "Homepage + top search + email newsletter mention for 30 days",
     durationDays: 30,
-    priceKes: 20000,
-    priceRange: "KES 20,000 – 100,000",
+    priceKes: 12000,
+    priceRange: "KES 12,000",
+    badge: "🚀 Campaign",
   },
 ];
 
@@ -263,34 +267,59 @@ export function planMonthlyPrice(planId: LandlordPlan, cycle: "monthly" | "quart
   return base;
 }
 
-export function boostPrice(packageId: BoostPackage, customCampaignKes?: number): number {
-  if (packageId === "campaign" && customCampaignKes) {
-    return Math.min(Math.max(customCampaignKes, 20_000), 100_000);
-  }
-  return BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 2000;
+export function boostPrice(packageId: BoostPackage, _customCampaignKes?: number): number {
+  return BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 2500;
 }
 
 export const ADVERTISE_PACKAGES = [
-  { id: "banner", name: "Banner ads", placement: "Homepage + browse", priceKes: 5000 },
   {
-    id: "featured",
-    name: "Featured content",
-    placement: "Property detail pages",
+    id: "listing_banner",
+    name: "Listing page banner",
+    placement: "Browse & property pages",
     priceKes: 15000,
   },
   {
-    id: "newsletter",
-    name: "Newsletter inclusion",
-    placement: "Weekly tenant email",
+    id: "homepage_hero",
+    name: "Homepage featured slot",
+    placement: "Homepage hero",
+    priceKes: 35000,
+  },
+  {
+    id: "neighbourhood",
+    name: "Neighbourhood sponsor",
+    placement: "Neighbourhood search results",
     priceKes: 10000,
   },
-  { id: "campaign", name: "Full campaign", placement: "All placements", priceKes: 50000 },
+  {
+    id: "email_newsletter",
+    name: "Email newsletter inclusion",
+    placement: "Weekly tenant email",
+    priceKes: 8000,
+  },
+  {
+    id: "category_sponsor",
+    name: "Service category sponsor",
+    placement: "Services directory",
+    priceKes: 6000,
+  },
+  {
+    id: "whatsapp_blast",
+    name: "WhatsApp broadcast",
+    placement: "WhatsApp tenant list",
+    priceKes: 20000,
+  },
+  {
+    id: "custom",
+    name: "Custom package",
+    placement: "Tailored placements",
+    priceKes: 25000,
+  },
 ] as const;
 
 export type AdvertisePackageId = (typeof ADVERTISE_PACKAGES)[number]["id"];
 
 export function advertisePackagePrice(packageId: string): number {
-  return ADVERTISE_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 5000;
+  return ADVERTISE_PACKAGES.find((p) => p.id === packageId)?.priceKes ?? 15000;
 }
 
 export function transactionReference(): string {
