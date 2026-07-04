@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { LandlordShell } from "@/components/LandlordShell";
+import { ManagerShell } from "@/components/ManagerShell";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { PortalCheckoutPage } from "@/components/dashboard/portal/PortalCheckoutPage";
 
@@ -11,19 +11,19 @@ const searchSchema = z.object({
   reportType: z.string().optional(),
 });
 
-export const Route = createFileRoute("/landlord/checkout")({
+export const Route = createFileRoute("/manager/checkout")({
   validateSearch: (search) => searchSchema.parse(search),
-  head: () => ({ meta: [{ title: "Checkout — NyumbaSearch" }] }),
+  head: () => ({ meta: [{ title: "Checkout — Property manager — NyumbaSearch" }] }),
   component: () => (
-    <LandlordShell>
+    <ManagerShell>
       <RouteErrorBoundary title="Checkout failed to load">
-        <LandlordCheckout />
+        <ManagerCheckout />
       </RouteErrorBoundary>
-    </LandlordShell>
+    </ManagerShell>
   ),
 });
 
-function LandlordCheckout() {
+function ManagerCheckout() {
   const search = Route.useSearch();
-  return <PortalCheckoutPage portal="landlord" search={search} />;
+  return <PortalCheckoutPage portal="manager" search={search} />;
 }

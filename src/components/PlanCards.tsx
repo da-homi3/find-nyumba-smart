@@ -14,11 +14,17 @@ const ctaMotion = {
   whileTap: { scale: 0.98 },
 } as const;
 
-function parseCheckoutPlan(ctaTo: string): string | null {
+function parseCheckoutTarget(
+  ctaTo: string,
+): { path: "/landlord/checkout" | "/manager/checkout" | "/agency/checkout"; plan: string } | null {
   try {
     const url = new URL(ctaTo, "https://nyumba.local");
-    if (url.pathname !== "/landlord/checkout") return null;
-    return url.searchParams.get("plan");
+    const plan = url.searchParams.get("plan");
+    if (!plan) return null;
+    if (url.pathname === "/landlord/checkout") return { path: "/landlord/checkout", plan };
+    if (url.pathname === "/manager/checkout") return { path: "/manager/checkout", plan };
+    if (url.pathname === "/agency/checkout") return { path: "/agency/checkout", plan };
+    return null;
   } catch {
     return null;
   }
@@ -26,12 +32,12 @@ function parseCheckoutPlan(ctaTo: string): string | null {
 
 function PlanCta({ plan, className }: Readonly<{ plan: PlanCardDef; className: string }>) {
   const label = `${plan.cta} →`;
-  const checkoutPlan = parseCheckoutPlan(plan.ctaTo);
+  const checkout = parseCheckoutTarget(plan.ctaTo);
 
-  if (checkoutPlan) {
+  if (checkout) {
     return (
       <motion.div {...ctaMotion}>
-        <Link to="/landlord/checkout" search={{ plan: checkoutPlan }} className={className}>
+        <Link to={checkout.path} search={{ plan: checkout.plan }} className={className}>
           {label}
         </Link>
       </motion.div>

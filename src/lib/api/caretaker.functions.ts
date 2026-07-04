@@ -65,7 +65,7 @@ export const listCaretakers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, "landlord");
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
     const { data: caretakers, error } = await supabase
       .from("caretakers")
       .select("id, full_name, phone, is_active, created_at, last_login_at")
@@ -104,7 +104,7 @@ export const createCaretaker = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, "landlord");
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
 
     const { data: owned } = await supabase
       .from("properties")
@@ -146,7 +146,7 @@ export const regenerateCaretakerPin = createServerFn({ method: "POST" })
   .inputValidator(z.object({ caretakerId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, "landlord");
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
     const pin = generatePin();
     const pinHash = await hashValue(pin);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -164,7 +164,7 @@ export const revokeCaretaker = createServerFn({ method: "POST" })
   .inputValidator(z.object({ caretakerId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, "landlord");
+    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("caretakers")

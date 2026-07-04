@@ -8,6 +8,12 @@ import {
   LogOut,
   Plus,
   Loader2,
+  BarChart3,
+  KeyRound,
+  CreditCard,
+  Upload,
+  Plug,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogoLink } from "@/components/BrandLogo";
@@ -19,15 +25,22 @@ import { useEffect, type ReactNode } from "react";
 const ownerNav = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/properties", label: "Properties", icon: Building2 },
+  { to: "/agency/import", label: "Bulk import", icon: Upload },
+  { to: "/agency/integrations", label: "API", icon: Plug },
   { to: "/agency/leads", label: "Messages", icon: Inbox },
+  { to: "/agency/caretakers", label: "Caretakers", icon: KeyRound },
+  { to: "/agency/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/agency/team", label: "Team", icon: Users },
   { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/agency/dashboard/plan", label: "Plan", icon: Crown },
+  { to: "/agency/dashboard/billing", label: "Billing", icon: CreditCard },
 ] as const;
 
 const memberNav = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/properties", label: "Properties", icon: Building2 },
   { to: "/agency/leads", label: "Messages", icon: Inbox },
+  { to: "/agency/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

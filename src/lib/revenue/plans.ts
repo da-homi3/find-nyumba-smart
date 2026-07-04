@@ -82,7 +82,7 @@ export const AGENCY_PLANS: PlanCardDef[] = [
       "Lead management dashboard",
     ],
     cta: "Start Starter",
-    ctaTo: "/landlord/checkout?plan=agency-starter",
+    ctaTo: "/agency/checkout?plan=agency-starter",
   },
   {
     id: "agency-pro",
@@ -98,7 +98,7 @@ export const AGENCY_PLANS: PlanCardDef[] = [
       "Weekly performance reports",
     ],
     cta: "Go Professional",
-    ctaTo: "/landlord/checkout?plan=agency-pro",
+    ctaTo: "/agency/checkout?plan=agency-pro",
     highlighted: true,
   },
   {
