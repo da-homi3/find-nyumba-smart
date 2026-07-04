@@ -19,6 +19,7 @@ import {
   WhyNyumba,
 } from "@/components/landing/LandingMarketingSections";
 import { getBrandLogoUrl, getSiteUrl, HOMEPAGE_TITLE, CUSTOMER_CARE_EMAIL, CUSTOMER_CARE_PHONE_E164 } from "@/lib/site";
+import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
@@ -38,6 +39,8 @@ async function fetchPublicStatsApi(): Promise<PublicStats> {
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
     await prefetchHomepageQueries(context.queryClient);
+    const providerCounts = await getProviderCategoryCounts();
+    return { providerCounts };
   },
   head: () => {
     const canonical = getSiteUrl();
@@ -62,6 +65,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const { providerCounts } = Route.useLoaderData();
   const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties", "homepage-featured"],
     queryFn: () => fetchProperties({ limit: 50 }),
@@ -158,7 +162,7 @@ function Landing() {
         minRentByHood={minRentByHood}
         loading={propertiesLoading}
       />
-      <ServiceTeaserRow />
+      <ServiceTeaserRow counts={providerCounts} />
       <AgencyLogosSection agencies={featuredAgencies} loading={agenciesLoading} />
       <VerifiedSection />
       <PropertyIntelSection stats={intelligenceStats} loading={intelligenceLoading} />

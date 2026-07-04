@@ -177,7 +177,9 @@ export function PopularNeighborhoods({
   );
 }
 
-export function ServiceTeaserRow() {
+export function ServiceTeaserRow({
+  counts,
+}: Readonly<{ counts?: Record<string, number> }>) {
   return (
     <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6">
       <div className="flex items-end justify-between gap-4">
@@ -191,20 +193,28 @@ export function ServiceTeaserRow() {
           View all →
         </Link>
       </div>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-        {SERVICE_CATEGORIES.map((c) => (
-          <Link
-            key={c.id}
-            to="/services/$category"
-            params={{ category: c.id }}
-            className="group rounded-2xl border bg-card p-4 text-center text-xs font-semibold transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <span className="text-2xl" aria-hidden>
-              {c.emoji}
-            </span>
-            <p className="mt-2 group-hover:text-primary">{c.label}</p>
-          </Link>
-        ))}
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {SERVICE_CATEGORIES.map((c) => {
+          const count = counts?.[c.id];
+          return (
+            <Link
+              key={c.id}
+              to="/services/$category"
+              params={{ category: c.id }}
+              className="group rounded-2xl border bg-card p-4 text-center text-xs font-semibold transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <span className="text-2xl" aria-hidden>
+                {c.emoji}
+              </span>
+              <p className="mt-2 group-hover:text-primary">{c.label}</p>
+              {count != null && count > 0 ? (
+                <p className="mt-1 text-[10px] font-medium text-muted-foreground">
+                  {count} provider{count === 1 ? "" : "s"}
+                </p>
+              ) : null}
+            </Link>
+          );
+        })}
       </div>
       <Link
         to="/services/register"

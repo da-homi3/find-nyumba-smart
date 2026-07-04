@@ -10,6 +10,27 @@ const site = (
   "https://nyumbasearch.com"
 ).replace(/\/$/, "");
 
+const SERVICE_CATEGORIES = [
+  "electricians",
+  "plumbers",
+  "painters",
+  "internet",
+  "security",
+  "movers",
+  "cleaning",
+  "solar",
+  "pest_control",
+  "carpentry",
+  "furniture",
+  "interior_design",
+  "appliance_repair",
+  "gardening",
+  "water_services",
+  "generators",
+  "moving_supplies",
+  "ac_repair",
+];
+
 const paths = [
   "",
   "/tenant",
@@ -17,6 +38,8 @@ const paths = [
   "/auth",
   "/landlord",
   "/pricing",
+  "/services",
+  ...SERVICE_CATEGORIES.map((c) => `/services/${c}`),
   "/privacy",
   "/terms-of-service",
   "/cookie-policy",
@@ -35,7 +58,7 @@ const urls = paths
     <loc>${site}${path}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
-    <priority>${path === "" ? "1.0" : "0.8"}</priority>
+    <priority>${path === "" ? "1.0" : path.startsWith("/services") ? "0.85" : "0.8"}</priority>
   </url>`,
   )
   .join("\n");

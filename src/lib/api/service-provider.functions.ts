@@ -222,6 +222,33 @@ export type PublicServiceProvider = {
   isPlaceholder?: boolean;
 };
 
+export function normalizeProviderCategories(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((c): c is string => typeof c === "string");
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return Array.isArray(parsed) ? parsed.filter((c): c is string => typeof c === "string") : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+const TIER_RANK: Record<string, number> = { featured: 0, premium: 1, basic: 2 };
+
+export function sortServiceProviders<T extends { tier: string; businessName: string }>(
+  rows: T[],
+): T[] {
+  return [...rows].sort((a, b) => {
+    const tierDiff = (TIER_RANK[a.tier] ?? 9) - (TIER_RANK[b.tier] ?? 9);
+    if (tierDiff !== 0) return tierDiff;
+    return a.businessName.localeCompare(b.businessName);
+  });
+}
+
 function parseStartingPrice(priceRange: string | null | undefined): number {
   if (!priceRange) return 1500;
   const priceDigits = /[\d,]+/;
@@ -245,7 +272,7 @@ function mapProviderRow(
   },
   category?: string,
 ): PublicServiceProvider {
-  const categories = Array.isArray(row.categories) ? (row.categories as string[]) : [];
+  const categories = normalizeProviderCategories(row.categories);
   const areasServed = Array.isArray(row.areas_served) ? (row.areas_served as string[]) : [];
   const phone = row.phone?.trim() ?? "";
   const sourceUrl = row.source_url?.trim() || null;
@@ -268,6 +295,29 @@ function mapProviderRow(
   };
 }
 
+export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: rows, error } = await supabaseAdmin
+    .from("service_providers")
+    .select("categories")
+    .eq("status", "active");
+
+  if (error) throw error;
+
+  const counts = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
+    (typeof categories)[number],
+    number
+  >;
+
+  for (const row of rows ?? []) {
+    for (const cat of normalizeProviderCategories(row.categories)) {
+      if (cat in counts) counts[cat as (typeof categories)[number]]++;
+    }
+  }
+
+  return counts;
+});
+
 export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
   .inputValidator(z.object({ category: z.string().min(1) }))
   .handler(async ({ data }) => {
@@ -279,16 +329,19 @@ export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
         "id, business_name, categories, areas_served, description, price_range, phone, tier, verified, source_url",
       )
       .eq("status", "active")
-      .order("created_at", { ascending: false });
+      .filter("categories", "cs", JSON.stringify([data.category]))
+      .order("tier", { ascending: true })
+      .order("business_name", { ascending: true })
+      .limit(500);
 
     if (error) throw error;
 
-    const live = (rows ?? [])
-      .filter((row) => {
-        const categories = Array.isArray(row.categories) ? (row.categories as string[]) : [];
-        return categories.includes(data.category);
-      })
-      .map((row) => ({ ...mapProviderRow(row, data.category), isPlaceholder: false }));
+    const live = sortServiceProviders(
+      (rows ?? []).map((row) => ({
+        ...mapProviderRow(row, data.category),
+        isPlaceholder: false as const,
+      })),
+    );
 
     return mergeWithPlaceholders(live, data.category);
   });

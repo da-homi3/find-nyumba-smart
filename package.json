@@ -29,6 +29,7 @@
     "db:migrate:service-providers": "node scripts/apply-service-provider-directory.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "db:seed:providers": "node scripts/seed-service-providers.mjs",
+    "verify:providers": "node scripts/verify-provider-categories.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",
     "deploy": "npm run build && node scripts/sync-wrangler-env.mjs && npx wrangler deploy --config dist/server/wrangler.json",

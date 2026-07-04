@@ -1,38 +1,53 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
+import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 
 export const Route = createFileRoute("/services/")({
   head: () => ({ meta: [{ title: "Home services — NyumbaSearch" }] }),
+  loader: async () => {
+    const counts = await getProviderCategoryCounts();
+    const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+    return { counts, total };
+  },
   component: ServicesIndexPage,
 });
 
 function ServicesIndexPage() {
+  const { counts, total } = Route.useLoaderData();
+
   return (
     <PublicPageShell>
       <main className="mx-auto max-w-5xl px-5 py-12">
         <h1 className="font-display text-4xl font-semibold">Everything your new home needs</h1>
         <p className="mt-2 text-muted-foreground">
-          Trusted providers across Nairobi — electricians, movers, cleaners, and more.
+          {total > 0
+            ? `${total} trusted service providers across Nairobi and Kenya — browse by category below.`
+            : "Trusted providers across Nairobi — electricians, movers, cleaners, and more."}
         </p>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {SERVICE_CATEGORIES.map((c) => (
-            <Link
-              key={c.id}
-              to="/services/$category"
-              params={{ category: c.id }}
-              className="group rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            >
-              <span className="text-2xl" aria-hidden>
-                {c.emoji}
-              </span>
-              <p className="mt-2 text-sm font-semibold group-hover:text-primary">{c.label}</p>
-              <p className="mt-1 text-[11px] font-medium text-primary opacity-0 transition group-hover:opacity-100">
-                View providers →
-              </p>
-            </Link>
-          ))}
+        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {SERVICE_CATEGORIES.map((c) => {
+            const count = counts[c.id] ?? 0;
+            return (
+              <Link
+                key={c.id}
+                to="/services/$category"
+                params={{ category: c.id }}
+                className="group rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <span className="text-2xl" aria-hidden>
+                  {c.emoji}
+                </span>
+                <p className="mt-2 text-sm font-semibold group-hover:text-primary">{c.label}</p>
+                <p className="mt-1 text-xs font-medium text-muted-foreground">
+                  {count > 0
+                    ? `${count} provider${count === 1 ? "" : "s"}`
+                    : "View category →"}
+                </p>
+              </Link>
+            );
+          })}
         </div>
 
         <section className="mt-12 rounded-2xl border bg-secondary/40 p-6 sm:p-8">
@@ -57,10 +72,12 @@ function ServicesIndexPage() {
           </div>
         </section>
 
-        <p className="mt-8 text-xs text-muted-foreground">
-          Sample provider listings are shown in categories until verified businesses go live.
-          Request a quote anytime — we&apos;ll connect you with a vetted pro.
-        </p>
+        {total > 0 ? (
+          <p className="mt-8 text-xs text-muted-foreground">
+            Verified phone numbers are shown where confirmed from public sources. Others link to the
+            business website — request a quote anytime and we&apos;ll help you connect.
+          </p>
+        ) : null}
       </main>
     </PublicPageShell>
   );

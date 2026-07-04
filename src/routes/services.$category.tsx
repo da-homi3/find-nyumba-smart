@@ -56,10 +56,15 @@ function CategoryPage() {
           areas. Ratings, areas served, and contact details below.
         </p>
 
-        {showingPlaceholders && (
+        {showingPlaceholders ? (
           <p className="mt-4 rounded-xl border border-dashed bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
             Sample listings shown while we onboard local providers. Request a quote and we&apos;ll
             connect you with a vetted professional.
+          </p>
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Showing all {providers.length} active provider{providers.length === 1 ? "" : "s"} in
+            this category. Featured listings appear first.
           </p>
         )}
 
