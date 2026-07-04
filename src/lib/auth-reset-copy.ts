@@ -11,9 +11,11 @@ export function resetStepTitle(step: ResetStep): string {
 }
 
 export function resetStepSubtitle(step: ResetStep, email: string): string {
-  if (step === "request") return "We'll email you a secure code and reset link.";
-  if (step === "otp") {
-    return `We sent instructions to ${email || "your email"}. You can also use the link in the email.`;
+  if (step === "request") {
+    return "We'll email you a 6-digit code. Enter it here, then choose a new password.";
   }
-  return "Choose a strong password you have not used before.";
+  if (step === "otp") {
+    return `Enter the 6-digit code we sent to ${email || "your email"}.`;
+  }
+  return "Choose a strong password you have not used before. You'll sign in with it next.";
 }

@@ -59,10 +59,13 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
         email_otp?: string;
       };
 
-      const resetLink = props.action_link?.trim();
       const otpCode = props.email_otp?.trim();
+      const resetLink =
+        props.action_link?.trim() ||
+        `${getSiteUrl()}/auth/reset?email=${encodeURIComponent(email)}`;
 
-      if (resetLink && otpCode) {
+      // Prefer our email with the 6-digit code so users can reset without opening a magic link.
+      if (otpCode) {
         const tpl = passwordResetEmail({ resetLink, otpCode });
         const sent = await sendEmail({
           to: email,
@@ -70,6 +73,7 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
           ...tpl,
         });
         if (sent) return { ok: true as const };
+        console.error("[auth] password reset email failed to send via SendGrid");
       }
 
       const { error: fallbackError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {

@@ -216,6 +216,7 @@ export function PortalOverviewDashboard({
                       <td className="px-4 py-3 text-right">
                         <Link
                           to={leadsPath}
+                          search={{ thread: undefined }}
                           className="text-xs font-semibold text-primary hover:underline"
                         >
                           Leads

@@ -24,12 +24,13 @@ import {
 } from "@/lib/api/portal.functions";
 import { registerAccountSignup } from "@/lib/api/auth.functions";
 import { BrandLogoLink } from "@/components/BrandLogo";
+import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
   /** Client-only UX hint — never used for authorization; role is chosen in the signup form. */
   signupFor: z.enum(["tenant", "landlord", "manager", "agency"]).optional(),
-  mode: z.enum(["signin", "signup"]).optional(),
+  mode: z.enum(["signin", "signup", "reset"]).optional(),
 });
 
 export const Route = createFileRoute("/auth/")({
@@ -58,7 +59,9 @@ function signupSubtitle(role: AccountRole): string {
 function TenantAuth() {
   const { redirect, signupFor, mode: modeParam } = Route.useSearch();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">(modeParam ?? "signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "reset">(
+    modeParam === "reset" ? "reset" : (modeParam ?? "signin"),
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -69,7 +72,8 @@ function TenantAuth() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (modeParam) setMode(modeParam);
+    if (modeParam === "reset") setMode("reset");
+    else if (modeParam) setMode(modeParam);
     if (signupFor && modeParam === "signup") setRole(signupFor);
   }, [modeParam, signupFor]);
 
@@ -159,17 +163,33 @@ function TenantAuth() {
       .finally(() => setLoading(false));
   }
 
-  const submitLabel = authSubmitLabel(loading, mode);
+  const submitLabel = authSubmitLabel(loading, mode === "reset" ? "signin" : mode);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-md px-6 pt-10">
+      <div className="mx-auto max-w-md px-6 pt-10 pb-16">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
 
         <BrandLogoLink className="mt-6" logoClassName="h-10" />
 
+        {mode === "reset" ? (
+          <div className="mt-8 rounded-2xl border bg-card p-6 shadow-soft">
+            <PasswordResetFlow
+              initialEmail={email}
+              onCancel={() => {
+                setMode("signin");
+                void navigate({
+                  to: "/auth",
+                  search: { redirect, mode: "signin" },
+                  replace: true,
+                });
+              }}
+            />
+          </div>
+        ) : (
+          <>
         <h1 className="mt-6 font-display text-3xl font-semibold">
           {mode === "signin" ? "Welcome back" : "Create your account"}
         </h1>
@@ -286,13 +306,20 @@ function TenantAuth() {
           )}
 
           {mode === "signin" && (
-            <Link
-              to="/auth/reset"
-              search={{ email: email || undefined }}
-              className="block text-right text-xs font-semibold text-primary"
+            <button
+              type="button"
+              onClick={() => {
+                setMode("reset");
+                void navigate({
+                  to: "/auth",
+                  search: { redirect, mode: "reset" },
+                  replace: true,
+                });
+              }}
+              className="block w-full text-right text-xs font-semibold text-primary"
             >
               Forgot password?
-            </Link>
+            </button>
           )}
 
           <button
@@ -313,6 +340,8 @@ function TenantAuth() {
             Caretaker PIN sign in
           </Link>
         </p>
+          </>
+        )}
       </div>
     </div>
   );
