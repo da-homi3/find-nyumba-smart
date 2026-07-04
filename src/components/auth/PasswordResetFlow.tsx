@@ -14,7 +14,11 @@ import {
   recoverySessionEmail,
   recoveryUrlError,
 } from "@/lib/auth-reset";
-import { requestPasswordReset } from "@/lib/api/auth.functions";
+import {
+  completePasswordReset,
+  requestPasswordReset,
+  verifyPasswordResetCode,
+} from "@/lib/api/auth.functions";
 import { errorMessage } from "@/lib/utils";
 
 const OTP_PATTERN = /^\d{6}$/;
@@ -37,8 +41,12 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [sessionReady, setSessionReady] = useState(false);
+  /** True when the 6-digit email code was verified (our store, not Supabase OTP). */
+  const [codeVerified, setCodeVerified] = useState(false);
   const [linkBootstrapping, setLinkBootstrapping] = useState(false);
   const navigate = useNavigate();
+
+  const canSetPassword = sessionReady || codeVerified;
 
   const strength = useMemo(() => scorePassword(password), [password]);
   const stepIndex = STEPS.indexOf(step);
@@ -107,16 +115,6 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
     return () => globalThis.clearTimeout(timer);
   }, [resendSeconds]);
 
-  async function ensureRecoverySession(): Promise<boolean> {
-    if (sessionReady && (await hasAuthSession())) return true;
-    const ready = await bootstrapPasswordRecoverySession();
-    if (ready) {
-      setSessionReady(true);
-      return true;
-    }
-    return false;
-  }
-
   async function sendResetEmail() {
     const trimmed = email.trim();
     if (!trimmed) {
@@ -129,6 +127,7 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
       await requestPasswordReset({ data: { email: trimmed } });
       setEmail(trimmed);
       setSessionReady(false);
+      setCodeVerified(false);
       setOtp("");
       setResendSeconds(60);
       setStep("otp");
@@ -160,17 +159,8 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: trimmed,
-        token: otp,
-        type: "recovery",
-      });
-      if (error) throw error;
-      const authed = !!(data.session ?? (await hasAuthSession()));
-      if (!authed) {
-        throw new Error("Code accepted but session could not start. Request a new code.");
-      }
-      setSessionReady(true);
+      await verifyPasswordResetCode({ data: { email: trimmed, code: otp } });
+      setCodeVerified(true);
       setStep("password");
       toast.success("Code verified — choose your new password.");
     } catch (err) {
@@ -190,11 +180,26 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
 
     setLoading(true);
     try {
-      const authed = await ensureRecoverySession();
+      const trimmed = email.trim();
+
+      if (codeVerified && OTP_PATTERN.test(otp)) {
+        await completePasswordReset({
+          data: { email: trimmed, code: otp, password },
+        });
+        toast.success("Password updated. Sign in with your new password.");
+        navigate({ to: "/auth", search: { redirect: "/tenant", mode: "signin" } });
+        return;
+      }
+
+      // Magic-link recovery path (email button), if present.
+      const authed =
+        (sessionReady && (await hasAuthSession())) ||
+        (await bootstrapPasswordRecoverySession());
       if (!authed) {
-        toast.error("Your reset session expired. Enter a new code from your email.");
+        toast.error("Your reset session expired. Enter a new 6-digit code from your email.");
         setStep("otp");
         setSessionReady(false);
+        setCodeVerified(false);
         return;
       }
 
@@ -319,16 +324,17 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
         </div>
       )}
 
-      {step === "password" && !linkBootstrapping && !sessionReady && (
+      {step === "password" && !linkBootstrapping && !canSetPassword && (
         <div className="mt-8 rounded-2xl border border-dashed p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            Enter the code from your email first so we can update your password securely.
+            Enter the 6-digit code from your email first so we can update your password securely.
           </p>
           <button
             type="button"
             onClick={() => {
               setStep("otp");
               setSessionReady(false);
+              setCodeVerified(false);
             }}
             className="mt-4 text-sm font-semibold text-primary"
           >
@@ -337,7 +343,7 @@ export function PasswordResetFlow({ initialEmail = "", onCancel }: Props) {
         </div>
       )}
 
-      {step === "password" && !linkBootstrapping && sessionReady && (
+      {step === "password" && !linkBootstrapping && canSetPassword && (
         <form className="mt-6 space-y-4" onSubmit={updatePassword}>
           {email && (
             <p className="text-xs text-muted-foreground">

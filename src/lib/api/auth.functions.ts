@@ -12,21 +12,21 @@ const passwordResetSchema = z.object({
   email: z.string().email(),
 });
 
-function passwordResetRedirectUrl(): string {
-  return `${getSiteUrl()}/auth/reset`;
-}
+const passwordResetOtpSchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
 
-function isUnknownAuthUserError(message: string): boolean {
-  const lower = message.toLowerCase();
-  return (
-    lower.includes("user not found") ||
-    lower.includes("not found") ||
-    lower.includes("no user") ||
-    lower.includes("invalid email")
-  );
-}
+const passwordResetCompleteSchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+  password: z.string().min(8).max(72),
+});
 
-/** Sends password reset email with 6-digit code + link (SendGrid, Supabase fallback). */
+/**
+ * Sends a password reset email with our own exactly-6-digit code (not Supabase's OTP,
+ * which may be 8 digits depending on project settings).
+ */
 export const requestPasswordReset = createServerFn({ method: "POST" })
   .inputValidator(passwordResetSchema)
   .handler(async ({ data }) => {
@@ -37,55 +37,83 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
     checkRateLimit(`pwreset:ip:${ip}`, RATE_LIMITS.passwordReset);
     checkRateLimit(`pwreset:email:${email}`, RATE_LIMITS.passwordReset);
 
-    const redirectTo = passwordResetRedirectUrl();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
     try {
-      const { data: linkData, error } = await supabaseAdmin.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: { redirectTo },
+      const user = await findAuthUserByEmail(email);
+      // Always return ok to avoid email enumeration.
+      if (!user) return { ok: true as const };
+
+      const {
+        generateSixDigitResetCode,
+        storePasswordResetCode,
+      } = await import("@/lib/auth/password-reset-store");
+
+      const otpCode = generateSixDigitResetCode();
+      await storePasswordResetCode({ email, userId: user.id, code: otpCode });
+
+      const resetLink = `${getSiteUrl()}/auth/reset?email=${encodeURIComponent(email)}`;
+      const tpl = passwordResetEmail({ resetLink, otpCode });
+      const sent = await sendEmail({
+        to: email,
+        templateId: "password-reset",
+        ...tpl,
       });
-
-      if (error) {
-        if (!isUnknownAuthUserError(error.message)) {
-          console.error("[auth] generateLink recovery:", error.message);
-        }
-        return { ok: true as const };
-      }
-
-      const props = linkData.properties as {
-        action_link?: string;
-        email_otp?: string;
-      };
-
-      const otpCode = props.email_otp?.trim();
-      const resetLink =
-        props.action_link?.trim() ||
-        `${getSiteUrl()}/auth/reset?email=${encodeURIComponent(email)}`;
-
-      // Prefer our email with the 6-digit code so users can reset without opening a magic link.
-      if (otpCode) {
-        const tpl = passwordResetEmail({ resetLink, otpCode });
-        const sent = await sendEmail({
-          to: email,
-          templateId: "password-reset",
-          ...tpl,
-        });
-        if (sent) return { ok: true as const };
+      if (!sent) {
         console.error("[auth] password reset email failed to send via SendGrid");
-      }
-
-      const { error: fallbackError } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo,
-      });
-      if (fallbackError && !isUnknownAuthUserError(fallbackError.message)) {
-        console.error("[auth] resetPasswordForEmail fallback:", fallbackError.message);
       }
     } catch (err) {
       console.error("[auth] requestPasswordReset:", err);
     }
 
+    return { ok: true as const };
+  });
+
+/** Verifies the 6-digit code from email before showing the new-password form. */
+export const verifyPasswordResetCode = createServerFn({ method: "POST" })
+  .inputValidator(passwordResetOtpSchema)
+  .handler(async ({ data }) => {
+    const email = data.email.trim().toLowerCase();
+    const code = data.code.trim();
+    const {
+      readPasswordReset,
+      codesMatch,
+      markPasswordResetVerified,
+    } = await import("@/lib/auth/password-reset-store");
+
+    const record = await readPasswordReset(email);
+    if (!record || !codesMatch(record.code, code)) {
+      throw new Error("Invalid or expired reset code. Request a new code.");
+    }
+    await markPasswordResetVerified(email);
+    return { ok: true as const };
+  });
+
+/** Sets the new password after the 6-digit code has been verified. */
+export const completePasswordReset = createServerFn({ method: "POST" })
+  .inputValidator(passwordResetCompleteSchema)
+  .handler(async ({ data }) => {
+    const email = data.email.trim().toLowerCase();
+    const code = data.code.trim();
+    const {
+      readPasswordReset,
+      codesMatch,
+      consumePasswordReset,
+    } = await import("@/lib/auth/password-reset-store");
+
+    const record = await readPasswordReset(email);
+    if (!record || !codesMatch(record.code, code)) {
+      throw new Error("Invalid or expired reset code. Request a new code.");
+    }
+    if (!record.verified) {
+      throw new Error("Verify the 6-digit code before setting a new password.");
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(record.userId, {
+      password: data.password,
+    });
+    if (error) throw new Error(error.message);
+
+    await consumePasswordReset(email);
     return { ok: true as const };
   });
 
