@@ -186,6 +186,9 @@
   }
   html {
     scroll-behavior: smooth;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   html.dark,
   html:not(.light-mode) {
@@ -197,6 +200,18 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    min-width: 0;
+    max-width: 100%;
+  }
+  body {
+    overflow-x: clip;
+  }
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
   }
   html.dark body,
   html:not(.light-mode) body {

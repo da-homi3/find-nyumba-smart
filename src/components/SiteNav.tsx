@@ -207,6 +207,16 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
               Sign in
             </Link>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              toggleTheme();
+              setMenuOpen(false);
+            }}
+            className="flex w-full items-center gap-2 py-2 text-sm font-medium"
+          >
+            {isDark ? "☀️ Light mode" : "🌙 Dark mode"}
+          </button>
         </div>
       )}
     </motion.header>
@@ -303,7 +313,7 @@ function FooterCol({
 
 export function PublicPageShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-clip bg-background">
       <SiteNav variant="light" />
       {children}
       <SiteFooter />

@@ -201,49 +201,55 @@ function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-12">
-      <header className="border-b bg-card py-4 px-6">
-        <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="border-b bg-card px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link
               to="/tenant"
               aria-label="Back to tenant home"
-              className="rounded-full p-1.5 hover:bg-secondary"
+              className="shrink-0 rounded-full p-1.5 hover:bg-secondary"
             >
               <ArrowLeft className="h-4.5 w-4.5" />
             </Link>
-            <div className="rounded-lg bg-white px-2 py-1 shadow-sm">
+            <div className="shrink-0 rounded-lg bg-white px-2 py-1 shadow-sm">
               <BrandLogo logoClassName="h-6" />
             </div>
-            <h1 className="font-display text-xl font-bold">Admin Control Center</h1>
+            <h1 className="truncate font-display text-lg font-bold sm:text-xl">
+              Admin Control Center
+            </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <DashboardSettingsLink variant="pill" />
-            <span className="text-xs text-muted-foreground">Logged in as Administrator</span>
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              Logged in as Administrator
+            </span>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-6 mt-6">
-        <div className="flex border-b text-xs font-semibold">
-          {tabs.map((t) => (
-            <button
-              type="button"
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`pb-3 px-4 -mb-px border-b-2 transition ${
-                activeTab === t.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.label}{" "}
-              {t.count > 0 && (
-                <span className="ml-1 rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px]">
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
+      <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <div className="flex min-w-max border-b text-xs font-semibold">
+            {tabs.map((t) => (
+              <button
+                type="button"
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`shrink-0 whitespace-nowrap pb-3 px-3 sm:px-4 -mb-px border-b-2 transition ${
+                  activeTab === t.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.label}{" "}
+                {t.count > 0 && (
+                  <span className="ml-1 rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px]">
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-6">

@@ -1,5 +1,24 @@
 # NyumbaSearch Engineering Departments (Reference)
 
+> **Primary charter:** [eip-reference.md](eip-reference.md) — Enterprise Intelligence Protocol (EIP) v∞  
+> **Org model:** [aeo-reference.md](aeo-reference.md) — Autonomous Engineering Organization (AEO)
+
+This file lists legacy department roles mapped to AEO divisions and specialist skills.
+
+## AEO division map
+
+| AEO Division | Specialist skill |
+|--------------|------------------|
+| Executive Orchestrator | `nyumbasearch-autonomous-engineering` |
+| Product Strategy | `planner-x` |
+| Architecture Council | `planner-x` + `reviewforge-x` |
+| UI/UX Experience Council | `designforge-x` |
+| Engineering Division | `codeforge-x` |
+| Continuous Review Council | `reviewforge-x` |
+| Continuous Testing Swarm | `testforge-x` |
+
+---
+
 ## Mission
 
 Make NyumbaSearch: reliable, fast, secure, beautiful, scalable, maintainable, intelligent, fully documented, error-free, and production-ready at all times.

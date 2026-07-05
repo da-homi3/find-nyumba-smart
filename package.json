@@ -32,6 +32,7 @@
     "db:seed:providers": "node scripts/seed-service-providers.mjs",
     "verify:providers": "node scripts/verify-provider-categories.mjs",
     "verify:team-invites": "node scripts/verify-team-invites.mjs",
+    "verify:responsive": "node scripts/verify-responsive.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",
     "deploy": "npm run build && node scripts/sync-wrangler-env.mjs && npx wrangler deploy --config dist/server/wrangler.json",

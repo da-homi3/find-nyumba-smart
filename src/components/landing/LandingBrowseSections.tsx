@@ -69,9 +69,9 @@ export function FeaturedListings({
     return (
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
         <div className="skeleton h-8 w-64" />
-        <div className="mt-8 flex gap-4 overflow-x-auto pb-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURED_SKELETON_KEYS.map((id) => (
-            <div key={id} className="w-72 shrink-0 sm:w-auto">
+            <div key={id}>
               <ListingCardSkeleton />
             </div>
           ))}
@@ -99,11 +99,11 @@ export function FeaturedListings({
         </Link>
       </ScrollReveal>
       <ScrollRevealStagger
-        className="mt-8 flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4"
+        className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
         stagger={0.08}
       >
         {featured.map((p) => (
-          <ScrollRevealItem key={p.id} className="w-72 shrink-0 sm:w-auto">
+          <ScrollRevealItem key={p.id}>
             <PropertyCard p={p} />
           </ScrollRevealItem>
         ))}

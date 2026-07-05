@@ -65,48 +65,92 @@ function ComparePage() {
             </button>
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="p-3">Field</th>
-                  {properties.map((p) => (
-                    <th key={p.id} className="p-3 font-semibold normal-case text-foreground">
-                      <Link
-                        to="/tenant/property/$id"
-                        params={{ id: p.id }}
-                        className="hover:text-primary"
-                      >
-                        {p.title}
-                      </Link>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(
-                  [
-                    ["Rent / mo", (p: (typeof properties)[0]) => formatKes(p.rent_kes)],
-                    ["Neighborhood", (p: (typeof properties)[0]) => p.neighborhood],
-                    ["Type", (p: (typeof properties)[0]) => prettyType(p.property_type)],
-                    ["Beds", (p: (typeof properties)[0]) => String(p.bedrooms)],
-                    ["Baths", (p: (typeof properties)[0]) => String(p.bathrooms)],
-                    ["Verified", (p: (typeof properties)[0]) => (p.is_verified ? "Yes" : "No")],
-                    ["Health score", (p: (typeof properties)[0]) => `${p.health_score ?? 0}%`],
-                  ] as const
-                ).map(([label, render]) => (
-                  <tr key={label} className="border-b">
-                    <td className="p-3 font-medium text-muted-foreground">{label}</td>
+          <>
+            <div className="mt-6 space-y-4 md:hidden">
+              {properties.map((p) => (
+                <article key={p.id} className="rounded-2xl border p-4">
+                  <Link
+                    to="/tenant/property/$id"
+                    params={{ id: p.id }}
+                    className="font-semibold text-foreground hover:text-primary"
+                  >
+                    {p.title}
+                  </Link>
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Rent / mo</dt>
+                      <dd className="font-medium">{formatKes(p.rent_kes)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Neighborhood</dt>
+                      <dd className="font-medium">{p.neighborhood}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Type</dt>
+                      <dd className="font-medium">{prettyType(p.property_type)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Beds / Baths</dt>
+                      <dd className="font-medium">
+                        {p.bedrooms} / {p.bathrooms}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Verified</dt>
+                      <dd className="font-medium">{p.is_verified ? "Yes" : "No"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">Health score</dt>
+                      <dd className="font-medium">{p.health_score ?? 0}%</dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+
+            <div className="mt-6 hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[640px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="p-3">Field</th>
                     {properties.map((p) => (
-                      <td key={p.id} className="p-3">
-                        {render(p)}
-                      </td>
+                      <th key={p.id} className="p-3 font-semibold normal-case text-foreground">
+                        <Link
+                          to="/tenant/property/$id"
+                          params={{ id: p.id }}
+                          className="hover:text-primary"
+                        >
+                          {p.title}
+                        </Link>
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {(
+                    [
+                      ["Rent / mo", (p: (typeof properties)[0]) => formatKes(p.rent_kes)],
+                      ["Neighborhood", (p: (typeof properties)[0]) => p.neighborhood],
+                      ["Type", (p: (typeof properties)[0]) => prettyType(p.property_type)],
+                      ["Beds", (p: (typeof properties)[0]) => String(p.bedrooms)],
+                      ["Baths", (p: (typeof properties)[0]) => String(p.bathrooms)],
+                      ["Verified", (p: (typeof properties)[0]) => (p.is_verified ? "Yes" : "No")],
+                      ["Health score", (p: (typeof properties)[0]) => `${p.health_score ?? 0}%`],
+                    ] as const
+                  ).map(([label, render]) => (
+                    <tr key={label} className="border-b">
+                      <td className="p-3 font-medium text-muted-foreground">{label}</td>
+                      {properties.map((p) => (
+                        <td key={p.id} className="p-3">
+                          {render(p)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

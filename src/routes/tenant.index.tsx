@@ -274,7 +274,7 @@ function TenantHome() {
       )}
 
       {verified.length > 0 && (
-        <section className="mx-auto max-w-2xl px-5 pt-6">
+        <section className="mx-auto min-w-0 max-w-2xl overflow-x-clip px-5 pt-6">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
               <ShieldCheck className="h-4 w-4 text-primary" /> Recently verified
@@ -283,9 +283,9 @@ function TenantHome() {
               Map view →
             </Link>
           </div>
-          <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+          <div className="-mx-5 mt-3 flex min-w-0 gap-3 overflow-x-auto px-5 pb-2 scrollbar-none">
             {verified.map((p) => (
-              <div key={p.id} className="w-72 shrink-0">
+              <div key={p.id} className="w-[min(100%,18rem)] shrink-0 snap-start sm:w-72">
                 <PropertyCard
                   p={p}
                   saved={savedIds.has(p.id)}

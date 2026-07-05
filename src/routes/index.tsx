@@ -146,7 +146,7 @@ function Landing() {
   }, [properties, publicStats]);
 
   return (
-    <div className="min-h-screen bg-(--color-obsidian)">
+    <div className="min-h-screen overflow-x-clip bg-(--color-obsidian)">
       <SiteNav variant="hero" />
       <LandingHero verifiedCount={stats.verifiedCount} hoodCount={stats.hoods} />
       <TrustStrip

@@ -11,7 +11,7 @@ function TenantLayout() {
   const isMessageThread = Boolean(matchRoute({ to: "/tenant/messages/$id", fuzzy: false }));
 
   return (
-    <div className={`min-h-screen bg-background ${isMessageThread ? "" : "pb-24"}`}>
+    <div className={`min-h-screen overflow-x-clip bg-background ${isMessageThread ? "" : "pb-24"}`}>
       <Outlet />
       {!isMessageThread && <AiAssistant />}
       {!isMessageThread && <TenantBottomNav />}
