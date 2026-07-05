@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NyumbaSearch</string>
+    <string name="exit_title">Exit NyumbaSearch?</string>
+    <string name="exit_message">Are you sure you want to close the app?</string>
+    <string name="exit_confirm">Exit</string>
+    <string name="cancel">Cancel</string>
+    <string name="no_internet">No internet connection</string>
+    <string name="downloading">Downloading…</string>
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_message">Check your connection and try again.</string>
+    <string name="retry">Retry</string>
+    <string name="permission_camera_rationale">Camera access is needed to upload listing photos.</string>
+    <string name="permission_location_rationale">Location helps show properties near you.</string>
+    <string name="asset_links_note">Replace SHA-256 in assetlinks.json after generating release keystore.</string>
+</resources>

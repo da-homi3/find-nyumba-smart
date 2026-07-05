@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NyumbaSearch" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/forest_green</item>
+        <item name="colorSecondary">@color/mint</item>
+        <item name="android:statusBarColor">@color/forest_green</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+    </style>
+
+    <style name="Theme.NyumbaSearch.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/forest_green</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="postSplashScreenTheme">@style/Theme.NyumbaSearch</item>
+    </style>
+</resources>

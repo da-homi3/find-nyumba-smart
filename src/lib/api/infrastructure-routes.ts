@@ -620,7 +620,38 @@ const ROUTES: RouteDef[] = [
         sitemapResponse(buildStaticSitemapXml()),
       ),
   },
+  {
+    match: (url, method) => url.pathname === "/api/mobile/fcm-token" && method === "POST",
+    run: async (req) => {
+      const { handleFcmTokenRequest } = await import("@/lib/api/mobile-fcm");
+      return handleFcmTokenRequest(req);
+    },
+  },
+  {
+    match: (url) => normalizeSeoPath(url.pathname) === "/.well-known/assetlinks.json",
+    run: async () =>
+      new Response(ANDROID_ASSETLINKS_JSON, {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=3600",
+        },
+      }),
+  },
 ];
+
+/** Digital Asset Links for Android App Links — replace SHA-256 after release keystore is generated. */
+const ANDROID_ASSETLINKS_JSON = `[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.nyumbasearch.app",
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_RELEASE_KEYSTORE_SHA256_FINGERPRINT"
+      ]
+    }
+  }
+]`;
 
 /** Infrastructure routes (webhooks, health, sitemap) handled before TanStack SSR. */
 export async function tryInfrastructureRoute(req: Request): Promise<Response | null> {

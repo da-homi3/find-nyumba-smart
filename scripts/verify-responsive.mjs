@@ -109,7 +109,9 @@ function printSummary() {
   console.log(`Devices tested: ${uniqueDevices.size} phones (${PHONE_DEVICES.length} presets)`);
   console.log(`Pages per device: ${PATHS.length}`);
   console.log(`iOS checks:     ${byPlatform.iOS.pass} passed, ${byPlatform.iOS.fail} failed`);
-  console.log(`Android checks: ${byPlatform.Android.pass} passed, ${byPlatform.Android.fail} failed`);
+  console.log(
+    `Android checks: ${byPlatform.Android.pass} passed, ${byPlatform.Android.fail} failed`,
+  );
   console.log(`${"=".repeat(60)}\n`);
 
   const failures = results.filter((r) => !r.ok);
@@ -128,7 +130,9 @@ async function main() {
 
   console.log(`\nNyumbaSearch mobile responsive audit → ${BASE}`);
   console.log(`iOS phones: ${iosCount} · Android phones: ${androidCount}`);
-  console.log(`Total: ${PHONE_DEVICES.length} devices × ${PATHS.length} pages = ${PHONE_DEVICES.length * PATHS.length} checks\n`);
+  console.log(
+    `Total: ${PHONE_DEVICES.length} devices × ${PATHS.length} pages = ${PHONE_DEVICES.length * PATHS.length} checks\n`,
+  );
 
   const browser = await chromium.launch({ headless: true });
 

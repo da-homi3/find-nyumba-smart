@@ -1,12 +1,32 @@
 import { useEffect, useState } from "react";
+import { isLiteServeMode } from "@/lib/app-client";
 
-/** Desktop + motion OK — gates Three.js and heavy 3D transforms. */
+function clientViewport(): {
+  innerWidth: number;
+  matchMedia: (q: string) => MediaQueryList;
+} | null {
+  if (typeof globalThis.window === "undefined") return null;
+  return globalThis.window;
+}
+
+/** Desktop + motion OK — gates Three.js and heavy 3D transforms. Disabled in Android lite mode. */
 export function useDeviceCapability(): boolean {
   const [capable, setCapable] = useState(false);
 
   useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (isLiteServeMode()) {
+      setCapable(false);
+      return;
+    }
+
+    const viewport = clientViewport();
+    if (!viewport) {
+      setCapable(false);
+      return;
+    }
+
+    const isMobile = viewport.innerWidth < 768;
+    const prefersReduced = viewport.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const nav = navigator as Navigator & { deviceMemory?: number };
     const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory < 4;
     setCapable(!isMobile && !prefersReduced && !lowMemory);
@@ -16,6 +36,7 @@ export function useDeviceCapability(): boolean {
 }
 
 export function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const viewport = clientViewport();
+  if (!viewport) return false;
+  return viewport.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }

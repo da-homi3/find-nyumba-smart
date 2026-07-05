@@ -4,6 +4,7 @@ import {
   listingPlaceholderUrl,
   LOCAL_PROPERTY_PLACEHOLDER,
 } from "@/lib/property-images";
+import { optimizeImageUrlForServeMode } from "@/lib/app-client";
 
 type PropertyImageProps = Readonly<{
   src?: string | null;
@@ -18,7 +19,7 @@ function initialSrc(src: string | null | undefined, seed: string): string {
   if (!trimmed || isBrokenListingImageUrl(trimmed)) {
     return listingPlaceholderUrl(seed);
   }
-  return trimmed;
+  return optimizeImageUrlForServeMode(trimmed);
 }
 
 function photoClass(loaded: boolean, className?: string): string {

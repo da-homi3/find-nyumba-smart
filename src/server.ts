@@ -1,6 +1,8 @@
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { setWorkerBindings } from "./lib/worker-bindings";
+import type { ServeMode } from "./lib/app-client";
+import { getAppServeContext, withAppClientHeaders } from "./lib/app-client";
 import { addSecurityHeaders } from "./lib/security/headers";
 import { tryInfrastructureRoute } from "./lib/api/infrastructure-routes";
 
@@ -50,6 +52,36 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+async function injectServeModeIntoHtml(
+  response: Response,
+  serveMode: ServeMode,
+): Promise<Response> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html") || serveMode !== "lite") {
+    return response;
+  }
+
+  const html = await response.text();
+  const patched = html.includes("data-serve-mode=")
+    ? html
+    : html.replace(/<html(\s[^>]*)?>/i, `<html$1 data-serve-mode="lite">`);
+
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(patched, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function finalizeResponse(response: Response, request: Request): Promise<Response> {
+  const appContext = getAppServeContext(request);
+  const secured = addSecurityHeaders(response);
+  const withHeaders = withAppClientHeaders(secured, appContext);
+  return injectServeModeIntoHtml(withHeaders, appContext.serveMode);
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
@@ -57,13 +89,13 @@ export default {
 
       const infraResponse = await tryInfrastructureRoute(request);
       if (infraResponse) {
-        return addSecurityHeaders(infraResponse);
+        return finalizeResponse(infraResponse, request);
       }
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
-      return addSecurityHeaders(normalized);
+      return finalizeResponse(normalized, request);
     } catch (error) {
       console.error(error);
       return addSecurityHeaders(

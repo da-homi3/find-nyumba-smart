@@ -57,7 +57,7 @@ export function LandingHero({
   };
 
   return (
-    <section className="relative isolate min-h-[100dvh] overflow-hidden bg-(--surface-0) sm:min-h-[92vh]">
+    <section className="relative isolate min-h-dvh overflow-hidden bg-(--surface-0) sm:min-h-[92vh]">
       <div className="hero-photo-layer z-0" aria-hidden>
         <img
           src={heroImg}
@@ -87,7 +87,7 @@ export function LandingHero({
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-7xl flex-col items-center justify-center px-4 py-28 text-center sm:min-h-[92vh] sm:px-6 sm:py-32">
+      <div className="relative z-10 mx-auto flex min-h-dvh max-w-7xl flex-col items-center justify-center px-4 py-28 text-center sm:min-h-[92vh] sm:px-6 sm:py-32">
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
