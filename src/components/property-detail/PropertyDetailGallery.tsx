@@ -6,6 +6,8 @@ import type { Property } from "@/lib/properties";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyImage } from "@/components/PropertyImage";
 import { SaveButton } from "@/components/motion/SaveButton";
+import { PREVIEW_LISTING_NOTICE } from "@/lib/listing-visibility";
+import { cn } from "@/lib/utils";
 
 type PropertyDetailGalleryProps = Readonly<{
   property: Property;
@@ -17,6 +19,7 @@ type PropertyDetailGalleryProps = Readonly<{
   isSaved: boolean | undefined;
   onShare: () => void;
   onToggleSave: () => void;
+  obscured?: boolean;
 }>;
 
 const slideVariants = {
@@ -41,6 +44,7 @@ export function PropertyDetailGallery({
   isSaved,
   onShare,
   onToggleSave,
+  obscured = false,
 }: PropertyDetailGalleryProps) {
   const slideCount = gallery.length;
   const safeIndex = slideCount > 0 ? Math.min(Math.max(galleryIndex, 0), slideCount - 1) : 0;
@@ -75,7 +79,7 @@ export function PropertyDetailGallery({
       <div
         className="relative h-[50vh] min-h-[280px] max-h-[560px] w-full overflow-hidden sm:h-[60vh]"
         aria-roledescription="carousel"
-        aria-label={`Photos for ${property.title}`}
+        aria-label={obscured ? PREVIEW_LISTING_NOTICE : `Photos for ${property.title}`}
       >
         <AnimatePresence initial={false} custom={direction}>
           <motion.div
@@ -93,7 +97,8 @@ export function PropertyDetailGallery({
               if (info.offset.x < -50) goTo(safeIndex + 1);
               if (info.offset.x > 50) goTo(safeIndex - 1);
             }}
-            className="absolute inset-0 touch-pan-y"
+            className={cn("absolute inset-0 touch-pan-y", obscured && "select-none blur-[8px]")}
+            aria-hidden={obscured ? true : undefined}
           >
             <PropertyImage
               src={currentSrc}
@@ -111,6 +116,16 @@ export function PropertyDetailGallery({
 
         <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-black/40 via-transparent to-black/40" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-(--color-obsidian) to-transparent" />
+        {obscured ? (
+          <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-black/25 px-5 text-center backdrop-blur-[1px]">
+            <div className="rounded-2xl border border-white/20 bg-black/65 px-5 py-4 text-white shadow-elegant">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Preview</p>
+              <p className="mt-1 max-w-56 text-sm font-semibold leading-snug">
+                Real property uploads are coming soon
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         <Link
           to="/tenant"
@@ -187,7 +202,7 @@ export function PropertyDetailGallery({
                     aria-current={index === safeIndex ? "true" : undefined}
                     className={`h-8 w-12 shrink-0 overflow-hidden rounded-md border-2 p-0 transition-colors ${
                       index === safeIndex ? "border-[#1eb88a]" : "border-transparent"
-                    }`}
+                    } ${obscured ? "blur-[3px]" : ""}`}
                   >
                     <PropertyImage
                       src={src}

@@ -9,6 +9,8 @@ import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/lis
 import { isListingEarlyAccess } from "@/lib/revenue/entitlements";
 import { SaveButton } from "@/components/motion/SaveButton";
 import { isTouchDevice } from "@/lib/motion/performance";
+import { PREVIEW_LISTING_NOTICE, shouldObscureListing } from "@/lib/listing-visibility";
+import { cn } from "@/lib/utils";
 
 type Props = {
   readonly p: Property;
@@ -42,6 +44,7 @@ export function PropertyCard({
   const isFeatured = p.featured_until && new Date(p.featured_until) > new Date();
   const earlyAccess = isListingEarlyAccess(p.created_at, plusMember);
   const coverImage = p.images[0];
+  const isObscured = shouldObscureListing(p);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (touch) return;
@@ -78,10 +81,16 @@ export function PropertyCard({
         to="/tenant/property/$id"
         params={{ id: p.id }}
         className="absolute inset-0 z-0 rounded-[20px]"
-        aria-label={`View ${p.title}`}
+        aria-label={isObscured ? PREVIEW_LISTING_NOTICE : `View ${p.title}`}
       />
 
-      <div className="relative z-10 pointer-events-none">
+      <div
+        className={cn(
+          "relative z-10 pointer-events-none transition duration-300",
+          isObscured && "select-none blur-[6px]",
+        )}
+        aria-hidden={isObscured ? true : undefined}
+      >
         <div className="relative aspect-4/3 overflow-hidden bg-muted">
           <motion.div
             animate={{
@@ -204,6 +213,17 @@ export function PropertyCard({
           </div>
         </div>
       </div>
+
+      {isObscured && (
+        <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-background/35 px-4 text-center backdrop-blur-[1px]">
+          <div className="rounded-2xl border border-white/20 bg-background/90 px-4 py-3 shadow-card">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Preview</p>
+            <p className="mt-1 max-w-44 text-sm font-semibold leading-snug text-foreground">
+              Real property listings are coming soon
+            </p>
+          </div>
+        </div>
+      )}
 
       {isHovered && !touch && (
         <div

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { formatKes } from "@/lib/properties";
 import { readRecentlyViewed, type RecentProperty } from "@/lib/recently-viewed";
 import { PropertyImage } from "@/components/PropertyImage";
+import { shouldObscureListing } from "@/lib/listing-visibility";
+import { cn } from "@/lib/utils";
 
 export function RecentlyViewedStrip() {
   const [items, setItems] = useState<RecentProperty[]>([]);
@@ -34,29 +36,43 @@ export function RecentlyViewedStrip() {
         </Link>
       </div>
       <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-        {items.map((p) => (
-          <Link
-            key={p.id}
-            to="/tenant/property/$id"
-            params={{ id: p.id }}
-            className="w-56 shrink-0 rounded-xl border bg-card p-2 hover:bg-secondary"
-          >
-            {p.images[0] ? (
-              <PropertyImage
-                src={p.images[0]}
-                seed={p.id}
-                alt=""
-                className="h-24 w-full rounded-lg object-cover"
-              />
-            ) : (
-              <div className="grid h-24 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">
-                No photo
+        {items.map((p) => {
+          const obscured = shouldObscureListing(p);
+          return (
+            <Link
+              key={p.id}
+              to="/tenant/property/$id"
+              params={{ id: p.id }}
+              className="relative w-56 shrink-0 overflow-hidden rounded-xl border bg-card p-2 hover:bg-secondary"
+              aria-label={obscured ? "Preview listing" : p.title}
+            >
+              <div
+                className={cn("transition duration-300", obscured && "select-none blur-[5px]")}
+                aria-hidden={obscured ? true : undefined}
+              >
+                {p.images[0] ? (
+                  <PropertyImage
+                    src={p.images[0]}
+                    seed={p.id}
+                    alt=""
+                    className="h-24 w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="grid h-24 place-items-center rounded-lg bg-muted text-xs text-muted-foreground">
+                    No photo
+                  </div>
+                )}
+                <p className="mt-2 line-clamp-1 text-xs font-semibold">{p.title}</p>
+                <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
               </div>
-            )}
-            <p className="mt-2 line-clamp-1 text-xs font-semibold">{p.title}</p>
-            <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
-          </Link>
-        ))}
+              {obscured ? (
+                <span className="pointer-events-none absolute inset-0 grid place-items-center bg-card/45 text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur-[1px]">
+                  Preview
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

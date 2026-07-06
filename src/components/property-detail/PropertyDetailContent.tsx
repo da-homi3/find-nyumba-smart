@@ -11,6 +11,8 @@ import { PropertyStat } from "./PropertyStat";
 import { PropertyAiAssistant } from "./PropertyAiAssistant";
 import { PropertyReportSection } from "./PropertyReportSection";
 import { ContactUnlockCard } from "@/components/ContactUnlockCard";
+import { PREVIEW_LISTING_NOTICE } from "@/lib/listing-visibility";
+import { cn } from "@/lib/utils";
 import type { SubmitEvent } from "react";
 
 type Valuation = {
@@ -108,41 +110,65 @@ export function PropertyDetailContent({
 
   return (
     <div className="mx-auto max-w-2xl px-5 pt-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold leading-tight">{p.title}</h1>
-          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" /> {p.neighborhood} · {intel.subArea}
-            {p.address ? ` · ${p.address}` : ""}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="font-display text-2xl font-semibold text-primary">
-            {formatKes(p.rent_kes)}
+      <div className="relative">
+        <div
+          className={cn("transition duration-300", isDemo && "select-none blur-[6px]")}
+          aria-hidden={isDemo ? true : undefined}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="font-display text-2xl font-semibold leading-tight">{p.title}</h1>
+              <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" /> {p.neighborhood} · {intel.subArea}
+                {p.address ? ` · ${p.address}` : ""}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="font-display text-2xl font-semibold text-primary">
+                {formatKes(p.rent_kes)}
+              </div>
+              <div className="text-xs text-muted-foreground">/month</div>
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">/month</div>
+
+          <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border bg-card p-3">
+            <PropertyStat icon={BedDouble} label="Beds" value={String(p.bedrooms)} />
+            <PropertyStat icon={Bath} label="Baths" value={String(p.bathrooms)} />
+            <PropertyStat
+              icon={Square}
+              label="Area"
+              value={p.area_sqm ? `${p.area_sqm}m²` : "—"}
+            />
+            <PropertyStat
+              icon={Calendar}
+              label="Move-in"
+              value={p.available_from ? new Date(p.available_from).toLocaleDateString() : "Now"}
+            />
+          </div>
+
+          <div className="mt-3 rounded-2xl bg-secondary px-4 py-3 text-sm">
+            <span className="font-medium">Type:</span> {prettyType(p.property_type)} ·{" "}
+            <span className="font-medium">Deposit:</span>{" "}
+            {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
+            {intel.parking ? " · Parking" : ""}
+          </div>
+
+          <PropertyIntelligencePanel intel={intel} />
         </div>
+        {isDemo ? (
+          <div
+            className="pointer-events-none absolute inset-0 grid place-items-center rounded-3xl bg-background/30 px-5 text-center backdrop-blur-[1px]"
+            aria-label={PREVIEW_LISTING_NOTICE}
+          >
+            <div className="rounded-2xl border bg-card/95 px-5 py-4 shadow-card">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Preview</p>
+              <p className="mt-1 max-w-56 text-sm font-semibold leading-snug">
+                Real property details are coming soon
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
-
-      <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border bg-card p-3">
-        <PropertyStat icon={BedDouble} label="Beds" value={String(p.bedrooms)} />
-        <PropertyStat icon={Bath} label="Baths" value={String(p.bathrooms)} />
-        <PropertyStat icon={Square} label="Area" value={p.area_sqm ? `${p.area_sqm}m²` : "—"} />
-        <PropertyStat
-          icon={Calendar}
-          label="Move-in"
-          value={p.available_from ? new Date(p.available_from).toLocaleDateString() : "Now"}
-        />
-      </div>
-
-      <div className="mt-3 rounded-2xl bg-secondary px-4 py-3 text-sm">
-        <span className="font-medium">Type:</span> {prettyType(p.property_type)} ·{" "}
-        <span className="font-medium">Deposit:</span>{" "}
-        {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
-        {intel.parking ? " · Parking" : ""}
-      </div>
-
-      <PropertyIntelligencePanel intel={intel} />
 
       <section className="mt-6">
         <h2 className="font-display text-lg font-semibold">Scam risk scan</h2>
@@ -187,23 +213,43 @@ export function PropertyDetailContent({
         {renderValuationBody(valLoading, valuation)}
       </section>
 
-      <section className="mt-6">
-        <h2 className="font-display text-lg font-semibold">About this home</h2>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.description}</p>
-      </section>
+      <div className="relative mt-6">
+        <div
+          className={cn("transition duration-300", isDemo && "select-none blur-[6px]")}
+          aria-hidden={isDemo ? true : undefined}
+        >
+          <section>
+            <h2 className="font-display text-lg font-semibold">About this home</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.description}</p>
+          </section>
 
-      {p.amenities.length > 0 && (
-        <section className="mt-6">
-          <h2 className="font-display text-lg font-semibold">Amenities</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {p.amenities.map((a) => (
-              <span key={a} className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium">
-                {a}
-              </span>
-            ))}
+          {p.amenities.length > 0 && (
+            <section className="mt-6">
+              <h2 className="font-display text-lg font-semibold">Amenities</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {p.amenities.map((a) => (
+                  <span
+                    key={a}
+                    className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium"
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        {isDemo ? (
+          <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-3xl bg-background/30 px-5 text-center backdrop-blur-[1px]">
+            <div className="rounded-2xl border bg-card/95 px-5 py-4 shadow-card">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Preview</p>
+              <p className="mt-1 max-w-56 text-sm font-semibold leading-snug">
+                Uploaded listing descriptions will appear here
+              </p>
+            </div>
           </div>
-        </section>
-      )}
+        ) : null}
+      </div>
 
       <PropertyAiAssistant
         messages={chatMessages}
