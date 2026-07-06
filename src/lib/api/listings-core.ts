@@ -120,6 +120,27 @@ export async function queryListings(
     offset = legacy.offset;
   }
 
+  // Keep local/explicit mock previews usable when Supabase is unavailable.
+  if (error && mockListingsEnabled()) {
+    const limit = Math.min(Math.max(data?.limit ?? 50, 1), 500);
+    const offset = Math.max(data?.offset ?? 0, 0);
+    const mockResult = filterMockListings({
+      neighborhood: data?.neighborhood,
+      propertyType: data?.propertyType,
+      minRent: data?.minRent,
+      maxRent: data?.maxRent,
+      verifiedOnly: data?.verifiedOnly,
+      minBedrooms: data?.minBedrooms,
+      minAuthenticityScore: data?.minAuthenticityScore,
+      bounds: data?.bounds,
+      query: data?.query,
+      sortBy: data?.sortBy,
+      limit,
+      offset,
+    });
+    return mockResult;
+  }
+
   if (error) throw error;
 
   let items = mapPropertyRows((rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0]);
