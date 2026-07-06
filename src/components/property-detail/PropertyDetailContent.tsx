@@ -134,11 +134,7 @@ export function PropertyDetailContent({
           <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border bg-card p-3">
             <PropertyStat icon={BedDouble} label="Beds" value={String(p.bedrooms)} />
             <PropertyStat icon={Bath} label="Baths" value={String(p.bathrooms)} />
-            <PropertyStat
-              icon={Square}
-              label="Area"
-              value={p.area_sqm ? `${p.area_sqm}m²` : "—"}
-            />
+            <PropertyStat icon={Square} label="Area" value={p.area_sqm ? `${p.area_sqm}m²` : "—"} />
             <PropertyStat
               icon={Calendar}
               label="Move-in"

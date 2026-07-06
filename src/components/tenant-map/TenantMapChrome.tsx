@@ -214,7 +214,10 @@ export function TenantMapChrome({
               <X className="h-3.5 w-3.5" />
             </button>
             <div
-              className={cn("flex min-w-0 flex-1 gap-3 pr-6", selectedObscured && "select-none blur-[5px]")}
+              className={cn(
+                "flex min-w-0 flex-1 gap-3 pr-6",
+                selectedObscured && "select-none blur-[5px]",
+              )}
               aria-hidden={selectedObscured ? true : undefined}
             >
               {selected.images[0] ? (
