@@ -1,5 +1,6 @@
 import { formatKes, type Property } from "@/lib/properties";
 import { compactKes, projectToFallbackMap } from "./map-constants";
+import { shouldObscureListing } from "@/lib/listing-visibility";
 
 function fallbackPinClass(active: boolean, approx: boolean | undefined): string {
   if (active) {
@@ -59,6 +60,7 @@ export function FallbackMap({
         const point = projectToFallbackMap(p);
         const active = selected?.id === p.id;
         const approx = p.map_approximate;
+        const obscured = shouldObscureListing(p);
         return (
           <button
             type="button"
@@ -66,9 +68,9 @@ export function FallbackMap({
             onClick={() => onSelect(p)}
             className={`absolute -translate-x-1/2 -translate-y-full rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-elegant transition ${fallbackPinClass(active, approx)}`}
             style={point}
-            aria-label={`${p.title}, ${formatKes(p.rent_kes)}`}
+            aria-label={obscured ? "Preview listing" : `${p.title}, ${formatKes(p.rent_kes)}`}
           >
-            {compactKes(p.rent_kes).replaceAll("KES ", "")}
+            {obscured ? "Soon" : compactKes(p.rent_kes).replaceAll("KES ", "")}
           </button>
         );
       })}

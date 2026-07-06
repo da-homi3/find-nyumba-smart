@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { PropertyImage } from "@/components/PropertyImage";
 import { Flame, Layers, MapPin, Navigation, WifiOff, X } from "lucide-react";
+import { shouldObscureListing } from "@/lib/listing-visibility";
+import { cn } from "@/lib/utils";
 
 type TenantMapChromeProps = Readonly<{
   query: string;
@@ -47,6 +49,8 @@ export function TenantMapChrome({
   onSelect,
   onClearSelected,
 }: TenantMapChromeProps) {
+  const selectedObscured = selected ? shouldObscureListing(selected) : false;
+
   return (
     <>
       {!isOnline && (
@@ -161,33 +165,46 @@ export function TenantMapChrome({
           {panelOpen ? "Hide panel" : "Show"}
         </button>
         <div className="space-y-3">
-          {filteredProperties.slice(0, 8).map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onSelect(p)}
-              className="flex w-full gap-2 rounded-xl border p-2 text-left hover:bg-secondary"
-            >
-              {p.images[0] ? (
-                <PropertyImage
-                  src={p.images[0]}
-                  seed={p.id}
-                  alt=""
-                  className="h-14 w-16 rounded-lg object-cover"
-                />
-              ) : null}
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold">{p.title}</p>
-                <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
-              </div>
-            </button>
-          ))}
+          {filteredProperties.slice(0, 8).map((p) => {
+            const obscured = shouldObscureListing(p);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onSelect(p)}
+                className="relative flex w-full gap-2 overflow-hidden rounded-xl border p-2 text-left hover:bg-secondary"
+              >
+                <div
+                  className={cn("flex min-w-0 gap-2", obscured && "select-none blur-[4px]")}
+                  aria-hidden={obscured ? true : undefined}
+                >
+                  {p.images[0] ? (
+                    <PropertyImage
+                      src={p.images[0]}
+                      seed={p.id}
+                      alt=""
+                      className="h-14 w-16 rounded-lg object-cover"
+                    />
+                  ) : null}
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold">{p.title}</p>
+                    <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
+                  </div>
+                </div>
+                {obscured ? (
+                  <span className="pointer-events-none absolute inset-0 grid place-items-center bg-card/55 text-[10px] font-bold uppercase tracking-wider text-primary backdrop-blur-[1px]">
+                    Preview
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </aside>
 
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10">
         {selected ? (
-          <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
+          <div className="pointer-events-auto relative flex gap-3 overflow-hidden rounded-2xl border bg-card p-3 shadow-elegant">
             <button
               type="button"
               onClick={onClearSelected}
@@ -196,40 +213,55 @@ export function TenantMapChrome({
             >
               <X className="h-3.5 w-3.5" />
             </button>
-            {selected.images[0] ? (
-              <PropertyImage
-                src={selected.images[0]}
-                seed={selected.id}
-                alt={selected.title}
-                className="h-20 w-24 shrink-0 rounded-xl object-cover"
-              />
-            ) : (
-              <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
-                No image
-              </div>
-            )}
-            <div className="min-w-0 flex-1 pr-6">
-              <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
-              <p className="text-xs text-muted-foreground">
-                {prettyType(selected.property_type)} · {selected.neighborhood}
-                {selected.map_approximate ? (
-                  <span className="ml-1 text-amber-600">· approx. area</span>
-                ) : null}
-              </p>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-primary">
-                  {formatKes(selected.rent_kes)}
-                  <span className="text-xs font-normal text-muted-foreground">/mo</span>
+            <div
+              className={cn(
+                "flex min-w-0 flex-1 gap-3 pr-6",
+                selectedObscured && "select-none blur-[5px]",
+              )}
+              aria-hidden={selectedObscured ? true : undefined}
+            >
+              {selected.images[0] ? (
+                <PropertyImage
+                  src={selected.images[0]}
+                  seed={selected.id}
+                  alt={selected.title}
+                  className="h-20 w-24 shrink-0 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
+                  No image
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {prettyType(selected.property_type)} · {selected.neighborhood}
+                  {selected.map_approximate ? (
+                    <span className="ml-1 text-amber-600">· approx. area</span>
+                  ) : null}
                 </p>
-                <Link
-                  to="/tenant/property/$id"
-                  params={{ id: selected.id }}
-                  className="rounded-full bg-gradient-gold px-3 py-1 text-[11px] font-semibold text-gold-foreground"
-                >
-                  View
-                </Link>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-primary">
+                    {formatKes(selected.rent_kes)}
+                    <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                  </p>
+                  <Link
+                    to="/tenant/property/$id"
+                    params={{ id: selected.id }}
+                    className="rounded-full bg-gradient-gold px-3 py-1 text-[11px] font-semibold text-gold-foreground"
+                  >
+                    View
+                  </Link>
+                </div>
               </div>
             </div>
+            {selectedObscured ? (
+              <div className="pointer-events-none absolute inset-0 grid place-items-center bg-card/45 px-4 text-center backdrop-blur-[1px]">
+                <span className="rounded-full border bg-background/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Preview listing
+                </span>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="pointer-events-auto rounded-2xl bg-background/95 px-4 py-3 text-center text-xs text-muted-foreground shadow-card backdrop-blur">

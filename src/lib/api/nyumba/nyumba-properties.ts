@@ -44,7 +44,11 @@ export const getProperty = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      const mockProperty = mockListingsEnabled() ? getMockProperty(data.id) : null;
+      if (mockProperty) return mockProperty;
+      throw error;
+    }
     if (!property?.is_active) {
       if (mockListingsEnabled()) return getMockProperty(data.id);
       return null;

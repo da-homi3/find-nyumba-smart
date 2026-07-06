@@ -75,6 +75,7 @@ function PropertyDetail() {
         isSaved={detail.isSaved}
         onShare={() => void detail.handleShare()}
         onToggleSave={() => detail.toggleSave.mutate()}
+        obscured={detail.isDemo}
       />
 
       <PropertyDetailMedia property={p} />
