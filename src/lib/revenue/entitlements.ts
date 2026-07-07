@@ -6,6 +6,7 @@ export type UserEntitlements = {
   tenantPlan: TenantPlan;
   plusExpiresAt: string | null;
   listingLimit: number;
+  bonusListingSlots?: number;
   trialUnlocksRemaining?: number;
   trialEndsAt?: string | null;
   trialActive?: boolean;

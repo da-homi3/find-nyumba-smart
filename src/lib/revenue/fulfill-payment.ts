@@ -151,6 +151,7 @@ async function fulfillRenewalSubscription(
     .maybeSingle();
   if (!sub) return;
 
+  const wasTrialing = sub.status === "trialing";
   const cycle = billingCycle(payment.metadata);
   const days = cycle === "quarterly" ? 90 : 30;
 
@@ -181,6 +182,11 @@ async function fulfillRenewalSubscription(
       .from("profiles")
       .update({ landlord_plan: plan, is_portal_active: true })
       .eq("id", sub.user_id);
+  }
+
+  if (wasTrialing) {
+    const { onFirstSuccessfulRenewal } = await import("@/lib/promo/founding-member-lifecycle");
+    await onFirstSuccessfulRenewal(supabaseAdmin, sub.user_id);
   }
 }
 
@@ -508,7 +514,7 @@ async function fulfillInvoice(supabaseAdmin: SupabaseAdmin, payment: PaymentFulf
             status: "paid",
             paidAt: new Date().toISOString(),
             paymentId: payment.paymentId ?? "",
-          } as Record<string, string>,
+          },
         })
         .eq("id", inquiry.id);
     }

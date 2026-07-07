@@ -19,6 +19,8 @@ export const SERVICE_CATEGORIES = [
   { id: "generators", label: "Generators & backup power", emoji: "⚡" },
   { id: "moving_supplies", label: "Moving supplies", emoji: "📦" },
   { id: "ac_repair", label: "AC & refrigeration", emoji: "❄️" },
+  { id: "laundry", label: "Laundry & dry cleaning", emoji: "👔" },
+  { id: "locksmiths", label: "Locksmiths", emoji: "🔑" },
 ];
 
 export const MOCK_PROVIDERS: ServiceProvider[] = [

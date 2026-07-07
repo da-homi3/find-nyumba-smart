@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { type Property } from "@/lib/properties";
 import { useListingsSearch } from "@/hooks/use-listings-search";
 import { FallbackMap } from "@/components/tenant-map/FallbackMap";
@@ -10,6 +10,7 @@ import { TenantMapChrome } from "@/components/tenant-map/TenantMapChrome";
 import { LazyRadar } from "@/components/LazyRadar";
 import { useTenantGoogleMap } from "@/hooks/use-tenant-google-map";
 import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks/use-tenant-mapbox";
+import { mergeListingsForDisplay } from "@/lib/listings-preview";
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -78,7 +79,10 @@ function TenantMap() {
     error,
     refetch,
   } = useListingsSearch({ limit: 500, sortBy: "newest" });
-  const properties = searchResult?.items ?? [];
+  const properties = useMemo(
+    () => mergeListingsForDisplay(searchResult?.items ?? []),
+    [searchResult?.items],
+  );
 
   const [provider, setProvider] = useState<MapProvider>(resolveInitialProvider);
 

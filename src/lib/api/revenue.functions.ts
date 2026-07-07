@@ -15,10 +15,13 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [landlordPlan, plus, trial] = await Promise.all([
+    const [landlordPlan, plus, trial, bonusSlots] = await Promise.all([
       getActiveLandlordPlan(supabase, userId),
       getTenantPlusStatus(supabase, userId),
       ensureTenantTrial(supabaseAdmin, userId),
+      import("@/lib/promo/listing-cap").then(({ getBonusListingSlots }) =>
+        getBonusListingSlots(supabase, userId),
+      ),
     ]);
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -34,11 +37,15 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
       0,
     );
 
+    const baseLimit = LISTING_LIMITS[landlordPlan] ?? 1;
+    const listingLimit = baseLimit >= 9999 ? baseLimit : baseLimit + bonusSlots;
+
     return {
       landlordPlan,
       tenantPlan: plus.tenantPlan,
       plusExpiresAt: plus.plusExpiresAt,
-      listingLimit: LISTING_LIMITS[landlordPlan] ?? 1,
+      listingLimit,
+      bonusListingSlots: bonusSlots,
       trialUnlocksRemaining: trial.trialUnlocksRemaining,
       trialEndsAt: trial.trialEndsAt,
       trialActive: trial.trialActive,

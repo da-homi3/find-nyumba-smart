@@ -10,6 +10,8 @@ import { buildPropertyDetailHead } from "@/components/property-detail/property-d
 import { usePropertyDetail } from "@/hooks/use-property-detail";
 import { PropertyDetailSkeleton } from "@/components/skeletons/PropertyDetailSkeleton";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
+import { isPreviewListing } from "@/lib/listings-preview";
 
 export const Route = createFileRoute("/tenant/property/$id")({
   loader: async ({ params, context }) => {
@@ -55,72 +57,75 @@ function PropertyDetail() {
   const gallery = p.images.length > 0 ? p.images : [];
   const score = p.authenticity_score ?? 70;
   const vLevel = verificationLevel(p);
+  const previewActive = isPreviewListing(p);
 
   return (
-    <div className="pb-32 bg-background min-h-screen">
-      {detail.isDemo && (
-        <div className="border-b border-amber-500/30 bg-amber-500/10 px-5 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
-          Demo listing — browse photos and AI tools here. Save, message, and book viewings on live
-          listings from verified landlords.
-        </div>
-      )}
+    <ListingsPreviewOverlay active={previewActive} className="min-h-screen">
+      <div className="pb-32 bg-background min-h-screen">
+        {detail.isDemo && (
+          <div className="border-b border-amber-500/30 bg-amber-500/10 px-5 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
+            Demo listing — browse photos and AI tools here. Save, message, and book viewings on live
+            listings from verified landlords.
+          </div>
+        )}
 
-      <PropertyDetailGallery
-        property={p}
-        gallery={gallery}
-        galleryIndex={detail.galleryIndex}
-        onGalleryIndexChange={detail.setGalleryIndex}
-        verificationLevel={vLevel}
-        authenticityScore={score}
-        isSaved={detail.isSaved}
-        onShare={() => void detail.handleShare()}
-        onToggleSave={() => detail.toggleSave.mutate()}
-      />
+        <PropertyDetailGallery
+          property={p}
+          gallery={gallery}
+          galleryIndex={detail.galleryIndex}
+          onGalleryIndexChange={detail.setGalleryIndex}
+          verificationLevel={vLevel}
+          authenticityScore={score}
+          isSaved={detail.isSaved}
+          onShare={() => void detail.handleShare()}
+          onToggleSave={() => detail.toggleSave.mutate()}
+        />
 
-      <PropertyDetailMedia property={p} />
+        <PropertyDetailMedia property={p} />
 
-      <PropertyDetailContent
-        property={p}
-        propertyId={id}
-        userId={detail.user?.id}
-        isPlus={isPlus}
-        landlordName={detail.landlordContact?.fullName ?? "Verified landlord"}
-        similar={detail.similar}
-        valuation={detail.valuation}
-        valLoading={detail.valLoading}
-        chatMessages={detail.chatMessages}
-        chatInput={detail.chatInput}
-        chatLoading={detail.chatLoading}
-        onChatInputChange={detail.setChatInput}
-        onChatSubmit={detail.handleSendChat}
-        isDemo={detail.isDemo}
-        reportOpen={detail.reportOpen}
-        reportReason={detail.reportReason}
-        reportDetails={detail.reportDetails}
-        reportSubmitting={detail.reportSubmitting}
-        onReportOpen={detail.openReportForm}
-        onReportClose={() => detail.setReportOpen(false)}
-        onReportReasonChange={detail.setReportReason}
-        onReportDetailsChange={detail.setReportDetails}
-        onReportSubmit={() => void detail.submitReport()}
-        onContactUnlocked={(phone) => detail.setUnlockedPhone(phone)}
-      />
+        <PropertyDetailContent
+          property={p}
+          propertyId={id}
+          userId={detail.user?.id}
+          isPlus={isPlus}
+          landlordName={detail.landlordContact?.fullName ?? "Verified landlord"}
+          similar={detail.similar}
+          valuation={detail.valuation}
+          valLoading={detail.valLoading}
+          chatMessages={detail.chatMessages}
+          chatInput={detail.chatInput}
+          chatLoading={detail.chatLoading}
+          onChatInputChange={detail.setChatInput}
+          onChatSubmit={detail.handleSendChat}
+          isDemo={detail.isDemo}
+          reportOpen={detail.reportOpen}
+          reportReason={detail.reportReason}
+          reportDetails={detail.reportDetails}
+          reportSubmitting={detail.reportSubmitting}
+          onReportOpen={detail.openReportForm}
+          onReportClose={() => detail.setReportOpen(false)}
+          onReportReasonChange={detail.setReportReason}
+          onReportDetailsChange={detail.setReportDetails}
+          onReportSubmit={() => void detail.submitReport()}
+          onContactUnlocked={(phone) => detail.setUnlockedPhone(phone)}
+        />
 
-      <PropertyDetailActionBar
-        onCall={detail.handleCall}
-        onMessage={() => detail.messageLandlord.mutate()}
-        messagePending={detail.messageLandlord.isPending}
-        onBook={detail.openBooking}
-      />
+        <PropertyDetailActionBar
+          onCall={detail.handleCall}
+          onMessage={() => detail.messageLandlord.mutate()}
+          messagePending={detail.messageLandlord.isPending}
+          onBook={detail.openBooking}
+        />
 
-      <BookingModal
-        propertyId={p.id}
-        propertyTitle={p.title}
-        propertyAddress={p.address ?? p.neighborhood}
-        isOpen={detail.isBookingOpen}
-        onClose={() => detail.setIsBookingOpen(false)}
-        onUnauthorized={detail.redirectToAuth}
-      />
-    </div>
+        <BookingModal
+          propertyId={p.id}
+          propertyTitle={p.title}
+          propertyAddress={p.address ?? p.neighborhood}
+          isOpen={detail.isBookingOpen}
+          onClose={() => detail.setIsBookingOpen(false)}
+          onUnauthorized={detail.redirectToAuth}
+        />
+      </div>
+    </ListingsPreviewOverlay>
   );
 }

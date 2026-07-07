@@ -7,6 +7,10 @@ import { passwordResetEmail } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
 import { isKenyanPhone } from "@/lib/phone";
+import { tryClaimFoundingMemberSlot } from "@/lib/promo/claim-slot";
+import { isPromoEligibleRole, PROMO_LABELS } from "@/lib/promo/constants";
+import { sendFoundingMemberClaimedEmail } from "@/lib/promo/founding-member-lifecycle";
+import { cacheDelete } from "@/lib/cache/manager";
 
 const passwordResetSchema = z.object({
   email: z.string().email(),
@@ -180,7 +184,12 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
     });
 
     if (!error && created.user) {
-      return { userId: created.user.id, recovered: false as const };
+      const foundingMember = await claimFoundingMemberIfEligible(
+        supabaseAdmin,
+        created.user.id,
+        data,
+      );
+      return { userId: created.user.id, recovered: false as const, foundingMember };
     }
 
     if (error && isDuplicateAuthUserError(error.message)) {
@@ -199,8 +208,42 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
       });
       if (updateError) throw updateError;
 
-      return { userId: existing.id, recovered: true as const };
+      const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, existing.id, data);
+      return { userId: existing.id, recovered: true as const, foundingMember };
     }
 
     throw new Error(error?.message ?? "Could not create account");
   });
+
+async function claimFoundingMemberIfEligible(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  userId: string,
+  data: { email: string; fullName: string; phone: string; role: string },
+) {
+  if (!isPromoEligibleRole(data.role)) return null;
+
+  const role = data.role;
+
+  const promoResult = await tryClaimFoundingMemberSlot(supabaseAdmin, userId, role, {
+    fullName: data.fullName.trim(),
+    phone: data.phone.trim(),
+  });
+
+  if (!promoResult.claimed || promoResult.slotNumber == null) return null;
+
+  void cacheDelete("promo_status");
+
+  const campaign = PROMO_LABELS[role];
+  void sendFoundingMemberClaimedEmail({
+    email: data.email.trim().toLowerCase(),
+    name: data.fullName.trim(),
+    role,
+    slotNumber: promoResult.slotNumber,
+  }).catch((err) => console.error("[promo] claim email failed:", err));
+
+  return {
+    slotNumber: promoResult.slotNumber,
+    role,
+    bonusListings: campaign.bonusListings,
+  };
+}

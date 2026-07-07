@@ -3,6 +3,7 @@ import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
 import { isKenyanPhone } from "@/lib/phone";
 import { metadataFromCheckout } from "@/lib/payments/payment-metadata";
 import { assertStkPromptRateLimit } from "@/lib/payments/rate-limit";
+import { getServerEnv } from "@/lib/server-env";
 
 export const checkoutMetaSchema = z.object({
   plan: z.string().optional(),
@@ -174,9 +175,9 @@ async function tryFirstSubscriptionTrial(
 }
 
 function allowDemoMpesaCompletion(): boolean {
-  if (process.env.ALLOW_DEMO_PAYMENTS === "true") return true;
-  if (process.env.ALLOW_DEMO_PAYMENTS === "false") return false;
-  return process.env.MPESA_ENV === "sandbox" && process.env.NODE_ENV === "development";
+  if (getServerEnv("ALLOW_DEMO_PAYMENTS") === "true") return true;
+  if (getServerEnv("ALLOW_DEMO_PAYMENTS") === "false") return false;
+  return getServerEnv("MPESA_ENV") === "sandbox" && getServerEnv("NODE_ENV") === "development";
 }
 
 async function assertPaymentAuthorization(userId: string, data: InitiatePaymentInput) {

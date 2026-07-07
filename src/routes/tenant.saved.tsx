@@ -8,7 +8,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { isDemoListingId } from "@/data/mockListings";
 import { SiteNav } from "@/components/SiteNav";
+import { isPreviewListing, mergeListingsForDisplay } from "@/lib/listings-preview";
+import type { Property } from "@/lib/properties";
 import { toast } from "sonner";
+import { useMemo } from "react";
 
 export const Route = createFileRoute("/tenant/saved")({
   head: () => ({ meta: [{ title: "Saved homes — NyumbaSearch" }] }),
@@ -34,6 +37,8 @@ function SavedPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-properties"] }),
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const displaySaved = useMemo(() => mergeListingsForDisplay(saved), [saved]);
 
   if (!user) {
     return (
@@ -74,39 +79,70 @@ function SavedPage() {
           </div>
         )}
 
-        {isLoading ? (
-          <div className="mt-8 h-40 animate-pulse rounded-2xl bg-muted" />
-        ) : saved.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
-            <Heart className="mx-auto h-10 w-10 text-muted-foreground" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              No saved homes yet. Tap the heart on any listing.
-            </p>
-            <Link to="/tenant" className="mt-4 inline-block text-sm font-semibold text-primary">
-              Browse homes →
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {saved.map((p) => (
-              <PropertyCard
-                key={p.id}
-                p={p}
-                saved
-                plusMember={isPlus}
-                onToggleSave={(e) => {
-                  e.preventDefault();
-                  if (isDemoListingId(p.id)) {
-                    toast.info("Demo listings cannot be saved.");
-                    return;
-                  }
-                  void toggleSave.mutateAsync({ propertyId: p.id, saved: true });
-                }}
-              />
-            ))}
-          </div>
-        )}
+        <SavedListingsBody
+          isLoading={isLoading}
+          isEmpty={saved.length === 0}
+          displaySaved={displaySaved}
+          isPlus={isPlus}
+          onToggleSave={(propertyId) => {
+            void toggleSave.mutateAsync({ propertyId, saved: true });
+          }}
+        />
       </div>
+    </div>
+  );
+}
+
+function SavedListingsBody({
+  isLoading,
+  isEmpty,
+  displaySaved,
+  isPlus,
+  onToggleSave,
+}: Readonly<{
+  isLoading: boolean;
+  isEmpty: boolean;
+  displaySaved: Property[];
+  isPlus: boolean;
+  onToggleSave: (propertyId: string) => void;
+}>) {
+  if (isLoading) {
+    return <div className="mt-8 h-40 animate-pulse rounded-2xl bg-muted" />;
+  }
+
+  if (isEmpty) {
+    return (
+      <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
+        <Heart className="mx-auto h-10 w-10 text-muted-foreground" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          No saved homes yet. Tap the heart on any listing.
+        </p>
+        <Link to="/tenant" className="mt-4 inline-block text-sm font-semibold text-primary">
+          Browse homes →
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      {displaySaved.map((p) => (
+        <PropertyCard
+          key={p.id}
+          p={p}
+          preview={isPreviewListing(p)}
+          saved
+          plusMember={isPlus}
+          onToggleSave={(e) => {
+            e.preventDefault();
+            if (isDemoListingId(p.id)) {
+              toast.info("Demo listings cannot be saved.");
+              return;
+            }
+            onToggleSave(p.id);
+          }}
+        />
+      ))}
     </div>
   );
 }

@@ -3,10 +3,30 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
 
-const submitVerificationSchema = z.object({
-  verificationType: z.enum(["phone", "identity", "business", "ownership"]),
-  documents: z.array(z.string().url()).default([]),
-  notes: z.string().trim().max(1000).optional(),
+const submitVerificationSchema = z
+  .object({
+    verificationType: z.enum(["phone", "identity", "business", "ownership"]),
+    documents: z.array(z.string().url()).default([]),
+    notes: z.string().trim().max(1000).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.verificationType !== "phone" && data.documents.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Upload at least one verification document for this level.",
+        path: ["documents"],
+      });
+    }
+  });
+
+const signVerificationPathsSchema = z.object({
+  paths: z.array(z.string().min(1).max(512)).min(1).max(5),
+  expiresIn: z
+    .number()
+    .int()
+    .positive()
+    .max(60 * 60 * 24 * 365)
+    .optional(),
 });
 
 const reportScamSchema = z.object({
@@ -40,6 +60,27 @@ export const submitVerification = createServerFn({ method: "POST" })
 
     if (error) throw error;
     return row;
+  });
+
+/** Signed URLs for private verification document uploads (user folder only). */
+export const createSignedVerificationUrls = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(signVerificationPathsSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+
+    for (const path of data.paths) {
+      if (!path.startsWith(`${userId}/`)) {
+        throw new Error("Forbidden path");
+      }
+    }
+
+    const { data: signed, error } = await supabase.storage
+      .from("verification-documents")
+      .createSignedUrls(data.paths, data.expiresIn ?? 60 * 60 * 24 * 365);
+
+    if (error) throw error;
+    return signed;
   });
 
 export const reportScam = createServerFn({ method: "POST" })

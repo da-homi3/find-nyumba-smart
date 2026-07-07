@@ -6,9 +6,12 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Property } from "@/lib/properties";
 import { Compass, Film, Image as ImageIcon, Link2, Loader2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
-
-const MAX_IMG_MB = 10;
-const MAX_VIDEO_MB = 100;
+import {
+  isWithinUploadLimit,
+  MAX_IMAGE_UPLOAD_MB,
+  MAX_VIDEO_UPLOAD_MB,
+  uploadLimitLabel,
+} from "@/lib/media/upload-limits";
 
 type UpdateMediaResult = Awaited<ReturnType<typeof updatePropertyMedia>>;
 
@@ -96,16 +99,12 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
     }
   }
 
-  function onPick(
-    e: ChangeEvent<HTMLInputElement>,
-    kind: "image" | "video" | "tour",
-    maxMb: number,
-  ) {
+  function onPick(e: ChangeEvent<HTMLInputElement>, kind: "image" | "video" | "tour") {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     const valid = files.filter((f) => {
-      if (f.size > maxMb * 1024 * 1024) {
-        toast.error(`${f.name}: max ${maxMb}MB`);
+      if (!isWithinUploadLimit(f, kind)) {
+        toast.error(`${f.name}: max ${uploadLimitLabel(kind)}`);
         return false;
       }
       return true;
@@ -142,35 +141,38 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium">
           <ImageIcon className="h-3.5 w-3.5" />
           Add photos
+          <span className="text-[10px] text-muted-foreground">(max {MAX_IMAGE_UPLOAD_MB}MB)</span>
           <input
             type="file"
             accept="image/*"
             multiple
             className="hidden"
             disabled={busy}
-            onChange={(e) => onPick(e, "image", MAX_IMG_MB)}
+            onChange={(e) => onPick(e, "image")}
           />
         </label>
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium">
           <Film className="h-3.5 w-3.5" />
           Video
+          <span className="text-[10px] text-muted-foreground">(max {MAX_VIDEO_UPLOAD_MB}MB)</span>
           <input
             type="file"
             accept="video/*"
             className="hidden"
             disabled={busy}
-            onChange={(e) => onPick(e, "video", MAX_VIDEO_MB)}
+            onChange={(e) => onPick(e, "video")}
           />
         </label>
         <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium">
           <Compass className="h-3.5 w-3.5" />
           360° image
+          <span className="text-[10px] text-muted-foreground">(max {MAX_IMAGE_UPLOAD_MB}MB)</span>
           <input
             type="file"
             accept="image/*"
             className="hidden"
             disabled={busy}
-            onChange={(e) => onPick(e, "tour", MAX_IMG_MB)}
+            onChange={(e) => onPick(e, "tour")}
           />
         </label>
       </div>

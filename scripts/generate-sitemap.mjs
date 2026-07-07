@@ -51,6 +51,8 @@ const SERVICE_CATEGORIES = [
   "generators",
   "moving_supplies",
   "ac_repair",
+  "laundry",
+  "locksmiths",
 ];
 
 const staticPaths = [
@@ -121,12 +123,18 @@ async function fetchActivePropertyIds() {
   return properties;
 }
 
+function sitemapPriority(path) {
+  if (path === "") return "1.0";
+  if (path.startsWith("/services")) return "0.85";
+  return "0.8";
+}
+
 const today = new Date().toISOString().slice(0, 10);
 const staticUrls = staticPaths.map((path) =>
   urlEntry(`${site}${path}`, {
     lastmod: today,
     changefreq: "daily",
-    priority: path === "" ? "1.0" : path.startsWith("/services") ? "0.85" : "0.8",
+    priority: sitemapPriority(path),
   }),
 );
 

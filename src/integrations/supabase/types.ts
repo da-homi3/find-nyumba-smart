@@ -1,4 +1,4 @@
-﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -1318,11 +1318,50 @@ export type Database = {
           },
         ];
       };
+      promo_campaigns: {
+        Row: {
+          active: boolean;
+          bonus_listings: number;
+          created_at: string;
+          id: string;
+          max_slots: number;
+          role: string;
+          slots_claimed: number;
+          slots_confirmed: number;
+        };
+        Insert: {
+          active?: boolean;
+          bonus_listings: number;
+          created_at?: string;
+          id: string;
+          max_slots: number;
+          role: string;
+          slots_claimed?: number;
+          slots_confirmed?: number;
+        };
+        Update: {
+          active?: boolean;
+          bonus_listings?: number;
+          created_at?: string;
+          id?: string;
+          max_slots?: number;
+          role?: string;
+          slots_claimed?: number;
+          slots_confirmed?: number;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           active_portal: string | null;
           avatar_url: string | null;
+          bonus_listing_slots: number;
           created_at: string;
+          founding_member_campaign_id: string | null;
+          founding_member_claimed_at: string | null;
+          founding_member_confirmed_at: string | null;
+          founding_member_slot_number: number | null;
+          founding_member_status: string;
           full_name: string | null;
           id: string;
           is_portal_active: boolean;
@@ -1342,7 +1381,13 @@ export type Database = {
         Insert: {
           active_portal?: string | null;
           avatar_url?: string | null;
+          bonus_listing_slots?: number;
           created_at?: string;
+          founding_member_campaign_id?: string | null;
+          founding_member_claimed_at?: string | null;
+          founding_member_confirmed_at?: string | null;
+          founding_member_slot_number?: number | null;
+          founding_member_status?: string;
           full_name?: string | null;
           id: string;
           is_portal_active?: boolean;
@@ -1362,7 +1407,13 @@ export type Database = {
         Update: {
           active_portal?: string | null;
           avatar_url?: string | null;
+          bonus_listing_slots?: number;
           created_at?: string;
+          founding_member_campaign_id?: string | null;
+          founding_member_claimed_at?: string | null;
+          founding_member_confirmed_at?: string | null;
+          founding_member_slot_number?: number | null;
+          founding_member_status?: string;
           full_name?: string | null;
           id?: string;
           is_portal_active?: boolean;
@@ -1379,7 +1430,15 @@ export type Database = {
           email_transactional_opt_in?: boolean;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "profiles_founding_member_campaign_id_fkey";
+            columns: ["founding_member_campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "promo_campaigns";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       properties: {
         Row: {
@@ -2287,6 +2346,18 @@ export type Database = {
       };
     };
     Functions: {
+      claim_founding_member_slot: {
+        Args: { p_user_id: string; p_campaign_id: string };
+        Returns: { claimed: boolean; slot_number: number | null }[];
+      };
+      confirm_founding_member_bonus: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
+      release_founding_member_slot: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
       compute_authenticity_score: {
         Args: { _property_id: string };
         Returns: number;
@@ -2321,7 +2392,11 @@ export type Database = {
         | "hostel"
         | "maisonette"
         | "bungalow"
-        | "townhouse";
+        | "townhouse"
+        | "four_bedroom"
+        | "penthouse"
+        | "guest_house"
+        | "commercial";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -2450,6 +2525,10 @@ export const Constants = {
         "maisonette",
         "bungalow",
         "townhouse",
+        "four_bedroom",
+        "penthouse",
+        "guest_house",
+        "commercial",
       ],
     },
   },

@@ -1,17 +1,9 @@
 import { getProperty, listProperties } from "@/lib/api/nyumba.functions";
 import { fetchListingsApi } from "@/lib/listings-client";
+import type { PropertyType } from "@/lib/property-types";
 
-export type PropertyType =
-  | "bedsitter"
-  | "single_room"
-  | "one_bedroom"
-  | "two_bedroom"
-  | "three_bedroom"
-  | "studio"
-  | "hostel"
-  | "maisonette"
-  | "bungalow"
-  | "townhouse";
+export type { PropertyType } from "@/lib/property-types";
+export { prettyPropertyType as prettyType } from "@/lib/property-types";
 
 export interface Property {
   id: string;
@@ -50,20 +42,6 @@ export interface Property {
 }
 
 export const formatKes = (n: number) => "KES " + n.toLocaleString("en-KE");
-
-export const prettyType = (t: PropertyType) =>
-  ({
-    bedsitter: "Bedsitter",
-    single_room: "Single Room",
-    one_bedroom: "1 Bedroom",
-    two_bedroom: "2 Bedroom",
-    three_bedroom: "3 Bedroom",
-    studio: "Studio",
-    hostel: "Hostel",
-    maisonette: "Maisonette",
-    bungalow: "Bungalow",
-    townhouse: "Townhouse",
-  })[t];
 
 function isBrowser(): boolean {
   return globalThis.window !== undefined;

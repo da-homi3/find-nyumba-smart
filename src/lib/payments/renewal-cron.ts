@@ -47,6 +47,9 @@ function formatPhone254(phone: string): string {
 }
 
 async function downgradeUser(supabaseAdmin: Admin, sub: SubscriptionRow) {
+  const { onTrialFailedToConvert } = await import("@/lib/promo/founding-member-lifecycle");
+  await onTrialFailedToConvert(supabaseAdmin, sub.user_id);
+
   if (sub.plan === "plus") {
     await supabaseAdmin
       .from("profiles")

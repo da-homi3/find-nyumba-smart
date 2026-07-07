@@ -134,6 +134,18 @@ export const createProperty = createServerFn({ method: "POST" })
     if (!isLandlord && !isAgency && !isManager) {
       throw new ForbiddenError("Forbidden: requires role landlord, manager, or agency");
     }
+
+    const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
+    const [cap, activeCount] = await Promise.all([
+      getListingCap(supabase, userId),
+      countActiveListings(supabase, userId),
+    ]);
+    if (activeCount >= cap) {
+      throw new ForbiddenError(
+        `You've reached your listing limit of ${cap}. Upgrade your plan for more.`,
+      );
+    }
+
     const organizationId =
       isAgency || isManager ? await getUserOrganizationId(supabase, userId) : null;
 

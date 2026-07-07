@@ -28,6 +28,7 @@ import { AdminVerificationsTab } from "@/components/admin/AdminVerificationsTab"
 import { AdminPropertyChecksTab } from "@/components/admin/AdminPropertyChecksTab";
 import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab";
 import { AdminAdvertiseTab } from "@/components/admin/AdminAdvertiseTab";
+import { AdminFoundingPromoTab } from "@/components/admin/AdminFoundingPromoTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -197,6 +198,7 @@ function AdminDashboard() {
     },
     { id: "advertise" as const, label: "Advertise", count: 0 },
     { id: "announcements" as const, label: "Announcements", count: 0 },
+    { id: "founding_promo" as const, label: "Founding promo", count: 0 },
   ];
 
   return (
@@ -291,6 +293,7 @@ function AdminDashboard() {
           )}
           {activeTab === "advertise" && <AdminAdvertiseTab />}
           {activeTab === "announcements" && <AdminAnnouncementsTab />}
+          {activeTab === "founding_promo" && <AdminFoundingPromoTab />}
         </div>
       </div>
     </div>

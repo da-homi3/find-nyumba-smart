@@ -1,6 +1,7 @@
 import { getSiteUrl } from "@/lib/site";
 import { getCacheKv } from "@/lib/kv/bindings";
 import { withCircuitBreaker } from "@/lib/resilience/circuit-breaker";
+import { getServerEnv, isServerEnvConfigured } from "@/lib/server-env";
 
 type StkPushApiResponse = {
   CheckoutRequestID?: string;
@@ -46,21 +47,21 @@ function parseStkPushResponse(json: unknown): StkPushApiResponse {
 }
 
 function mpesaBaseUrl() {
-  const env = process.env.MPESA_ENV ?? "sandbox";
+  const env = getServerEnv("MPESA_ENV") ?? "sandbox";
   return env === "production" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
 }
 
 export function isMpesaConfigured(): boolean {
-  return Boolean(
-    process.env.MPESA_CONSUMER_KEY &&
-    process.env.MPESA_CONSUMER_SECRET &&
-    process.env.MPESA_SHORTCODE &&
-    process.env.MPESA_PASSKEY,
-  );
+  return isServerEnvConfigured([
+    "MPESA_CONSUMER_KEY",
+    "MPESA_CONSUMER_SECRET",
+    "MPESA_SHORTCODE",
+    "MPESA_PASSKEY",
+  ]);
 }
 
 export function mpesaCallbackUrl(): string {
-  if (process.env.MPESA_CALLBACK_URL) return process.env.MPESA_CALLBACK_URL;
+  if (getServerEnv("MPESA_CALLBACK_URL")) return getServerEnv("MPESA_CALLBACK_URL")!;
   return `${getSiteUrl()}/api/mpesa/callback`;
 }
 
@@ -71,8 +72,8 @@ async function getAccessToken(): Promise<string> {
     if (cached) return cached;
   }
 
-  const key = process.env.MPESA_CONSUMER_KEY!;
-  const consumerSecret = process.env.MPESA_CONSUMER_SECRET!;
+  const key = getServerEnv("MPESA_CONSUMER_KEY")!;
+  const consumerSecret = getServerEnv("MPESA_CONSUMER_SECRET")!;
   const auth = Buffer.from(`${key}:${consumerSecret}`).toString("base64");
 
   const token = await withCircuitBreaker("mpesa", async () => {
@@ -96,8 +97,8 @@ async function getAccessToken(): Promise<string> {
 }
 
 function buildStkCredentials(): { encodedCredential: string; timestamp: string } {
-  const shortcode = process.env.MPESA_SHORTCODE!;
-  const mpesaPasskey = process.env.MPESA_PASSKEY!;
+  const shortcode = getServerEnv("MPESA_SHORTCODE")!;
+  const mpesaPasskey = getServerEnv("MPESA_PASSKEY")!;
   const timestamp = new Date().toISOString().replaceAll(/\D/g, "").slice(0, 14);
   const encodedCredential = Buffer.from(`${shortcode}${mpesaPasskey}${timestamp}`).toString(
     "base64",
@@ -123,7 +124,7 @@ export async function initiateStkPush(opts: {
   await assertStkPromptRateLimit({ phone254: opts.phone254 });
   const token = await getAccessToken();
   const { encodedCredential, timestamp } = buildStkCredentials();
-  const shortcode = process.env.MPESA_SHORTCODE!;
+  const shortcode = getServerEnv("MPESA_SHORTCODE")!;
 
   const res = await fetch(`${mpesaBaseUrl()}/mpesa/stkpush/v1/processrequest`, {
     method: "POST",
@@ -207,7 +208,7 @@ function parseStkQueryResponse(json: unknown): StkQueryResult {
 export async function queryStkPushStatus(checkoutRequestId: string): Promise<StkQueryResult> {
   const token = await getAccessToken();
   const { encodedCredential, timestamp } = buildStkCredentials();
-  const shortcode = process.env.MPESA_SHORTCODE!;
+  const shortcode = getServerEnv("MPESA_SHORTCODE")!;
 
   const res = await fetch(`${mpesaBaseUrl()}/mpesa/stkpushquery/v1/query`, {
     method: "POST",

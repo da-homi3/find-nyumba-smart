@@ -6,7 +6,8 @@ import { NAIROBI_NEIGHBORHOODS } from "@/data/nairobi-neighborhoods";
 import { useState, type ChangeEvent, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
-import type { PropertyType } from "@/lib/properties";
+import type { PropertyType } from "@/lib/property-types";
+import { PROPERTY_TYPE_OPTIONS } from "@/lib/property-types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -20,22 +21,12 @@ import {
   CheckCircle2,
   Link2,
 } from "lucide-react";
-
-const MAX_IMG_MB = 10;
-const MAX_VIDEO_MB = 100;
-
-const PROPERTY_TYPES: PropertyType[] = [
-  "bedsitter",
-  "single_room",
-  "studio",
-  "one_bedroom",
-  "two_bedroom",
-  "three_bedroom",
-  "hostel",
-  "maisonette",
-  "bungalow",
-  "townhouse",
-];
+import {
+  isWithinUploadLimit,
+  MAX_IMAGE_UPLOAD_MB,
+  MAX_VIDEO_UPLOAD_MB,
+  uploadLimitLabel,
+} from "@/lib/media/upload-limits";
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -180,8 +171,8 @@ export function PropertyListingWizard({
         toast.error(`${f.name}: not an image`);
         return false;
       }
-      if (f.size > MAX_IMG_MB * 1024 * 1024) {
-        toast.error(`${f.name}: max ${MAX_IMG_MB}MB`);
+      if (!isWithinUploadLimit(f, "image")) {
+        toast.error(`${f.name}: max ${uploadLimitLabel("image")}`);
         return false;
       }
       return true;
@@ -197,8 +188,8 @@ export function PropertyListingWizard({
       toast.error("Please choose a video file");
       return;
     }
-    if (f.size > MAX_VIDEO_MB * 1024 * 1024) {
-      toast.error(`Video must be under ${MAX_VIDEO_MB}MB`);
+    if (!isWithinUploadLimit(f, "video")) {
+      toast.error(`Video must be under ${uploadLimitLabel("video")}`);
       return;
     }
     setVideoFile(f);
@@ -212,8 +203,8 @@ export function PropertyListingWizard({
       toast.error("360° tour upload must be an equirectangular image");
       return;
     }
-    if (f.size > MAX_IMG_MB * 1024 * 1024) {
-      toast.error(`360° image must be under ${MAX_IMG_MB}MB`);
+    if (!isWithinUploadLimit(f, "tour")) {
+      toast.error(`360° image must be under ${uploadLimitLabel("tour")}`);
       return;
     }
     setTourFile(f);
@@ -404,9 +395,9 @@ export function PropertyListingWizard({
                   onChange={(e) => update("property_type", e.target.value as PropertyType)}
                   className={inputCls}
                 >
-                  {PROPERTY_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.replaceAll("_", " ")}
+                  {PROPERTY_TYPE_OPTIONS.map((typeOption) => (
+                    <option key={typeOption.id} value={typeOption.id}>
+                      {typeOption.label}
                     </option>
                   ))}
                 </select>
@@ -516,7 +507,7 @@ export function PropertyListingWizard({
               <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
                 <ImageIcon className="h-4 w-4 text-primary" /> Photos
                 <span className="text-xs font-normal text-muted-foreground">
-                  Up to 15 · max {MAX_IMG_MB}MB each
+                  Up to 15 · max {MAX_IMAGE_UPLOAD_MB}MB each
                 </span>
               </h3>
               <input
@@ -547,6 +538,9 @@ export function PropertyListingWizard({
               <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
                 <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
                   <Film className="h-4 w-4 text-primary" /> Walkthrough video
+                  <span className="text-xs font-normal text-muted-foreground">
+                    max {MAX_VIDEO_UPLOAD_MB}MB
+                  </span>
                 </h3>
                 <input
                   type="file"
@@ -648,9 +642,8 @@ export function PropertyListingWizard({
                 <dd>
                   {form.neighborhood}
                   {form.address ? ` · ${form.address}` : ""}
-                  {form.latitude != null
-                    ? ` · ${form.latitude.toFixed(5)}, ${form.longitude?.toFixed(5)}`
-                    : ""}
+                  {typeof form.latitude === "number" &&
+                    ` · ${form.latitude.toFixed(5)}, ${form.longitude?.toFixed(5)}`}
                 </dd>
               </div>
               <div>

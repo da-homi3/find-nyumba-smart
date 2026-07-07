@@ -372,3 +372,54 @@ export function adminNewApplicationEmail(opts: {
     text: `New ${opts.role} application from ${opts.applicantName}. Review: ${opts.reviewUrl}`,
   };
 }
+
+export function foundingMemberClaimedEmail(opts: {
+  name: string;
+  slotNumber: number;
+  maxSlots: number;
+  bonusListings: number;
+  label: string;
+}) {
+  const body = `
+    <div style="text-align:center;margin-bottom:20px">
+      <span style="display:inline-block;background:#F6AD5522;color:#F6AD55;padding:8px 20px;border-radius:99px;font-weight:700;font-size:14px">
+        🏆 FOUNDING MEMBER #${opts.slotNumber} OF ${opts.maxSlots}
+      </span>
+    </div>
+    <h1>You're one of the first ${opts.maxSlots} — welcome aboard.</h1>
+    <p>Hi ${opts.name},</p>
+    <p>As one of NyumbaSearch's first ${opts.maxSlots} ${opts.label.toLowerCase()}s, you've secured:</p>
+    <div class="highlight">
+      <strong>✅ 30 days completely free</strong> — no charge today, as with every new account<br>
+      <strong>🎁 +${opts.bonusListings} bonus free listing slots</strong> — on top of your plan's normal allowance
+    </div>
+    <p><strong>One thing to know:</strong> the bonus listing slots activate automatically once your first month is billed successfully on day 31. If you don't continue past your free trial, no bonus is charged or owed — the offer simply doesn't activate, and that founding member spot passes to someone else.</p>
+    <p>Start listing right away — your bonus slots will appear on day 31.</p>
+    <p style="text-align:center;margin:28px 0">
+      <a href="https://nyumbasearch.com/landlord/properties/new" class="btn">Add your first listing →</a>
+    </p>
+  `;
+  return {
+    subject: `You're Founding Member #${opts.slotNumber} of ${opts.maxSlots}! 🎉`,
+    html: baseLayout({
+      preheader: "You've secured a Founding Member spot — here's what happens next.",
+      body,
+    }),
+    text: `Founding Member #${opts.slotNumber} of ${opts.maxSlots}. +${opts.bonusListings} bonus listings after your first paid month.`,
+  };
+}
+
+export function foundingMemberConfirmedEmail(opts: { name: string; bonusListings: number }) {
+  const body = `
+    <h1>Your Founding Member bonus is officially active! 🏆</h1>
+    <p>Hi ${opts.name},</p>
+    <p>Thanks for sticking with NyumbaSearch through your first month. As promised,
+    <strong>${opts.bonusListings} bonus listing slots</strong> have been added to your account permanently — on top of your regular plan allowance.</p>
+    <p><a class="btn" href="https://nyumbasearch.com/landlord/properties">View your listing dashboard →</a></p>
+  `;
+  return {
+    subject: `🎉 Your ${opts.bonusListings} bonus listing slots are now live`,
+    html: baseLayout({ preheader: "Founding Member bonus activated", body }),
+    text: `${opts.bonusListings} bonus listing slots are now on your account.`,
+  };
+}

@@ -8,6 +8,7 @@ import {
 import { withCache } from "@/lib/cache/manager";
 import { normalizeNeighborhoodFilter } from "@/lib/security/neighborhoods";
 import { buildFullSitemapXml, buildStaticSitemapXml, sitemapResponse } from "@/lib/seo/sitemap";
+import { isServerEnvConfigured } from "@/lib/server-env";
 
 type RouteHandler = (request: Request) => Promise<Response>;
 
@@ -252,9 +253,12 @@ async function checkKvHealth(): Promise<{ name: string; status: string; error?: 
 }
 
 function checkMpesaConfig(): { name: string; status: string } {
-  const configured = Boolean(
-    process.env.MPESA_CONSUMER_KEY && process.env.MPESA_SHORTCODE && process.env.MPESA_PASSKEY,
-  );
+  const configured = isServerEnvConfigured([
+    "MPESA_CONSUMER_KEY",
+    "MPESA_CONSUMER_SECRET",
+    "MPESA_SHORTCODE",
+    "MPESA_PASSKEY",
+  ]);
   return { name: "mpesa_config", status: configured ? "ok" : "missing" };
 }
 
@@ -625,6 +629,13 @@ const ROUTES: RouteDef[] = [
     run: async (req) => {
       const { handleFcmTokenRequest } = await import("@/lib/api/mobile-fcm");
       return handleFcmTokenRequest(req);
+    },
+  },
+  {
+    match: (url, method) => url.pathname === "/api/promo/status" && method === "GET",
+    run: async () => {
+      const { handlePromoStatusApi } = await import("@/lib/api/promo.functions");
+      return handlePromoStatusApi();
     },
   },
   {

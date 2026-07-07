@@ -23,6 +23,7 @@ import {
   submitPortalApplication,
 } from "@/lib/api/portal.functions";
 import { registerAccountSignup } from "@/lib/api/auth.functions";
+import { PromoBadge } from "@/components/auth/PromoBadge";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
 
@@ -87,7 +88,7 @@ function TenantAuth() {
     const passwordError = validatePasswordPair(password, confirmPassword);
     if (passwordError) throw new Error(passwordError);
 
-    await registerAccountSignup({
+    const signupResult = await registerAccountSignup({
       data: {
         email,
         password,
@@ -100,6 +101,12 @@ function TenantAuth() {
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) throw signInError;
+
+    if (signupResult.foundingMember) {
+      toast.success(
+        `Founding Member #${signupResult.foundingMember.slotNumber} — +${signupResult.foundingMember.bonusListings} bonus listings after your first paid month`,
+      );
+    }
 
     if (isPrivilegedAccountRole(role)) {
       const privilegedRole = role as "landlord" | "manager" | "agency";
@@ -248,6 +255,7 @@ function TenantAuth() {
                       <option value="manager">Property manager</option>
                       <option value="agency">Real estate agency</option>
                     </select>
+                    <PromoBadge role={role} />
                   </Field>
 
                   {ORG_REQUIRED_ROLES.has(role) && (

@@ -10,7 +10,6 @@ import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
 import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
-import { isDemoListingId } from "@/data/mockListings";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -18,6 +17,11 @@ import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.funct
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { AdUnit } from "@/components/AdUnit";
 import { ListingGridSkeleton } from "@/components/skeletons/ListingCardSkeleton";
+import {
+  isPreviewListing,
+  mergeListingsForDisplay,
+  previewListingStats,
+} from "@/lib/listings-preview";
 import { SiteNav } from "@/components/SiteNav";
 import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
@@ -81,6 +85,16 @@ function applyClientFilters(items: Property[], filters: TenantFilters): Property
   return next;
 }
 
+function resultCountLabel(
+  isLoading: boolean,
+  displayCount: number,
+  liveCount: number,
+  previewCount: number,
+): string {
+  if (isLoading) return "Loading…";
+  if (previewCount > 0) return `${liveCount} live · ${previewCount} uploading`;
+  return `${displayCount} results`;
+}
 function analyticsSessionId(): string | undefined {
   if (globalThis.sessionStorage === undefined) return undefined;
   const existing = globalThis.sessionStorage.getItem("nyumba_sid");
@@ -156,38 +170,43 @@ function TenantHome() {
     [searchResult?.items, filters],
   );
 
+  const displayListings = useMemo(() => mergeListingsForDisplay(filtered), [filtered]);
+  const listingStats = useMemo(() => previewListingStats(filtered), [filtered]);
+
   useEffect(() => {
     if (isLoading || isError) return;
-    const key = `${debouncedQ}|${filters.neighborhood}|${filtered.length}`;
+    const key = `${debouncedQ}|${filters.neighborhood}|${displayListings.length}`;
     if (key === lastAnalyticsKey.current) return;
     lastAnalyticsKey.current = key;
     void recordSearchEvent({
       data: {
         query: debouncedQ || undefined,
         neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
-        resultCount: filtered.length,
+        resultCount: displayListings.length,
         sessionId: analyticsSessionId(),
         userId: user?.id,
       },
     });
-  }, [debouncedQ, filters.neighborhood, filtered.length, isLoading, isError, user?.id]);
+  }, [debouncedQ, filters.neighborhood, displayListings.length, isLoading, isError, user?.id]);
 
   const sortedFiltered = useMemo(() => {
     const now = Date.now();
-    return [...filtered].sort((a, b) => {
+    return [...displayListings].sort((a, b) => {
       const aBoost = a.featured_until && new Date(a.featured_until).getTime() > now ? 1 : 0;
       const bBoost = b.featured_until && new Date(b.featured_until).getTime() > now ? 1 : 0;
       if (aBoost !== bBoost) return bBoost - aBoost;
       return 0;
     });
-  }, [filtered]);
+  }, [displayListings]);
 
   const visible = sortedFiltered.slice(0, page * PAGE_SIZE);
-  const verified = filtered.filter((p) => p.is_verified).slice(0, 4);
+  const verified = displayListings.filter((p) => p.is_verified).slice(0, 4);
   const boostedPool = useMemo(
     () =>
-      filtered.filter((p) => p.featured_until && new Date(p.featured_until).getTime() > Date.now()),
-    [filtered],
+      displayListings.filter(
+        (p) => p.featured_until && new Date(p.featured_until).getTime() > Date.now(),
+      ),
+    [displayListings],
   );
 
   const patchFilters = (patch: Partial<TenantFilters>) => {
@@ -206,8 +225,11 @@ function TenantHome() {
       toast.info("Switch to a tenant account to save homes.");
       return;
     }
-    if (isDemoListingId(propertyId)) {
-      toast.info("Demo listings cannot be saved. Save live listings from verified landlords.");
+    const listing = displayListings.find((p) => p.id === propertyId);
+    if (listing && isPreviewListing(listing)) {
+      toast.info(
+        "Preview listings cannot be saved yet. Save live listings from verified landlords.",
+      );
       return;
     }
     void toggleSave.mutateAsync({ propertyId, saved: savedIds.has(propertyId) });
@@ -255,7 +277,7 @@ function TenantHome() {
       <TenantFiltersBar
         filters={filters}
         onChange={patchFilters}
-        resultCount={filtered.length}
+        resultCount={displayListings.length}
         resultsLoading={isLoading}
       />
 
@@ -288,6 +310,7 @@ function TenantHome() {
               <div key={p.id} className="w-[min(100%,18rem)] shrink-0 snap-start sm:w-72">
                 <PropertyCard
                   p={p}
+                  preview={isPreviewListing(p)}
                   saved={savedIds.has(p.id)}
                   plusMember={isPlus}
                   onToggleSave={handleToggleSave(p.id)}
@@ -319,14 +342,19 @@ function TenantHome() {
             {filters.neighborhood === "All" ? "All vacancies" : filters.neighborhood}
           </h2>
           <span className="text-xs text-muted-foreground">
-            {isLoading ? "Loading…" : `${filtered.length} results`}
+            {resultCountLabel(
+              isLoading,
+              displayListings.length,
+              listingStats.liveCount,
+              listingStats.previewCount,
+            )}
           </span>
         </div>
         <TenantListingsGrid
           isLoading={isLoading}
           isError={isError}
           errorMessage={error instanceof Error ? error.message : undefined}
-          filtered={filtered}
+          displayCount={displayListings.length}
           visible={visible}
           boostedPool={boostedPool}
           savedIds={savedIds}
@@ -344,7 +372,7 @@ type TenantListingsGridProps = Readonly<{
   isLoading: boolean;
   isError: boolean;
   errorMessage?: string;
-  filtered: Property[];
+  displayCount: number;
   visible: Property[];
   boostedPool: Property[];
   savedIds: Set<string>;
@@ -358,7 +386,7 @@ function TenantListingsGrid({
   isLoading,
   isError,
   errorMessage,
-  filtered,
+  displayCount,
   visible,
   boostedPool,
   savedIds,
@@ -387,7 +415,7 @@ function TenantListingsGrid({
     );
   }
 
-  if (filtered.length === 0) {
+  if (displayCount === 0) {
     return (
       <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
         No homes match these filters yet — try widening your budget or area.
@@ -406,6 +434,7 @@ function TenantListingsGrid({
             <div key={p.id} className="contents">
               <PropertyCard
                 p={p}
+                preview={isPreviewListing(p)}
                 saved={savedIds.has(p.id)}
                 plusMember={isPlus}
                 onToggleSave={onToggleSave(p.id)}
@@ -416,7 +445,11 @@ function TenantListingsGrid({
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gold">
                       Featured listing
                     </p>
-                    <PropertyCard p={boosted} plusMember={isPlus} />
+                    <PropertyCard
+                      p={boosted}
+                      preview={isPreviewListing(boosted)}
+                      plusMember={isPlus}
+                    />
                   </div>
                 ) : (
                   <AdUnit
@@ -430,13 +463,13 @@ function TenantListingsGrid({
           );
         })}
       </div>
-      {visible.length < filtered.length && (
+      {visible.length < displayCount && (
         <button
           type="button"
           onClick={onLoadMore}
           className="mt-6 w-full rounded-xl border py-3 text-sm font-semibold hover:bg-secondary"
         >
-          Load more ({filtered.length - visible.length} remaining)
+          Load more ({displayCount - visible.length} remaining)
         </button>
       )}
     </>

@@ -1,7 +1,8 @@
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import type { PropertyType } from "@/lib/properties";
+import { PROPERTY_TYPE_OPTIONS } from "@/lib/property-types";
+import type { PropertyType } from "@/lib/property-types";
 
 export type TenantSort = "newest" | "price_asc" | "price_desc" | "score";
 
@@ -16,14 +17,7 @@ export type TenantFilters = {
   sort: TenantSort;
 };
 
-const ALL_TYPES: PropertyType[] = [
-  "bedsitter",
-  "single_room",
-  "studio",
-  "one_bedroom",
-  "two_bedroom",
-  "three_bedroom",
-];
+const ALL_TYPES = PROPERTY_TYPE_OPTIONS;
 
 const NEIGHBORHOODS = [
   "All",
@@ -204,17 +198,17 @@ export function TenantFiltersBar({
       </div>
 
       <div className="mx-auto mt-2 flex max-w-2xl gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-        {ALL_TYPES.map((t) => {
+        {ALL_TYPES.map((typeOption) => {
           const selectedTypes = new Set(filters.types);
-          const active = selectedTypes.has(t);
+          const active = selectedTypes.has(typeOption.id);
           return (
             <motion.button
-              key={t}
+              key={typeOption.id}
               type="button"
               onClick={() => {
-                const next = selectedTypes.has(t)
-                  ? filters.types.filter((x) => x !== t)
-                  : [...filters.types, t];
+                const next = selectedTypes.has(typeOption.id)
+                  ? filters.types.filter((x) => x !== typeOption.id)
+                  : [...filters.types, typeOption.id];
                 onChange({ types: next });
               }}
               animate={{
@@ -231,7 +225,7 @@ export function TenantFiltersBar({
                 boxShadow: active ? "0 4px 16px rgba(30,184,138,0.3)" : "none",
               }}
             >
-              {t.replaceAll("_", " ")}
+              {typeOption.label}
             </motion.button>
           );
         })}

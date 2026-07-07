@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode, type SubmitEvent } from "react";
 import {
   Bell,
   Building2,
@@ -18,6 +18,12 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { submitVerification } from "@/lib/api/trust.functions";
+import { VerificationDocumentUpload } from "@/components/verification/VerificationDocumentUpload";
+import {
+  type VerificationType,
+  VERIFICATION_DOCUMENT_CONFIG,
+} from "@/lib/verification/document-config";
+import { uploadVerificationDocuments } from "@/lib/verification/upload-verification-doc";
 import {
   listMyViewings,
   updateViewingStatus,
@@ -28,7 +34,6 @@ import { listSavedSearches, setSavedSearchAlertsEnabled } from "@/lib/api/search
 import { errorMessage } from "@/lib/utils";
 
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
-type VerificationType = "phone" | "identity" | "business" | "ownership";
 
 export const Route = createFileRoute("/tenant/profile")({
   component: Profile,
@@ -72,7 +77,7 @@ function Profile() {
   // Verification uploads state
   const [isVerifying, setIsVerifying] = useState(false);
   const [verType, setVerType] = useState<VerificationType>("identity");
-  const [docUrl, setDocUrl] = useState("");
+  const [verFiles, setVerFiles] = useState<File[]>([]);
   const [verLoading, setVerLoading] = useState(false);
 
   const initials = useMemo(() => {
@@ -186,7 +191,7 @@ function Profile() {
     },
   });
 
-  async function saveProfile(e: FormEvent<HTMLFormElement>) {
+  async function saveProfile(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
@@ -216,24 +221,40 @@ function Profile() {
     }
   }
 
-  async function handleUploadVerification(e: FormEvent<HTMLFormElement>) {
+  async function handleUploadVerification(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!docUrl.trim()) {
-      toast.error("Please enter a document URL link");
+    if (!user) return;
+
+    const config = VERIFICATION_DOCUMENT_CONFIG[verType];
+    if (config.requiresUpload && verFiles.length === 0) {
+      toast.error(`Please upload ${config.uploadLabel.toLowerCase()}.`);
       return;
     }
+    if (verType === "phone" && !phone.trim()) {
+      toast.error("Add your phone number in Account details before requesting phone verification.");
+      return;
+    }
+
     setVerLoading(true);
     try {
+      const documents = config.requiresUpload
+        ? await uploadVerificationDocuments(user.id, verType, verFiles)
+        : [];
+
       await submitVerification({
         data: {
           verificationType: verType,
-          documents: [docUrl.trim()],
-          notes: `Requested ${verType} verification.`,
+          documents,
+          notes:
+            verType === "phone"
+              ? `Phone verification requested for ${phone.trim()}.`
+              : `Requested ${verType} verification with ${documents.length} uploaded document(s).`,
         },
       });
       toast.success("Verification request submitted successfully for approval!");
       setIsVerifying(false);
-      setDocUrl("");
+      setVerFiles([]);
+      void qc.invalidateQueries({ queryKey: ["tenant-verifications"] });
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -282,14 +303,7 @@ function Profile() {
         </div>
       </header>
 
-      {!user ? (
-        <Link
-          to="/auth"
-          className="mt-6 block rounded-2xl bg-primary px-6 py-3 text-center text-sm font-semibold text-primary-foreground"
-        >
-          Sign in or create an account
-        </Link>
-      ) : (
+      {user ? (
         <>
           <form onSubmit={saveProfile} className="mt-8 rounded-2xl border bg-card p-4">
             <div className="flex items-center gap-2">
@@ -364,33 +378,33 @@ function Profile() {
                   <span className="text-[10px] text-muted-foreground block mb-1">Select Level</span>
                   <select
                     value={verType}
-                    onChange={(e) => setVerType(e.target.value as VerificationType)}
+                    onChange={(e) => {
+                      setVerType(e.target.value as VerificationType);
+                      setVerFiles([]);
+                    }}
                     className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
                   >
-                    <option value="phone">Level 1: Phone Verification</option>
-                    <option value="identity">Level 2: National ID Verification</option>
-                    <option value="business">Level 3: Business/Agency Verification</option>
-                    <option value="ownership">Level 4: Land Ownership Verification</option>
+                    {(Object.keys(VERIFICATION_DOCUMENT_CONFIG) as VerificationType[]).map(
+                      (key) => (
+                        <option key={key} value={key}>
+                          {VERIFICATION_DOCUMENT_CONFIG[key].levelLabel}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </label>
-                <label className="block">
-                  <span className="text-[10px] text-muted-foreground block mb-1">
-                    Document Link / URL
-                  </span>
-                  <input
-                    type="url"
-                    placeholder="https://example.com/id-image.jpg"
-                    value={docUrl}
-                    onChange={(e) => setDocUrl(e.target.value)}
-                    className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
-                  />
-                </label>
+                <VerificationDocumentUpload
+                  verificationType={verType}
+                  files={verFiles}
+                  onChange={setVerFiles}
+                  disabled={verLoading}
+                />
                 <button
                   type="submit"
                   disabled={verLoading}
-                  className="w-full rounded-xl bg-gradient-emerald text-primary-foreground text-xs font-semibold py-2.5 shadow-soft"
+                  className="w-full rounded-xl bg-gradient-emerald text-primary-foreground text-xs font-semibold py-2.5 shadow-soft disabled:opacity-60"
                 >
-                  {verLoading ? "Submitting..." : "Submit for Approval"}
+                  {verLoading ? "Uploading & submitting…" : "Submit for Approval"}
                 </button>
               </form>
             ) : (
@@ -439,13 +453,7 @@ function Profile() {
                         Date: {new Date(v.scheduled_at).toLocaleString()}
                       </span>
                       <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${
-                          v.status === "confirmed"
-                            ? "bg-emerald-500/10 text-emerald-600"
-                            : v.status === "cancelled"
-                              ? "bg-red-500/10 text-red-600"
-                              : "bg-amber-500/10 text-amber-600"
-                        }`}
+                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${viewingStatusBadgeClass(v.status)}`}
                       >
                         {v.status.toUpperCase()}
                       </span>
@@ -548,6 +556,13 @@ function Profile() {
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </>
+      ) : (
+        <Link
+          to="/auth"
+          className="mt-6 block rounded-2xl bg-primary px-6 py-3 text-center text-sm font-semibold text-primary-foreground"
+        >
+          Sign in or create an account
+        </Link>
       )}
     </div>
   );
@@ -565,6 +580,12 @@ function Field({ label, children }: Readonly<{ label: string; children: ReactNod
   );
 }
 
+function viewingStatusBadgeClass(status: string): string {
+  if (status === "confirmed") return "bg-emerald-500/10 text-emerald-600";
+  if (status === "cancelled") return "bg-red-500/10 text-red-600";
+  return "bg-amber-500/10 text-amber-600";
+}
+
 function ToggleRow({
   label,
   hint,
@@ -576,19 +597,21 @@ function ToggleRow({
   checked: boolean;
   onChange: (checked: boolean) => void;
 }>) {
+  const inputId = useId();
   return (
-    <label className="flex items-center gap-4 px-4 py-4">
-      <div className="flex-1">
+    <div className="flex items-center gap-4 px-4 py-4">
+      <label htmlFor={inputId} className="flex-1 cursor-pointer">
         <div className="text-sm font-medium">{label}</div>
         <div className="text-xs text-muted-foreground">{hint}</div>
-      </div>
+      </label>
       <input
+        id={inputId}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className="h-5 w-5 accent-primary"
       />
-    </label>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 /**
- * Verify live site shows expected provider counts for all 18 categories.
+ * Verify live site shows expected provider counts for all 20 categories.
  * Usage: npm run verify:providers
  */
 const CATEGORIES = [
@@ -21,6 +21,8 @@ const CATEGORIES = [
   "generators",
   "moving_supplies",
   "ac_repair",
+  "laundry",
+  "locksmiths",
 ];
 
 const EXPECTED = {
@@ -42,23 +44,42 @@ const EXPECTED = {
   generators: 5,
   moving_supplies: 3,
   ac_repair: 5,
+  laundry: 10,
+  locksmiths: 10,
 };
 
-const BASE = (process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com").replace(/\/$/, "");
+const rawBase = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";
+const BASE = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
 
-/** React SSR may inject <!-- --> between digits and text */
+/** React SSR may inject `<!-- -->` between digits and text */
+function stripSsrComments(html) {
+  return html.replaceAll("<!-- -->", "");
+}
+
 function extractProviderCount(html) {
-  const m = html.match(/(\d+)(?:<!-- -->)* provider(?:<!-- -->)*s(?:<!-- -->)* serving/);
-  return m ? Number(m[1]) : -1;
+  const needle = " providers serving";
+  const text = stripSsrComments(html);
+  const idx = text.indexOf(needle);
+  if (idx === -1) return -1;
+  let i = idx - 1;
+  while (i >= 0 && text[i] >= "0" && text[i] <= "9") i--;
+  const digits = text.slice(i + 1, idx);
+  return digits ? Number(digits) : -1;
 }
 
 function extractBusinessNames(html) {
+  const marker = "font-display text-lg font-semibold";
   const names = [];
-  const re = /font-display text-lg font-semibold[^>]*>([^<]+)</g;
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    const name = m[1].trim();
+  let start = 0;
+  while (start < html.length) {
+    const idx = html.indexOf(marker, start);
+    if (idx === -1) break;
+    const gt = html.indexOf(">", idx);
+    const lt = gt === -1 ? -1 : html.indexOf("<", gt + 1);
+    if (gt === -1 || lt === -1) break;
+    const name = html.slice(gt + 1, lt).trim();
     if (name && !names.includes(name)) names.push(name);
+    start = lt + 1;
   }
   return names;
 }
@@ -98,7 +119,9 @@ async function main() {
   process.exit(fails ? 1 : 0);
 }
 
-main().catch((e) => {
+try {
+  await main();
+} catch (e) {
   console.error(e);
   process.exit(1);
-});
+}

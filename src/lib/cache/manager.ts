@@ -12,6 +12,7 @@ export const CACHE_CONFIGS: Record<string, CacheConfig> = {
   intelligence_stats: { kvTtl: 300, staleWhileRevalidate: 900 },
   agency_featured: { kvTtl: 600, staleWhileRevalidate: 1800 },
   sitemap_xml: { kvTtl: 86400 },
+  promo_status: { kvTtl: 90, staleWhileRevalidate: 120 },
 };
 
 type CacheEnvelope<T> = {
