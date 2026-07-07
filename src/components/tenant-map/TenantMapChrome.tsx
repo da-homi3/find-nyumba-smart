@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { PropertyImage } from "@/components/PropertyImage";
+import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
+import { isPreviewListing, previewListingStats } from "@/lib/listings-preview";
 import { Flame, Layers, MapPin, Navigation, WifiOff, X } from "lucide-react";
 
 type TenantMapChromeProps = Readonly<{
@@ -47,6 +49,12 @@ export function TenantMapChrome({
   onSelect,
   onClearSelected,
 }: TenantMapChromeProps) {
+  const listingStats = previewListingStats(filteredProperties);
+  let countLabel = `${visibleCount} listing${visibleCount === 1 ? "" : "s"}`;
+  if (listingStats.previewCount > 0) {
+    countLabel = `${listingStats.liveCount} live · ${listingStats.previewCount} uploading`;
+  }
+
   return (
     <>
       {!isOnline && (
@@ -125,7 +133,7 @@ export function TenantMapChrome({
             <Layers className="h-3.5 w-3.5" /> Security
           </button>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow-card backdrop-blur">
-            {visibleCount} listing{visibleCount === 1 ? "" : "s"}
+            {countLabel}
           </span>
           {visibleCount === 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-xs text-amber-800 shadow-card backdrop-blur">
@@ -161,76 +169,88 @@ export function TenantMapChrome({
           {panelOpen ? "Hide panel" : "Show"}
         </button>
         <div className="space-y-3">
-          {filteredProperties.slice(0, 8).map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onSelect(p)}
-              className="flex w-full gap-2 rounded-xl border p-2 text-left hover:bg-secondary"
-            >
-              {p.images[0] ? (
-                <PropertyImage
-                  src={p.images[0]}
-                  seed={p.id}
-                  alt=""
-                  className="h-14 w-16 rounded-lg object-cover"
-                />
-              ) : null}
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold">{p.title}</p>
-                <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
-              </div>
-            </button>
-          ))}
+          {filteredProperties.slice(0, 8).map((p) => {
+            const preview = isPreviewListing(p);
+            return (
+              <ListingsPreviewOverlay key={p.id} active={preview} variant="card">
+                <button
+                  type="button"
+                  onClick={() => onSelect(p)}
+                  className="flex w-full gap-2 rounded-xl border p-2 text-left hover:bg-secondary"
+                >
+                  {p.images[0] ? (
+                    <PropertyImage
+                      src={p.images[0]}
+                      seed={p.id}
+                      alt=""
+                      className="h-14 w-16 rounded-lg object-cover"
+                    />
+                  ) : null}
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold">{p.title}</p>
+                    <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
+                  </div>
+                </button>
+              </ListingsPreviewOverlay>
+            );
+          })}
         </div>
       </aside>
 
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10">
         {selected ? (
-          <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
-            <button
-              type="button"
-              onClick={onClearSelected}
-              className="absolute right-2 top-2 rounded-full bg-secondary p-1 text-muted-foreground hover:text-foreground"
-              aria-label="Close"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-            {selected.images[0] ? (
-              <PropertyImage
-                src={selected.images[0]}
-                seed={selected.id}
-                alt={selected.title}
-                className="h-20 w-24 shrink-0 rounded-xl object-cover"
-              />
-            ) : (
-              <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
-                No image
-              </div>
-            )}
-            <div className="min-w-0 flex-1 pr-6">
-              <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
-              <p className="text-xs text-muted-foreground">
-                {prettyType(selected.property_type)} · {selected.neighborhood}
-                {selected.map_approximate ? (
-                  <span className="ml-1 text-amber-600">· approx. area</span>
-                ) : null}
-              </p>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-primary">
-                  {formatKes(selected.rent_kes)}
-                  <span className="text-xs font-normal text-muted-foreground">/mo</span>
+          <ListingsPreviewOverlay active={isPreviewListing(selected)} variant="card">
+            <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
+              <button
+                type="button"
+                onClick={onClearSelected}
+                className="absolute right-2 top-2 rounded-full bg-secondary p-1 text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              {selected.images[0] ? (
+                <PropertyImage
+                  src={selected.images[0]}
+                  seed={selected.id}
+                  alt={selected.title}
+                  className="h-20 w-24 shrink-0 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
+                  No image
+                </div>
+              )}
+              <div className="min-w-0 flex-1 pr-6">
+                <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {prettyType(selected.property_type)} · {selected.neighborhood}
+                  {selected.map_approximate ? (
+                    <span className="ml-1 text-amber-600">· approx. area</span>
+                  ) : null}
                 </p>
-                <Link
-                  to="/tenant/property/$id"
-                  params={{ id: selected.id }}
-                  className="rounded-full bg-gradient-gold px-3 py-1 text-[11px] font-semibold text-gold-foreground"
-                >
-                  View
-                </Link>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-primary">
+                    {formatKes(selected.rent_kes)}
+                    <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                  </p>
+                  {isPreviewListing(selected) ? (
+                    <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                      Uploading
+                    </span>
+                  ) : (
+                    <Link
+                      to="/tenant/property/$id"
+                      params={{ id: selected.id }}
+                      className="rounded-full bg-gradient-gold px-3 py-1 text-[11px] font-semibold text-gold-foreground"
+                    >
+                      View
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </ListingsPreviewOverlay>
         ) : (
           <div className="pointer-events-auto rounded-2xl bg-background/95 px-4 py-3 text-center text-xs text-muted-foreground shadow-card backdrop-blur">
             Tap a pin or cluster · pinch to zoom · drag with two fingers to tilt 3D

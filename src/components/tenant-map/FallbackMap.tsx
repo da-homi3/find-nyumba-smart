@@ -1,4 +1,5 @@
 import { formatKes, type Property } from "@/lib/properties";
+import { isPreviewListing } from "@/lib/listings-preview";
 import { compactKes, projectToFallbackMap } from "./map-constants";
 
 function fallbackPinClass(active: boolean, approx: boolean | undefined): string {
@@ -59,12 +60,13 @@ export function FallbackMap({
         const point = projectToFallbackMap(p);
         const active = selected?.id === p.id;
         const approx = p.map_approximate;
+        const preview = isPreviewListing(p);
         return (
           <button
             type="button"
             key={p.id}
             onClick={() => onSelect(p)}
-            className={`absolute -translate-x-1/2 -translate-y-full rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-elegant transition ${fallbackPinClass(active, approx)}`}
+            className={`absolute -translate-x-1/2 -translate-y-full rounded-full border px-2.5 py-1 text-[11px] font-bold shadow-elegant transition ${fallbackPinClass(active, approx)} ${preview ? "opacity-50 saturate-75 blur-[0.4px]" : ""}`}
             style={point}
             aria-label={`${p.title}, ${formatKes(p.rent_kes)}`}
           >
