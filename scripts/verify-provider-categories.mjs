@@ -1,5 +1,5 @@
 /**
- * Verify live site shows expected provider counts for all 20 categories.
+ * Verify live site shows expected provider counts for all 21 categories.
  * Usage: npm run verify:providers
  */
 const CATEGORIES = [
@@ -23,6 +23,7 @@ const CATEGORIES = [
   "ac_repair",
   "laundry",
   "locksmiths",
+  "roofing",
 ];
 
 const EXPECTED = {
@@ -46,6 +47,7 @@ const EXPECTED = {
   ac_repair: 5,
   laundry: 10,
   locksmiths: 10,
+  roofing: 7,
 };
 
 const rawBase = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";

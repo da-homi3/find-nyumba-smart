@@ -27,6 +27,7 @@ const categories = [
   "ac_repair",
   "laundry",
   "locksmiths",
+  "roofing",
 ] as const;
 
 export const createServiceProvider = createServerFn({ method: "POST" })

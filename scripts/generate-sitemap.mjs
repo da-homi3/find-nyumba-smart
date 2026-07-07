@@ -53,6 +53,7 @@ const SERVICE_CATEGORIES = [
   "ac_repair",
   "laundry",
   "locksmiths",
+  "roofing",
 ];
 
 const staticPaths = [

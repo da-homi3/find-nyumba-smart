@@ -1,5 +1,5 @@
 /**
- * NyumbaSearch — real Kenyan service provider directory seed (120 businesses).
+ * NyumbaSearch — real Kenyan service provider directory seed (127 businesses).
  * Sourced from each business's public marketing / contact information.
  * verified = 1 → phone confirmed in public material; verified = 0 → use source_url until confirmed.
  */
@@ -1572,5 +1572,95 @@ export const SEED_PROVIDERS = [
     tier: "basic",
     verified: 0,
     sourceUrl: "redsandservices.com",
+  }),
+
+  // Roofing & waterproofing (7)
+  p({
+    n: 320,
+    businessName: "The Roof Doctor",
+    categories: ["roofing"],
+    areasServed: ["Kilimani", "Nairobi"],
+    description: "Roof repairs, waterproofing and maintenance based in Kilimani.",
+    priceRange: "Quote on request",
+    phone: "0707036061",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "theroofdoctor.co.ke",
+  }),
+  p({
+    n: 321,
+    businessName: "Roofcare Kenya Ltd",
+    categories: ["roofing"],
+    areasServed: ["Nairobi", "All Kenya"],
+    description:
+      "Biashara Plaza, Moi Avenue. 10+ years serving residential, commercial and industrial clients.",
+    priceRange: "Quote on request",
+    phone: "0722552147",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "roofcarekenya.com",
+  }),
+  p({
+    n: 322,
+    businessName: "Smart Roofing & Construction Ltd",
+    categories: ["roofing"],
+    areasServed: ["Thika Road", "Nairobi"],
+    description: "Roofing repairs and installation for residential and commercial clients.",
+    priceRange: "Quote on request",
+    phone: "0713314744",
+    tier: "basic",
+    verified: 1,
+    sourceUrl: "smartroofing.co.ke",
+  }),
+  p({
+    n: 323,
+    businessName: "REXE Roofing Products Ltd",
+    categories: ["roofing"],
+    areasServed: ["Kilimani", "Nairobi", "All Kenya"],
+    description:
+      "Roofing and waterproofing systems: shingles, stone-coated tiles, mabati, gutters.",
+    priceRange: "Quote on request",
+    phone: "0704646664",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "rexeroofing.com",
+  }),
+  p({
+    n: 324,
+    businessName: "Maintech Works Limited",
+    categories: ["roofing"],
+    areasServed: ["Ngong Road", "Nairobi"],
+    description:
+      "Rooftop waterproofing contracting, cementitious and membrane systems, 10-year warranty.",
+    priceRange: "Quote on request",
+    phone: "0722777975",
+    tier: "basic",
+    verified: 1,
+    sourceUrl: "maintechworks.co.ke",
+  }),
+  p({
+    n: 325,
+    businessName: "Catcob Construction Solutions",
+    categories: ["roofing"],
+    areasServed: ["Nairobi", "All Kenya"],
+    description: "Accredited waterproofing company for roofs, basements and structures.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "basic",
+    verified: 0,
+    sourceUrl: "catcob.co.ke",
+  }),
+  p({
+    n: 326,
+    businessName: "Kenya Roof Experts Limited",
+    categories: ["roofing"],
+    areasServed: ["Nairobi", "All Nairobi"],
+    description:
+      "15+ years experience. Leak detection, iron sheet replacement, tile repairs, renovations.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "featured",
+    verified: 0,
+    sourceUrl: null,
   }),
 ];
