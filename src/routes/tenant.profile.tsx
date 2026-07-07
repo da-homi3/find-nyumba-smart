@@ -79,6 +79,7 @@ function Profile() {
   const [verType, setVerType] = useState<VerificationType>("identity");
   const [verFiles, setVerFiles] = useState<File[]>([]);
   const [verLoading, setVerLoading] = useState(false);
+  const [verUploadProgress, setVerUploadProgress] = useState<number | null>(null);
 
   const initials = useMemo(() => {
     const source = fullName.trim() || user?.email || "";
@@ -236,9 +237,10 @@ function Profile() {
     }
 
     setVerLoading(true);
+    setVerUploadProgress(0);
     try {
       const documents = config.requiresUpload
-        ? await uploadVerificationDocuments(user.id, verType, verFiles)
+        ? await uploadVerificationDocuments(user.id, verType, verFiles, setVerUploadProgress)
         : [];
 
       await submitVerification({
@@ -259,6 +261,7 @@ function Profile() {
       toast.error(errorMessage(err));
     } finally {
       setVerLoading(false);
+      setVerUploadProgress(null);
     }
   }
 
@@ -398,6 +401,8 @@ function Profile() {
                   files={verFiles}
                   onChange={setVerFiles}
                   disabled={verLoading}
+                  uploadProgress={verUploadProgress}
+                  uploadLabel="Uploading verification documents…"
                 />
                 <button
                   type="submit"

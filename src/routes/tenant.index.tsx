@@ -28,11 +28,11 @@ import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useListingsSearch } from "@/hooks/use-listings-search";
-import { getSiteUrl } from "@/lib/site";
 import {
   prefetchTenantListings,
   TENANT_LISTINGS_PAGE_SIZE,
 } from "@/lib/seo/prefetch-tenant-listings";
+import { buildPageHead } from "@/lib/seo/head";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
@@ -46,10 +46,13 @@ export const Route = createFileRoute("/tenant/")({
   loader: async ({ context }) => {
     await prefetchTenantListings(context.queryClient);
   },
-  head: () => ({
-    meta: [{ title: "Discover homes — NyumbaSearch" }],
-    links: [{ rel: "canonical", href: `${getSiteUrl()}/tenant` }],
-  }),
+  head: () =>
+    buildPageHead({
+      title: "Discover homes — NyumbaSearch",
+      description:
+        "Search verified vacant homes across Nairobi. Filter by budget, bedrooms, and neighbourhood — map view, saved listings, and NyumbaAI.",
+      path: "/tenant",
+    }),
   component: TenantHome,
 });
 

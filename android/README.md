@@ -50,13 +50,13 @@ keytool -list -v -keystore nyumbasearch-release.keystore -alias nyumbasearch
 
 ## Architecture
 
-| Module | Purpose |
-|--------|---------|
-| `core/network` | Network tier detection, retry backoff |
-| `core/cache` | Bundled app shell (instant paint on 2G) |
-| `ui/main` | WebView host, pull-to-refresh, deep links |
-| `features/*` | Empty shells for future native modules |
-| `push/` | FCM infrastructure (inactive until Firebase configured) |
+| Module         | Purpose                                                 |
+| -------------- | ------------------------------------------------------- |
+| `core/network` | Network tier detection, retry backoff                   |
+| `core/cache`   | Bundled app shell (instant paint on 2G)                 |
+| `ui/main`      | WebView host, pull-to-refresh, deep links               |
+| `features/*`   | Empty shells for future native modules                  |
+| `push/`        | FCM infrastructure (inactive until Firebase configured) |
 
 ## Low-bandwidth coordination
 

@@ -20,6 +20,7 @@ Step-by-step for producing `app-release.aab` for Play Console upload.
 4. Wait for Gradle sync to finish (first time: 5–15 minutes)
 
 If sync fails with missing SDK:
+
 - **Tools → SDK Manager → SDK Platforms** → install **Android 15 (API 35)**
 - **SDK Tools** → install **Android SDK Build-Tools 35**
 
@@ -53,9 +54,11 @@ keytool -list -v `
 Copy the **SHA256** fingerprint (format `AA:BB:CC:...`).
 
 Edit `find-nyumba-smart/public/.well-known/assetlinks.json` — replace:
+
 ```
 REPLACE_WITH_RELEASE_KEYSTORE_SHA256_FINGERPRINT
 ```
+
 with your fingerprint **without colons** or **with colons** (Google accepts both; use the format shown in Play Console → App signing).
 
 Deploy the website so `https://nyumbasearch.com/.well-known/assetlinks.json` is live.
@@ -72,10 +75,13 @@ Deploy the website so `https://nyumbasearch.com/.well-known/assetlinks.json` is 
 6. **Signature versions:** V1 + V2 (defaults) → **Create**
 
 Output location (Android Studio shows a link when done):
+
 ```
 find-nyumba-smart\android\app\release\app-release.aab
 ```
+
 or
+
 ```
 find-nyumba-smart\android\app\build\outputs\bundle\release\app-release.aab
 ```
@@ -98,6 +104,7 @@ $env:NYUMBA_KEY_PASSWORD = "your-key-password"
 ```
 
 AAB path:
+
 ```
 app\build\outputs\bundle\release\app-release.aab
 ```
@@ -147,13 +154,13 @@ versionName = "1.0.1"  // semantic version shown to users
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| Gradle sync failed | Install SDK 35; **File → Invalidate Caches → Restart** |
-| `signingConfig` null | Set `NYUMBA_KEYSTORE_PATH` env vars or use Android Studio signed bundle wizard |
-| Upload rejected: target API | Already set to `targetSdk = 35` in this project |
+| Problem                      | Fix                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| Gradle sync failed           | Install SDK 35; **File → Invalidate Caches → Restart**                                      |
+| `signingConfig` null         | Set `NYUMBA_KEYSTORE_PATH` env vars or use Android Studio signed bundle wizard              |
+| Upload rejected: target API  | Already set to `targetSdk = 35` in this project                                             |
 | App Links not opening in app | Verify `assetlinks.json` SHA-256 matches **upload** or **app signing** cert in Play Console |
-| White screen on open | Check internet; verify https://nyumbasearch.com loads in Chrome on the device |
+| White screen on open         | Check internet; verify https://nyumbasearch.com loads in Chrome on the device               |
 
 ---
 

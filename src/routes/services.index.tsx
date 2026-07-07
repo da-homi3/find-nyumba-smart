@@ -2,9 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
+import { buildPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/services/")({
-  head: () => ({ meta: [{ title: "Home services — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Home services — NyumbaSearch",
+      description:
+        "Find verified electricians, plumbers, movers, cleaners, and 17 more home service categories across 14 Kenyan counties.",
+      path: "/services",
+    }),
   loader: async () => {
     const counts = await getProviderCategoryCounts();
     const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
@@ -12,6 +19,12 @@ export const Route = createFileRoute("/services/")({
   },
   component: ServicesIndexPage,
 });
+
+function providerCountLabel(count: number): string {
+  if (count <= 0) return "View category →";
+  const suffix = count === 1 ? "" : "s";
+  return `${count} provider${suffix}`;
+}
 
 function ServicesIndexPage() {
   const { counts, total } = Route.useLoaderData();
@@ -41,7 +54,7 @@ function ServicesIndexPage() {
                 </span>
                 <p className="mt-2 text-sm font-semibold group-hover:text-primary">{c.label}</p>
                 <p className="mt-1 text-xs font-medium text-muted-foreground">
-                  {count > 0 ? `${count} provider${count === 1 ? "" : "s"}` : "View category →"}
+                  {providerCountLabel(count)}
                 </p>
               </Link>
             );

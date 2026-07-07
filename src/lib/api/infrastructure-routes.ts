@@ -8,13 +8,18 @@ import {
 import { withCache } from "@/lib/cache/manager";
 import { normalizeNeighborhoodFilter } from "@/lib/security/neighborhoods";
 import { buildFullSitemapXml, buildStaticSitemapXml, sitemapResponse } from "@/lib/seo/sitemap";
+import { buildRobotsTxt } from "@/lib/seo/robots";
+import { buildLlmsTxt } from "@/lib/seo/llms";
 import { isServerEnvConfigured } from "@/lib/server-env";
 
 type RouteHandler = (request: Request) => Promise<Response>;
 
 function normalizeSeoPath(pathname: string): string {
-  const trimmed = pathname.replace(/\/+$/, "") || "/";
-  return trimmed.toLowerCase();
+  let path = pathname.toLowerCase();
+  while (path.length > 1 && path.endsWith("/")) {
+    path = path.slice(0, -1);
+  }
+  return path || "/";
 }
 
 function withPublicRateLimit(
@@ -351,26 +356,16 @@ async function handleAiProbe(): Promise<Response> {
 }
 
 function handleRobotsTxt(): Response {
-  const site = getSiteUrl();
-  const disallow = [
-    "/admin",
-    "/auth",
-    "/settings",
-    "/landlord/dashboard",
-    "/agency/dashboard",
-    "/manager/dashboard",
-    "/caretaker/dashboard",
-    "/tenant/messages",
-    "/tenant/checkout",
-  ];
-  const rules = [
-    "User-agent: *",
-    "Allow: /",
-    ...disallow.map((path) => `Disallow: ${path}`),
-    "",
-    `Sitemap: ${site}/sitemap.xml`,
-  ].join("\n");
-  return new Response(rules, {
+  return new Response(buildRobotsTxt(), {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=86400",
+    },
+  });
+}
+
+function handleLlmsTxt(): Response {
+  return new Response(buildLlmsTxt(), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=86400",
@@ -553,7 +548,7 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/health" && method === "GET",
-    run: () => withErrorHandler("Health check", new Request("http://local"), handleHealthCheck),
+    run: (req) => withErrorHandler("Health check", req, handleHealthCheck),
   },
   {
     match: (url, method) => url.pathname === "/api/mapbox-token" && method === "GET",
@@ -616,6 +611,10 @@ const ROUTES: RouteDef[] = [
   {
     match: (url) => normalizeSeoPath(url.pathname) === "/robots.txt",
     run: () => handleRobotsTxt(),
+  },
+  {
+    match: (url) => normalizeSeoPath(url.pathname) === "/llms.txt",
+    run: () => handleLlmsTxt(),
   },
   {
     match: (url) => normalizeSeoPath(url.pathname) === "/sitemap.xml",

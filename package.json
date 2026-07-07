@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx vite dev",
-    "build": "node scripts/generate-sitemap.mjs && npx vite build",
+    "build": "node scripts/generate-sitemap.mjs && node scripts/generate-llms.mjs && node scripts/generate-robots.mjs && npx vite build",
     "build:dev": "npx vite build --mode development",
     "preview": "npx vite preview",
     "lint": "eslint .",
@@ -38,6 +38,7 @@
     "verify:providers": "node scripts/verify-provider-categories.mjs",
     "verify:team-invites": "node scripts/verify-team-invites.mjs",
     "verify:responsive": "node scripts/verify-responsive.mjs",
+    "verify:seo-crawl": "node scripts/verify-seo-crawl.mjs",
     "migrate:local": "bash scripts/run_migrations.sh",
     "migrate:local:ps1": "powershell -File scripts/run_migrations.ps1",
     "deploy": "npm run build && node scripts/sync-wrangler-env.mjs && npx wrangler deploy --config dist/server/wrangler.json",

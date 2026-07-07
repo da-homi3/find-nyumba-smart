@@ -26,6 +26,7 @@ import { registerAccountSignup } from "@/lib/api/auth.functions";
 import { PromoBadge } from "@/components/auth/PromoBadge";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
+import { buildPageHead } from "@/lib/seo/head";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -36,6 +37,13 @@ const authSearchSchema = z.object({
 
 export const Route = createFileRoute("/auth/")({
   validateSearch: authSearchSchema,
+  head: () =>
+    buildPageHead({
+      title: "Sign in — NyumbaSearch",
+      description: "Sign in to save homes and contact landlords directly on NyumbaSearch.",
+      path: "/auth",
+      noIndex: true,
+    }),
   component: TenantAuth,
 });
 

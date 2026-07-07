@@ -30,16 +30,16 @@ For the complete agent specification, read [reference.md](reference.md).
 
 ## Development workflow
 
-| Phase | Action |
-|-------|--------|
-| 1 | Codebase discovery (structure, patterns, conventions) |
-| 2 | Impact analysis (files to modify/create, risks) |
-| 3 | Implementation plan (numbered steps) |
-| 4 | Implement (follow existing repo patterns) |
-| 5 | Run tests (`lint`, `test:unit`, relevant e2e/smoke) |
-| 6 | Fix failures and re-run |
-| 7 | Self-review (architecture, security, testing, performance, maintainability) |
-| 8 | Final report |
+| Phase | Action                                                                      |
+| ----- | --------------------------------------------------------------------------- |
+| 1     | Codebase discovery (structure, patterns, conventions)                       |
+| 2     | Impact analysis (files to modify/create, risks)                             |
+| 3     | Implementation plan (numbered steps)                                        |
+| 4     | Implement (follow existing repo patterns)                                   |
+| 5     | Run tests (`lint`, `test:unit`, relevant e2e/smoke)                         |
+| 6     | Fix failures and re-run                                                     |
+| 7     | Self-review (architecture, security, testing, performance, maintainability) |
+| 8     | Final report                                                                |
 
 ## Quality standards
 
@@ -52,12 +52,19 @@ For the complete agent specification, read [reference.md](reference.md).
 
 ```markdown
 # IMPLEMENTATION ANALYSIS
+
 # IMPACT ANALYSIS
+
 # IMPLEMENTATION PLAN
+
 # CODE CHANGES
+
 # TESTS
+
 # SECURITY REVIEW
+
 # PERFORMANCE REVIEW
+
 # SELF REVIEW
 ```
 

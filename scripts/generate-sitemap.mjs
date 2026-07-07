@@ -1,10 +1,12 @@
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
+
+const staticRoutes = JSON.parse(readFileSync(join(root, "src/lib/seo/staticRoutes.json"), "utf8"));
 
 function loadEnv() {
   const env = {};
@@ -22,7 +24,6 @@ function loadEnv() {
   }
   return env;
 }
-
 const env = loadEnv();
 const site = (
   process.env.PUBLIC_APP_URL ??
@@ -32,48 +33,9 @@ const site = (
   "https://nyumbasearch.com"
 ).replace(/\/$/, "");
 
-const SERVICE_CATEGORIES = [
-  "electricians",
-  "plumbers",
-  "painters",
-  "internet",
-  "security",
-  "movers",
-  "cleaning",
-  "solar",
-  "pest_control",
-  "carpentry",
-  "furniture",
-  "interior_design",
-  "appliance_repair",
-  "gardening",
-  "water_services",
-  "generators",
-  "moving_supplies",
-  "ac_repair",
-  "laundry",
-  "locksmiths",
-  "roofing",
-];
-
 const staticPaths = [
-  "",
-  "/tenant",
-  "/tenant/map",
-  "/auth",
-  "/landlord",
-  "/pricing",
-  "/services",
-  ...SERVICE_CATEGORIES.map((c) => `/services/${c}`),
-  "/privacy",
-  "/terms-of-service",
-  "/cookie-policy",
-  "/refund-policy",
-  "/data-deletion",
-  "/acceptable-use-policy",
-  "/landlord-agreement",
-  "/contact",
-  "/about",
+  ...staticRoutes.sitemapPaths,
+  ...staticRoutes.serviceCategories.map((c) => `/services/${c}`),
 ];
 
 function urlEntry(loc, { lastmod, changefreq, priority }) {

@@ -36,14 +36,14 @@ Production Optimization → Deployment Readiness → Monitoring → Learning
 
 ## Specialist roles (collaborate simultaneously)
 
-| Role | Skill | Active during |
-|------|-------|---------------|
-| Product Strategy | `planner-x` | Research, plan, acceptance criteria |
-| Architecture Council | `planner-x`, `reviewforge-x` | Plan + every code change |
-| UI/UX Council | `designforge-x` | Every UI touch; validates before ship |
-| Engineering | `codeforge-x` | Implementation |
-| Review Council | `reviewforge-x` | Continuous—never only at end |
-| Testing Swarm | `testforge-x` | Continuous—run tests as changes land |
+| Role                 | Skill                        | Active during                         |
+| -------------------- | ---------------------------- | ------------------------------------- |
+| Product Strategy     | `planner-x`                  | Research, plan, acceptance criteria   |
+| Architecture Council | `planner-x`, `reviewforge-x` | Plan + every code change              |
+| UI/UX Council        | `designforge-x`              | Every UI touch; validates before ship |
+| Engineering          | `codeforge-x`                | Implementation                        |
+| Review Council       | `reviewforge-x`              | Continuous—never only at end          |
+| Testing Swarm        | `testforge-x`                | Continuous—run tests as changes land  |
 
 ## Continuous collaboration rules
 
@@ -72,11 +72,11 @@ Any FAIL → analyze → fix → revalidate → retest → repeat until successf
 
 ## Risk-tier collaboration depth
 
-| Tier | Council involvement |
-|------|---------------------|
-| Low | Light sync; continuous validate |
-| Medium | Full council awareness; incremental tests |
-| High | Full AEO + user approval for irreversible changes |
+| Tier   | Council involvement                               |
+| ------ | ------------------------------------------------- |
+| Low    | Light sync; continuous validate                   |
+| Medium | Full council awareness; incremental tests         |
+| High   | Full AEO + user approval for irreversible changes |
 
 ## Emphasis phrases (optional)
 

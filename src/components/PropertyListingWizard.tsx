@@ -3,13 +3,15 @@ import { createProperty } from "@/lib/api/nyumba.functions";
 import { analyzePropertyQuality, createSignedMediaUrls } from "@/lib/api/media.functions";
 import { PropertyLocationPicker } from "@/components/PropertyLocationPicker";
 import { NAIROBI_NEIGHBORHOODS } from "@/data/nairobi-neighborhoods";
-import { useState, type ChangeEvent, type SubmitEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
 import type { PropertyType } from "@/lib/property-types";
 import { PROPERTY_TYPE_OPTIONS } from "@/lib/property-types";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { uploadStorageObjectWithProgress } from "@/lib/media/storage-upload";
+import { FileDropZone } from "@/components/FileDropZone";
+import { UploadProgressBar } from "@/components/UploadProgressBar";
 import {
   Image as ImageIcon,
   Film,
@@ -43,39 +45,39 @@ function propertiesListPath(isAgency: boolean, isManager: boolean) {
   return "/landlord/properties";
 }
 
-async function uploadToStorage(path: string, file: File) {
-  const { error } = await supabase.storage.from("property-media").upload(path, file, {
-    cacheControl: "31536000",
-    upsert: false,
-    contentType: file.type,
-  });
-  if (error) throw error;
+async function uploadToStorage(
+  path: string,
+  file: File,
+  onFileProgress?: (percent: number) => void,
+) {
+  await uploadStorageObjectWithProgress("property-media", path, file, onFileProgress);
 }
 
-async function signUploadedPaths(paths: string[]) {
-  if (paths.length === 0) return new Map<string, string>();
-  const signed = await createSignedMediaUrls({ data: { paths } });
-  const map = new Map<string, string>();
-  for (const entry of signed) {
-    if (entry.path && entry.signedUrl) map.set(entry.path, entry.signedUrl);
-  }
-  return map;
-}
+type UploadListingMediaInput = {
+  userId: string;
+  propertyKey: string;
+  imageFiles: File[];
+  videoFile: File | null;
+  tourFile: File | null;
+  externalVideoUrl: string;
+  externalTourUrl: string;
+  onProgress?: (percent: number) => void;
+};
 
-async function uploadListingMedia(
+function buildMediaUploads(
   userId: string,
   propertyKey: string,
   imageFiles: File[],
   videoFile: File | null,
   tourFile: File | null,
-  externalVideoUrl: string,
-  externalTourUrl: string,
 ) {
+  const uploads: Array<{ path: string; file: File }> = [];
   const uploadedImagePaths: string[] = [];
+
   for (const file of imageFiles) {
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${userId}/${propertyKey}/img-${crypto.randomUUID()}.${ext}`;
-    await uploadToStorage(path, file);
+    uploads.push({ path, file });
     uploadedImagePaths.push(path);
   }
 
@@ -83,15 +85,58 @@ async function uploadListingMedia(
   if (videoFile) {
     const ext = videoFile.name.split(".").pop() ?? "mp4";
     videoPath = `${userId}/${propertyKey}/video-${crypto.randomUUID()}.${ext}`;
-    await uploadToStorage(videoPath, videoFile);
+    uploads.push({ path: videoPath, file: videoFile });
   }
 
   let tourPath: string | null = null;
   if (tourFile) {
     const ext = tourFile.name.split(".").pop() ?? "jpg";
     tourPath = `${userId}/${propertyKey}/tour360-${crypto.randomUUID()}.${ext}`;
-    await uploadToStorage(tourPath, tourFile);
+    uploads.push({ path: tourPath, file: tourFile });
   }
+
+  return { uploads, uploadedImagePaths, videoPath, tourPath };
+}
+
+async function runMediaUploads(
+  uploads: Array<{ path: string; file: File }>,
+  onProgress?: (percent: number) => void,
+) {
+  const totalBytes = uploads.reduce((sum, item) => sum + item.file.size, 0) || 1;
+  let completedBytes = 0;
+
+  for (const item of uploads) {
+    await uploadToStorage(item.path, item.file, (filePercent) => {
+      if (!onProgress) return;
+      const loaded = (filePercent / 100) * item.file.size;
+      onProgress(Math.min(100, Math.round(((completedBytes + loaded) / totalBytes) * 100)));
+    });
+    completedBytes += item.file.size;
+    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
+  }
+}
+
+async function uploadListingMedia(input: UploadListingMediaInput) {
+  const {
+    userId,
+    propertyKey,
+    imageFiles,
+    videoFile,
+    tourFile,
+    externalVideoUrl,
+    externalTourUrl,
+    onProgress,
+  } = input;
+
+  const { uploads, uploadedImagePaths, videoPath, tourPath } = buildMediaUploads(
+    userId,
+    propertyKey,
+    imageFiles,
+    videoFile,
+    tourFile,
+  );
+
+  await runMediaUploads(uploads, onProgress);
 
   const allPaths = [
     ...uploadedImagePaths,
@@ -104,7 +149,11 @@ async function uploadListingMedia(
   let images: string[] = [];
 
   if (allPaths.length > 0) {
-    const signedMap = await signUploadedPaths(allPaths);
+    const signed = await createSignedMediaUrls({ data: { paths: allPaths } });
+    const signedMap = new Map<string, string>();
+    for (const entry of signed) {
+      if (entry.path && entry.signedUrl) signedMap.set(entry.path, entry.signedUrl);
+    }
     images = uploadedImagePaths.map((p) => signedMap.get(p)).filter(Boolean) as string[];
     if (videoPath) video_url = signedMap.get(videoPath) ?? video_url;
     if (tourPath) tour_url = signedMap.get(tourPath) ?? tour_url;
@@ -139,6 +188,7 @@ export function PropertyListingWizard({
   const [activeTab, setActiveTab] = useState<TabId>("details");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [tourFile, setTourFile] = useState<File | null>(null);
@@ -164,8 +214,7 @@ export function PropertyListingWizard({
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  function onPickImages(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
+  function onPickImages(files: File[]) {
     const valid = files.filter((f) => {
       if (!f.type.startsWith("image/")) {
         toast.error(`${f.name}: not an image`);
@@ -178,11 +227,10 @@ export function PropertyListingWizard({
       return true;
     });
     setImageFiles((prev) => [...prev, ...valid].slice(0, 15));
-    e.target.value = "";
   }
 
-  function onPickVideo(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+  function onPickVideo(files: File[]) {
+    const f = files[0];
     if (!f) return;
     if (!f.type.startsWith("video/")) {
       toast.error("Please choose a video file");
@@ -193,11 +241,10 @@ export function PropertyListingWizard({
       return;
     }
     setVideoFile(f);
-    e.target.value = "";
   }
 
-  function onPickTour(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
+  function onPickTour(files: File[]) {
+    const f = files[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) {
       toast.error("360° tour upload must be an equirectangular image");
@@ -208,7 +255,6 @@ export function PropertyListingWizard({
       return;
     }
     setTourFile(f);
-    e.target.value = "";
   }
 
   function removeImageAt(index: number) {
@@ -260,16 +306,19 @@ export function PropertyListingWizard({
     try {
       const propertyKey = crypto.randomUUID();
       setUploading(true);
-      const media = await uploadListingMedia(
-        user.id,
+      setUploadProgress(0);
+      const media = await uploadListingMedia({
+        userId: user.id,
         propertyKey,
         imageFiles,
         videoFile,
         tourFile,
-        form.video_url,
-        form.tour_url,
-      );
+        externalVideoUrl: form.video_url,
+        externalTourUrl: form.tour_url,
+        onProgress: setUploadProgress,
+      });
       setUploading(false);
+      setUploadProgress(null);
 
       const created = await createProperty({
         data: {
@@ -315,6 +364,7 @@ export function PropertyListingWizard({
     } finally {
       setLoading(false);
       setUploading(false);
+      setUploadProgress(null);
     }
   }
 
@@ -324,6 +374,7 @@ export function PropertyListingWizard({
 
   function submitLabel(): string {
     if (!isLastTab) return "Continue";
+    if (uploading && uploadProgress !== null) return `Uploading media… ${uploadProgress}%`;
     if (uploading) return "Uploading media…";
     if (loading) return "Publishing…";
     return "Publish listing";
@@ -503,53 +554,40 @@ export function PropertyListingWizard({
 
         {activeTab === "media" && (
           <div className="space-y-5">
-            <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
-              <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-                <ImageIcon className="h-4 w-4 text-primary" /> Photos
-                <span className="text-xs font-normal text-muted-foreground">
-                  Up to 15 · max {MAX_IMAGE_UPLOAD_MB}MB each
-                </span>
-              </h3>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={onPickImages}
-                className="mt-3 block w-full text-xs"
-              />
-              {imageFiles.length > 0 ? (
-                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                  {imageFiles.map((f, i) => (
-                    <ImagePreview
-                      key={`${f.name}-${f.size}-${f.lastModified}`}
-                      file={f}
-                      onRemove={() => removeImageAt(i)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Add clear photos of the living areas, kitchen, bathroom, and exterior.
-                </p>
-              )}
-            </div>
+            <FileDropZone
+              accept="image/*"
+              multiple
+              disabled={busy}
+              title="Drop listing photos"
+              hint={`Up to 15 photos · max ${MAX_IMAGE_UPLOAD_MB}MB each`}
+              icon={<ImageIcon className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
+              onFiles={onPickImages}
+              footnote="Add clear photos of living areas, kitchen, bathroom, and exterior."
+            />
+            {imageFiles.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {imageFiles.map((f, i) => (
+                  <ImagePreview
+                    key={`${f.name}-${f.size}-${f.lastModified}`}
+                    file={f}
+                    onRemove={() => removeImageAt(i)}
+                  />
+                ))}
+              </div>
+            ) : null}
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
-                <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-                  <Film className="h-4 w-4 text-primary" /> Walkthrough video
-                  <span className="text-xs font-normal text-muted-foreground">
-                    max {MAX_VIDEO_UPLOAD_MB}MB
-                  </span>
-                </h3>
-                <input
-                  type="file"
+              <div className="space-y-3">
+                <FileDropZone
                   accept="video/*"
-                  onChange={onPickVideo}
-                  className="mt-3 block w-full text-xs"
+                  disabled={busy}
+                  title="Drop walkthrough video"
+                  hint={`max ${MAX_VIDEO_UPLOAD_MB}MB`}
+                  icon={<Film className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
+                  onFiles={onPickVideo}
                 />
                 {videoFile ? (
-                  <p className="mt-2 truncate text-xs text-muted-foreground">
+                  <p className="truncate text-xs text-muted-foreground">
                     {videoFile.name} · {(videoFile.size / 1024 / 1024).toFixed(1)}MB
                     <button
                       type="button"
@@ -575,18 +613,17 @@ export function PropertyListingWizard({
                 </Field>
               </div>
 
-              <div className="rounded-xl border border-dashed bg-secondary/40 p-4">
-                <h3 className="flex items-center gap-2 font-display text-sm font-semibold">
-                  <Compass className="h-4 w-4 text-primary" /> 360° virtual tour
-                </h3>
-                <input
-                  type="file"
+              <div className="space-y-3">
+                <FileDropZone
                   accept="image/*"
-                  onChange={onPickTour}
-                  className="mt-3 block w-full text-xs"
+                  disabled={busy}
+                  title="Drop 360° image"
+                  hint={`max ${MAX_IMAGE_UPLOAD_MB}MB`}
+                  icon={<Compass className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
+                  onFiles={onPickTour}
                 />
                 {tourFile ? (
-                  <p className="mt-2 truncate text-xs text-muted-foreground">
+                  <p className="truncate text-xs text-muted-foreground">
                     {tourFile.name}
                     <button
                       type="button"
@@ -612,6 +649,10 @@ export function PropertyListingWizard({
                 </Field>
               </div>
             </div>
+
+            {uploadProgress !== null ? (
+              <UploadProgressBar value={uploadProgress} label="Uploading media…" />
+            ) : null}
           </div>
         )}
 

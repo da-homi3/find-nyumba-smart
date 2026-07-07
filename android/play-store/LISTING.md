@@ -98,20 +98,20 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 ## Contact details (Play Console → Store settings)
 
-| Field | Value |
-|-------|--------|
-| Email | nyumbasearch101@gmail.com |
-| Phone | +254768314076 |
-| Website | https://nyumbasearch.com |
+| Field   | Value                     |
+| ------- | ------------------------- |
+| Email   | nyumbasearch101@gmail.com |
+| Phone   | +254768314076             |
+| Website | https://nyumbasearch.com  |
 
 ---
 
 ## Legal URLs
 
-| Field | URL |
-|-------|-----|
+| Field          | URL                                     |
+| -------------- | --------------------------------------- |
 | Privacy policy | https://nyumbasearch.com/privacy-policy |
-| Data deletion | https://nyumbasearch.com/data-deletion |
+| Data deletion  | https://nyumbasearch.com/data-deletion  |
 
 ---
 
@@ -120,16 +120,17 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 **Layout:** Forest green (`#0A5C47`) background, mint (`#1EB88A`) accent, white text.
 
 **Text:**
+
 - Headline: **Verified homes in Nairobi**
 - Subline: **No agents. No scams.**
 - Small: NyumbaSearch logo (N lettermark)
 
 **Screenshot captions** (overlay on phone mockups if you design in Canva/Figma):
 
-1. *Search verified rentals*
-2. *Browse on the map*
-3. *Message landlords directly*
-4. *List your property*
+1. _Search verified rentals_
+2. _Browse on the map_
+3. _Message landlords directly_
+4. _List your property_
 
 ---
 

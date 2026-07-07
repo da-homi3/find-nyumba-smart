@@ -32,11 +32,19 @@ import { AdminFoundingPromoTab } from "@/components/admin/AdminFoundingPromoTab"
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { buildPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
   }),
+  head: () =>
+    buildPageHead({
+      title: "Admin — NyumbaSearch",
+      description: "NyumbaSearch platform administration.",
+      path: "/admin",
+      noIndex: true,
+    }),
   component: () => (
     <RouteErrorBoundary title="Admin dashboard failed to load">
       <AdminDashboard />

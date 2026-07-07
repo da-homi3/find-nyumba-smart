@@ -6,9 +6,16 @@ import { Building2, BarChart3, Users, Sparkles, ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LANDLORD_PLANS } from "@/lib/revenue/plans";
 import { formatKes } from "@/lib/properties";
+import { buildPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/landlord/")({
-  head: () => ({ meta: [{ title: "Landlord Portal — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Landlord Portal — NyumbaSearch",
+      description:
+        "List properties, reach verified tenants directly, and manage leads from one dashboard. No agents, no hidden fees.",
+      path: "/landlord",
+    }),
   component: LandlordEntry,
 });
 

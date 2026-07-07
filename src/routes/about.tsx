@@ -1,8 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
+import { buildPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({ meta: [{ title: "About — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "About — NyumbaSearch",
+      description:
+        "NyumbaSearch helps Nairobi renters find verified vacant homes without agent fees. Built in Kenya for Kenyan renters and landlords.",
+      path: "/about",
+    }),
   component: AboutPage,
 });
 

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { buildPageHead } from "@/lib/seo/head";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { type Property } from "@/lib/properties";
@@ -19,7 +20,13 @@ function hasGoogleMapsKeySync(): boolean {
 }
 
 export const Route = createFileRoute("/tenant/map")({
-  head: () => ({ meta: [{ title: "Map — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Map — NyumbaSearch",
+      description:
+        "Map-first rental search across Nairobi. Clustered pins, rent heatmap, and neighbourhood filters for water, security, and more.",
+      path: "/tenant/map",
+    }),
   component: () => (
     <RouteErrorBoundary title="Map failed to load">
       <TenantMap />

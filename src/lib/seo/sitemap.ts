@@ -1,22 +1,5 @@
 import { getSiteUrl } from "@/lib/site";
-
-export const SITEMAP_STATIC_PATHS = [
-  "",
-  "/tenant",
-  "/tenant/map",
-  "/auth",
-  "/landlord",
-  "/pricing",
-  "/privacy",
-  "/terms-of-service",
-  "/cookie-policy",
-  "/refund-policy",
-  "/data-deletion",
-  "/acceptable-use-policy",
-  "/landlord-agreement",
-  "/contact",
-  "/about",
-] as const;
+import { allSitemapStaticPaths } from "@/lib/seo/static-routes";
 
 function escapeXml(value: string): string {
   return value
@@ -39,23 +22,34 @@ function urlEntry(
   return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmod}${changefreq}${priority}\n  </url>`;
 }
 
+function sitemapPriority(path: string): string {
+  if (path === "") return "1.0";
+  if (path.startsWith("/services")) return "0.85";
+  return "0.8";
+}
+
 export function buildStaticSitemapXml(baseUrl = getSiteUrl()): string {
   const today = new Date().toISOString().slice(0, 10);
-  const urls = SITEMAP_STATIC_PATHS.map((path) =>
-    urlEntry(`${baseUrl}${path}`, {
-      lastmod: today,
-      changefreq: "daily",
-      priority: path === "" ? "1.0" : "0.8",
-    }),
-  ).join("\n");
+  const urls = allSitemapStaticPaths()
+    .map((path) =>
+      urlEntry(`${baseUrl}${path}`, {
+        lastmod: today,
+        changefreq: "daily",
+        priority: sitemapPriority(path),
+      }),
+    )
+    .join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
 }
 
 export async function buildFullSitemapXml(): Promise<string> {
   const base = getSiteUrl();
-  const staticEntries = SITEMAP_STATIC_PATHS.map((path) =>
-    urlEntry(`${base}${path}`, { changefreq: "daily", priority: "0.8" }),
+  const staticEntries = allSitemapStaticPaths().map((path) =>
+    urlEntry(`${base}${path}`, {
+      changefreq: "daily",
+      priority: sitemapPriority(path),
+    }),
   );
 
   let propertyEntries: string[] = [];

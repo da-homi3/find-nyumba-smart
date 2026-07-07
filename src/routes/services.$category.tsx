@@ -14,6 +14,7 @@ import {
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
 import { useState } from "react";
+import { buildPageHead } from "@/lib/seo/head";
 
 const VALID_CATEGORIES = new Set(SERVICE_CATEGORIES.map((c) => c.id));
 
@@ -43,9 +44,9 @@ export const Route = createFileRoute("/services/$category")({
     const label = meta?.label ?? params.category;
     const countyLabel = countyNameForCode(search?.county);
     const place = countyLabel ?? "Kenya";
-    return {
-      meta: [{ title: `${label} in ${place} — NyumbaSearch` }],
-    };
+    const title = `${label} in ${place} — NyumbaSearch`;
+    const description = `Compare verified ${label.toLowerCase()} in ${place}. Request quotes and contact providers on NyumbaSearch.`;
+    return buildPageHead({ title, description, path: `/services/${params.category}` });
   },
   component: CategoryPage,
 });

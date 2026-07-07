@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type ChangeEvent } from "react";
+import { useState } from "react";
 import {
   executeListingImport,
   listMyImportBatches,
@@ -11,7 +11,8 @@ import { PORTAL_PATHS, PORTAL_PROPERTY_QUERY_KEY, type ListingPortal } from "@/l
 import { formatKes } from "@/lib/properties";
 import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
-import { Download, FileSpreadsheet, Loader2, RotateCcw, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, RotateCcw } from "lucide-react";
+import { FileDropZone } from "@/components/FileDropZone";
 
 const CSV_TEMPLATE = `title,neighborhood,rent_kes,bedrooms,bathrooms,property_type,description,contact_phone
 Sunny 1BR in Kilimani,Kilimani,35000,1,1,one_bedroom,Spacious unit near Yaya Centre,0712345678
@@ -19,12 +20,94 @@ Cozy bedsitter Westlands,Westlands,18000,0,1,bedsitter,Ground floor with parking
 
 type PreviewState = Awaited<ReturnType<typeof previewListingImport>>;
 
+function downloadTemplate() {
+  const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "nyumba-import-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvDropProgress(
+  uploadProgress: number | null,
+  importPending: boolean,
+  previewPending: boolean,
+): number | null {
+  if (uploadProgress != null) return uploadProgress;
+  if (importPending) return 50;
+  if (previewPending) return 25;
+  return null;
+}
+
+function csvUploadLabel(importPending: boolean, previewPending: boolean): string {
+  if (importPending) return "Importing listings…";
+  if (previewPending) return "Parsing CSV…";
+  return "Processing…";
+}
+
+function RecentImportsList({
+  batchesLoading,
+  batches,
+  rollbackPending,
+  onRollback,
+}: Readonly<{
+  batchesLoading: boolean;
+  batches: Awaited<ReturnType<typeof listMyImportBatches>>;
+  rollbackPending: boolean;
+  onRollback: (batchId: string) => void;
+}>) {
+  if (batchesLoading) {
+    return <Loader2 className="mt-4 h-5 w-5 animate-spin text-muted-foreground" />;
+  }
+  if (batches.length === 0) {
+    return <p className="mt-3 text-sm text-muted-foreground">No imports yet.</p>;
+  }
+  return (
+    <ul className="mt-4 space-y-3">
+      {batches.map((b) => {
+        const canRollback =
+          b.status === "complete" &&
+          Date.now() - new Date(b.created_at).getTime() < 24 * 60 * 60 * 1000;
+        return (
+          <li
+            key={b.id}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm"
+          >
+            <div>
+              <p className="font-medium">{b.filename}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(b.created_at).toLocaleString()} · {b.imported_rows} imported · {b.status}
+              </p>
+            </div>
+            {canRollback && (
+              <button
+                type="button"
+                disabled={rollbackPending}
+                onClick={() => {
+                  if (!globalThis.confirm("Delete all listings from this import?")) return;
+                  onRollback(b.id);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Rollback (24h)
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>) {
   const paths = PORTAL_PATHS[portal];
   const propertyKey = PORTAL_PROPERTY_QUERY_KEY[portal];
   const qc = useQueryClient();
   const [filename, setFilename] = useState("import.csv");
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const { data: batches = [], isLoading: batchesLoading } = useQuery({
     queryKey: ["import-batches", portal],
@@ -44,10 +127,14 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
   });
 
   const importMutation = useMutation({
-    mutationFn: () =>
-      executeListingImport({
+    mutationFn: async () => {
+      setUploadProgress(8);
+      const res = await executeListingImport({
         data: { filename: preview!.filename, rows: preview!.rows },
-      }),
+      });
+      setUploadProgress(100);
+      return res;
+    },
     onSuccess: (res) => {
       toast.success(`Imported ${res.imported} listings (${res.duplicates} duplicates skipped)`);
       setPreview(null);
@@ -55,6 +142,9 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
       void qc.invalidateQueries({ queryKey: [propertyKey] });
     },
     onError: (err) => toast.error(errorMessage(err)),
+    onSettled: () => {
+      globalThis.setTimeout(() => setUploadProgress(null), 350);
+    },
   });
 
   const rollbackMutation = useMutation({
@@ -67,26 +157,30 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
     onError: (err) => toast.error(errorMessage(err)),
   });
 
-  async function onFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    setFilename(file.name);
-    previewMutation.mutate({ csvText: text, filename: file.name });
-    e.target.value = "";
-  }
+  async function processCsvFile(file: File) {
+    if (!file.name.toLowerCase().endsWith(".csv") && file.type !== "text/csv") {
+      toast.error("Please choose a .csv file");
+      return;
+    }
 
-  function downloadTemplate() {
-    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "nyumba-import-template.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    setUploadProgress(5);
+    const text = await file.text();
+    setUploadProgress(35);
+    setFilename(file.name);
+    try {
+      await previewMutation.mutateAsync({ csvText: text, filename: file.name });
+      setUploadProgress(100);
+    } finally {
+      globalThis.setTimeout(() => setUploadProgress(null), 350);
+    }
   }
 
   const busy = previewMutation.isPending || importMutation.isPending;
+  const dropProgress = csvDropProgress(
+    uploadProgress,
+    importMutation.isPending,
+    previewMutation.isPending,
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
@@ -121,28 +215,25 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
           </button>
         </div>
 
-        <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-secondary/50 px-6 py-12 transition hover:border-primary/50">
-          {busy ? (
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          ) : (
-            <>
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="mt-3 text-sm font-semibold">Choose CSV file</span>
-              <span className="mt-1 text-xs text-muted-foreground">{filename}</span>
-            </>
-          )}
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            className="sr-only"
-            disabled={busy}
-            onChange={onFileChange}
-          />
-        </label>
+        <FileDropZone
+          className="mt-6"
+          accept=".csv,text/csv"
+          disabled={busy}
+          uploadProgress={dropProgress}
+          uploadLabel={csvUploadLabel(importMutation.isPending, previewMutation.isPending)}
+          title="Drop your CSV here"
+          hint={filename}
+          icon={<FileSpreadsheet className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
+          onFiles={(files) => {
+            const file = files[0];
+            if (file) void processCsvFile(file);
+          }}
+        />
 
         <p className="mt-4 text-xs text-muted-foreground">
           Columns: title, neighborhood, rent_kes, bedrooms, bathrooms, property_type (e.g.{" "}
-          <code className="rounded bg-muted px-1">one_bedroom</code>,{" "}
+          <code className="rounded bg-muted px-1">one_bedroom</code>
+          {", "}
           <code className="rounded bg-muted px-1">bedsitter</code>
           ), description, contact_phone.
         </p>
@@ -215,46 +306,12 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
 
       <section className="rounded-2xl border bg-card p-6">
         <h2 className="font-semibold">Recent imports</h2>
-        {batchesLoading ? (
-          <Loader2 className="mt-4 h-5 w-5 animate-spin text-muted-foreground" />
-        ) : batches.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">No imports yet.</p>
-        ) : (
-          <ul className="mt-4 space-y-3">
-            {batches.map((b) => {
-              const canRollback =
-                b.status === "complete" &&
-                Date.now() - new Date(b.created_at).getTime() < 24 * 60 * 60 * 1000;
-              return (
-                <li
-                  key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-medium">{b.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(b.created_at).toLocaleString()} · {b.imported_rows} imported ·{" "}
-                      {b.status}
-                    </p>
-                  </div>
-                  {canRollback && (
-                    <button
-                      type="button"
-                      disabled={rollbackMutation.isPending}
-                      onClick={() => {
-                        if (!globalThis.confirm("Delete all listings from this import?")) return;
-                        rollbackMutation.mutate(b.id);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" /> Rollback (24h)
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <RecentImportsList
+          batchesLoading={batchesLoading}
+          batches={batches}
+          rollbackPending={rollbackMutation.isPending}
+          onRollback={(batchId) => rollbackMutation.mutate(batchId)}
+        />
       </section>
     </div>
   );

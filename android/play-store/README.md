@@ -2,12 +2,12 @@
 
 Everything you need to publish `com.nyumbasearch.app` on Google Play.
 
-| Document | Use in Play Console |
-|----------|---------------------|
-| [WINDOWS_BUILD.md](./WINDOWS_BUILD.md) | Build signed `app-release.aab` on your PC |
-| [LISTING.md](./LISTING.md) | App name, short/full description, what's new |
-| [SCREENSHOTS.md](./SCREENSHOTS.md) | Which screens to capture |
-| [DATA_SAFETY.md](./DATA_SAFETY.md) | Data safety questionnaire |
+| Document                                   | Use in Play Console                                  |
+| ------------------------------------------ | ---------------------------------------------------- |
+| [WINDOWS_BUILD.md](./WINDOWS_BUILD.md)     | Build signed `app-release.aab` on your PC            |
+| [LISTING.md](./LISTING.md)                 | App name, short/full description, what's new         |
+| [SCREENSHOTS.md](./SCREENSHOTS.md)         | Which screens to capture                             |
+| [DATA_SAFETY.md](./DATA_SAFETY.md)         | Data safety questionnaire                            |
 | [REVIEWER_ACCESS.md](./REVIEWER_ACCESS.md) | App access → login instructions for Google reviewers |
 
 ## Order of operations

@@ -1,6 +1,6 @@
-import { useRef, type ChangeEvent } from "react";
 import { ImageIcon, FileText, X } from "lucide-react";
 import { toast } from "sonner";
+import { FileDropZone } from "@/components/FileDropZone";
 import {
   type VerificationType,
   VERIFICATION_DOCUMENT_CONFIG,
@@ -11,6 +11,8 @@ type Props = Readonly<{
   files: File[];
   onChange: (files: File[]) => void;
   disabled?: boolean;
+  uploadProgress?: number | null;
+  uploadLabel?: string;
 }>;
 
 function formatFileSize(bytes: number): string {
@@ -18,8 +20,14 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function VerificationDocumentUpload({ verificationType, files, onChange, disabled }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+export function VerificationDocumentUpload({
+  verificationType,
+  files,
+  onChange,
+  disabled,
+  uploadProgress = null,
+  uploadLabel,
+}: Props) {
   const config = VERIFICATION_DOCUMENT_CONFIG[verificationType];
 
   if (!config.requiresUpload) {
@@ -30,9 +38,7 @@ export function VerificationDocumentUpload({ verificationType, files, onChange, 
     );
   }
 
-  function onPick(e: ChangeEvent<HTMLInputElement>) {
-    const picked = Array.from(e.target.files ?? []);
-    e.target.value = "";
+  function mergeFiles(picked: File[]) {
     if (!picked.length) return;
 
     const maxBytes = config.maxMb * 1024 * 1024;
@@ -55,6 +61,8 @@ export function VerificationDocumentUpload({ verificationType, files, onChange, 
     onChange(files.filter((_, i) => i !== index));
   }
 
+  const pickerDisabled = disabled || files.length >= config.maxFiles;
+
   return (
     <div className="space-y-2">
       <div>
@@ -64,22 +72,17 @@ export function VerificationDocumentUpload({ verificationType, files, onChange, 
         <p className="text-[10px] text-muted-foreground">{config.uploadHint}</p>
       </div>
 
-      <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-primary/30 bg-secondary/20 px-4 py-5 text-center transition hover:bg-secondary/40">
-        <ImageIcon className="mb-2 h-5 w-5 text-primary" />
-        <span className="text-xs font-semibold">Tap to upload photos or PDFs</span>
-        <span className="mt-1 text-[10px] text-muted-foreground">
-          Up to {config.maxFiles} file(s) · max {config.maxMb}MB each
-        </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={config.accept}
-          multiple={config.maxFiles > 1}
-          disabled={disabled || files.length >= config.maxFiles}
-          className="hidden"
-          onChange={onPick}
-        />
-      </label>
+      <FileDropZone
+        accept={config.accept}
+        multiple={config.maxFiles > 1}
+        disabled={pickerDisabled}
+        uploadProgress={uploadProgress}
+        uploadLabel={uploadLabel ?? "Uploading documents…"}
+        title="Drop photos or PDFs here"
+        hint={`Up to ${config.maxFiles} file(s) · max ${config.maxMb}MB each`}
+        icon={<ImageIcon className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
+        onFiles={mergeFiles}
+      />
 
       {files.length > 0 && (
         <ul className="space-y-1.5">

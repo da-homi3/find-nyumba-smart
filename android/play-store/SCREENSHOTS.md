@@ -9,62 +9,69 @@ Google Play requires **at least 2 phone screenshots** (max 8). Use a **1080×192
 Capture these flows in order:
 
 ### 1. Homepage / search
+
 - **Route:** Open app → homepage
 - **Shows:** Hero, search bar, neighbourhood chips
-- **Caption:** *Search verified rentals in Nairobi*
+- **Caption:** _Search verified rentals in Nairobi_
 
 ### 2. Listings grid
+
 - **Route:** Tap search or go to `/tenant`
 - **Shows:** Property cards with photos and prices
-- **Caption:** *Browse bedsitters, studios, and apartments*
+- **Caption:** _Browse bedsitters, studios, and apartments_
 
 ### 3. Property detail
+
 - **Route:** Tap any listing
 - **Shows:** Gallery, price, amenities, contact
-- **Caption:** *Full details before you visit*
+- **Caption:** _Full details before you visit_
 
 ### 4. Map view
+
 - **Route:** `/tenant/map`
 - **Shows:** Map with property pins
-- **Caption:** *Find homes near you on the map*
+- **Caption:** _Find homes near you on the map_
 
 ---
 
 ## Optional extras
 
-| Screen | Route | Caption |
-|--------|-------|---------|
-| Landlord dashboard | Sign in as landlord → `/landlord` | *List property directly — no agent* |
-| Messages | `/tenant/messages` | *Message landlords in-app* |
-| Auth | `/auth` | *Create a free account* |
+| Screen             | Route                             | Caption                             |
+| ------------------ | --------------------------------- | ----------------------------------- |
+| Landlord dashboard | Sign in as landlord → `/landlord` | _List property directly — no agent_ |
+| Messages           | `/tenant/messages`                | _Message landlords in-app_          |
+| Auth               | `/auth`                           | _Create a free account_             |
 
 ---
 
 ## How to capture
 
 ### Physical device
+
 - **Power + Volume down** (most Android phones)
 - Or use **Google Play Console** → **Store presence** → **Screenshot maker** (upload raw screenshots)
 
 ### Android Studio emulator
+
 1. **Tools → Device Manager** → create Pixel 6 API 34 device
 2. Run app (green play button)
 3. Emulator **⋯ menu → Screenshot**
 
 ### From Chrome (quick marketing shots — less ideal for review)
+
 - Resize browser to mobile width, screenshot — Play prefers actual app screenshots
 
 ---
 
 ## Specs
 
-| Asset | Size | Format |
-|-------|------|--------|
-| Phone screenshots | Min 320px short side; max 3840px long side | PNG or JPEG |
-| 7-inch tablet | Optional | Same rules |
-| 10-inch tablet | Optional | Same rules |
-| Feature graphic | **1024 × 500** | PNG or JPEG |
-| App icon (store) | **512 × 512** | 32-bit PNG, no alpha |
+| Asset             | Size                                       | Format               |
+| ----------------- | ------------------------------------------ | -------------------- |
+| Phone screenshots | Min 320px short side; max 3840px long side | PNG or JPEG          |
+| 7-inch tablet     | Optional                                   | Same rules           |
+| 10-inch tablet    | Optional                                   | Same rules           |
+| Feature graphic   | **1024 × 500**                             | PNG or JPEG          |
+| App icon (store)  | **512 × 512**                              | 32-bit PNG, no alpha |
 
 ---
 

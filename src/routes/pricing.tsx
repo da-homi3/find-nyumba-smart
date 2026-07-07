@@ -9,18 +9,16 @@ import {
   planPriceLabel,
 } from "@/lib/revenue/plans";
 import { formatKes } from "@/lib/properties";
+import { buildPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/pricing")({
-  head: () => ({
-    meta: [
-      { title: "Pricing — NyumbaSearch" },
-      {
-        name: "description",
-        content:
-          "Landlord plans, agency tiers, listing boosts, NyumbaSearch Plus, and market reports. Pay with M-Pesa — card also available.",
-      },
-    ],
-  }),
+  head: () =>
+    buildPageHead({
+      title: "Pricing — NyumbaSearch",
+      description:
+        "Landlord plans, agency tiers, listing boosts, NyumbaSearch Plus, and market reports. Pay with M-Pesa — card also available.",
+      path: "/pricing",
+    }),
   component: PricingPage,
 });
 

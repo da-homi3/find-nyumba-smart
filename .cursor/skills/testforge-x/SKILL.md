@@ -58,24 +58,43 @@ For the complete agent specification (22 test phases), read [reference.md](refer
 
 ```markdown
 # EXECUTIVE SUMMARY
+
 # TEST CONTEXT
+
 # TEST STRATEGY
+
 # REQUIREMENT COVERAGE
+
 # FUNCTIONAL TEST RESULTS
+
 # API TEST RESULTS
+
 # DATABASE TEST RESULTS
+
 # INTEGRATION TEST RESULTS
+
 # UI TEST RESULTS
+
 # ACCESSIBILITY RESULTS
+
 # SECURITY TEST RESULTS
+
 # PERFORMANCE RESULTS
+
 # RELIABILITY RESULTS
+
 # OBSERVABILITY RESULTS
+
 # REGRESSION RESULTS
+
 # AI TEST RESULTS (if applicable)
+
 # BUG REPORTS
+
 # RISK ASSESSMENT
+
 # PRODUCTION READINESS
+
 # FINAL DECISION
 ```
 
@@ -89,17 +108,17 @@ Never stop after finding one bug.
 
 Run from `find-nyumba-smart/`:
 
-| Command | Purpose |
-|---------|---------|
-| `npm run lint` | ESLint |
-| `npm run test:unit` | Vitest unit tests |
-| `npm run test:routes` | Route audit |
-| `npm run test:smoke` | Production smoke (45 checks) |
-| `npm run test:e2e` | Auth E2E |
-| `npm run test:portals` | Portal E2E |
-| `npm run test:dashboards` | Dashboard E2E |
-| `npm run verify:responsive` | 52 phones × 14 pages |
-| `npm run verify:team-invites` | Team invite flow |
+| Command                       | Purpose                      |
+| ----------------------------- | ---------------------------- |
+| `npm run lint`                | ESLint                       |
+| `npm run test:unit`           | Vitest unit tests            |
+| `npm run test:routes`         | Route audit                  |
+| `npm run test:smoke`          | Production smoke (45 checks) |
+| `npm run test:e2e`            | Auth E2E                     |
+| `npm run test:portals`        | Portal E2E                   |
+| `npm run test:dashboards`     | Dashboard E2E                |
+| `npm run verify:responsive`   | 52 phones × 14 pages         |
+| `npm run verify:team-invites` | Team invite flow             |
 
 ## Golden rule
 

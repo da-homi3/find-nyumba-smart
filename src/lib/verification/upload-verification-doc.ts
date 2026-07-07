@@ -1,5 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
 import { createSignedVerificationUrls } from "@/lib/api/trust.functions";
+import { uploadStorageBatchWithProgress } from "@/lib/media/storage-upload";
 import {
   type VerificationType,
   VERIFICATION_DOCUMENT_CONFIG,
@@ -12,6 +12,7 @@ export async function uploadVerificationDocuments(
   userId: string,
   verificationType: VerificationType,
   files: File[],
+  onProgress?: (percent: number) => void,
 ): Promise<string[]> {
   const config = VERIFICATION_DOCUMENT_CONFIG[verificationType];
   if (!config.requiresUpload) return [];
@@ -30,15 +31,16 @@ export async function uploadVerificationDocuments(
     if (file.size > maxBytes) {
       throw new Error(`${file.name} exceeds ${config.maxMb}MB.`);
     }
-    const path = verificationStoragePath(userId, verificationType, file.name);
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-      cacheControl: "31536000",
-      upsert: false,
-      contentType: file.type || undefined,
-    });
-    if (error) throw error;
-    paths.push(path);
+    paths.push(verificationStoragePath(userId, verificationType, file.name));
   }
+
+  const uploads = files.map((file, index) => ({
+    bucket: BUCKET,
+    path: paths[index]!,
+    file,
+  }));
+
+  await uploadStorageBatchWithProgress(uploads, onProgress);
 
   const signed = await createSignedVerificationUrls({ data: { paths } });
   const urls = signed.map((row) => row.signedUrl).filter((url): url is string => Boolean(url));

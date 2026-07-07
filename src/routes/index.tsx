@@ -35,6 +35,7 @@ import {
   fetchIntelligenceStatsApi,
 } from "@/lib/homepage-client";
 import { prefetchHomepageQueries } from "@/lib/seo/prefetch-homepage";
+import { buildPageHead } from "@/lib/seo/head";
 
 async function fetchPublicStatsApi(): Promise<PublicStats> {
   const res = await fetch("/api/stats/public", { headers: { Accept: "application/json" } });
@@ -49,23 +50,51 @@ export const Route = createFileRoute("/")({
     return { providerCounts };
   },
   head: () => {
-    const canonical = getSiteUrl();
     const description =
       "Discover verified vacant homes across Nairobi. Map-first search, real reviews, AI guidance — no agent fees, no scams.";
-    return {
-      meta: [
-        { title: HOMEPAGE_TITLE },
-        { name: "description", content: description },
-        { property: "og:title", content: HOMEPAGE_TITLE },
-        { property: "og:description", content: description },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: canonical },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: HOMEPAGE_TITLE },
-        { name: "twitter:description", content: description },
-      ],
-      links: [{ rel: "canonical", href: canonical }],
-    };
+    return buildPageHead({
+      title: HOMEPAGE_TITLE,
+      description,
+      path: "",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            name: "NyumbaSearch",
+            url: getSiteUrl(),
+            potentialAction: {
+              "@type": "SearchAction",
+              target: {
+                "@type": "EntryPoint",
+                urlTemplate: `${getSiteUrl()}/tenant?q={search_term_string}`,
+              },
+              "query-input": "required name=search_term_string",
+            },
+          },
+          {
+            "@type": "Organization",
+            name: "NyumbaSearch",
+            url: getSiteUrl(),
+            logo: getBrandLogoUrl(),
+            contactPoint: {
+              "@type": "ContactPoint",
+              contactType: "customer service",
+              email: CUSTOMER_CARE_EMAIL,
+              telephone: CUSTOMER_CARE_PHONE_E164,
+              areaServed: "KE",
+            },
+          },
+          {
+            "@type": "RealEstateAgent",
+            name: "NyumbaSearch",
+            areaServed: "Nairobi, Kenya",
+            url: getSiteUrl(),
+            description,
+          },
+        ],
+      },
+    });
   },
   component: Landing,
 });
@@ -177,51 +206,6 @@ function Landing() {
       <DownloadApp />
       <LandlordBand />
       <SiteFooter />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@graph": [
-              {
-                "@type": "WebSite",
-                name: "NyumbaSearch",
-                url: getSiteUrl(),
-                potentialAction: {
-                  "@type": "SearchAction",
-                  target: {
-                    "@type": "EntryPoint",
-                    urlTemplate: `${getSiteUrl()}/tenant?q={search_term_string}`,
-                  },
-                  "query-input": "required name=search_term_string",
-                },
-              },
-              {
-                "@type": "Organization",
-                name: "NyumbaSearch",
-                url: getSiteUrl(),
-                logo: getBrandLogoUrl(),
-                contactPoint: {
-                  "@type": "ContactPoint",
-                  contactType: "customer service",
-                  email: CUSTOMER_CARE_EMAIL,
-                  telephone: CUSTOMER_CARE_PHONE_E164,
-                  areaServed: "KE",
-                },
-              },
-              {
-                "@type": "RealEstateAgent",
-                name: "NyumbaSearch",
-                areaServed: "Nairobi, Kenya",
-                url: getSiteUrl(),
-                description:
-                  "Verified vacant homes across Nairobi with map-first search, real reviews, and direct landlord contact.",
-              },
-            ],
-          }),
-        }}
-      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
-@source "../src";
 @import "tw-animate-css";
 @import "mapbox-gl/dist/mapbox-gl.css";
+@source "../src";
 
 /* Mapbox canvas must fill its container (absolute inset-0 parent on /tenant/map). */
 .mapboxgl-map,
@@ -381,7 +381,9 @@
   font-optical-sizing: auto;
   font-weight: 480;
   letter-spacing: -0.02em;
-  font-variation-settings: "SOFT" 40, "WONK" 0;
+  font-variation-settings:
+    "SOFT" 40,
+    "WONK" 0;
 }
 
 /* Hero atmosphere */
@@ -498,6 +500,72 @@
   .hero-kenburns {
     animation: none;
   }
+  .file-drop-shell--active {
+    animation: none;
+  }
+}
+
+/* Drag-and-drop upload zones — animated gradient border when a file hovers */
+.file-drop-shell {
+  position: relative;
+  border-radius: 1rem;
+  padding: 2px;
+  background: transparent;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.file-drop-shell--active {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary)),
+    hsl(var(--accent)),
+    hsl(var(--primary-glow)),
+    hsl(var(--primary))
+  );
+  background-size: 300% 100%;
+  animation: file-drop-gradient 2.2s linear infinite;
+  box-shadow: 0 0 28px hsl(var(--primary) / 0.35);
+  transform: scale(1.01);
+}
+
+@keyframes file-drop-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+.file-drop-zone-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.upload-progress-bar {
+  appearance: none;
+  border: none;
+  border-radius: 9999px;
+  overflow: hidden;
+  background-color: hsl(var(--secondary));
+}
+
+.upload-progress-bar::-webkit-progress-bar {
+  border-radius: 9999px;
+  background-color: hsl(var(--secondary));
+}
+
+.upload-progress-bar::-webkit-progress-value {
+  border-radius: 9999px;
+  background-color: hsl(var(--primary));
+  transition: width 0.2s ease;
+}
+
+.upload-progress-bar::-moz-progress-bar {
+  border-radius: 9999px;
+  background-color: hsl(var(--primary));
 }
 
 /* Form focus glow (mint ring) */

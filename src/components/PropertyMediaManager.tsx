@@ -1,10 +1,9 @@
-import { useState, type ChangeEvent } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSignedMediaUrls, updatePropertyMedia } from "@/lib/api/media.functions";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { Property } from "@/lib/properties";
-import { Compass, Film, Image as ImageIcon, Link2, Loader2, Sparkles, X } from "lucide-react";
+import { Compass, Film, Image as ImageIcon, Link2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   isWithinUploadLimit,
@@ -12,8 +11,19 @@ import {
   MAX_VIDEO_UPLOAD_MB,
   uploadLimitLabel,
 } from "@/lib/media/upload-limits";
+import { uploadStorageBatchWithProgress } from "@/lib/media/storage-upload";
+import { FileDropZone } from "@/components/FileDropZone";
 
 type UpdateMediaResult = Awaited<ReturnType<typeof updatePropertyMedia>>;
+type MediaKind = "image" | "video" | "tour";
+
+const BUCKET = "property-media";
+
+function mediaUploadLabel(kind: MediaKind): string {
+  if (kind === "image") return "Uploading photos…";
+  if (kind === "video") return "Uploading video…";
+  return "Uploading 360° image…";
+}
 
 export function PropertyMediaManager({ property }: Readonly<{ property: Property }>) {
   const { user } = useAuth();
@@ -22,6 +32,8 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
   const [videoUrl, setVideoUrl] = useState(property.video_url);
   const [tourUrl, setTourUrl] = useState<string | null>(property.tour_url ?? null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadLabel, setUploadLabel] = useState("Uploading…");
 
   const save = useMutation({
     mutationFn: (payload: {
@@ -55,32 +67,40 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
     onError: (err: Error) => toast.error(err.message),
   });
 
-  async function uploadFiles(files: File[], kind: "image" | "video" | "tour") {
+  async function uploadFiles(files: File[], kind: MediaKind) {
     if (!user) throw new Error("Sign in required");
     setUploading(true);
+    setUploadProgress(0);
+    setUploadLabel(mediaUploadLabel(kind));
+
     try {
       const newUrls: string[] = [];
       let newVideo: string | null = videoUrl;
       let newTour: string | null = tourUrl;
 
-      for (const file of files) {
+      const prefixByKind = { image: "img", video: "video", tour: "tour360" } as const;
+      const uploads = files.map((file) => {
         const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
-        const prefixByKind = { image: "img", video: "video", tour: "tour360" } as const;
         const prefix = prefixByKind[kind];
         const path = `${user.id}/${property.id}/${prefix}-${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from("property-media").upload(path, file, {
-          cacheControl: "31536000",
-          upsert: false,
-          contentType: file.type,
-        });
-        if (error) throw error;
+        return { bucket: BUCKET, path, file, kind };
+      });
 
-        const signed = await createSignedMediaUrls({ data: { paths: [path] } });
-        const url = signed[0]?.signedUrl;
+      await uploadStorageBatchWithProgress(
+        uploads.map(({ bucket, path, file }) => ({ bucket, path, file })),
+        setUploadProgress,
+      );
+
+      const signed = await createSignedMediaUrls({
+        data: { paths: uploads.map((item) => item.path) },
+      });
+
+      for (let i = 0; i < uploads.length; i++) {
+        const url = signed[i]?.signedUrl;
         if (!url) throw new Error("Could not sign uploaded media");
-
-        if (kind === "image") newUrls.push(url);
-        else if (kind === "video") newVideo = url;
+        const uploadKind = uploads[i]!.kind;
+        if (uploadKind === "image") newUrls.push(url);
+        else if (uploadKind === "video") newVideo = url;
         else newTour = url;
       }
 
@@ -96,15 +116,24 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
       });
     } finally {
       setUploading(false);
+      globalThis.setTimeout(() => setUploadProgress(null), 400);
     }
   }
 
-  function onPick(e: ChangeEvent<HTMLInputElement>, kind: "image" | "video" | "tour") {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
+  function pickFiles(files: File[], kind: MediaKind) {
     const valid = files.filter((f) => {
-      if (!isWithinUploadLimit(f, kind)) {
-        toast.error(`${f.name}: max ${uploadLimitLabel(kind)}`);
+      if (kind === "image" || kind === "tour") {
+        if (!f.type.startsWith("image/")) {
+          toast.error(`${f.name}: not an image`);
+          return false;
+        }
+      }
+      if (kind === "video" && !f.type.startsWith("video/")) {
+        toast.error(`${f.name}: not a video`);
+        return false;
+      }
+      if (!isWithinUploadLimit(f, kind === "tour" ? "image" : kind)) {
+        toast.error(`${f.name}: max ${uploadLimitLabel(kind === "tour" ? "image" : kind)}`);
         return false;
       }
       return true;
@@ -115,13 +144,13 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
   const busy = uploading || save.isPending;
 
   return (
-    <div className="mt-4 space-y-3 rounded-xl border bg-background p-3">
+    <div className="mt-4 space-y-4 rounded-xl border bg-background p-3 sm:p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Manage media
       </p>
       <div className="flex flex-wrap gap-2">
         {images.map((src, i) => (
-          <div key={src} className="relative h-16 w-16 overflow-hidden rounded-lg">
+          <div key={src} className="relative h-16 w-16 overflow-hidden rounded-lg sm:h-20 sm:w-20">
             <img src={src} alt="" className="h-full w-full object-cover" />
             <button
               type="button"
@@ -137,45 +166,41 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium">
-          <ImageIcon className="h-3.5 w-3.5" />
-          Add photos
-          <span className="text-[10px] text-muted-foreground">(max {MAX_IMAGE_UPLOAD_MB}MB)</span>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            disabled={busy}
-            onChange={(e) => onPick(e, "image")}
-          />
-        </label>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium">
-          <Film className="h-3.5 w-3.5" />
-          Video
-          <span className="text-[10px] text-muted-foreground">(max {MAX_VIDEO_UPLOAD_MB}MB)</span>
-          <input
-            type="file"
-            accept="video/*"
-            className="hidden"
-            disabled={busy}
-            onChange={(e) => onPick(e, "video")}
-          />
-        </label>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium">
-          <Compass className="h-3.5 w-3.5" />
-          360° image
-          <span className="text-[10px] text-muted-foreground">(max {MAX_IMAGE_UPLOAD_MB}MB)</span>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            disabled={busy}
-            onChange={(e) => onPick(e, "tour")}
-          />
-        </label>
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        <FileDropZone
+          accept="image/*"
+          multiple
+          disabled={busy}
+          uploadProgress={uploading ? uploadProgress : null}
+          uploadLabel={uploadLabel}
+          title="Add photos"
+          hint={`Up to 15 · max ${MAX_IMAGE_UPLOAD_MB}MB each`}
+          icon={<ImageIcon className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
+          onFiles={(files) => pickFiles(files, "image")}
+        />
+        <FileDropZone
+          accept="video/*"
+          disabled={busy}
+          uploadProgress={uploading ? uploadProgress : null}
+          uploadLabel={uploadLabel}
+          title="Walkthrough video"
+          hint={`max ${MAX_VIDEO_UPLOAD_MB}MB`}
+          icon={<Film className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
+          onFiles={(files) => pickFiles(files, "video")}
+        />
+        <FileDropZone
+          accept="image/*"
+          disabled={busy}
+          uploadProgress={uploading ? uploadProgress : null}
+          uploadLabel={uploadLabel}
+          title="360° image"
+          hint={`max ${MAX_IMAGE_UPLOAD_MB}MB`}
+          icon={<Compass className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
+          onFiles={(files) => pickFiles(files, "tour")}
+        />
       </div>
+
       <div className="space-y-2">
         <div className="relative">
           <Link2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -205,7 +230,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           onClick={() => save.mutate({ images, video_url: videoUrl, tour_url: tourUrl ?? null })}
           className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
         >
-          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+          <Sparkles className="h-3 w-3" />
           Save media & analyze
         </button>
       </div>

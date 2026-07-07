@@ -9,12 +9,20 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { isDemoListingId } from "@/data/mockListings";
 import { SiteNav } from "@/components/SiteNav";
 import { isPreviewListing, mergeListingsForDisplay } from "@/lib/listings-preview";
+import { buildPageHead } from "@/lib/seo/head";
 import type { Property } from "@/lib/properties";
 import { toast } from "sonner";
 import { useMemo } from "react";
 
 export const Route = createFileRoute("/tenant/saved")({
-  head: () => ({ meta: [{ title: "Saved homes — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Saved homes — NyumbaSearch",
+      description:
+        "Your shortlist of saved rental listings on NyumbaSearch. Compare and book viewings in one place.",
+      path: "/tenant/saved",
+      noIndex: true,
+    }),
   component: SavedPage,
 });
 

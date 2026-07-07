@@ -35,14 +35,14 @@ On **every message** in this repo:
 
 ## Capabilities
 
-| Area | Actions |
-|------|---------|
-| **Visual** | Typography, spacing, grids, cards, heroes, glass/depth, cohesive language |
-| **Motion** | Page transitions, springs, micro-interactions, reduced-motion fallbacks |
-| **3D** | R3F, Drei, GSAP, WebGL — graceful degradation via `useDeviceCapability` |
-| **UX** | Navigation, flows, friction reduction, empty/loading/error states |
-| **A11y** | WCAG AA, keyboard, focus, contrast, semantic HTML, touch targets |
-| **Responsive** | 320px–ultrawide; no overflow (`npm run verify:responsive`) |
+| Area           | Actions                                                                   |
+| -------------- | ------------------------------------------------------------------------- |
+| **Visual**     | Typography, spacing, grids, cards, heroes, glass/depth, cohesive language |
+| **Motion**     | Page transitions, springs, micro-interactions, reduced-motion fallbacks   |
+| **3D**         | R3F, Drei, GSAP, WebGL — graceful degradation via `useDeviceCapability`   |
+| **UX**         | Navigation, flows, friction reduction, empty/loading/error states         |
+| **A11y**       | WCAG AA, keyboard, focus, contrast, semantic HTML, touch targets          |
+| **Responsive** | 320px–ultrawide; no overflow (`npm run verify:responsive`)                |
 
 ## NyumbaSearch design stack
 

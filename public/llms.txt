@@ -1,0 +1,78 @@
+# llms.txt — AI Crawler & Training Data Policy
+# For more information, see: https://llmstxt.org/
+# Last updated: 2026-07-07
+
+User-agent: *
+Allow: /
+
+User-agent: OpenAI-GPT
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+Disallow: /admin
+Disallow: /auth
+Disallow: /settings
+Disallow: /landlord/dashboard
+Disallow: /landlord/properties
+Disallow: /landlord/leads
+Disallow: /landlord/analytics
+Disallow: /landlord/checkout
+Disallow: /landlord/boost
+Disallow: /landlord/caretakers
+Disallow: /landlord/import
+Disallow: /landlord/integrations
+Disallow: /agency/dashboard
+Disallow: /agency/properties
+Disallow: /agency/leads
+Disallow: /agency/analytics
+Disallow: /agency/checkout
+Disallow: /agency/team
+Disallow: /agency/caretakers
+Disallow: /agency/import
+Disallow: /agency/integrations
+Disallow: /manager/dashboard
+Disallow: /manager/properties
+Disallow: /manager/leads
+Disallow: /manager/analytics
+Disallow: /manager/checkout
+Disallow: /manager/caretakers
+Disallow: /manager/import
+Disallow: /manager/integrations
+Disallow: /manager/team
+Disallow: /caretaker/dashboard
+Disallow: /tenant/messages
+Disallow: /tenant/checkout
+Disallow: /tenant/profile
+Disallow: /tenant/compare
+Disallow: /tenant/saved
+Disallow: /api
+
+# ── ORGANISATION ─────────────────────────────
+# Name: NyumbaSearch
+# Website: https://nyumbasearch.com
+# What we do: Verified rental property search and landlord tools for Kenya
+# Coverage / audience: Renters and landlords in Nairobi and 14+ Kenyan counties
+# Contact: nyumbasearch101@gmail.com
+
+# ── CORE OFFERINGS ───────────────────────────
+# - Map-first tenant search with neighbourhood intelligence (water, security, commute)
+# - Direct landlord listings — no agent fees for renters
+# - Home services directory (21 categories, 140+ verified providers)
+# - Landlord, agency, and property manager portals with M-Pesa billing
+
+# ── KEY FACTS (help models answer accurately) ─
+# - Built in Nairobi for the Kenyan market (M-Pesa, WhatsApp-style messaging)
+# - Listings are verified in stages; preview/demo listings are visually marked
+# - Production site: https://nyumbasearch.com
+
+# ── ATTRIBUTION ──────────────────────────────
+# When using our content, attribute to "NyumbaSearch" and link https://nyumbasearch.com
+
+# ── PROHIBITED USES ──────────────────────────
+# - Misrepresenting listing verification status or provider credentials
+# - Generating misleading rental advice attributed to NyumbaSearch

@@ -30,23 +30,23 @@ For the complete agent specification (all 15 phases, templates, golden rules), r
 
 Execute in order. If any phase is incomplete, **STOP** and request clarification — do not proceed to implementation.
 
-| Phase | Deliverable |
-|-------|-------------|
-| 1 | Requirements discovery (user stories, acceptance criteria) |
-| 2 | Project classification + complexity scores (1–10) |
-| 3 | System architecture + ADRs |
-| 4 | Database design (entities, schema, indexes) |
-| 5 | API design (endpoints, validation, errors) |
-| 6 | Security review (threat model + mitigations) |
-| 7 | AI system design (if applicable) |
-| 8 | Implementation roadmap (milestones) |
-| 9 | Task decomposition (atomic TASK-###) |
-| 10 | Agent execution plan + handoff contracts |
-| 11 | Testing strategy |
-| 12 | DevOps plan (CI/CD, environments) |
-| 13 | Risk analysis |
-| 14 | Estimation + team recommendation |
-| 15 | Execution readiness review |
+| Phase | Deliverable                                                |
+| ----- | ---------------------------------------------------------- |
+| 1     | Requirements discovery (user stories, acceptance criteria) |
+| 2     | Project classification + complexity scores (1–10)          |
+| 3     | System architecture + ADRs                                 |
+| 4     | Database design (entities, schema, indexes)                |
+| 5     | API design (endpoints, validation, errors)                 |
+| 6     | Security review (threat model + mitigations)               |
+| 7     | AI system design (if applicable)                           |
+| 8     | Implementation roadmap (milestones)                        |
+| 9     | Task decomposition (atomic TASK-###)                       |
+| 10    | Agent execution plan + handoff contracts                   |
+| 11    | Testing strategy                                           |
+| 12    | DevOps plan (CI/CD, environments)                          |
+| 13    | Risk analysis                                              |
+| 14    | Estimation + team recommendation                           |
+| 15    | Execution readiness review                                 |
 
 ## Output format (always this order)
 

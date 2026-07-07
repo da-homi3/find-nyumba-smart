@@ -107,16 +107,16 @@ Live/SSR check for each fixed child URL:
 
 ## Known offenders fixed in this repo (reference)
 
-| Parent | Children |
-|--------|----------|
-| `/services` | `$category`, `provider/*`, `register` |
-| `/advertise` | `pay` |
-| `/verify` | `request`, `status/$requestId` |
-| `/auth` | `reset`, `pending` |
-| `/landlord/dashboard` | `billing`, `plan` |
-| `/landlord/properties` | `new`, `$id/edit` |
-| `/agency/properties` | `new`, `$id/edit` |
-| `/manager/properties` | `new`, `$id/edit` |
+| Parent                 | Children                              |
+| ---------------------- | ------------------------------------- |
+| `/services`            | `$category`, `provider/*`, `register` |
+| `/advertise`           | `pay`                                 |
+| `/verify`              | `request`, `status/$requestId`        |
+| `/auth`                | `reset`, `pending`                    |
+| `/landlord/dashboard`  | `billing`, `plan`                     |
+| `/landlord/properties` | `new`, `$id/edit`                     |
+| `/agency/properties`   | `new`, `$id/edit`                     |
+| `/manager/properties`  | `new`, `$id/edit`                     |
 
 ## Do not
 

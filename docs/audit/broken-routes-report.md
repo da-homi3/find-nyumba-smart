@@ -14,18 +14,18 @@ The routes listed as broken in Master Build Prompt v2 were **largely fixed in pr
 
 ## Master prompt known issues — current status
 
-| Route | Expected (spec) | Prior claim | **Current status** | Evidence |
-|-------|-----------------|-------------|-------------------|----------|
-| `/landlord/checkout?plan=pro` | UniversalCheckout | Blank page | **✅ Fixed** | `landlord.checkout.tsx` → `CheckoutFlow`; audit 6227 bytes |
-| `/landlord/checkout?plan=premium` | Same | Blank | **✅ Fixed** | `resolveLandlordPlan()` handles plan param |
-| `/landlord/checkout?plan=agency-*` | Same | Blank | **✅ Fixed** | Agency plans in `LANDLORD_PLANS` + `AGENCY_PLANS` |
-| `/landlord/boost?package=*` | Boost + listing picker | Missing route | **✅ Fixed** | `landlord.boost.tsx` 3-step flow; audit 6092 bytes |
-| `/tenant/checkout?plan=plus` | Plus checkout form | Nav only | **✅ Fixed** | Billing cycle picker + `CheckoutFlow`; audit OK |
-| `/verify/request` | 2-step intake + pay | Duplicates `/verify` | **✅ Fixed** | Separate component: intake steps 1–3 → payment step 4 |
-| `/services/register` | 3-step provider signup | Duplicates `/services` | **✅ Fixed** | profile → plan → `CheckoutFlow` |
-| `/tenant/map` | Mapbox 3D map | Completely blank | **✅ Fixed** | Mapbox/Google when configured; instant listing preview fallback without tokens |
-| `/reports` | Charts with data | Charts empty | **✅ Fixed** | `getMarketReportTeaser()` + Recharts; fallback hood data if DB sparse |
-| Homepage stats | Live counters | Shows 0/0/0 | **✅ Fixed** | All four trust strip metrics from `getPublicStats()` |
+| Route                              | Expected (spec)        | Prior claim            | **Current status** | Evidence                                                                       |
+| ---------------------------------- | ---------------------- | ---------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `/landlord/checkout?plan=pro`      | UniversalCheckout      | Blank page             | **✅ Fixed**       | `landlord.checkout.tsx` → `CheckoutFlow`; audit 6227 bytes                     |
+| `/landlord/checkout?plan=premium`  | Same                   | Blank                  | **✅ Fixed**       | `resolveLandlordPlan()` handles plan param                                     |
+| `/landlord/checkout?plan=agency-*` | Same                   | Blank                  | **✅ Fixed**       | Agency plans in `LANDLORD_PLANS` + `AGENCY_PLANS`                              |
+| `/landlord/boost?package=*`        | Boost + listing picker | Missing route          | **✅ Fixed**       | `landlord.boost.tsx` 3-step flow; audit 6092 bytes                             |
+| `/tenant/checkout?plan=plus`       | Plus checkout form     | Nav only               | **✅ Fixed**       | Billing cycle picker + `CheckoutFlow`; audit OK                                |
+| `/verify/request`                  | 2-step intake + pay    | Duplicates `/verify`   | **✅ Fixed**       | Separate component: intake steps 1–3 → payment step 4                          |
+| `/services/register`               | 3-step provider signup | Duplicates `/services` | **✅ Fixed**       | profile → plan → `CheckoutFlow`                                                |
+| `/tenant/map`                      | Mapbox 3D map          | Completely blank       | **✅ Fixed**       | Mapbox/Google when configured; instant listing preview fallback without tokens |
+| `/reports`                         | Charts with data       | Charts empty           | **✅ Fixed**       | `getMarketReportTeaser()` + Recharts; fallback hood data if DB sparse          |
+| Homepage stats                     | Live counters          | Shows 0/0/0            | **✅ Fixed**       | All four trust strip metrics from `getPublicStats()`                           |
 
 ---
 
@@ -43,12 +43,12 @@ Checkout component: **`CheckoutFlow`** (not `UniversalCheckout` from payment spe
 
 **File:** `src/components/landing/LandingBrowseSections.tsx`, `src/routes/index.tsx`
 
-| Stat | Source |
-|------|--------|
-| Verified homes | ✅ `getPublicStats().verifiedListings` |
-| No agent fees % | ❌ Hardcoded default `98` |
-| Avg response hours | ❌ Hardcoded default `24` |
-| Tenant rating | ❌ Hardcoded default `4.7` |
+| Stat               | Source                                 |
+| ------------------ | -------------------------------------- |
+| Verified homes     | ✅ `getPublicStats().verifiedListings` |
+| No agent fees %    | ❌ Hardcoded default `98`              |
+| Avg response hours | ❌ Hardcoded default `24`              |
+| Tenant rating      | ❌ Hardcoded default `4.7`             |
 
 **Fix:** Extend `getPublicStats` to query `inquiries` response times and `property_reviews` average rating.
 
@@ -91,26 +91,26 @@ Historical issue (HTTP 500 on SSR) was caused by `securityHeadersMiddleware` cal
 
 ## Routes not in master prompt but worth noting
 
-| Route | Status | Notes |
-|-------|--------|-------|
-| `/finance` | Marketing placeholder | No live calculator |
-| `/insurance` | Marketing placeholder | Lead form only |
-| `/landlord/import` | Partial | Import functions exist; type gaps on `import_batches` |
-| `/admin/revenue` | Shipped | Revenue dashboard |
-| `/tenant/compare` | Shipped | Compare up to 4 listings |
+| Route              | Status                | Notes                                                 |
+| ------------------ | --------------------- | ----------------------------------------------------- |
+| `/finance`         | Marketing placeholder | No live calculator                                    |
+| `/insurance`       | Marketing placeholder | Lead form only                                        |
+| `/landlord/import` | Partial               | Import functions exist; type gaps on `import_batches` |
+| `/admin/revenue`   | Shipped               | Revenue dashboard                                     |
+| `/tenant/compare`  | Shipped               | Compare up to 4 listings                              |
 
 ---
 
 ## Phase 1 fix checklist (prioritized)
 
-| Priority | Task | Effort |
-|----------|------|--------|
-| P0 | Wire remaining homepage stats to Supabase | Small |
-| P0 | Confirm Mapbox token in production env | Config |
-| P1 | Remove or gate Stripe dead code | Small |
-| P1 | Add slug-based property URLs + redirects | Medium |
-| P2 | Rename `/tenant` → `/search` with redirects | Medium |
-| P2 | E2E checkout sandbox test in CI | Medium |
+| Priority | Task                                        | Effort |
+| -------- | ------------------------------------------- | ------ |
+| P0       | Wire remaining homepage stats to Supabase   | Small  |
+| P0       | Confirm Mapbox token in production env      | Config |
+| P1       | Remove or gate Stripe dead code             | Small  |
+| P1       | Add slug-based property URLs + redirects    | Medium |
+| P2       | Rename `/tenant` → `/search` with redirects | Medium |
+| P2       | E2E checkout sandbox test in CI             | Medium |
 
 ---
 

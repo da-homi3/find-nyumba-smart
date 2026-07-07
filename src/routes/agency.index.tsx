@@ -4,9 +4,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { hasPendingApplicationForRole } from "@/lib/portal-guard";
 import { ArrowLeft, Building2, Globe, TrendingUp } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { buildPageHead } from "@/lib/seo/head";
 
 export const Route = createFileRoute("/agency/")({
-  head: () => ({ meta: [{ title: "Real Estate Agency Portal — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Real Estate Agency Portal — NyumbaSearch",
+      description:
+        "Scale your agency with unlimited listings, team access, analytics, and verified tenant leads on NyumbaSearch.",
+      path: "/agency",
+    }),
   component: AgencyEntry,
 });
 
