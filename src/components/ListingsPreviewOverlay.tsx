@@ -38,7 +38,7 @@ export function ListingsPreviewOverlay({
       <div aria-hidden className="pointer-events-none select-none blur-md saturate-75">
         {children}
       </div>
-      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/25 p-4">
+      <div className="pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-background/25 p-4">
         <p className="max-w-sm rounded-2xl border bg-background/95 px-6 py-4 text-center font-display text-lg font-semibold leading-snug shadow-lg backdrop-blur-sm">
           {message}
         </p>

@@ -199,58 +199,51 @@ export function TenantMapChrome({
 
       <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10">
         {selected ? (
-          <ListingsPreviewOverlay active={isPreviewListing(selected)} variant="card">
-            <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
-              <button
-                type="button"
-                onClick={onClearSelected}
-                className="absolute right-2 top-2 rounded-full bg-secondary p-1 text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              {selected.images[0] ? (
-                <PropertyImage
-                  src={selected.images[0]}
-                  seed={selected.id}
-                  alt={selected.title}
-                  className="h-20 w-24 shrink-0 rounded-xl object-cover"
-                />
-              ) : (
-                <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
-                  No image
-                </div>
-              )}
-              <div className="min-w-0 flex-1 pr-6">
-                <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {prettyType(selected.property_type)} · {selected.neighborhood}
-                  {selected.map_approximate ? (
-                    <span className="ml-1 text-amber-600">· approx. area</span>
-                  ) : null}
+          <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
+            <button
+              type="button"
+              onClick={onClearSelected}
+              className="absolute right-2 top-2 rounded-full bg-secondary p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Close"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+            {selected.images[0] ? (
+              <PropertyImage
+                src={selected.images[0]}
+                seed={selected.id}
+                alt={selected.title}
+                className="h-20 w-24 shrink-0 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">
+                No image
+              </div>
+            )}
+            <div className="min-w-0 flex-1 pr-6">
+              <h3 className="line-clamp-1 font-display font-semibold">{selected.title}</h3>
+              <p className="text-xs text-muted-foreground">
+                {prettyType(selected.property_type)} · {selected.neighborhood}
+                {selected.map_approximate ? (
+                  <span className="ml-1 text-amber-600">· approx. area</span>
+                ) : null}
+              </p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-primary">
+                  {formatKes(selected.rent_kes)}
+                  <span className="text-xs font-normal text-muted-foreground">/mo</span>
                 </p>
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-primary">
-                    {formatKes(selected.rent_kes)}
-                    <span className="text-xs font-normal text-muted-foreground">/mo</span>
-                  </p>
-                  {isPreviewListing(selected) ? (
-                    <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                      Uploading
-                    </span>
-                  ) : (
-                    <Link
-                      to="/tenant/property/$id"
-                      params={{ id: selected.id }}
-                      className="rounded-full bg-gradient-gold px-3 py-1 text-[11px] font-semibold text-gold-foreground"
-                    >
-                      View
-                    </Link>
-                  )}
-                </div>
+                <Link
+                  to="/tenant/property/$id"
+                  params={{ id: selected.id }}
+                  search={{ from: "map" }}
+                  className="rounded-full bg-gradient-gold px-3 py-1 text-[11px] font-semibold text-gold-foreground"
+                >
+                  View
+                </Link>
               </div>
             </div>
-          </ListingsPreviewOverlay>
+          </div>
         ) : (
           <div className="pointer-events-auto rounded-2xl bg-background/95 px-4 py-3 text-center text-xs text-muted-foreground shadow-card backdrop-blur">
             Tap a pin or cluster · pinch to zoom · drag with two fingers to tilt 3D

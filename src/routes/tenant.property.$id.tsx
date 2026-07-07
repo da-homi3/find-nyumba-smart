@@ -1,4 +1,5 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { z } from "zod";
 import { fetchProperty } from "@/lib/properties";
 import { verificationLevel } from "@/lib/listing-intel";
 import { BookingModal } from "@/components/BookingModal";
@@ -13,7 +14,12 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
 import { isPreviewListing } from "@/lib/listings-preview";
 
+const propertySearchSchema = z.object({
+  from: z.enum(["map"]).optional(),
+});
+
 export const Route = createFileRoute("/tenant/property/$id")({
+  validateSearch: propertySearchSchema,
   loader: async ({ params, context }) => {
     const property = await fetchProperty(params.id);
     if (property) {
@@ -57,7 +63,8 @@ function PropertyDetail() {
   const gallery = p.images.length > 0 ? p.images : [];
   const score = p.authenticity_score ?? 70;
   const vLevel = verificationLevel(p);
-  const previewActive = isPreviewListing(p);
+  const previewActive =
+    isPreviewListing(p) || (loaderProperty != null && isPreviewListing(loaderProperty));
 
   return (
     <ListingsPreviewOverlay active={previewActive} className="min-h-screen">
