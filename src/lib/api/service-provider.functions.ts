@@ -5,6 +5,12 @@ import { requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
 import { getSiteUrl } from "@/lib/site";
 import { isProviderPhoneVerified, providerWebsiteHref } from "@/lib/service-provider-contact";
+import {
+  countyNameForCode,
+  isValidCountyCode,
+  normalizeProviderCounties,
+  PROVIDER_COUNTIES,
+} from "@/lib/provider-counties";
 
 const categories = [
   "electricians",
@@ -210,6 +216,7 @@ export type PublicServiceProvider = {
   category: string;
   categories: string[];
   areasServed: string[];
+  counties: string[];
   rating: number;
   reviewCount: number;
   startingPriceKes: number;
@@ -239,12 +246,15 @@ export function normalizeProviderCategories(raw: unknown): string[] {
 
 const TIER_RANK: Record<string, number> = { featured: 0, premium: 1, basic: 2 };
 
-export function sortServiceProviders<T extends { tier: string; businessName: string }>(
-  rows: T[],
-): T[] {
+export function sortServiceProviders<
+  T extends { tier: string; businessName: string; phoneVerified?: boolean; verified?: number },
+>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {
     const tierDiff = (TIER_RANK[a.tier] ?? 9) - (TIER_RANK[b.tier] ?? 9);
     if (tierDiff !== 0) return tierDiff;
+    const aVerified = a.phoneVerified ? 1 : (a.verified ?? 0);
+    const bVerified = b.phoneVerified ? 1 : (b.verified ?? 0);
+    if (bVerified !== aVerified) return bVerified - aVerified;
     return a.businessName.localeCompare(b.businessName);
   });
 }
@@ -263,6 +273,7 @@ function mapProviderRow(
     business_name: string;
     categories: unknown;
     areas_served: unknown;
+    counties?: unknown;
     description: string | null;
     price_range: string | null;
     phone: string | null;
@@ -274,6 +285,7 @@ function mapProviderRow(
 ): PublicServiceProvider {
   const categories = normalizeProviderCategories(row.categories);
   const areasServed = Array.isArray(row.areas_served) ? (row.areas_served as string[]) : [];
+  const counties = normalizeProviderCounties(row.counties);
   const phone = row.phone?.trim() ?? "";
   const sourceUrl = row.source_url?.trim() || null;
   const phoneVerified = isProviderPhoneVerified(row.verified, phone);
@@ -283,6 +295,7 @@ function mapProviderRow(
     category: category ?? categories[0] ?? "electricians",
     categories,
     areasServed,
+    counties,
     rating: 4.5,
     reviewCount: 0,
     startingPriceKes: parseStartingPrice(row.price_range),
@@ -294,6 +307,10 @@ function mapProviderRow(
     tier: row.tier,
   };
 }
+
+export const listProviderCounties = createServerFn({ method: "GET" }).handler(async () => {
+  return PROVIDER_COUNTIES.map(({ code, name }) => ({ code, name }));
+});
 
 export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -319,20 +336,34 @@ export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handl
 });
 
 export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ category: z.string().min(1) }))
+  .inputValidator(
+    z.object({
+      category: z.string().min(1),
+      county: z.string().optional(),
+    }),
+  )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { mergeWithPlaceholders } = await import("@/data/service-placeholders");
-    const { data: rows, error } = await supabaseAdmin
+    const countyName = isValidCountyCode(data.county) ? countyNameForCode(data.county) : null;
+
+    let query = supabaseAdmin
       .from("service_providers")
       .select(
-        "id, business_name, categories, areas_served, description, price_range, phone, tier, verified, source_url",
+        "id, business_name, categories, areas_served, counties, description, price_range, phone, tier, verified, source_url",
       )
       .eq("status", "active")
       .filter("categories", "cs", JSON.stringify([data.category]))
       .order("tier", { ascending: true })
+      .order("verified", { ascending: false })
       .order("business_name", { ascending: true })
       .limit(500);
+
+    if (countyName) {
+      query = query.contains("counties", JSON.stringify([countyName]));
+    }
+
+    const { data: rows, error } = await query;
 
     if (error) throw error;
 
@@ -342,6 +373,10 @@ export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
         isPlaceholder: false as const,
       })),
     );
+
+    if (countyName) {
+      return live;
+    }
 
     return mergeWithPlaceholders(live, data.category);
   });
@@ -357,7 +392,7 @@ export const getProviderById = createServerFn({ method: "GET" })
     const { data: row, error } = await supabaseAdmin
       .from("service_providers")
       .select(
-        "id, business_name, categories, areas_served, description, price_range, phone, tier, status, verified, source_url",
+        "id, business_name, categories, areas_served, counties, description, price_range, phone, tier, status, verified, source_url",
       )
       .eq("id", data.id)
       .maybeSingle();

@@ -1,5 +1,5 @@
 /**
- * Seed 127 real Kenyan service providers into Supabase.
+ * Seed 141 real Kenyan service providers into Supabase.
  * Usage: npm run db:seed:providers
  * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env
  */
@@ -41,9 +41,16 @@ async function main() {
 
   const admin = createClient(url, key, { auth: { persistSession: false } });
 
-  const probe = await admin.from("service_providers").select("verified, source_url").limit(1);
+  const probe = await admin
+    .from("service_providers")
+    .select("verified, source_url, counties")
+    .limit(1);
   if (probe.error?.message?.includes("verified")) {
     console.error("Run npm run db:migrate:service-providers first (verified column missing).");
+    process.exit(1);
+  }
+  if (probe.error?.message?.includes("counties")) {
+    console.error("Run npm run db:migrate:provider-counties first (counties column missing).");
     process.exit(1);
   }
 
@@ -60,6 +67,7 @@ async function main() {
       business_name: row.business_name,
       categories: row.categories,
       areas_served: row.areas_served,
+      counties: row.counties ?? ["Nairobi"],
       description: row.description,
       price_range: row.price_range,
       phone: row.phone,

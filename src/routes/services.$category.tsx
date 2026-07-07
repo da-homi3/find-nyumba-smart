@@ -1,8 +1,10 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { z } from "zod";
 import { PublicPageShell } from "@/components/SiteNav";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { listActiveProvidersByCategory } from "@/lib/api/service-provider.functions";
 import type { PublicServiceProvider } from "@/lib/api/service-provider.functions";
+import { countyNameForCode, PROVIDER_COUNTIES } from "@/lib/provider-counties";
 import { formatKes } from "@/lib/properties";
 import { MapPin, Star } from "lucide-react";
 import {
@@ -15,7 +17,12 @@ import { useState } from "react";
 
 const VALID_CATEGORIES = new Set(SERVICE_CATEGORIES.map((c) => c.id));
 
+const servicesCategorySearchSchema = z.object({
+  county: z.string().optional(),
+});
+
 export const Route = createFileRoute("/services/$category")({
+  validateSearch: servicesCategorySearchSchema,
   beforeLoad: ({ params }) => {
     if (params.category === "provider") {
       throw redirect({ to: "/services/provider/dashboard" });
@@ -24,15 +31,20 @@ export const Route = createFileRoute("/services/$category")({
       throw redirect({ to: "/services" });
     }
   },
-  loader: async ({ params }) => {
-    const providers = await listActiveProvidersByCategory({ data: { category: params.category } });
+  loaderDeps: ({ search }) => ({ county: search?.county }),
+  loader: async ({ params, deps }) => {
+    const providers = await listActiveProvidersByCategory({
+      data: { category: params.category, county: deps.county },
+    });
     return { providers };
   },
-  head: ({ params }) => {
+  head: ({ params, search }) => {
     const meta = SERVICE_CATEGORIES.find((c) => c.id === params.category);
     const label = meta?.label ?? params.category;
+    const countyLabel = countyNameForCode(search?.county);
+    const place = countyLabel ?? "Kenya";
     return {
-      meta: [{ title: `${label} in Nairobi — NyumbaSearch` }],
+      meta: [{ title: `${label} in ${place} — NyumbaSearch` }],
     };
   },
   component: CategoryPage,
@@ -40,10 +52,26 @@ export const Route = createFileRoute("/services/$category")({
 
 function CategoryPage() {
   const { category } = Route.useParams();
+  const { county: selectedCounty = "" } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { providers } = Route.useLoaderData() as { providers: PublicServiceProvider[] };
   const meta = SERVICE_CATEGORIES.find((c) => c.id === category);
   const [quoteOpen, setQuoteOpen] = useState<string | null>(null);
   const showingPlaceholders = providers.every((p: PublicServiceProvider) => p.isPlaceholder);
+  const countyLabel = countyNameForCode(selectedCounty);
+  const areaLabel = countyLabel ?? "Kenya";
+
+  function handleCountyChange(code: string) {
+    navigate({
+      search: (prev) => {
+        const next = { ...prev };
+        if (code) next.county = code;
+        else delete next.county;
+        return next;
+      },
+      replace: true,
+    });
+  }
 
   return (
     <PublicPageShell>
@@ -55,9 +83,11 @@ function CategoryPage() {
           {meta?.emoji} {meta?.label ?? category}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {providers.length} provider{providers.length === 1 ? "" : "s"} serving Nairobi and nearby
-          areas. Ratings, areas served, and contact details below.
+          {providers.length} provider{providers.length === 1 ? "" : "s"} serving {areaLabel}.
+          Ratings, areas served, and contact details below.
         </p>
+
+        <ServiceCountyFilter selectedCounty={selectedCounty} onChange={handleCountyChange} />
 
         {showingPlaceholders ? (
           <p className="mt-4 rounded-xl border border-dashed bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
@@ -88,15 +118,31 @@ function CategoryPage() {
 
         {providers.length === 0 && (
           <div className="mt-10 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-            No providers in this category yet.{" "}
-            <Link to="/services/register" className="font-semibold text-primary">
-              List your business
-            </Link>
+            {selectedCounty ? (
+              <>
+                No {meta?.label?.toLowerCase() ?? category} providers in {countyLabel} yet. Try{" "}
+                <button
+                  type="button"
+                  onClick={() => handleCountyChange("")}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  all counties
+                </button>{" "}
+                or check back soon.
+              </>
+            ) : (
+              <>
+                No providers in this category yet.{" "}
+                <Link to="/services/register" className="font-semibold text-primary">
+                  List your business
+                </Link>
+              </>
+            )}
           </div>
         )}
 
         <div className="mt-10 rounded-2xl border bg-card p-5 text-center">
-          <p className="text-sm text-muted-foreground">Offer this service in Nairobi?</p>
+          <p className="text-sm text-muted-foreground">Offer this service across Kenya?</p>
           <Link
             to="/services/register"
             className="mt-3 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
@@ -106,6 +152,45 @@ function CategoryPage() {
         </div>
       </main>
     </PublicPageShell>
+  );
+}
+
+function ServiceCountyFilter({
+  selectedCounty,
+  onChange,
+}: Readonly<{
+  selectedCounty: string;
+  onChange: (code: string) => void;
+}>) {
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-2">
+      <span className="text-sm text-muted-foreground">Filter by county:</span>
+      <button
+        type="button"
+        onClick={() => onChange("")}
+        className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+          !selectedCounty
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        All counties
+      </button>
+      {PROVIDER_COUNTIES.map((c) => (
+        <button
+          key={c.code}
+          type="button"
+          onClick={() => onChange(c.code)}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+            selectedCounty === c.code
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {c.name}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -160,6 +245,18 @@ function ProviderCard({
           {p.description ? (
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.description}</p>
           ) : null}
+
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {p.counties.map((county) => (
+              <span
+                key={county}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+              >
+                <MapPin className="h-3 w-3" aria-hidden />
+                {county}
+              </span>
+            ))}
+          </div>
 
           <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />

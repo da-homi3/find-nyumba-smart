@@ -1,5 +1,5 @@
 /**
- * NyumbaSearch — real Kenyan service provider directory seed (127 businesses).
+ * NyumbaSearch — real Kenyan service provider directory seed (141 businesses).
  * Sourced from each business's public marketing / contact information.
  * verified = 1 → phone confirmed in public material; verified = 0 → use source_url until confirmed.
  */
@@ -10,12 +10,28 @@ export function directoryProviderUuid(spNumber) {
   return `c000${head}-0001-4000-8100-${tail}`;
 }
 
+export const BESTCARE_COUNTIES = [
+  "Nairobi",
+  "Mombasa",
+  "Nakuru",
+  "Kiambu",
+  "Machakos",
+  "Uasin Gishu (Eldoret)",
+  "Kericho",
+  "Kisii",
+  "Kakamega",
+  "Nyeri",
+  "Meru",
+  "Narok",
+];
+
 /** @returns {import('./seed-service-providers.mjs').SeedProvider[]} */
 function p({
   n,
   businessName,
   categories,
   areasServed,
+  counties = ["Nairobi"],
   description,
   priceRange,
   phone,
@@ -23,11 +39,17 @@ function p({
   verified,
   sourceUrl,
 }) {
+  const resolvedCounties =
+    businessName.startsWith("Bestcare") && counties.length === 1 && counties[0] === "Nairobi"
+      ? [...BESTCARE_COUNTIES]
+      : counties;
+
   return {
     id: directoryProviderUuid(n),
     business_name: businessName,
     categories,
     areas_served: areasServed,
+    counties: resolvedCounties,
     description,
     price_range: priceRange,
     phone: phone || null,
@@ -1660,6 +1682,206 @@ export const SEED_PROVIDERS = [
     priceRange: "Quote on request",
     phone: null,
     tier: "featured",
+    verified: 0,
+    sourceUrl: null,
+  }),
+
+  // Mombasa County (4)
+  p({
+    n: 330,
+    businessName: "Mbacia Movers",
+    categories: ["movers"],
+    areasServed: ["Mombasa", "Nyali", "Bamburi"],
+    counties: ["Mombasa"],
+    description:
+      "Home and office relocation specialists based in Mombasa, understands local moving challenges.",
+    priceRange: "Quote on request",
+    phone: "0112674245",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "mbaciamovers.co.ke",
+  }),
+  p({
+    n: 331,
+    businessName: "Kejani Cleaning Services",
+    categories: ["cleaning"],
+    areasServed: ["Mombasa", "All Mombasa County"],
+    counties: ["Mombasa"],
+    description:
+      "Residential and business cleaning across Mombasa County, expanding to more neighbourhoods.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "basic",
+    verified: 0,
+    sourceUrl: "kejanicleaning.co.ke",
+  }),
+  p({
+    n: 332,
+    businessName: "Cleaning Services Mombasa",
+    categories: ["cleaning"],
+    areasServed: ["Mombasa", "Opposite Voyager"],
+    counties: ["Mombasa"],
+    description:
+      "Floors, carpets, sofas, windows, curtains and washrooms — home and office cleaning.",
+    priceRange: "Quote on request",
+    phone: "0789231328",
+    tier: "basic",
+    verified: 1,
+    sourceUrl: "imaginecare.co.ke",
+  }),
+  p({
+    n: 333,
+    businessName: "Bestcare Services Mombasa",
+    categories: ["electricians", "plumbers", "cleaning", "movers", "appliance_repair"],
+    areasServed: ["Mombasa", "All Mombasa"],
+    counties: ["Mombasa"],
+    description:
+      "Full home & business services branch — appliance repair, plumbing, cleaning, moving, locksmith.",
+    priceRange: "Quote on request",
+    phone: "0722566999",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "bestcare.co.ke",
+  }),
+
+  // Kisumu County (3)
+  p({
+    n: 334,
+    businessName: "Ellah Movers",
+    categories: ["movers", "cleaning", "electricians", "plumbers"],
+    areasServed: ["Kisumu City", "All Kisumu"],
+    counties: ["Kisumu"],
+    description:
+      "Kisumu-based movers with in-house plumbers, electricians, cleaners and painters on call.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "featured",
+    verified: 0,
+    sourceUrl: "ellahmovers.co.ke",
+  }),
+  p({
+    n: 335,
+    businessName: "Nakuru Plumbing Works (Kisumu Branch)",
+    categories: ["plumbers"],
+    areasServed: ["Kisumu", "Gor Mahia St"],
+    counties: ["Kisumu"],
+    description: "Registered plumbing contractor based on Gor Mahia Street, Kisumu.",
+    priceRange: "Quote on request",
+    phone: "0572022819",
+    tier: "basic",
+    verified: 1,
+    sourceUrl: "businesslist.co.ke",
+  }),
+  p({
+    n: 336,
+    businessName: "Fushia Movers",
+    categories: ["movers"],
+    areasServed: ["Kisumu", "Nairobi HQ"],
+    counties: ["Kisumu", "Nairobi"],
+    description:
+      "5,000+ successful moves across Kenya. Zero-Scratch guarantee, 100% moving insurance.",
+    priceRange: "Quote on request",
+    phone: "0795333555",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: null,
+  }),
+
+  // Multi-county / nationwide movers (3)
+  p({
+    n: 337,
+    businessName: "Familia Movers Kenya",
+    categories: ["movers"],
+    areasServed: ["Mombasa", "Nairobi", "Nakuru", "Eldoret", "Kisumu"],
+    counties: ["Mombasa", "Nairobi", "Nakuru", "Uasin Gishu (Eldoret)", "Kisumu"],
+    description:
+      "5+ years experience, reliable and affordable moves across all major Kenyan cities.",
+    priceRange: "Quote on request",
+    phone: "0798609801",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "familiamoverskenya.com",
+  }),
+  p({
+    n: 338,
+    businessName: "Kenya Line Movers",
+    categories: ["movers"],
+    areasServed: ["Nairobi", "Kisumu", "Mombasa", "Nakuru", "Eldoret", "Nanyuki"],
+    counties: ["Nairobi", "Kisumu", "Mombasa", "Nakuru", "Uasin Gishu (Eldoret)", "Meru"],
+    description:
+      "Professional packing, curtain removal/reinstallation, careful handling of electronics.",
+    priceRange: "Quote on request",
+    phone: "0712417159",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: null,
+  }),
+  p({
+    n: 339,
+    businessName: "Rhino Prompt Movers",
+    categories: ["movers"],
+    areasServed: ["Nairobi", "Kisumu", "Mombasa", "Nakuru", "Meru", "Eldoret"],
+    counties: ["Nairobi", "Kisumu", "Mombasa", "Nakuru", "Meru", "Uasin Gishu (Eldoret)"],
+    description: "Affordable moves nationwide with full packing materials included.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "basic",
+    verified: 0,
+    sourceUrl: null,
+  }),
+
+  // Nakuru County (4)
+  p({
+    n: 340,
+    businessName: "Bestcare Cleaning Services Nakuru",
+    categories: ["cleaning"],
+    areasServed: ["Nakuru Town", "All Nakuru"],
+    counties: ["Nakuru"],
+    description: "Residential and commercial cleaning dispatch team serving Nakuru Town.",
+    priceRange: "Quote on request",
+    phone: "0722358951",
+    tier: "featured",
+    verified: 1,
+    sourceUrl: "bestcarecleaning.co.ke",
+  }),
+  p({
+    n: 341,
+    businessName: "Khongus Company Limited",
+    categories: ["cleaning", "pest_control"],
+    areasServed: ["Nakuru", "All Kenya"],
+    counties: ["Nakuru"],
+    description:
+      "Since 2020. Cleaning, fumigation, pest control, sanitary bins, domestic staff placement.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "basic",
+    verified: 0,
+    sourceUrl: "khonguscompanylimited.co.ke",
+  }),
+  p({
+    n: 342,
+    businessName: "Orchid Plumbing Company",
+    categories: ["plumbers"],
+    areasServed: ["Nakuru", "All Nakuru estates"],
+    counties: ["Nakuru"],
+    description:
+      "Residential and commercial plumbing: water heaters, solar heating, sewer and drain cleaning.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "basic",
+    verified: 0,
+    sourceUrl: "plumbingcompany.co.ke",
+  }),
+  p({
+    n: 343,
+    businessName: "Nakuru Movers",
+    categories: ["movers"],
+    areasServed: ["Nakuru", "All Nakuru"],
+    counties: ["Nakuru"],
+    description: "Premium moving services company based in Nakuru with a dedicated team.",
+    priceRange: "Quote on request",
+    phone: null,
+    tier: "basic",
     verified: 0,
     sourceUrl: null,
   }),

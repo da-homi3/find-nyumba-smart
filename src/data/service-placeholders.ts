@@ -5,6 +5,7 @@ export type ServiceProviderListing = {
   category: string;
   categories: string[];
   areasServed: string[];
+  counties: string[];
   rating: number;
   reviewCount: number;
   startingPriceKes: number;
@@ -28,6 +29,7 @@ function entry(
   tier: string,
   rating = 4.6,
   reviewCount = 40,
+  counties: string[] = ["Nairobi"],
 ): ServiceProviderListing {
   return {
     id,
@@ -35,6 +37,7 @@ function entry(
     category: categories[0],
     categories,
     areasServed,
+    counties,
     rating,
     reviewCount,
     startingPriceKes,
@@ -419,6 +422,7 @@ export function placeholderProvidersForCategory(category: string): ServiceProvid
       category,
       categories: [category],
       areasServed: ["Nairobi"],
+      counties: ["Nairobi"],
       rating: 4.5,
       reviewCount: 12,
       startingPriceKes: 2000,

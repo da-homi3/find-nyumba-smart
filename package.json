@@ -27,6 +27,7 @@
     "db:migrate:performance": "node scripts/apply-performance-indexes.mjs",
     "db:migrate:platform-extensions": "node scripts/apply-platform-extensions.mjs",
     "db:migrate:service-providers": "node scripts/apply-service-provider-directory.mjs",
+    "db:migrate:provider-counties": "node scripts/apply-provider-counties.mjs",
     "db:migrate:org-team": "node scripts/apply-org-team-migration.mjs",
     "db:migrate:founding-promo": "node scripts/apply-founding-member-promo.mjs",
     "db:migrate:media-limits": "node scripts/apply-media-upload-limits.mjs",

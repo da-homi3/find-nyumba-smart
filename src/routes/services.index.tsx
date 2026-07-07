@@ -22,7 +22,7 @@ function ServicesIndexPage() {
         <h1 className="font-display text-4xl font-semibold">Everything your new home needs</h1>
         <p className="mt-2 text-muted-foreground">
           {total > 0
-            ? `${total} trusted service providers across Nairobi and Kenya — browse by category below.`
+            ? `${total} trusted service providers across Kenya — browse by category and filter by county.`
             : "Trusted providers across Nairobi — electricians, movers, cleaners, and more."}
         </p>
 

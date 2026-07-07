@@ -23,6 +23,7 @@ function rowValues(provider) {
     sqlLiteral(provider.business_name),
     sqlJson(provider.categories),
     sqlJson(provider.areas_served),
+    sqlJson(provider.counties ?? ["Nairobi"]),
     sqlLiteral(provider.description),
     sqlLiteral(provider.price_range),
     sqlLiteral(provider.phone),
@@ -43,7 +44,7 @@ function buildSql() {
 
   const insertLines = SEED_PROVIDERS.map(
     (provider) =>
-      `INSERT OR IGNORE INTO service_providers (id, user_id, business_name, categories, areas_served, description, price_range, phone, tier, status, verified, source_url) VALUES (${rowValues(provider)});`,
+      `INSERT OR IGNORE INTO service_providers (id, user_id, business_name, categories, areas_served, counties, description, price_range, phone, tier, status, verified, source_url) VALUES (${rowValues(provider)});`,
   );
   lines.push(...insertLines, "", `-- TOTAL PROVIDERS: ${SEED_PROVIDERS.length}`);
   return lines.join("\n");

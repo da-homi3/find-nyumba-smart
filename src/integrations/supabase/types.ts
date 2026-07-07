@@ -947,6 +947,7 @@ export type Database = {
           areas_served: Json;
           business_name: string;
           categories: Json;
+          counties: Json;
           created_at: string;
           description: string | null;
           id: string;
@@ -964,6 +965,7 @@ export type Database = {
           areas_served?: Json;
           business_name: string;
           categories?: Json;
+          counties?: Json;
           created_at?: string;
           description?: string | null;
           id?: string;
@@ -981,6 +983,7 @@ export type Database = {
           areas_served?: Json;
           business_name?: string;
           categories?: Json;
+          counties?: Json;
           created_at?: string;
           description?: string | null;
           id?: string;
@@ -993,6 +996,21 @@ export type Database = {
           tier?: string;
           user_id?: string | null;
           verified?: number;
+        };
+        Relationships: [];
+      };
+      provider_counties: {
+        Row: {
+          code: string;
+          name: string;
+        };
+        Insert: {
+          code: string;
+          name: string;
+        };
+        Update: {
+          code?: string;
+          name?: string;
         };
         Relationships: [];
       };
