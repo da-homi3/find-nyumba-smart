@@ -17,6 +17,8 @@ object CrashRecoveryManager {
 
 /** Avoid circular dependency with analytics module during crash handler init. */
 private object LocalEventLoggerPlaceholder {
+    private const val TAG = "NyumbaCrash"
+
     fun log(event: String, params: Map<String, String>) {
         Log.d(TAG, "$event $params")
     }

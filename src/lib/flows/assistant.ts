@@ -18,10 +18,10 @@ type Admin = SupabaseClient<Database>;
 
 const ROLE_LABELS: Record<WaRole, string> = {
   unknown: "Home",
-  tenant: "🔍 Tenant — find a home",
-  landlord: "🏠 Landlord — manage listings",
-  agent: "🏢 Agency — manage listings",
-  provider: "🔧 Service provider",
+  tenant: "Tenant — find a home",
+  landlord: "Landlord — manage listings",
+  agent: "Agency — manage listings",
+  provider: "Service provider",
 };
 
 export async function sendSavedHomes(
@@ -34,8 +34,8 @@ export async function sendSavedHomes(
       waPhone,
       "You haven't saved any homes yet.",
       [
-        { id: "search_start", label: "🔍 Search homes" },
-        { id: "tenant_menu", label: "🏠 Menu" },
+        { id: "search_start", label: "Search homes" },
+        { id: "tenant_menu", label: "Menu" },
       ],
       admin,
     );
@@ -44,7 +44,7 @@ export async function sendSavedHomes(
 
   await sendText(
     waPhone,
-    `❤️ *Your saved homes* (${profile.savedCount}):\n\n${profile.savedHomes
+    `*Your saved homes* (${profile.savedCount}):\n\n${profile.savedHomes
       .map(
         (h, i) =>
           `${i + 1}. *${h.title}*\n   ${h.neighborhood} · KES ${h.rentKes.toLocaleString()}/mo`,
@@ -58,8 +58,8 @@ export async function sendSavedHomes(
       waPhone,
       h.title,
       [
-        { id: `view_${h.id}`, label: "👁 View" },
-        { id: `unlock_${h.id}`, label: "📞 Contact" },
+        { id: `view_${h.id}`, label: "View" },
+        { id: `unlock_${h.id}`, label: "Contact: Contact" },
       ],
       admin,
     );
@@ -91,7 +91,7 @@ export async function sendMyViewings(
     })
     .join("\n\n");
 
-  await sendText(waPhone, `📅 *Your upcoming viewings:*\n\n${body}`, admin);
+  await sendText(waPhone, `*Your upcoming viewings:*\n\n${body}`, admin);
 }
 
 export async function sendAccountStatus(
@@ -100,9 +100,9 @@ export async function sendAccountStatus(
   profile: UserAssistantProfile,
 ): Promise<void> {
   const lines = [
-    `👤 *${profile.fullName}*`,
-    profile.email ? `📧 ${profile.email}` : null,
-    `Plan: ${profile.isPlus ? "Plus ✨" : profile.tenantPlan}`,
+    `*${profile.fullName}*`,
+    profile.email ? `Email: ${profile.email}` : null,
+    `Plan: ${profile.isPlus ? "Plus " : profile.tenantPlan}`,
     profile.trialActive ? `Trial unlocks: ${profile.trialUnlocksRemaining}` : null,
     profile.landlordPlan === "free" ? null : `Landlord plan: ${profile.landlordPlan}`,
     `Saved homes: ${profile.savedCount}`,

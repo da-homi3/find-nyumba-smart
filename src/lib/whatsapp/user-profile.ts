@@ -234,12 +234,12 @@ export function getTimeGreeting(): string {
 
 function appendPlanDigestLine(lines: string[], profile: UserAssistantProfile): void {
   if (profile.isPlus) {
-    lines.push("✨ NyumbaSearch Plus — unlimited unlocks");
+    lines.push("NyumbaSearch Plus — unlimited unlocks");
     return;
   }
   if (profile.trialActive && profile.trialUnlocksRemaining > 0) {
     const suffix = profile.trialUnlocksRemaining === 1 ? "" : "s";
-    lines.push(`🎁 ${profile.trialUnlocksRemaining} free unlock${suffix} left in trial`);
+    lines.push(`Bonus: ${profile.trialUnlocksRemaining} free unlock${suffix} left in trial`);
   }
 }
 
@@ -253,19 +253,19 @@ function appendNextViewingLine(lines: string[], profile: UserAssistantProfile): 
     hour: "2-digit",
     minute: "2-digit",
   });
-  lines.push(`📅 Next viewing: ${next.title} — ${when}`);
+  lines.push(`Next viewing: ${next.title} — ${when}`);
 }
 
 function appendListingsDigestLine(lines: string[], profile: UserAssistantProfile): void {
   if (profile.activeListings <= 0 && profile.pendingListings <= 0) return;
-  let listingLine = `🏠 Your listings: ${profile.activeListings} live`;
+  let listingLine = `Your listings: ${profile.activeListings} live`;
   if (profile.pendingListings > 0) {
     listingLine += `, ${profile.pendingListings} pending`;
   }
   lines.push(listingLine);
   if (profile.totalLeads > 0) {
     const leadSuffix = profile.totalLeads === 1 ? "" : "s";
-    lines.push(`📥 ${profile.totalLeads} lead${leadSuffix} on your properties`);
+    lines.push(`${profile.totalLeads} lead${leadSuffix} on your properties`);
   }
 }
 
@@ -277,18 +277,18 @@ export function formatProfileDigest(profile: UserAssistantProfile): string {
 
   if (profile.savedCount > 0) {
     const suffix = profile.savedCount === 1 ? "" : "s";
-    lines.push(`❤️ ${profile.savedCount} saved home${suffix}`);
+    lines.push(`${profile.savedCount} saved home${suffix}`);
   }
 
   appendNextViewingLine(lines, profile);
   appendListingsDigestLine(lines, profile);
 
   if (profile.providerBusiness) {
-    lines.push(`🔧 ${profile.providerBusiness} (${profile.providerTier ?? "basic"})`);
+    lines.push(`${profile.providerBusiness} (${profile.providerTier ?? "basic"})`);
   }
 
   if (profile.lastSearchArea) {
-    lines.push(`🔍 Last searched: ${profile.lastSearchArea}`);
+    lines.push(`Last searched: ${profile.lastSearchArea}`);
   }
 
   return lines.join("\n");

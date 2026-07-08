@@ -1,5 +1,6 @@
 import { formatKes } from "@/lib/properties";
 import type { BoostPackage, LandlordPlan, VerificationTier } from "@/lib/revenue/types";
+import type { ListingPortal } from "@/lib/portal-paths";
 
 export type PlanCardDef = {
   id: string;
@@ -121,6 +122,82 @@ export const AGENCY_PLANS: PlanCardDef[] = [
   },
 ];
 
+export const MANAGER_PLANS: PlanCardDef[] = [
+  {
+    id: "manager-solo",
+    name: "Solo Manager",
+    priceKes: 2500,
+    period: "/ month",
+    desc: "Independent property managers handling a handful of owners.",
+    features: [
+      "Up to 25 managed units",
+      "Team access (2 users)",
+      "Assign units to landlord clients",
+      "Lead management dashboard",
+      "Priority verification (Level 2 within 48hrs)",
+    ],
+    cta: "Start Solo",
+    ctaTo: "/manager/checkout?plan=manager-solo",
+  },
+  {
+    id: "manager-team",
+    name: "Management Team",
+    priceKes: 7500,
+    period: "/ month",
+    desc: "Growing firms managing multiple client portfolios.",
+    features: [
+      "Up to 100 managed units",
+      "Team access (8 users)",
+      "Everything in Solo",
+      "Bulk import & portal integrations",
+      "Priority search placement",
+      "Monthly performance reports",
+    ],
+    cta: "Go Team",
+    ctaTo: "/manager/checkout?plan=manager-team",
+    highlighted: true,
+    badge: "Most popular",
+  },
+  {
+    id: "manager-enterprise",
+    name: "Enterprise Manager",
+    priceKes: 18000,
+    priceLabel: "KES 18,000+",
+    period: "/ month",
+    desc: "Large management companies with unlimited scale.",
+    features: [
+      "Unlimited managed units",
+      "Unlimited team users",
+      "Everything in Team",
+      "Dedicated account manager",
+      "Custom integrations & API",
+      "White-label owner portals",
+    ],
+    cta: "Contact us",
+    ctaTo: "/contact?subject=manager-enterprise",
+  },
+];
+
+/** Payment plans shown on and charged from each listing dashboard. */
+export const PORTAL_PLANS: Record<ListingPortal, PlanCardDef[]> = {
+  landlord: LANDLORD_PLANS,
+  manager: MANAGER_PLANS,
+  agency: AGENCY_PLANS,
+};
+
+/** Plan pre-selected when a portal user taps "Upgrade". */
+export const PORTAL_UPGRADE_PLAN: Record<ListingPortal, LandlordPlan> = {
+  landlord: "pro",
+  manager: "manager-team",
+  agency: "agency-pro",
+};
+
+/** Resolve a plan id to one that belongs to the given portal, else its default upgrade plan. */
+export function resolvePortalPlan(portal: ListingPortal, planId: string | undefined): LandlordPlan {
+  const belongs = PORTAL_PLANS[portal].some((p) => p.id === planId);
+  return belongs ? (planId as LandlordPlan) : PORTAL_UPGRADE_PLAN[portal];
+}
+
 export const BOOST_PACKAGES: {
   id: BoostPackage;
   name: string;
@@ -136,7 +213,7 @@ export const BOOST_PACKAGES: {
     placement: "Featured at the top of search results in your neighbourhood for 7 days",
     durationDays: 7,
     priceKes: 2500,
-    badge: "⚡ Spotlight",
+    badge: "Spotlight",
   },
   {
     id: "homepage",
@@ -144,7 +221,7 @@ export const BOOST_PACKAGES: {
     placement: 'Listed in the "Featured Homes" section on the homepage for 14 days',
     durationDays: 14,
     priceKes: 5000,
-    badge: "🏠 Homepage",
+    badge: "Homepage",
   },
   {
     id: "campaign",
@@ -153,7 +230,7 @@ export const BOOST_PACKAGES: {
     durationDays: 30,
     priceKes: 12000,
     priceRange: "KES 12,000",
-    badge: "🚀 Campaign",
+    badge: "Campaign",
   },
 ];
 
@@ -237,6 +314,9 @@ export const LISTING_LIMITS: Record<LandlordPlan, number> = {
   free: 1,
   pro: 10,
   premium: 30,
+  "manager-solo": 25,
+  "manager-team": 100,
+  "manager-enterprise": 9999,
   "agency-starter": 20,
   "agency-pro": 100,
   "agency-enterprise": 9999,
@@ -252,6 +332,9 @@ export function resolveLandlordPlan(planId: string | undefined): LandlordPlan {
     "free",
     "pro",
     "premium",
+    "manager-solo",
+    "manager-team",
+    "manager-enterprise",
     "agency-starter",
     "agency-pro",
     "agency-enterprise",
@@ -260,7 +343,7 @@ export function resolveLandlordPlan(planId: string | undefined): LandlordPlan {
 }
 
 export function planMonthlyPrice(planId: LandlordPlan, cycle: "monthly" | "quarterly"): number {
-  const all = [...LANDLORD_PLANS, ...AGENCY_PLANS];
+  const all = [...LANDLORD_PLANS, ...MANAGER_PLANS, ...AGENCY_PLANS];
   const plan = all.find((p) => p.id === planId);
   const base = plan?.priceKes ?? 999;
   if (cycle === "quarterly") return Math.round(base * 3 * 0.9);
@@ -323,5 +406,7 @@ export function advertisePackagePrice(packageId: string): number {
 }
 
 export function transactionReference(): string {
-  return `NS-${Math.floor(10000000 + Math.random() * 90000000)}`;
+  const refBuf = new Uint32Array(1);
+  crypto.getRandomValues(refBuf);
+  return `NS-${10000000 + (refBuf[0] % 90000000)}`;
 }

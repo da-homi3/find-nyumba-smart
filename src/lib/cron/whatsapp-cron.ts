@@ -116,7 +116,7 @@ async function sendViewingReminder(
   } catch {
     await sendText(
       waPhone,
-      `📅 *Viewing reminder*\n\nHi ${firstName}, your viewing for *${title}* is ${prefix} (${dayLabel}) at *${time}*.\n\n📍 ${address}\n\nReply *my_viewings* for details.`,
+      `*Viewing reminder*\n\nHi ${firstName}, your viewing for *${title}* is ${prefix} (${dayLabel}) at *${time}*.\n\nAddress: ${address}\n\nReply *my_viewings* for details.`,
       admin,
     );
   }

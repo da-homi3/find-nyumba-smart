@@ -56,11 +56,11 @@ export async function handleProviderFlow(
     } else {
       await sendButtons(
         waPhone,
-        `Hi ${firstName} 🔧\n\nService provider options:`,
+        `Hi ${firstName}\n\nService provider options:`,
         [
-          { id: "provider_profile", label: "👤 My profile" },
-          { id: "provider_inquiries", label: "📥 Inquiries" },
-          { id: "provider_register", label: "➕ Register" },
+          { id: "provider_profile", label: "My profile" },
+          { id: "provider_inquiries", label: "Inquiries" },
+          { id: "provider_register", label: "Register" },
         ],
         admin,
       );
@@ -98,7 +98,7 @@ export async function handleProviderFlow(
       await sendButtons(
         waPhone,
         "No provider profile found.",
-        [{ id: "provider_register", label: "➕ Register" }],
+        [{ id: "provider_register", label: "Register" }],
         admin,
       );
       return;
@@ -107,7 +107,7 @@ export async function handleProviderFlow(
     if (input === "provider_profile") {
       await sendText(
         waPhone,
-        `👤 *${provider.business_name}*\nStatus: ${provider.status}\nTier: ${provider.tier}\n\n${getSiteUrl()}/services/provider/dashboard`,
+        `*${provider.business_name}*\nStatus: ${provider.status}\nTier: ${provider.tier}\n\n${getSiteUrl()}/services/provider/dashboard`,
         admin,
       );
       return;
@@ -115,7 +115,7 @@ export async function handleProviderFlow(
 
     await sendText(
       waPhone,
-      `📥 Check inquiries on your provider dashboard:\n${getSiteUrl()}/services/provider/dashboard`,
+      `Check inquiries on your provider dashboard:\n${getSiteUrl()}/services/provider/dashboard`,
       admin,
     );
     return;
@@ -125,9 +125,9 @@ export async function handleProviderFlow(
     waPhone,
     "Provider menu:",
     [
-      { id: "provider_profile", label: "👤 Profile" },
-      { id: "provider_register", label: "➕ Register" },
-      { id: "provider_menu", label: "🏠 Menu" },
+      { id: "provider_profile", label: "Profile" },
+      { id: "provider_register", label: "Register" },
+      { id: "provider_menu", label: "Menu" },
     ],
     admin,
   );

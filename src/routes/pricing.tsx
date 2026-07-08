@@ -4,6 +4,7 @@ import {
   AGENCY_PLANS,
   BOOST_PACKAGES,
   LANDLORD_PLANS,
+  MANAGER_PLANS,
   PLUS_PLAN,
   REPORT_CATALOG,
   planPriceLabel,
@@ -97,6 +98,9 @@ function PricingPage() {
         </p>
 
         <PlanGrid title="Landlord plans" plans={LANDLORD_PLANS} />
+        <div id="managers" className="scroll-mt-24">
+          <PlanGrid title="Property manager plans" plans={MANAGER_PLANS} />
+        </div>
         <div id="agencies" className="scroll-mt-24">
           <PlanGrid title="Agency plans" plans={AGENCY_PLANS} />
         </div>

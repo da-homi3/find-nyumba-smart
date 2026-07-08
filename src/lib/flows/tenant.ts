@@ -39,11 +39,7 @@ function sessionContextString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
-function verificationBadge(isVerified: boolean, score: number): string {
-  if (isVerified) return "🟢";
-  if (score >= 70) return "🔵";
-  return "⚪";
-}
+import { listingTrustBadge } from "@/lib/messaging/text-labels";
 
 function formatPhoneDisplay(phone254: string): string {
   const local = phone254.startsWith("254") ? `0${phone254.slice(3)}` : phone254;
@@ -70,7 +66,7 @@ function formatUnlockTrialNote(
     return `\n\n_${remaining} free unlock${suffix} remaining._`;
   }
   if (method === "plus") {
-    return "\n\n✨ _Included with your Plus subscription._";
+    return "\n\n_Included with your Plus subscription._";
   }
   return "";
 }
@@ -150,7 +146,7 @@ async function unlockFreeAndReveal(
 
   await sendText(
     waPhone,
-    `✅ *Contact unlocked!*\n\n📞 *Landlord contact:*\n\n*${contact ?? "Not available"}*\n\nFor ${property?.title ?? "this listing"} in ${property?.neighborhood ?? "Nairobi"}.${trialNote}`,
+    `*Contact unlocked!*\n\n*Landlord contact:*\n\n*${contact ?? "Not available"}*\n\nFor ${property?.title ?? "this listing"} in ${property?.neighborhood ?? "Nairobi"}.${trialNote}`,
     admin,
   );
   invalidateProfileCache(session);
@@ -176,10 +172,10 @@ export async function pollUnlockPayment(
     if (payment.status === "failed") {
       await sendButtons(
         waPhone,
-        "❌ Payment was not completed. Try again?",
+        "Payment was not completed. Try again?",
         [
-          { id: `unlock_${listingId}`, label: "🔄 Try again" },
-          { id: "tenant_menu", label: "🏠 Main menu" },
+          { id: `unlock_${listingId}`, label: "Try again" },
+          { id: "tenant_menu", label: "Main menu" },
         ],
         admin,
       );
@@ -202,7 +198,7 @@ export async function pollUnlockPayment(
         .maybeSingle();
       await sendText(
         waPhone,
-        `✅ *Payment confirmed!*\n\n📞 *${contact ?? "Not available"}*\n\n${property?.title ?? ""} · ${property?.neighborhood ?? ""}`,
+        `*Payment confirmed!*\n\n*${contact ?? "Not available"}*\n\n${property?.title ?? ""} · ${property?.neighborhood ?? ""}`,
         admin,
       );
       await updateState(admin, waPhone, "tenant_menu");
@@ -210,17 +206,17 @@ export async function pollUnlockPayment(
     }
 
     if (attempt === 6)
-      await sendText(waPhone, "⏳ Still waiting for M-Pesa confirmation...", admin);
+      await sendText(waPhone, "[Pending] Still waiting for M-Pesa confirmation...", admin);
     if (attempt === 12)
-      await sendText(waPhone, "⏳ Complete the M-Pesa prompt on your phone.", admin);
+      await sendText(waPhone, "[Pending] Complete the M-Pesa prompt on your phone.", admin);
   }
 
   await sendButtons(
     waPhone,
     "⌛ Payment expired. Try again.",
     [
-      { id: `unlock_${listingId}`, label: "🔄 Try again" },
-      { id: "tenant_menu", label: "🏠 Main menu" },
+      { id: `unlock_${listingId}`, label: "Try again" },
+      { id: "tenant_menu", label: "Main menu" },
     ],
     admin,
   );
@@ -229,7 +225,7 @@ export async function pollUnlockPayment(
 
 function buildMenuHints(profile: UserAssistantProfile): string[] {
   const hints: string[] = [];
-  if (profile.isPlus) hints.push("Plus member ✨");
+  if (profile.isPlus) hints.push("Plus member ");
   else if (profile.trialActive) hints.push(`${profile.trialUnlocksRemaining} free unlocks`);
   if (profile.savedCount > 0) hints.push(`${profile.savedCount} saved`);
   if (profile.upcomingViewings.length > 0)
@@ -272,11 +268,11 @@ async function showTenantMenu(
   } else {
     await sendButtons(
       waPhone,
-      `Hi ${firstName} 👋\n\nWhat would you like to do?`,
+      `Hi ${firstName} \n\nWhat would you like to do?`,
       [
-        { id: "search_start", label: "🔍 Search homes" },
-        { id: "nyumbaai_start", label: "🤖 Ask NyumbaAI" },
-        { id: "tenant_account", label: "👤 Link account" },
+        { id: "search_start", label: "Search homes" },
+        { id: "nyumbaai_start", label: "Ask NyumbaAI" },
+        { id: "tenant_account", label: "Link account" },
       ],
       admin,
     );
@@ -287,7 +283,7 @@ async function showTenantMenu(
 async function promptSearchArea(admin: Admin, waPhone: string): Promise<void> {
   await sendList(
     waPhone,
-    "📍 Which neighbourhood?",
+    "Which neighbourhood?",
     "Choose area",
     [
       {
@@ -397,8 +393,8 @@ async function handleSearchBedsStep(
       waPhone,
       `No listings in *${searchArea}* under KES ${maxBudget.toLocaleString()}.`,
       [
-        { id: "search_start", label: "🔁 Search again" },
-        { id: "nyumbaai_start", label: "🤖 NyumbaAI" },
+        { id: "search_start", label: "Search again" },
+        { id: "nyumbaai_start", label: "NyumbaAI" },
       ],
       admin,
     );
@@ -406,16 +402,16 @@ async function handleSearchBedsStep(
     return;
   }
 
-  await sendText(waPhone, `✅ Found *${listings.length}* in ${searchArea}:`, admin);
+  await sendText(waPhone, `Found *${listings.length}* in ${searchArea}:`, admin);
   for (const l of listings) {
-    const badge = verificationBadge(l.is_verified, l.authenticity_score ?? 0);
+    const badge = listingTrustBadge(l.is_verified, l.authenticity_score ?? 0);
     const br = l.bedrooms === 0 ? "Bedsitter" : `${l.bedrooms}BR`;
     await sendButtons(
       waPhone,
-      `${badge} *${l.title}*\n📍 ${l.neighborhood}\n🛏 ${br}  💰 KES ${l.rent_kes.toLocaleString()}/mo`,
+      `${badge} *${l.title}*\n${l.neighborhood}\nBeds: ${br} · Rent: KES ${l.rent_kes.toLocaleString()}/mo`,
       [
-        { id: `view_${l.id}`, label: "👁 Details" },
-        { id: `unlock_${l.id}`, label: "📞 Contact" },
+        { id: `view_${l.id}`, label: "Details" },
+        { id: `unlock_${l.id}`, label: "Contact: Contact" },
       ],
       admin,
     );
@@ -436,7 +432,7 @@ async function showListingDetail(admin: Admin, waPhone: string, listingId: strin
     await sendText(waPhone, "Listing no longer available.", admin);
     return;
   }
-  const badge = verificationBadge(listing.is_verified, listing.authenticity_score ?? 0);
+  const badge = listingTrustBadge(listing.is_verified, listing.authenticity_score ?? 0);
   if (listing.images?.[0]) {
     await sendImage(
       waPhone,
@@ -447,10 +443,10 @@ async function showListingDetail(admin: Admin, waPhone: string, listingId: strin
   }
   await sendButtons(
     waPhone,
-    `${badge} *${listing.title}*\n📍 ${listing.neighborhood}\n💰 KES ${listing.rent_kes.toLocaleString()}/mo\n\n${(listing.description ?? "").slice(0, 250)}`,
+    `${badge} *${listing.title}*\n${listing.neighborhood}\nRent: KES ${listing.rent_kes.toLocaleString()}/mo\n\n${(listing.description ?? "").slice(0, 250)}`,
     [
-      { id: `unlock_${listing.id}`, label: "📞 Get contact" },
-      { id: `viewing_${listing.id}`, label: "📅 Book viewing" },
+      { id: `unlock_${listing.id}`, label: "Contact: Get contact" },
+      { id: `viewing_${listing.id}`, label: "Book viewing" },
     ],
     admin,
   );
@@ -473,7 +469,7 @@ async function handleUnlockRequest(
       .maybeSingle();
     if (existing) {
       const contact = await resolveContactPhone(admin, listingId);
-      await sendText(waPhone, `✅ Already unlocked.\n\n📞 *${contact ?? "N/A"}*`, admin);
+      await sendText(waPhone, `Already unlocked.\n\n*${contact ?? "N/A"}*`, admin);
       return;
     }
     const plus = await getTenantPlusStatus(admin, userId);
@@ -537,7 +533,7 @@ async function handleUnlockMpesaStep(
     await sendText(waPhone, "M-Pesa unavailable. Use nyumbasearch.com", admin);
     return;
   }
-  await sendText(waPhone, `💳 M-Pesa prompt sent to ${mpesaPhone}. Pay KES ${fee}.`, admin);
+  await sendText(waPhone, `Payment: M-Pesa prompt sent to ${mpesaPhone}. Pay KES ${fee}.`, admin);
   try {
     const stk = await initiateStkPush({
       phone254: mpesaPhone,
@@ -565,8 +561,8 @@ async function handleUnlockMpesaStep(
       waPhone,
       "M-Pesa failed. Try again?",
       [
-        { id: `unlock_${listingId}`, label: "🔄 Retry" },
-        { id: "tenant_menu", label: "🏠 Menu" },
+        { id: `unlock_${listingId}`, label: "Retry" },
+        { id: "tenant_menu", label: "Menu" },
       ],
       admin,
     );
@@ -586,7 +582,7 @@ async function promptViewingDates(admin: Admin, waPhone: string, listingId: stri
       description: d === 1 ? "Tomorrow" : `In ${d}d`,
     });
   }
-  await sendList(waPhone, "📅 Pick a date:", "Dates", [{ title: "Next 7 days", rows }], admin);
+  await sendList(waPhone, "Pick a date:", "Dates", [{ title: "Next 7 days", rows }], admin);
 }
 
 async function handleViewingTimeStep(
@@ -627,7 +623,7 @@ async function handleViewingTimeStep(
   });
   await sendText(
     waPhone,
-    `✅ Viewing requested: ${property.title} on ${viewingDate} at ${time}`,
+    `Viewing requested: ${property.title} on ${viewingDate} at ${time}`,
     admin,
   );
   await refreshSessionProfile(admin, session);
@@ -643,8 +639,8 @@ async function handleNyumbaAiMode(
 ): Promise<void> {
   if (input === "nyumbaai_start") {
     const aiIntro = profile
-      ? `🤖 *NyumbaAI* — Hi ${profile.firstName}! I know your account — ask about your saved homes, viewings, or any Nairobi rental question.\n\n*MENU* to go back.`
-      : "🤖 *NyumbaAI* — Ask me anything about renting in Nairobi.\n\n*MENU* to go back.";
+      ? `*NyumbaAI* — Hi ${profile.firstName}! I know your account — ask about your saved homes, viewings, or any Nairobi rental question.\n\n*MENU* to go back.`
+      : "*NyumbaAI* — Ask me anything about renting in Nairobi.\n\n*MENU* to go back.";
     await sendText(waPhone, aiIntro, admin);
     await updateState(admin, waPhone, "nyumbaai_mode", { aiHistory: [] });
     return;
@@ -660,10 +656,10 @@ async function handleNyumbaAiMode(
   await updateState(admin, waPhone, "nyumbaai_mode", { aiHistory: updated });
   await sendButtons(
     waPhone,
-    `🤖 ${reply}`,
+    `${reply}`,
     [
-      { id: "nyumbaai_start", label: "🔄 Another" },
-      { id: "search_start", label: "🔍 Search" },
+      { id: "nyumbaai_start", label: "Another" },
+      { id: "search_start", label: "Search" },
     ],
     admin,
   );
@@ -712,7 +708,7 @@ async function tryProfileCommands(ctx: TenantFlowContext): Promise<boolean> {
       return true;
     }
     if (profile) await sendAccountStatus(admin, waPhone, profile);
-    else await sendText(waPhone, `👤 Account linked.\n\n${getSiteUrl()}/tenant`, admin);
+    else await sendText(waPhone, `Account linked.\n\n${getSiteUrl()}/tenant`, admin);
     return true;
   }
   return false;
@@ -835,9 +831,9 @@ export async function handleTenantFlow(
     waPhone,
     "What next?",
     [
-      { id: "search_start", label: "🔍 Search" },
-      { id: "nyumbaai_start", label: "🤖 NyumbaAI" },
-      { id: "tenant_menu", label: "🏠 Menu" },
+      { id: "search_start", label: "Search" },
+      { id: "nyumbaai_start", label: "NyumbaAI" },
+      { id: "tenant_menu", label: "Menu" },
     ],
     admin,
   );

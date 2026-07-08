@@ -57,7 +57,7 @@ async function showLandlordMenu(
     const intro = formatProfileDigest(profile);
     const listingHint =
       profile.activeListings > 0 || profile.pendingListings > 0
-        ? `\n📋 ${profile.activeListings} live · ${profile.pendingListings} pending · ${profile.totalLeads} leads`
+        ? `\n${profile.activeListings} live · ${profile.pendingListings} pending · ${profile.totalLeads} leads`
         : "\n_No listings yet — add your first property!_";
 
     await sendList(
@@ -85,11 +85,11 @@ async function showLandlordMenu(
   } else {
     await sendButtons(
       waPhone,
-      `👋 ${firstName}, what would you like to do?`,
+      `${firstName}, what would you like to do?`,
       [
-        { id: "listing_new", label: "➕ Add listing" },
-        { id: "my_listings", label: "📋 My listings" },
-        { id: "my_leads", label: "📥 View leads" },
+        { id: "listing_new", label: "Add listing" },
+        { id: "my_listings", label: "My listings" },
+        { id: "my_leads", label: "View leads" },
       ],
       admin,
     );
@@ -108,11 +108,7 @@ async function handleListingTitleStep(
     return;
   }
   await updateState(admin, waPhone, "listing_price", { draft: { ...draft, title: input } });
-  await sendText(
-    waPhone,
-    `✅ Title saved.\n\nStep 2/8 — *Monthly rent (KES)?* Numbers only.`,
-    admin,
-  );
+  await sendText(waPhone, `Title saved.\n\nStep 2/8 — *Monthly rent (KES)?* Numbers only.`, admin);
 }
 
 async function handleListingPriceStep(
@@ -162,7 +158,7 @@ async function handleListingTypeStep(
   await updateState(admin, waPhone, "listing_location", {
     draft: { ...draft, property_type: mapped.type, bedrooms: mapped.bedrooms },
   });
-  await sendText(waPhone, "Step 4/8 — *Neighbourhood* or send 📍 location pin.", admin);
+  await sendText(waPhone, "Step 4/8 — *Neighbourhood* or send a location pin.", admin);
 }
 
 async function handleListingLocationStep(
@@ -217,11 +213,7 @@ async function handleListingDescriptionStep(
   await updateState(admin, waPhone, "listing_photos", {
     draft: { ...draft, description: cleaned },
   });
-  await sendText(
-    waPhone,
-    "Step 6/8 — Send photos 📸 (up to 10). Type *DONE* when finished.",
-    admin,
-  );
+  await sendText(waPhone, "Step 6/8 — Send photos (up to 10). Type *DONE* when finished.", admin);
 }
 
 async function handleListingPhotosStep(
@@ -243,7 +235,7 @@ async function handleListingPhotosStep(
       });
       await sendText(
         waPhone,
-        `✅ Photo ${photos.length} saved. ${photos.length < 10 ? "Send more or *DONE*." : "Max reached — *DONE*."}`,
+        `Photo ${photos.length} saved. ${photos.length < 10 ? "Send more or *DONE*." : "Max reached — *DONE*."}`,
         admin,
       );
     } catch {
@@ -289,10 +281,10 @@ async function handleListingContactStep(
   const photoCount = ((draft.photos as string[]) ?? []).length;
   await sendButtons(
     waPhone,
-    `Review:\n🏠 *${title}*\n📍 ${neighborhood}\n💰 KES ${Number(draft.price).toLocaleString()}/mo\n📸 ${photoCount} photos`,
+    `Review:\n*${title}*\n${neighborhood}\nRent: KES ${Number(draft.price).toLocaleString()}/mo\nPhotos: ${photoCount}`,
     [
-      { id: "listing_submit", label: "✅ Submit" },
-      { id: "listing_new", label: "✏️ Start over" },
+      { id: "listing_submit", label: "Submit" },
+      { id: "listing_new", label: "Start over" },
     ],
     admin,
   );
@@ -329,7 +321,7 @@ async function submitListingDraft(
 
     await sendText(
       waPhone,
-      `🎉 *Listing submitted!*\n\n*${title}* is pending review. We'll notify you when it's live.\n\n${getSiteUrl()}/landlord/properties`,
+      `*Listing submitted!*\n\n*${title}* is pending review. We'll notify you when it's live.\n\n${getSiteUrl()}/landlord/properties`,
       admin,
     );
     await updateState(admin, waPhone, "landlord_menu", { draft: {} });
@@ -337,13 +329,13 @@ async function submitListingDraft(
     if (refreshed) {
       await sendText(
         waPhone,
-        `📋 Updated: you now have ${refreshed.activeListings} live and ${refreshed.pendingListings} pending listing${refreshed.pendingListings === 1 ? "" : "s"}.\n\nReply *MENU* for your personalised dashboard.`,
+        `Updated: you now have ${refreshed.activeListings} live and ${refreshed.pendingListings} pending listing${refreshed.pendingListings === 1 ? "" : "s"}.\n\nReply *MENU* for your personalised dashboard.`,
         admin,
       );
     }
   } catch (err) {
     console.error("WhatsApp listing save error:", err);
-    await sendText(waPhone, "❌ Could not save listing. Try nyumbasearch.com/dashboard", admin);
+    await sendText(waPhone, "Could not save listing. Try nyumbasearch.com/dashboard", admin);
   }
 }
 
@@ -359,18 +351,20 @@ async function showMyListings(admin: Admin, waPhone: string, userId: string): Pr
     await sendButtons(
       waPhone,
       "No listings yet.",
-      [{ id: "listing_new", label: "➕ Add first" }],
+      [{ id: "listing_new", label: "Add first" }],
       admin,
     );
     return;
   }
 
   const summary = listings
-    .map((l, i) => `${i + 1}. ${l.is_active ? "✅" : "⏳"} *${l.title}* — ${l.views} views`)
+    .map(
+      (l, i) => `${i + 1}. ${l.is_active ? "[Live]" : "[Pending]"} *${l.title}* — ${l.views} views`,
+    )
     .join("\n");
   await sendText(
     waPhone,
-    `📋 *Listings:*\n\n${summary}\n\n${getSiteUrl()}/landlord/properties`,
+    `*Listings:*\n\n${summary}\n\n${getSiteUrl()}/landlord/properties`,
     admin,
   );
 }
@@ -386,7 +380,7 @@ async function showMyLeads(admin: Admin, waPhone: string, userId: string): Promi
     .from("contact_unlocks")
     .select("id", { count: "exact", head: true })
     .in("listing_id", ids);
-  await sendText(waPhone, `📥 *Leads:* ${count ?? 0} contact unlock(s) on your listings.`, admin);
+  await sendText(waPhone, `*Leads:* ${count ?? 0} contact unlock(s) on your listings.`, admin);
 }
 
 async function handleListingsOrLeads(
@@ -527,9 +521,9 @@ export async function handleLandlordFlow(
     waPhone,
     "Landlord menu:",
     [
-      { id: "listing_new", label: "➕ Add listing" },
-      { id: "my_listings", label: "📋 Listings" },
-      { id: "landlord_menu", label: "🏠 Menu" },
+      { id: "listing_new", label: "Add listing" },
+      { id: "my_listings", label: "Listings" },
+      { id: "landlord_menu", label: "Menu" },
     ],
     admin,
   );

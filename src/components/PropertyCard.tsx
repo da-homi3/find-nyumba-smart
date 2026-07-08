@@ -1,7 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { BedDouble, Bath, MapPin, Flame, Droplets, Shield, Wifi, Car } from "lucide-react";
+import {
+  BedDouble,
+  Bath,
+  MapPin,
+  Flame,
+  Droplets,
+  Shield,
+  Wifi,
+  Car,
+  BadgeCheck,
+} from "lucide-react";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyImage } from "@/components/PropertyImage";
@@ -118,8 +128,9 @@ export function PropertyCard({
                 </span>
               )}
               {p.nyumba_verified_at && (
-                <span className="inline-flex rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
-                  NyumbaSearch Verified ✓
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                  <BadgeCheck className="h-3 w-3" aria-hidden />
+                  NyumbaSearch Verified
                 </span>
               )}
               {level > 0 && <VerificationBadge level={level} variant="glass" />}

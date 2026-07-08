@@ -3,8 +3,10 @@ import type { Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/PropertyCard";
 import { AdUnit } from "@/components/AdUnit";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
+import { ServiceCategoryIcon } from "@/components/services/ServiceCategoryIcon";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import { AnimatedStat } from "@/components/motion/AnimatedStat";
+import { Star } from "lucide-react";
 import { NeighborhoodCard3D } from "@/components/landing/NeighborhoodCard3D";
 import {
   ScrollReveal,
@@ -54,7 +56,13 @@ export function TrustStrip({
         <AnimatedStat value={s.verifiedHomes} suffix="+" label="Verified homes" ready />
         <AnimatedStat value={s.noAgentFeesPct} suffix="%" label="No agent fees" ready />
         <AnimatedStat value={s.avgResponseHours} suffix="h" label="Avg response" ready />
-        <AnimatedStat value={s.tenantRating} suffix="★" label="Tenant rating" decimals={1} ready />
+        <AnimatedStat
+          value={s.tenantRating}
+          label="Tenant rating"
+          decimals={1}
+          ready
+          suffixIcon={Star}
+        />
       </div>
     </section>
   );
@@ -211,11 +219,9 @@ export function ServiceTeaserRow({ counts }: Readonly<{ counts?: Record<string, 
               key={c.id}
               to="/services/$category"
               params={{ category: c.id }}
-              className="group rounded-2xl border bg-card p-4 text-center text-xs font-semibold transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="group flex flex-col items-center rounded-2xl border bg-card p-4 text-center text-xs font-semibold transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              <span className="text-2xl" aria-hidden>
-                {c.emoji}
-              </span>
+              <ServiceCategoryIcon categoryId={c.id} size="sm" />
               <p className="mt-2 group-hover:text-primary">{c.label}</p>
               {count != null && count > 0 ? (
                 <p className="mt-1 text-[10px] font-medium text-muted-foreground">

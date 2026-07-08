@@ -419,7 +419,9 @@ export const listPendingServiceProviders = createServerFn({ method: "GET" })
     if (error) throw error;
     if (!rows?.length) return [];
 
-    const userIds = [...new Set(rows.map((r) => r.user_id))];
+    const userIds = [
+      ...new Set(rows.map((r) => r.user_id).filter((id): id is string => id !== null)),
+    ];
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("id, full_name, phone")
@@ -436,8 +438,8 @@ export const listPendingServiceProviders = createServerFn({ method: "GET" })
 
     return rows.map((row) => ({
       ...row,
-      profiles: profileMap.get(row.user_id) ?? null,
-      email: emails.get(row.user_id) ?? null,
+      profiles: row.user_id ? (profileMap.get(row.user_id) ?? null) : null,
+      email: row.user_id ? (emails.get(row.user_id) ?? null) : null,
     }));
   });
 
@@ -462,6 +464,7 @@ export const reviewServiceProvider = createServerFn({ method: "POST" })
       .eq("id", data.providerId)
       .single();
     if (fetchErr || !provider) throw new Error("Provider application not found");
+    if (!provider.user_id) throw new Error("Provider application has no linked user");
 
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(provider.user_id);
     const email = userData.user?.email ?? "";

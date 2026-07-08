@@ -6,6 +6,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { useMemo, useState, useEffect, useRef, type MouseEvent } from "react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { recordSearchEvent } from "@/lib/api/analytics.functions";
+import { hasAnalyticsConsent } from "@/lib/cookie-consent";
 import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
@@ -177,7 +178,7 @@ function TenantHome() {
   const listingStats = useMemo(() => previewListingStats(filtered), [filtered]);
 
   useEffect(() => {
-    if (isLoading || isError) return;
+    if (isLoading || isError || !hasAnalyticsConsent()) return;
     const key = `${debouncedQ}|${filters.neighborhood}|${displayListings.length}`;
     if (key === lastAnalyticsKey.current) return;
     lastAnalyticsKey.current = key;

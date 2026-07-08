@@ -2,12 +2,11 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  AGENCY_PLANS,
-  LANDLORD_PLANS,
   LEAD_PACKS,
+  PORTAL_PLANS,
   REPORT_CATALOG,
   planMonthlyPrice,
-  resolveLandlordPlan,
+  resolvePortalPlan,
 } from "@/lib/revenue/plans";
 import { PORTAL_PATHS, type ListingPortal } from "@/lib/portal-paths";
 import { useEffect } from "react";
@@ -117,10 +116,9 @@ export function PortalCheckoutPage({
     );
   }
 
-  const planId = resolveLandlordPlan(plan);
-  const allPlans = [...LANDLORD_PLANS, ...AGENCY_PLANS];
-  const defaultPlan = portal === "agency" ? AGENCY_PLANS[1] : LANDLORD_PLANS[1];
-  const planDef = allPlans.find((p) => p.id === planId) ?? defaultPlan;
+  const planId = resolvePortalPlan(portal, plan);
+  const portalPlans = PORTAL_PLANS[portal];
+  const planDef = portalPlans.find((p) => p.id === planId) ?? portalPlans[1] ?? portalPlans[0];
   if (!planDef) return null;
 
   return (

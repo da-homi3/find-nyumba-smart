@@ -1,3 +1,4 @@
+import { Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getPromoStatus } from "@/lib/api/promo.functions";
 import type { AccountRole } from "@/lib/account-roles";
@@ -23,8 +24,9 @@ export function PromoBadge({ role }: Readonly<{ role: AccountRole }>) {
 
   return (
     <div className="mt-2 rounded-xl border border-[#F6AD5544] bg-linear-to-br from-[#F6AD5522] to-[#F6AD5511] px-3 py-2">
-      <p className="text-[13px] font-bold text-[#F6AD55]">
-        🏆 Founding Member offer — {status.remaining} of {status.total} spots left
+      <p className="flex items-center gap-2 text-[13px] font-bold text-[#F6AD55]">
+        <Trophy className="h-4 w-4 shrink-0" aria-hidden />
+        Founding Member offer — {status.remaining} of {status.total} spots left
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
         Get {bonus} bonus free listings after your first paid month

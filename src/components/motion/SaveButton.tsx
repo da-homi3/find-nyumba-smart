@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { Heart } from "lucide-react";
 import { useState } from "react";
 
 type Props = {
@@ -37,11 +38,14 @@ export function SaveButton({
       style={{ width: size, height: size }}
     >
       <motion.span
-        animate={{ scale: saved ? [1, 1.4, 1] : 1, color: saved ? "#fc4a4a" : "#fff" }}
+        animate={{ scale: saved ? [1, 1.4, 1] : 1 }}
         transition={{ duration: 0.3 }}
-        className="text-lg leading-none"
+        className="flex items-center justify-center"
       >
-        {saved ? "♥" : "♡"}
+        <Heart
+          className={`h-4 w-4 ${saved ? "fill-[#fc4a4a] text-[#fc4a4a]" : "text-white"}`}
+          aria-hidden
+        />
       </motion.span>
       <AnimatePresence>
         {burst &&

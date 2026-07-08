@@ -65,7 +65,9 @@ export async function handleAccountLinkEmail(
     return;
   }
 
-  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpBuf = new Uint32Array(1);
+  crypto.getRandomValues(otpBuf);
+  const otp = String(100000 + (otpBuf[0] % 900000));
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
   await admin.from("whatsapp_otp").upsert({
@@ -78,7 +80,7 @@ export async function handleAccountLinkEmail(
   await sendOtpEmail(email, user.fullName.split(" ")[0] ?? "there", otp);
   await sendText(
     waPhone,
-    `📧 A 6-digit verification code has been sent to *${email}*.\n\nEnter the code here to link your account:`,
+    `Email: A 6-digit verification code has been sent to *${email}*.\n\nEnter the code here to link your account:`,
     admin,
   );
   await updateState(admin, waPhone, "account_link_otp");
@@ -130,14 +132,14 @@ export async function handleAccountLinkOtp(
   if (profile) {
     await sendText(
       waPhone,
-      `✅ *Account linked!*\n\n${formatProfileDigest(profile)}\n\nI'm now your personal NyumbaSearch assistant. Reply *MENU* anytime.`,
+      `*Account linked!*\n\n${formatProfileDigest(profile)}\n\nI'm now your personal NyumbaSearch assistant. Reply *MENU* anytime.`,
       admin,
     );
     await updateState(admin, waPhone, "personal_home");
     return;
   }
 
-  await sendText(waPhone, "✅ *Account linked!* Reply *MENU* to continue.", admin);
+  await sendText(waPhone, "*Account linked!* Reply *MENU* to continue.", admin);
   await updateState(admin, waPhone, `${session.role}_menu`);
 }
 

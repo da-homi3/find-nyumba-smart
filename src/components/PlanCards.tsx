@@ -1,3 +1,4 @@
+import { Check, Sparkle } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import type { PlanCardDef } from "@/lib/revenue/plans";
@@ -83,9 +84,10 @@ function PricingCard3D({ plan, showCta }: Readonly<{ plan: PlanCardDef; showCta:
         <motion.span
           animate={{ y: [0, -4, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
-          className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-emerald px-4 py-1 text-xs font-bold text-white shadow-green"
+          className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-emerald px-4 py-1 text-xs font-bold text-white shadow-green"
         >
-          ✦ {plan.badge}
+          <Sparkle className="h-3 w-3" aria-hidden />
+          {plan.badge}
         </motion.span>
       ) : null}
 
@@ -117,9 +119,9 @@ function PricingCard3D({ plan, showCta }: Readonly<{ plan: PlanCardDef; showCta:
               whileInView={{ scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.05 + 0.2, type: "spring" }}
-              className="mt-0.5 font-bold text-[#1eb88a]"
+              className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#1eb88a]/15 text-[#1eb88a]"
             >
-              ✓
+              <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
             </motion.span>
             {feature}
           </motion.li>

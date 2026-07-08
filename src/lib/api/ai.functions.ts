@@ -235,7 +235,7 @@ async function heuristicScamCheck(message: string): Promise<string> {
   if (!warnings.length) {
     return "General safety tips:\n• Prefer **verified** listings with 80%+ trust scores\n• Never pay deposits before a physical viewing\n• Use in-app messaging so conversations are logged\n• Report suspicious listings from the property page";
   }
-  return "⚠️ Scam warning signs detected:\n\n" + warnings.map((w) => `• ${w}`).join("\n");
+  return "Scam warning signs detected:\n\n" + warnings.map((w) => `• ${w}`).join("\n");
 }
 
 export const getAssistantReply = createServerFn({ method: "POST" })

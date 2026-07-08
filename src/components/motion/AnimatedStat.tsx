@@ -1,4 +1,5 @@
 import { animate, motion, useInView } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
   label: string;
   decimals?: number;
   ready?: boolean;
+  suffixIcon?: LucideIcon;
 };
 
 function formatStatValue(v: number, decimals: number, prefix: string, suffix: string): string {
@@ -22,6 +24,7 @@ export function AnimatedStat({
   label,
   decimals = 0,
   ready = true,
+  suffixIcon: SuffixIcon,
 }: Readonly<Props>) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10% 0px" });
@@ -39,8 +42,14 @@ export function AnimatedStat({
 
   return (
     <div ref={ref} className="text-center sm:text-left">
-      <div className="font-display text-2xl font-extrabold text-(--color-mint,#1eb88a) sm:text-3xl tabular-nums">
+      <div className="inline-flex items-baseline justify-center gap-1 font-display text-2xl font-extrabold text-(--color-mint,#1eb88a) sm:justify-start sm:text-3xl tabular-nums">
         <motion.span>{ready ? display : "—"}</motion.span>
+        {SuffixIcon ? (
+          <SuffixIcon
+            className="h-5 w-5 fill-(--color-gold,#f6ad55) text-(--color-gold,#f6ad55)"
+            aria-hidden
+          />
+        ) : null}
       </div>
       <div className="mt-1 text-xs text-muted-foreground">{label}</div>
     </div>

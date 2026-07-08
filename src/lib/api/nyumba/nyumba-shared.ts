@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { Database } from "@/integrations/supabase/types";
 import type { Property } from "@/lib/properties";
+import { PROPERTY_TYPE_OPTIONS, type PropertyType } from "@/lib/property-types";
 import { ForbiddenError } from "@/lib/api/_authz";
 import { getSiteUrl } from "@/lib/site";
 import { normalizePropertyImages } from "@/lib/property-images";
@@ -22,20 +23,12 @@ export type InquiryWithDetails = InquiryRecord & {
   inquiry_messages?: InquiryMessageRecord[];
 };
 
-const propertyTypes = [
-  "bedsitter",
-  "single_room",
-  "one_bedroom",
-  "two_bedroom",
-  "three_bedroom",
-  "studio",
-  "hostel",
-  "maisonette",
-  "bungalow",
-  "townhouse",
-] as const;
+const propertyTypeValues = PROPERTY_TYPE_OPTIONS.map((option) => option.id) as [
+  PropertyType,
+  ...PropertyType[],
+];
 
-export const propertyTypeSchema = z.enum(propertyTypes);
+export const propertyTypeSchema = z.enum(propertyTypeValues);
 
 export const listPropertiesSchema = z
   .object({

@@ -7,6 +7,7 @@ import type { PublicServiceProvider } from "@/lib/api/service-provider.functions
 import { countyNameForCode, PROVIDER_COUNTIES } from "@/lib/provider-counties";
 import { formatKes } from "@/lib/properties";
 import { MapPin, Star } from "lucide-react";
+import { ServiceCategoryIcon } from "@/components/services/ServiceCategoryIcon";
 import {
   ProviderContactActions,
   ProviderContactDetails,
@@ -16,7 +17,7 @@ import { formFieldValue } from "@/lib/utils";
 import { useState } from "react";
 import { buildPageHead } from "@/lib/seo/head";
 
-const VALID_CATEGORIES = new Set(SERVICE_CATEGORIES.map((c) => c.id));
+const VALID_CATEGORIES = new Set<string>(SERVICE_CATEGORIES.map((c) => c.id));
 
 const servicesCategorySearchSchema = z.object({
   county: z.string().optional(),
@@ -37,12 +38,12 @@ export const Route = createFileRoute("/services/$category")({
     const providers = await listActiveProvidersByCategory({
       data: { category: params.category, county: deps.county },
     });
-    return { providers };
+    return { providers, county: deps.county };
   },
-  head: ({ params, search }) => {
+  head: ({ params, loaderData }) => {
     const meta = SERVICE_CATEGORIES.find((c) => c.id === params.category);
     const label = meta?.label ?? params.category;
-    const countyLabel = countyNameForCode(search?.county);
+    const countyLabel = countyNameForCode(loaderData?.county);
     const place = countyLabel ?? "Kenya";
     const title = `${label} in ${place} — NyumbaSearch`;
     const description = `Compare verified ${label.toLowerCase()} in ${place}. Request quotes and contact providers on NyumbaSearch.`;
@@ -80,8 +81,9 @@ function CategoryPage() {
         <Link to="/services" className="text-sm font-medium text-primary hover:underline">
           ← All services
         </Link>
-        <h1 className="mt-4 font-display text-3xl font-semibold">
-          {meta?.emoji} {meta?.label ?? category}
+        <h1 className="mt-4 flex items-center gap-3 font-display text-3xl font-semibold">
+          <ServiceCategoryIcon categoryId={category} size="lg" />
+          <span>{meta?.label ?? category}</span>
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {providers.length} provider{providers.length === 1 ? "" : "s"} serving {areaLabel}.
@@ -264,7 +266,7 @@ function ProviderCard({
             <span>{p.areasServed.join(" · ")}</span>
           </p>
 
-          <ProviderContactDetails provider={p} category={category} size="sm" />
+          <ProviderContactDetails provider={p} size="sm" />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
+import { ServiceCategoryIcon } from "@/components/services/ServiceCategoryIcon";
 import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 import { buildPageHead } from "@/lib/seo/head";
 
@@ -49,9 +50,7 @@ function ServicesIndexPage() {
                 params={{ category: c.id }}
                 className="group rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
-                <span className="text-2xl" aria-hidden>
-                  {c.emoji}
-                </span>
+                <ServiceCategoryIcon categoryId={c.id} size="md" className="mx-auto" />
                 <p className="mt-2 text-sm font-semibold group-hover:text-primary">{c.label}</p>
                 <p className="mt-1 text-xs font-medium text-muted-foreground">
                   {providerCountLabel(count)}

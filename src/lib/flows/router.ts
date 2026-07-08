@@ -18,9 +18,9 @@ import {
 type Admin = SupabaseClient<Database>;
 
 const ROLE_BUTTONS = [
-  { id: "role_tenant", label: "🔍 Find a home" },
-  { id: "role_landlord", label: "🏠 List property" },
-  { id: "role_provider", label: "🔧 Services" },
+  { id: "role_tenant", label: "Find a home" },
+  { id: "role_landlord", label: "List property" },
+  { id: "role_provider", label: "Services" },
 ] as const;
 
 async function sendHelpMenu(admin: Admin, waPhone: string): Promise<void> {
@@ -33,12 +33,12 @@ async function sendHelpMenu(admin: Admin, waPhone: string): Promise<void> {
 
 function buildOnboardingGreeting(profile: UserAssistantProfile | null): string {
   if (!profile) {
-    return "Welcome to *NyumbaSearch* 🏠\n\nKenya's verified property platform.\n\nI'll be your personal rental assistant once you link your account.";
+    return "Welcome to *NyumbaSearch* \n\nKenya's verified property platform.\n\nI'll be your personal rental assistant once you link your account.";
   }
   if (profile.firstName) {
-    return `Welcome back, *${profile.firstName}*! 🏠\n\nI'm your personal NyumbaSearch assistant.`;
+    return `Welcome back, *${profile.firstName}*! \n\nI'm your personal NyumbaSearch assistant.`;
   }
-  return "Welcome back! 🏠\n\nI'm your personal NyumbaSearch assistant.";
+  return "Welcome back! \n\nI'm your personal NyumbaSearch assistant.";
 }
 
 async function showStartOnboarding(

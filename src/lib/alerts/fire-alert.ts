@@ -35,9 +35,9 @@ function hashTitle(title: string): string {
 }
 
 function severityEmoji(severity: AlertSeverity): string {
-  if (severity === "critical") return "🚨";
-  if (severity === "warning") return "⚠️";
-  return "ℹ️";
+  if (severity === "critical") return "[CRITICAL]";
+  if (severity === "warning") return "[WARNING]";
+  return "[INFO]";
 }
 
 function severityColor(severity: AlertSeverity): string {

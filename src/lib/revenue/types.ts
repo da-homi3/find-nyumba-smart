@@ -2,6 +2,9 @@ export type LandlordPlan =
   | "free"
   | "pro"
   | "premium"
+  | "manager-solo"
+  | "manager-team"
+  | "manager-enterprise"
   | "agency-starter"
   | "agency-pro"
   | "agency-enterprise";

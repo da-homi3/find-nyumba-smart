@@ -6,7 +6,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { useTheme } from "@/hooks/use-theme";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { CustomerCareInfo } from "@/components/CustomerCareInfo";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Moon, Sun } from "lucide-react";
 
 const SERVICE_LINKS = [
   { to: "/verify", label: "Property verification" },
@@ -161,9 +161,9 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
           whileTap={{ scale: 0.9 }}
           transition={{ duration: 0.3 }}
           aria-label="Toggle theme"
-          className={`hidden rounded-xl border p-2 text-lg md:inline-flex ${isHero ? "border-white/20 bg-white/10" : "border-border bg-secondary/50"}`}
+          className={`hidden rounded-xl border p-2 md:inline-flex ${isHero ? "border-white/20 bg-white/10" : "border-border bg-secondary/50"}`}
         >
-          {isDark ? "☀️" : "🌙"}
+          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </motion.button>
 
         <button
@@ -215,7 +215,15 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             }}
             className="flex w-full items-center gap-2 py-2 text-sm font-medium"
           >
-            {isDark ? "☀️ Light mode" : "🌙 Dark mode"}
+            {isDark ? (
+              <>
+                <Sun className="h-4 w-4" /> Light mode
+              </>
+            ) : (
+              <>
+                <Moon className="h-4 w-4" /> Dark mode
+              </>
+            )}
           </button>
         </div>
       )}
