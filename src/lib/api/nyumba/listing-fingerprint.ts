@@ -67,6 +67,24 @@ export async function findDuplicateActiveListing(
 ): Promise<DuplicateMatch | null> {
   const fingerprint = await computeListingFingerprint(input);
 
+  let hashQuery = admin
+    .from("properties")
+    .select("id, owner_id, organization_id")
+    .eq("is_active", true)
+    .eq("duplicate_hash", fingerprint)
+    .limit(1);
+  if (excludePropertyId) hashQuery = hashQuery.neq("id", excludePropertyId);
+
+  const { data: byHash, error: hashError } = await hashQuery.maybeSingle();
+  if (hashError) throw hashError;
+  if (byHash) {
+    return {
+      id: byHash.id,
+      ownerId: byHash.owner_id,
+      organizationId: byHash.organization_id,
+    };
+  }
+
   let query = admin
     .from("properties")
     .select("id, owner_id, organization_id, title, neighborhood, property_type, bedrooms, address")

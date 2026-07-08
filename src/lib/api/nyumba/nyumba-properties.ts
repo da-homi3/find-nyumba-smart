@@ -21,6 +21,10 @@ import {
   propertyIdSchema,
   propertyPayloadSchema,
 } from "@/lib/api/nyumba/nyumba-shared";
+import {
+  duplicateListingMessage,
+  throwIfListingDuplicateDbError,
+} from "@/lib/api/nyumba/listing-duplicate-errors";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
 
 export const listProperties = createServerFn({ method: "POST" })
@@ -164,11 +168,7 @@ export const createProperty = createServerFn({ method: "POST" })
       const ownedBySameAccount =
         duplicate.ownerId === userId ||
         (organizationId != null && duplicate.organizationId === organizationId);
-      throw new ForbiddenError(
-        ownedBySameAccount
-          ? "You've already listed this property. Edit your existing listing instead of posting a copy."
-          : "This property is already listed on NyumbaSearch. To keep listings credible and unique, each property can only be listed once.",
-      );
+      throw new ForbiddenError(duplicateListingMessage(ownedBySameAccount));
     }
     const duplicateHash = await computeListingFingerprint(fingerprintInput);
 
@@ -197,7 +197,10 @@ export const createProperty = createServerFn({ method: "POST" })
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throwIfListingDuplicateDbError(error);
+      throw error;
+    }
 
     // Automatic area analysis for landlord / manager / agency uploads
     try {
@@ -482,7 +485,10 @@ export const updateProperty = createServerFn({ method: "POST" })
       .eq("id", propertyId)
       .select("*")
       .single();
-    if (error) throw error;
+    if (error) {
+      throwIfListingDuplicateDbError(error);
+      throw error;
+    }
 
     try {
       const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
