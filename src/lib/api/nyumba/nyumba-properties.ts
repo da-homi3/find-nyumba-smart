@@ -149,6 +149,29 @@ export const createProperty = createServerFn({ method: "POST" })
     const organizationId =
       isAgency || isManager ? await getUserOrganizationId(supabase, userId) : null;
 
+    const admin = await adminClient();
+    const { computeListingFingerprint, findDuplicateActiveListing } =
+      await import("@/lib/api/nyumba/listing-fingerprint");
+    const fingerprintInput = {
+      title: data.title,
+      neighborhood: data.neighborhood,
+      property_type: data.property_type,
+      bedrooms: data.bedrooms,
+      address: data.address ?? null,
+    };
+    const duplicate = await findDuplicateActiveListing(admin, fingerprintInput);
+    if (duplicate) {
+      const ownedBySameAccount =
+        duplicate.ownerId === userId ||
+        (organizationId != null && duplicate.organizationId === organizationId);
+      throw new ForbiddenError(
+        ownedBySameAccount
+          ? "You've already listed this property. Edit your existing listing instead of posting a copy."
+          : "This property is already listed on NyumbaSearch. To keep listings credible and unique, each property can only be listed once.",
+      );
+    }
+    const duplicateHash = await computeListingFingerprint(fingerprintInput);
+
     const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
     let latitude = data.latitude ?? null;
     let longitude = data.longitude ?? null;
@@ -169,6 +192,7 @@ export const createProperty = createServerFn({ method: "POST" })
         owner_id: userId,
         organization_id: organizationId,
         property_type: data.property_type,
+        duplicate_hash: duplicateHash,
       })
       .select("*")
       .single();
@@ -177,7 +201,6 @@ export const createProperty = createServerFn({ method: "POST" })
 
     // Automatic area analysis for landlord / manager / agency uploads
     try {
-      const admin = await adminClient();
       const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
       await applyPropertyAreaAnalysis(admin, property.id);
       const { data: refreshed } = await admin
@@ -417,6 +440,24 @@ export const updateProperty = createServerFn({ method: "POST" })
     const { propertyId, ...payload } = data;
     await assertCanManageProperty(supabase, userId, propertyId);
     const admin = await adminClient();
+
+    const { computeListingFingerprint, findDuplicateActiveListing } =
+      await import("@/lib/api/nyumba/listing-fingerprint");
+    const fingerprintInput = {
+      title: payload.title,
+      neighborhood: payload.neighborhood,
+      property_type: payload.property_type,
+      bedrooms: payload.bedrooms,
+      address: payload.address ?? null,
+    };
+    const duplicate = await findDuplicateActiveListing(admin, fingerprintInput, propertyId);
+    if (duplicate) {
+      throw new ForbiddenError(
+        "Another active listing already matches this property. To keep listings credible and unique, each property can only be listed once.",
+      );
+    }
+    const duplicateHash = await computeListingFingerprint(fingerprintInput);
+
     const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
     let latitude = payload.latitude ?? null;
     let longitude = payload.longitude ?? null;
@@ -435,6 +476,7 @@ export const updateProperty = createServerFn({ method: "POST" })
         latitude,
         longitude,
         property_type: payload.property_type,
+        duplicate_hash: duplicateHash,
         updated_at: new Date().toISOString(),
       })
       .eq("id", propertyId)

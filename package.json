@@ -32,6 +32,7 @@
     "db:migrate:founding-promo": "node scripts/apply-founding-member-promo.mjs",
     "db:migrate:media-limits": "node scripts/apply-media-upload-limits.mjs",
     "db:migrate:property-types": "node scripts/apply-property-type-categories.mjs",
+    "db:migrate:dedupe": "node scripts/apply-listing-duplicate-prevention.mjs",
     "test:mpesa": "node scripts/test-mpesa.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "db:seed:providers": "node scripts/seed-service-providers.mjs",
