@@ -1,5 +1,5 @@
 /**
- * Apply supabase/migrations/20260611140000_performance_indexes.sql via Supabase Management API.
+ * Apply supabase/migrations/20260618240000_performance_indexes.sql via Supabase Management API.
  * Requires SUPABASE_ACCESS_TOKEN and SUPABASE_URL in .env
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const envPath = join(root, ".env");
-const sqlPath = join(root, "supabase", "migrations", "20260611140000_performance_indexes.sql");
+const sqlPath = join(root, "supabase", "migrations", "20260618240000_performance_indexes.sql");
 
 function parseEnv(text) {
   const env = {};
