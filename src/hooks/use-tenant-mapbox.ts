@@ -10,7 +10,12 @@ import {
 } from "@/components/tenant-map/map-constants";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
 import { loadMapboxGl } from "@/lib/mapbox/mapbox-init";
-import { MAPBOX_MAP_INIT, syncHeatmapForZoom, syncMapbox3DForZoom } from "@/lib/mapbox/mapbox-3d";
+import { syncHeatmapForZoom, syncMapbox3DForZoom } from "@/lib/mapbox/mapbox-3d";
+import {
+  bindMapViewportResize,
+  getMapboxInitOptions,
+  selectedPropertyFlyToPitch,
+} from "@/lib/mapbox/map-device";
 
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -340,7 +345,7 @@ function flyToNairobiMetro(map: MapboxMap, duration = 0) {
 export function useTenantMapbox(properties: Property[]) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<MapboxMap | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const unbindResizeRef = useRef<(() => void) | null>(null);
   const propertiesRef = useRef(properties);
   const styleRef = useRef<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(MAP_STYLES.streets);
 
@@ -489,7 +494,7 @@ export function useTenantMapbox(properties: Property[]) {
         style: MAP_STYLES.streets,
         center: [NAIROBI_CENTER.lng, NAIROBI_CENTER.lat],
         zoom: 11.5,
-        ...MAPBOX_MAP_INIT,
+        ...getMapboxInitOptions(),
       });
       mapInstance.current = map;
 
@@ -497,6 +502,14 @@ export function useTenantMapbox(properties: Property[]) {
       map.on("load", onLoad);
       map.on("style.load", onStyleLoad);
       map.on("error", onMapError);
+      map.on("webglcontextlost", (event) => {
+        event.preventDefault();
+        setError("Map rendering failed on this device. Showing fallback map.");
+      });
+      map.on("webglcontextrestored", () => {
+        map.resize();
+        setError(null);
+      });
       map.on("zoomend", onZoomEnd);
       map.on("click", "unclustered-point-bg", onListingClick);
       map.on("click", "clusters", onClusterClick);
@@ -505,9 +518,8 @@ export function useTenantMapbox(properties: Property[]) {
       map.on("mouseenter", "clusters", setPointer);
       map.on("mouseleave", "clusters", clearPointer);
 
-      if (mapRef.current && typeof ResizeObserver !== "undefined") {
-        resizeObserverRef.current = new ResizeObserver(() => map.resize());
-        resizeObserverRef.current.observe(mapRef.current);
+      if (mapRef.current) {
+        unbindResizeRef.current = bindMapViewportResize(map, mapRef.current);
       }
 
       requestAnimationFrame(() => map.resize());
@@ -515,8 +527,8 @@ export function useTenantMapbox(properties: Property[]) {
 
     return () => {
       cancelled = true;
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
+      unbindResizeRef.current?.();
+      unbindResizeRef.current = null;
       const map = mapInstance.current;
       if (map) {
         map.off("load", onLoad);
@@ -560,8 +572,8 @@ export function useTenantMapbox(properties: Property[]) {
     map.flyTo({
       center: [coords.lng, coords.lat],
       zoom: 15,
-      pitch: 55,
-      bearing: -15,
+      pitch: selectedPropertyFlyToPitch(),
+      bearing: selectedPropertyFlyToPitch() > 0 ? -15 : 0,
       duration: 1500,
       essential: true,
     });

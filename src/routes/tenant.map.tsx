@@ -12,6 +12,7 @@ import { LazyRadar } from "@/components/LazyRadar";
 import { useTenantGoogleMap } from "@/hooks/use-tenant-google-map";
 import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks/use-tenant-mapbox";
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
+import { canUseWebGl, mapLoadTimeoutMs } from "@/lib/mapbox/map-device";
 import { mergeListingsForDisplay } from "@/lib/listings-preview";
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -48,7 +49,7 @@ function resolveInitialProvider(): MapProvider {
 
 function MapLoadingState({ message }: Readonly<{ message: string }>) {
   return (
-    <div className="relative h-dvh min-h-screen bg-[#0c1a12]">
+    <div className="tenant-map-viewport relative overflow-hidden bg-[#0c1a12]">
       <LazyRadar
         speed={0.7}
         scale={1.2}
@@ -96,6 +97,11 @@ function TenantMap() {
 
   useEffect(() => {
     if (provider !== "loading") return;
+
+    if (!canUseWebGl()) {
+      setProvider(hasGoogleMapsKeySync() ? "google" : "fallback");
+      return;
+    }
 
     let cancelled = false;
     void resolveMapboxToken()
@@ -219,7 +225,7 @@ function TenantMapShell({
 
   useEffect(() => {
     if (startInFallback || map.ready || map.error) return;
-    const timer = globalThis.setTimeout(() => setForceFallback(true), 12_000);
+    const timer = globalThis.setTimeout(() => setForceFallback(true), mapLoadTimeoutMs());
     return () => globalThis.clearTimeout(timer);
   }, [startInFallback, map.ready, map.error]);
 
@@ -228,10 +234,10 @@ function TenantMapShell({
   const mapVisible = startInFallback || map.ready || map.error || forceFallback;
 
   return (
-    <div className="relative h-dvh min-h-screen overflow-hidden bg-(--color-obsidian)">
+    <div className="tenant-map-viewport relative overflow-hidden bg-(--color-obsidian)">
       <motion.div
         className="absolute inset-0"
-        initial={{ opacity: 0 }}
+        initial={SSR_SAFE_MOTION_INITIAL}
         animate={{ opacity: mapVisible ? 1 : 0 }}
         transition={{ duration: 0.4 }}
       >
@@ -314,7 +320,7 @@ function TenantMapShell({
 }
 
 function MapCanvas({ mapRef }: Readonly<{ mapRef: React.RefObject<HTMLDivElement | null> }>) {
-  return <div ref={mapRef} className="absolute inset-0 h-full min-h-0 w-full touch-none" />;
+  return <div ref={mapRef} className="absolute inset-0 h-full min-h-0 w-full" />;
 }
 
 function MapOverlay({ children }: Readonly<{ children: ReactNode }>) {

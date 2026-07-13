@@ -10,6 +10,28 @@
   height: 100% !important;
 }
 
+/* Full-viewport map shell — dvh + WebKit fill for Android Chrome / WebView. */
+.tenant-map-viewport {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+.tenant-map-viewport .mapboxgl-canvas {
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.tenant-map-viewport .mapboxgl-ctrl-bottom-right {
+  right: max(0.5rem, env(safe-area-inset-right));
+  bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+}
+
+.tenant-map-viewport .mapboxgl-ctrl-top-right {
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

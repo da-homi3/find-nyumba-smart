@@ -71,7 +71,7 @@ export function TenantMapChrome({
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex flex-col gap-2">
+      <div className="pointer-events-none absolute inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex flex-col gap-2">
         <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-background/95 p-2 shadow-elegant backdrop-blur">
           <MapPin className="ml-2 h-4 w-4 text-primary" />
           <input
@@ -198,7 +198,7 @@ export function TenantMapChrome({
         </div>
       </aside>
 
-      <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10">
+      <div className="pointer-events-none absolute inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-10">
         {selected ? (
           <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
             <button
@@ -244,7 +244,7 @@ export function TenantMapChrome({
           </div>
         ) : (
           <div className="pointer-events-auto rounded-2xl bg-background/95 px-4 py-3 text-center text-xs text-muted-foreground shadow-card backdrop-blur">
-            Tap a pin or cluster · pinch to zoom · drag with two fingers to tilt 3D
+            Tap a pin or cluster · pinch to zoom · drag to pan
           </div>
         )}
       </div>
