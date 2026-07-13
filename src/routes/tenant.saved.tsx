@@ -13,6 +13,7 @@ import { buildPageHead } from "@/lib/seo/head";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import type { Property } from "@/lib/properties";
 import { toast } from "sonner";
+import { Heart } from "lucide-react";
 import { useMemo } from "react";
 
 export const Route = createFileRoute("/tenant/saved")({
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/tenant/saved")({
 });
 
 function SavedPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { isPlus } = useEntitlements();
   const location = useLocation();
   const qc = useQueryClient();
@@ -49,11 +50,23 @@ function SavedPage() {
 
   const displaySaved = useMemo(() => mergeListingsForDisplay(saved), [saved]);
 
+  if (loading) {
+    return (
+      <div>
+        <SiteNav variant="light" />
+        <div className="mx-auto max-w-2xl px-5 pt-6 pb-24 md:pb-8">
+          <div className="h-8 w-40 animate-pulse rounded-lg bg-muted" />
+          <div className="mt-8 h-40 animate-pulse rounded-2xl bg-muted" />
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div>
         <SiteNav variant="light" />
-        <div className="mx-auto max-w-md px-6 pt-16 text-center">
+        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center md:pb-16">
           <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
           <h1 className="mt-4 font-display text-2xl font-semibold">Saved homes</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -62,7 +75,7 @@ function SavedPage() {
           <Link
             to="/auth"
             search={{ redirect: location.pathname }}
-            className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
           >
             Sign in
           </Link>

@@ -11,18 +11,27 @@ export const Route = createFileRoute("/tenant/messages/$id")({
 
 function ThreadPage() {
   const { id } = Route.useParams();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-background px-6">
+        <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
+        <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
-      <div className="mx-auto max-w-md px-6 pt-24 text-center">
+      <div className="mx-auto max-w-md px-6 pt-24 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center">
         <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
         <p className="mt-4 text-sm text-muted-foreground">Sign in to view this conversation.</p>
         <Link
           to="/auth"
           search={{ redirect: currentRedirectPath(location) }}
-          className="mt-4 inline-block text-sm font-semibold text-primary"
+          className="mt-4 inline-flex min-h-11 items-center justify-center text-sm font-semibold text-primary"
         >
           Sign in
         </Link>

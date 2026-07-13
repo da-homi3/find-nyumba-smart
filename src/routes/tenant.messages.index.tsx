@@ -13,6 +13,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
+import { MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/tenant/messages/")({
   head: () => ({ meta: [{ title: "Messages — NyumbaSearch" }] }),
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/tenant/messages/")({
 });
 
 function Messages() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { isPlus } = useEntitlements();
   const location = useLocation();
   const {
@@ -34,11 +35,27 @@ function Messages() {
     queryFn: () => listTenantInquiries(),
   });
 
+  if (loading) {
+    return (
+      <div>
+        <SiteNav variant="light" />
+        <div className="mx-auto max-w-2xl px-5 pt-6 pb-24 md:pb-8">
+          <div className="h-8 w-36 animate-pulse rounded-lg bg-muted" />
+          <div className="mt-8 grid gap-3">
+            {["msg-sk-a", "msg-sk-b", "msg-sk-c"].map((id) => (
+              <div key={id} className="h-28 animate-pulse rounded-2xl bg-muted" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div>
         <SiteNav variant="light" />
-        <div className="mx-auto max-w-md px-6 pt-16 text-center">
+        <div className="mx-auto max-w-md px-6 pt-16 pb-24 text-center md:pb-16">
           <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
           <h1 className="mt-4 font-display text-2xl font-semibold">Message landlords</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -47,7 +64,7 @@ function Messages() {
           <Link
             to="/auth"
             search={{ redirect: currentRedirectPath(location) }}
-            className="mt-6 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
           >
             Sign in
           </Link>
@@ -188,7 +205,7 @@ function MessagesBody({
             key={inquiry.id}
             to="/tenant/messages/$id"
             params={{ id: inquiry.id }}
-            className="block rounded-2xl border bg-card p-4 shadow-soft transition hover:border-primary/30"
+            className="block min-h-11 rounded-2xl border bg-card p-4 shadow-soft transition hover:border-primary/30 active:bg-secondary/40"
           >
             <article>
               <div className="flex items-start gap-3">
