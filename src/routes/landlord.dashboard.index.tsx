@@ -23,6 +23,10 @@ import { formatKes } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { toast } from "sonner";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { DashboardListingCard } from "@/components/dashboard/DashboardListingCard";
+import { EmptyState } from "@/components/EmptyState";
+import { PortalTrialBanner } from "@/components/dashboard/portal/PortalTrialBanner";
+import { LeadPackUpgradeBanner } from "@/components/dashboard/portal/LeadPackUpgradeBanner";
 
 export const Route = createFileRoute("/landlord/dashboard/")({
   component: () => (
@@ -99,6 +103,8 @@ function Dashboard() {
         </div>
       </header>
 
+      <PortalTrialBanner portal="landlord" />
+
       {/* KPIs */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
@@ -163,69 +169,12 @@ function Dashboard() {
           </div>
 
           {properties.length === 0 ? (
-            <div className="mt-4 rounded-2xl border-2 border-dashed bg-card p-10 text-center">
-              <Building2 className="mx-auto h-10 w-10 text-muted-foreground" />
-              <h3 className="mt-3 font-display text-lg font-semibold">No properties yet</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add your first listing to start receiving tenant leads.
-              </p>
-              <Link
-                to="/landlord/properties/new"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-emerald px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-              >
-                <Plus className="h-4 w-4" /> Add your first property
-              </Link>
-            </div>
+            <EmptyState type="no_listings" className="mt-4" />
           ) : (
-            <div className="mt-4 overflow-hidden rounded-2xl border bg-card">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Property</th>
-                    <th className="px-4 py-3 text-left">Rent</th>
-                    <th className="px-4 py-3 text-left">Status</th>
-                    <th className="px-4 py-3 text-left">Verification</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {properties.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3 font-medium">{p.title}</td>
-                      <td className="px-4 py-3">{formatKes(p.rent_kes)}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${p.is_active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
-                        >
-                          {p.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            p.is_verified
-                              ? "bg-emerald-500/10 text-emerald-600"
-                              : "bg-gray-500/10 text-gray-600"
-                          }`}
-                        >
-                          {p.is_verified ? "Verified" : "Unverified"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {p.is_active && (
-                          <Link
-                            to="/landlord/boost"
-                            search={{ propertyId: p.id }}
-                            className="rounded-lg bg-gradient-gold text-gold-foreground px-2 py-1 text-[10px] font-bold shadow-soft"
-                          >
-                            Boost
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4 space-y-3">
+              {properties.map((p) => (
+                <DashboardListingCard key={p.id} listing={p} portal="landlord" />
+              ))}
             </div>
           )}
         </div>
@@ -236,10 +185,9 @@ function Dashboard() {
             <Calendar className="h-5 w-5 text-primary" />
             Viewing Requests
           </h2>
+          <LeadPackUpgradeBanner portal="landlord" />
           {viewings.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed p-6 text-center text-xs text-muted-foreground bg-card">
-              No active viewing requests yet.
-            </div>
+            <EmptyState type="no_leads" className="mt-4 p-6" href="/landlord/boost" />
           ) : (
             <div className="mt-4 space-y-3">
               {viewings.map((v: ViewingListItem) => (

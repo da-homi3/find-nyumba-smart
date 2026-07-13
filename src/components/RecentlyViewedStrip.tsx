@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { formatKes } from "@/lib/properties";
+import { formatListingPrice } from "@/lib/commercial-ranges";
 import { readRecentlyViewed, type RecentProperty } from "@/lib/recently-viewed";
 import { PropertyImage } from "@/components/PropertyImage";
 import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
@@ -56,7 +56,7 @@ export function RecentlyViewedStrip() {
                 </div>
               )}
               <p className="mt-2 line-clamp-1 text-xs font-semibold">{p.title}</p>
-              <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
+              <p className="text-[10px] text-primary">{formatListingPrice(p)}</p>
             </Link>
           </ListingsPreviewOverlay>
         ))}

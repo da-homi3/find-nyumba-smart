@@ -5,8 +5,15 @@
     "/tenant/map",
     "/landlord",
     "/agency",
+    "/manager",
     "/pricing",
     "/services",
+    "/finance",
+    "/insurance",
+    "/reports",
+    "/whatsapp",
+    "/advertise",
+    "/verify",
     "/privacy",
     "/terms-of-service",
     "/cookie-policy",
@@ -38,10 +45,15 @@
     "ac_repair",
     "laundry",
     "locksmiths",
-    "roofing"
+    "roofing",
+    "mama_fua",
+    "gas_delivery",
+    "delivery"
   ],
   "robotsDisallow": [
     "/admin",
+    "/admin/revenue",
+    "/admin/listings/new",
     "/auth",
     "/settings",
     "/landlord/dashboard",
@@ -77,6 +89,8 @@
     "/tenant/profile",
     "/tenant/compare",
     "/tenant/saved",
+    "/services/register",
+    "/services/provider",
     "/api"
   ]
 }

@@ -5,14 +5,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getAuthContext } from "@/lib/api/server-context";
-import type { PortalId } from "@/lib/portal-guard";
-
-async function sendOpsNewApplication(
-  payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyOpsNewApplication"]>[0],
-) {
-  const { notifyOpsNewApplication } = await import("@/lib/api/notify");
-  await notifyOpsNewApplication(payload);
-}
+import { grantPortalListerAccess } from "@/lib/api/portal-approval";
+import type { PortalListerRole } from "@/lib/payments/portal-trial";
 
 async function sendApplicantApproved(
   payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyApplicantApproved"]>[0],
@@ -42,14 +36,6 @@ export type PortalApplication = {
   created_at: string;
 };
 
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-|-$/g, "")
-    .slice(0, 48);
-}
-
 export const listMyPortalApplications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -65,7 +51,7 @@ export const listMyPortalApplications = createServerFn({ method: "GET" })
 
 const privilegedRoleSchema = z.enum(["landlord", "manager", "agency"]);
 
-async function upsertPendingPortalApplication(input: {
+async function upsertAutoApprovedPortalApplication(input: {
   userId: string;
   requestedRole: "landlord" | "manager" | "agency";
   organizationName?: string;
@@ -73,15 +59,39 @@ async function upsertPendingPortalApplication(input: {
   notes?: string;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const now = new Date().toISOString();
+
   const { data: existing } = await supabaseAdmin
     .from("portal_applications")
-    .select("id")
+    .select("id, status")
     .eq("user_id", input.userId)
     .eq("requested_role", input.requestedRole)
-    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (existing) return existing;
+  if (existing?.status === "approved") {
+    return existing;
+  }
+
+  if (existing?.id) {
+    const { data: row, error } = await supabaseAdmin
+      .from("portal_applications")
+      .update({
+        organization_name: input.organizationName ?? null,
+        phone: input.phone ?? null,
+        notes: input.notes ?? null,
+        status: "approved",
+        reviewed_at: now,
+        rejection_reason: null,
+        updated_at: now,
+      })
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return row;
+  }
 
   const { data: row, error } = await supabaseAdmin
     .from("portal_applications")
@@ -91,25 +101,42 @@ async function upsertPendingPortalApplication(input: {
       organization_name: input.organizationName ?? null,
       phone: input.phone ?? null,
       notes: input.notes ?? null,
-      status: "pending",
+      status: "approved",
+      reviewed_at: now,
     })
     .select("id")
     .single();
   if (error) {
-    // DB trigger may have created the row first — treat as success
     if (error.code === "23505") {
       const { data: retry } = await supabaseAdmin
         .from("portal_applications")
         .select("id")
         .eq("user_id", input.userId)
         .eq("requested_role", input.requestedRole)
-        .eq("status", "pending")
+        .eq("status", "approved")
         .maybeSingle();
       if (retry) return retry;
     }
     throw error;
   }
   return row;
+}
+
+async function activatePortalListerAccount(input: {
+  userId: string;
+  requestedRole: "landlord" | "manager" | "agency";
+  organizationName?: string;
+  phone?: string;
+  notes?: string;
+}) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await upsertAutoApprovedPortalApplication(input);
+  return grantPortalListerAccess(supabaseAdmin, {
+    userId: input.userId,
+    requestedRole: input.requestedRole,
+    organizationName: input.organizationName,
+    startTrial: true,
+  });
 }
 
 /** Persists portal application when signup returns a user id but no session yet. */
@@ -145,22 +172,20 @@ export const registerPortalApplicationAfterSignup = createServerFn({ method: "PO
       throw new Error("Invalid signup reference");
     }
 
-    await upsertPendingPortalApplication({
+    await activatePortalListerAccount({
       userId: data.userId,
       requestedRole: data.requestedRole,
       organizationName: data.organizationName,
       phone: data.phone,
     });
 
-    await sendOpsNewApplication({
-      applicantName: data.applicantName,
-      applicantEmail: data.applicantEmail,
+    await sendApplicantApproved({
+      email: data.applicantEmail,
+      name: data.applicantName,
       role: data.requestedRole,
-      orgName: data.organizationName,
-      reviewUrl: data.reviewUrl,
     });
 
-    return { ok: true as const };
+    return { ok: true as const, autoApproved: true as const };
   });
 
 export const submitPortalApplication = createServerFn({ method: "POST" })
@@ -187,7 +212,7 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
       );
     }
 
-    await upsertPendingPortalApplication({
+    const activation = await activatePortalListerAccount({
       userId,
       requestedRole: data.requestedRole,
       organizationName: data.organizationName,
@@ -200,27 +225,25 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
       .select("*")
       .eq("user_id", userId)
       .eq("requested_role", data.requestedRole)
-      .eq("status", "pending")
+      .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (fetchErr) throw fetchErr;
-    if (!row) throw new Error("Could not save your application. Please try again.");
+    if (!row) throw new Error("Could not activate your account. Please try again.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
     const email = userData.user?.email ?? "";
     const name = userData.user?.user_metadata?.full_name ?? userData.user?.email ?? "Applicant";
 
-    await sendOpsNewApplication({
-      applicantName: name,
-      applicantEmail: email,
-      role: data.requestedRole,
-      orgName: data.organizationName,
-      reviewUrl: `${(await import("@/lib/site")).getSiteUrl()}/admin?tab=applications`,
-    });
+    await sendApplicantApproved({ email, name, role: data.requestedRole });
 
-    return row as PortalApplication;
+    return {
+      ...(row as PortalApplication),
+      trialStarted: activation.trialStarted,
+      trialEnd: activation.trialEnd ?? null,
+    };
   });
 
 export const listPendingApplications = createServerFn({ method: "GET" })
@@ -296,63 +319,6 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
     }
 
     await supabaseAdmin
-      .from("user_roles")
-      .upsert(
-        { user_id: app.user_id, role: app.requested_role },
-        { onConflict: "user_id,role", ignoreDuplicates: false },
-      );
-
-    // Everyone can browse/save as tenant when switching portals in settings.
-    await supabaseAdmin
-      .from("user_roles")
-      .upsert(
-        { user_id: app.user_id, role: "tenant" },
-        { onConflict: "user_id,role", ignoreDuplicates: true },
-      );
-
-    let organizationId: string | null = null;
-    if (app.requested_role === "agency" && app.organization_name) {
-      const slug = `${slugify(app.organization_name)}-${app.user_id.slice(0, 8)}`;
-      const { data: org } = await supabaseAdmin
-        .from("organizations")
-        .insert({
-          name: app.organization_name,
-          slug,
-          type: "agency",
-        })
-        .select("id")
-        .single();
-      organizationId = org?.id ?? null;
-      if (organizationId) {
-        await supabaseAdmin.from("organization_members").insert({
-          organization_id: organizationId,
-          user_id: app.user_id,
-          role: "owner",
-        });
-      }
-    }
-    if (app.requested_role === "manager" && app.organization_name) {
-      const slug = `${slugify(app.organization_name)}-${app.user_id.slice(0, 8)}`;
-      const { data: org } = await supabaseAdmin
-        .from("organizations")
-        .insert({
-          name: app.organization_name,
-          slug,
-          type: "property_manager",
-        })
-        .select("id")
-        .single();
-      organizationId = org?.id ?? null;
-      if (organizationId) {
-        await supabaseAdmin.from("organization_members").insert({
-          organization_id: organizationId,
-          user_id: app.user_id,
-          role: "owner",
-        });
-      }
-    }
-
-    await supabaseAdmin
       .from("portal_applications")
       .update({
         status: "approved",
@@ -362,19 +328,19 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
       })
       .eq("id", data.applicationId);
 
-    const portalMap: Record<string, PortalId> = {
-      landlord: "landlord",
-      manager: "manager",
-      agency: "agency",
-    };
-    await supabaseAdmin
-      .from("profiles")
-      .update({ active_portal: portalMap[app.requested_role] ?? "tenant" })
-      .eq("id", app.user_id);
+    const { organizationId, trialStarted, trialEnd } = await grantPortalListerAccess(
+      supabaseAdmin,
+      {
+        userId: app.user_id,
+        requestedRole: app.requested_role as PortalListerRole,
+        organizationName: app.organization_name,
+        startTrial: true,
+      },
+    );
 
     await sendApplicantApproved({ email, name, role: app.requested_role });
 
-    return { status: "approved" as const, organizationId };
+    return { status: "approved" as const, organizationId, trialStarted, trialEnd };
   });
 
 export const getMyProfilePortal = createServerFn({ method: "GET" })

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Heart } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { listSavedProperties, toggleSavedProperty } from "@/lib/api/nyumba.functions";
 import { PropertyCard } from "@/components/PropertyCard";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
@@ -10,6 +10,7 @@ import { isDemoListingId } from "@/data/mockListings";
 import { SiteNav } from "@/components/SiteNav";
 import { isPreviewListing, mergeListingsForDisplay } from "@/lib/listings-preview";
 import { buildPageHead } from "@/lib/seo/head";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import type { Property } from "@/lib/properties";
 import { toast } from "sonner";
 import { useMemo } from "react";
@@ -87,15 +88,18 @@ function SavedPage() {
           </div>
         )}
 
-        <SavedListingsBody
-          isLoading={isLoading}
-          isEmpty={saved.length === 0}
-          displaySaved={displaySaved}
-          isPlus={isPlus}
-          onToggleSave={(propertyId) => {
-            void toggleSave.mutateAsync({ propertyId, saved: true });
-          }}
-        />
+        <div className="mt-4" data-tour="tenant-saved-list">
+          <SavedListingsBody
+            isLoading={isLoading}
+            isEmpty={saved.length === 0}
+            displaySaved={displaySaved}
+            isPlus={isPlus}
+            onToggleSave={(propertyId) => {
+              void toggleSave.mutateAsync({ propertyId, saved: true });
+            }}
+          />
+        </div>
+        <OnboardingTourHost tourId="tenant-saved" />
       </div>
     </div>
   );
@@ -119,17 +123,7 @@ function SavedListingsBody({
   }
 
   if (isEmpty) {
-    return (
-      <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
-        <Heart className="mx-auto h-10 w-10 text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">
-          No saved homes yet. Tap the heart on any listing.
-        </p>
-        <Link to="/tenant" className="mt-4 inline-block text-sm font-semibold text-primary">
-          Browse homes →
-        </Link>
-      </div>
-    );
+    return <EmptyState type="no_saved" className="mt-10" />;
   }
 
   return (

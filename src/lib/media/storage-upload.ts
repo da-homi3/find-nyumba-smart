@@ -71,7 +71,45 @@ export async function uploadStorageObjectWithProgress(
   });
 }
 
-/** Upload multiple files with a single combined 0–100% progress callback. */
+/** Upload via a Supabase signed upload URL (admin on-behalf listing media). */
+export async function uploadStorageObjectViaSignedUrl(
+  signedUrl: string,
+  token: string,
+  file: File,
+  onProgress?: StorageUploadProgress,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress", (event) => {
+      if (!event.lengthComputable || !onProgress) return;
+      onProgress(Math.round((event.loaded / event.total) * 100));
+    });
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+        return;
+      }
+      let message = `Upload failed (${xhr.status})`;
+      try {
+        const body = JSON.parse(xhr.responseText) as { message?: string; error?: string };
+        message = body.message ?? body.error ?? message;
+      } catch {
+        if (xhr.responseText) message = xhr.responseText;
+      }
+      reject(new Error(message));
+    });
+    xhr.addEventListener("error", () => reject(new Error("Upload failed — network error")));
+    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
+
+    xhr.open("PUT", signedUrl);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.send(file);
+  });
+}
+
 export async function uploadStorageBatchWithProgress(
   items: ReadonlyArray<{ bucket: string; path: string; file: File }>,
   onProgress?: StorageUploadProgress,

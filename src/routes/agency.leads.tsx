@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AgencyShell } from "@/components/AgencyShell";
+import { LeadPackUpgradeBanner } from "@/components/dashboard/portal/LeadPackUpgradeBanner";
 import { useQuery } from "@tanstack/react-query";
 import { listLandlordLeads } from "@/lib/api/nyumba.functions";
 import { formatKes } from "@/lib/properties";
@@ -53,6 +54,7 @@ function Page() {
     <div className="px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">Agency leads</h1>
       <p className="text-sm text-muted-foreground">{leads.length} inquiries across portfolio</p>
+      <LeadPackUpgradeBanner portal="agency" />
       {isLoading ? (
         <div className="mt-8 h-32 animate-pulse rounded-2xl bg-muted" />
       ) : (

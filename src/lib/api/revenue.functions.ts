@@ -2,27 +2,43 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
-import { LISTING_LIMITS } from "@/lib/revenue/plans";
 import {
   countActivePlusMembers,
   getActiveLandlordPlan,
+  getPortalSubscriptionMeta,
   getTenantPlusStatus,
 } from "@/lib/revenue/subscription-store";
 import { ensureTenantTrial } from "@/lib/payments/tenant-trial";
+import { canViewLeadContactDetails } from "@/lib/revenue/entitlements";
+import type { PortalSubscriptionStatus } from "@/lib/revenue/entitlements";
 
 export const getUserEntitlements = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [landlordPlan, plus, trial, bonusSlots] = await Promise.all([
-      getActiveLandlordPlan(supabase, userId),
-      getTenantPlusStatus(supabase, userId),
-      ensureTenantTrial(supabaseAdmin, userId),
-      import("@/lib/promo/listing-cap").then(({ getBonusListingSlots }) =>
-        getBonusListingSlots(supabase, userId),
-      ),
-    ]);
+    const [landlordPlan, plus, trial, listingLimit, bonusSlots, portalSub, profileRow] =
+      await Promise.all([
+        getActiveLandlordPlan(supabase, userId),
+        getTenantPlusStatus(supabase, userId),
+        ensureTenantTrial(supabaseAdmin, userId),
+        import("@/lib/promo/listing-cap").then(({ getListingCap }) =>
+          getListingCap(supabase, userId),
+        ),
+        import("@/lib/promo/listing-cap").then(({ getBonusListingSlots }) =>
+          getBonusListingSlots(supabase, userId),
+        ),
+        getPortalSubscriptionMeta(supabase, userId),
+        supabaseAdmin.from("profiles").select("lead_pack_balance").eq("id", userId).maybeSingle(),
+      ]);
+
+    const portalSubscriptionStatus: PortalSubscriptionStatus = portalSub?.status ?? "none";
+    const leadPackBalance = profileRow.data?.lead_pack_balance ?? 0;
+    const canViewLeadContacts = canViewLeadContactDetails({
+      landlordPlan,
+      subscriptionStatus: portalSubscriptionStatus,
+      leadPackBalance,
+    });
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const { data: spendRows } = await supabaseAdmin
@@ -37,9 +53,6 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
       0,
     );
 
-    const baseLimit = LISTING_LIMITS[landlordPlan] ?? 1;
-    const listingLimit = baseLimit >= 9999 ? baseLimit : baseLimit + bonusSlots;
-
     return {
       landlordPlan,
       tenantPlan: plus.tenantPlan,
@@ -50,6 +63,10 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
       trialEndsAt: trial.trialEndsAt,
       trialActive: trial.trialActive,
       monthlyUnlockSpend,
+      portalSubscriptionStatus,
+      portalTrialEndsAt: portalSub?.trialEnd ?? portalSub?.nextBillingDate ?? null,
+      leadPackBalance,
+      canViewLeadContacts,
     };
   });
 
@@ -71,6 +88,10 @@ export const listLandlordLeadsPanel = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
+    const { resolveLeadContactAccess, redactProfilePhone } =
+      await import("@/lib/revenue/lead-access");
+    const leadAccess = await resolveLeadContactAccess(supabase, userId);
+
     const { data, error } = await supabase
       .from("leads")
       .select(
@@ -92,7 +113,11 @@ export const listLandlordLeadsPanel = createServerFn({ method: "GET" })
       // Table may not exist until migration runs
       return [];
     }
-    return data ?? [];
+    return (data ?? []).map((row) => ({
+      ...row,
+      profiles: redactProfilePhone(row.profiles, leadAccess.canView),
+      leadContactsLocked: !leadAccess.canView,
+    }));
   });
 
 const markRentedSchema = z.object({

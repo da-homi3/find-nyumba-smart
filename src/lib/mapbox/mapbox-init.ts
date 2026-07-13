@@ -1,4 +1,5 @@
 import type { default as MapboxGl } from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 let workerConfigured = false;
 

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { portalNavTourAttr } from "@/lib/onboarding/portal-nav-tour";
 
 type PortalNavItem = Readonly<{
   to: string;
@@ -35,6 +36,7 @@ export function PortalMobileHeader({ portalLabel, nav }: PortalMobileHeaderProps
           <Link
             key={item.to}
             to={item.to}
+            data-tour={portalNavTourAttr(item.to)}
             className="shrink-0 rounded-full px-3 py-1.5 font-medium text-background/75 hover:bg-background/10 hover:text-background"
             activeProps={{
               className: "bg-background/15 text-background font-semibold",

@@ -24,6 +24,9 @@ const CATEGORIES = [
   "laundry",
   "locksmiths",
   "roofing",
+  "mama_fua",
+  "gas_delivery",
+  "delivery",
 ];
 
 const EXPECTED = {
@@ -48,6 +51,9 @@ const EXPECTED = {
   laundry: 10,
   locksmiths: 10,
   roofing: 7,
+  mama_fua: 6,
+  gas_delivery: 9,
+  delivery: 12,
 };
 
 const rawBase = process.env.PUBLIC_APP_URL ?? "https://nyumbasearch.com";

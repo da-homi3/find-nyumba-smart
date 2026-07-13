@@ -1,0 +1,2264 @@
+[
+  {
+    "name": "Baringo",
+    "county": "Baringo",
+    "lat": 0.446745,
+    "lng": 35.943922
+  },
+  {
+    "name": "Eldama Ravine",
+    "county": "Baringo",
+    "lat": 0.426667,
+    "lng": 35.956785
+  },
+  {
+    "name": "Kabarnet",
+    "county": "Baringo",
+    "lat": 0.476863,
+    "lng": 35.999765
+  },
+  {
+    "name": "Marigat",
+    "county": "Baringo",
+    "lat": 0.431373,
+    "lng": 35.979373
+  },
+  {
+    "name": "Mogotio",
+    "county": "Baringo",
+    "lat": 0.441726,
+    "lng": 35.959922
+  },
+  {
+    "name": "Bomet",
+    "county": "Bomet",
+    "lat": -0.796522,
+    "lng": 35.314732
+  },
+  {
+    "name": "Bomet Town",
+    "county": "Bomet",
+    "lat": -0.75009,
+    "lng": 35.36085
+  },
+  {
+    "name": "Chepalungu",
+    "county": "Bomet",
+    "lat": -0.750404,
+    "lng": 35.315046
+  },
+  {
+    "name": "Longisa",
+    "county": "Bomet",
+    "lat": -0.792757,
+    "lng": 35.304066
+  },
+  {
+    "name": "Sotik",
+    "county": "Bomet",
+    "lat": -0.772992,
+    "lng": 35.368066
+  },
+  {
+    "name": "Bungoma",
+    "county": "Bungoma",
+    "lat": 0.556819,
+    "lng": 34.588964
+  },
+  {
+    "name": "Bungoma Town",
+    "county": "Bungoma",
+    "lat": 0.529525,
+    "lng": 34.53218
+  },
+  {
+    "name": "Chwele",
+    "county": "Bungoma",
+    "lat": 0.593525,
+    "lng": 34.588023
+  },
+  {
+    "name": "Kimilili",
+    "county": "Bungoma",
+    "lat": 0.555878,
+    "lng": 34.519003
+  },
+  {
+    "name": "Nambale",
+    "county": "Bungoma",
+    "lat": 0.605447,
+    "lng": 34.531239
+  },
+  {
+    "name": "Webuye",
+    "county": "Bungoma",
+    "lat": 0.57376,
+    "lng": 34.535317
+  },
+  {
+    "name": "Busia",
+    "county": "Busia",
+    "lat": 0.457722,
+    "lng": 34.150439
+  },
+  {
+    "name": "Busia Town",
+    "county": "Busia",
+    "lat": 0.44831,
+    "lng": 34.091145
+  },
+  {
+    "name": "Funyula",
+    "county": "Busia",
+    "lat": 0.455212,
+    "lng": 34.077655
+  },
+  {
+    "name": "Nambale",
+    "county": "Busia",
+    "lat": 0.495997,
+    "lng": 34.084557
+  },
+  {
+    "name": "Port Victoria",
+    "county": "Busia",
+    "lat": 0.420075,
+    "lng": 34.091772
+  },
+  {
+    "name": "Chepkorio",
+    "county": "Elgeyo-Marakwet",
+    "lat": 0.501333,
+    "lng": 35.274824
+  },
+  {
+    "name": "Elgeyo-Marakwet",
+    "county": "Elgeyo-Marakwet",
+    "lat": 0.48,
+    "lng": 35.24
+  },
+  {
+    "name": "Iten",
+    "county": "Elgeyo-Marakwet",
+    "lat": 0.496314,
+    "lng": 35.31498
+  },
+  {
+    "name": "Kapsowar",
+    "county": "Elgeyo-Marakwet",
+    "lat": 0.525804,
+    "lng": 35.254118
+  },
+  {
+    "name": "Tambach",
+    "county": "Elgeyo-Marakwet",
+    "lat": 0.511373,
+    "lng": 35.283922
+  },
+  {
+    "name": "Embu",
+    "county": "Embu",
+    "lat": -0.571175,
+    "lng": 37.418139
+  },
+  {
+    "name": "Embu Town",
+    "county": "Embu",
+    "lat": -0.532273,
+    "lng": 37.45861
+  },
+  {
+    "name": "Runyenjes",
+    "county": "Embu",
+    "lat": -0.529136,
+    "lng": 37.480571
+  },
+  {
+    "name": "Siakago",
+    "county": "Embu",
+    "lat": -0.506548,
+    "lng": 37.423159
+  },
+  {
+    "name": "Dadaab",
+    "county": "Garissa",
+    "lat": -0.454965,
+    "lng": 39.629879
+  },
+  {
+    "name": "Garissa",
+    "county": "Garissa",
+    "lat": -0.438337,
+    "lng": 39.636153
+  },
+  {
+    "name": "Garissa Town",
+    "county": "Garissa",
+    "lat": -0.493553,
+    "lng": 39.612938
+  },
+  {
+    "name": "Hulugho",
+    "county": "Garissa",
+    "lat": -0.455906,
+    "lng": 39.626428
+  },
+  {
+    "name": "Homa Bay",
+    "county": "Homa Bay",
+    "lat": -0.540639,
+    "lng": 34.418052
+  },
+  {
+    "name": "Homa Bay Town",
+    "county": "Homa Bay",
+    "lat": -0.567306,
+    "lng": 34.467307
+  },
+  {
+    "name": "Kendu Bay",
+    "county": "Homa Bay",
+    "lat": -0.557581,
+    "lng": 34.465738
+  },
+  {
+    "name": "Mbita",
+    "county": "Homa Bay",
+    "lat": -0.506757,
+    "lng": 34.434052
+  },
+  {
+    "name": "Rodi Kopany",
+    "county": "Homa Bay",
+    "lat": -0.547228,
+    "lng": 34.458836
+  },
+  {
+    "name": "Archers Post",
+    "county": "Isiolo",
+    "lat": 0.314514,
+    "lng": 37.608788
+  },
+  {
+    "name": "Isiolo",
+    "county": "Isiolo",
+    "lat": 0.350592,
+    "lng": 37.602513
+  },
+  {
+    "name": "Isiolo Town",
+    "county": "Isiolo",
+    "lat": 0.334592,
+    "lng": 37.58369
+  },
+  {
+    "name": "Merti",
+    "county": "Isiolo",
+    "lat": 0.369416,
+    "lng": 37.600003
+  },
+  {
+    "name": "Isinya",
+    "county": "Kajiado",
+    "lat": -1.874145,
+    "lng": 36.801267
+  },
+  {
+    "name": "Kajiado",
+    "county": "Kajiado",
+    "lat": -1.864106,
+    "lng": 36.772404
+  },
+  {
+    "name": "Kajiado Town",
+    "county": "Kajiado",
+    "lat": -1.8914,
+    "lng": 36.77711
+  },
+  {
+    "name": "Kiserian",
+    "county": "Kajiado",
+    "lat": -1.814851,
+    "lng": 36.777737
+  },
+  {
+    "name": "Kitengela",
+    "county": "Kajiado",
+    "lat": -1.875714,
+    "lng": 36.798129
+  },
+  {
+    "name": "Loitokitok",
+    "county": "Kajiado",
+    "lat": -1.835871,
+    "lng": 36.7586
+  },
+  {
+    "name": "Matasia",
+    "county": "Kajiado",
+    "lat": -1.888263,
+    "lng": 36.773345
+  },
+  {
+    "name": "Namanga",
+    "county": "Kajiado",
+    "lat": -1.830851,
+    "lng": 36.814443
+  },
+  {
+    "name": "Ngong",
+    "county": "Kajiado",
+    "lat": -1.81642,
+    "lng": 36.79562
+  },
+  {
+    "name": "Ongata Rongai",
+    "county": "Kajiado",
+    "lat": -1.8914,
+    "lng": 36.802835
+  },
+  {
+    "name": "Butere",
+    "county": "Kakamega",
+    "lat": 0.270026,
+    "lng": 34.78057
+  },
+  {
+    "name": "Kakamega",
+    "county": "Kakamega",
+    "lat": 0.30234,
+    "lng": 34.721589
+  },
+  {
+    "name": "Kakamega Town",
+    "county": "Kakamega",
+    "lat": 0.242732,
+    "lng": 34.782139
+  },
+  {
+    "name": "Malava",
+    "county": "Kakamega",
+    "lat": 0.289163,
+    "lng": 34.762688
+  },
+  {
+    "name": "Mumias",
+    "county": "Kakamega",
+    "lat": 0.289791,
+    "lng": 34.714374
+  },
+  {
+    "name": "Shinyalu",
+    "county": "Kakamega",
+    "lat": 0.316457,
+    "lng": 34.715315
+  },
+  {
+    "name": "Bureti",
+    "county": "Kericho",
+    "lat": -0.339027,
+    "lng": 35.319048
+  },
+  {
+    "name": "Kericho",
+    "county": "Kericho",
+    "lat": -0.339655,
+    "lng": 35.284851
+  },
+  {
+    "name": "Kericho Town",
+    "county": "Kericho",
+    "lat": -0.407733,
+    "lng": 35.24595
+  },
+  {
+    "name": "Litein",
+    "county": "Kericho",
+    "lat": -0.371655,
+    "lng": 35.260067
+  },
+  {
+    "name": "Londiani",
+    "county": "Kericho",
+    "lat": -0.333694,
+    "lng": 35.281401
+  },
+  {
+    "name": "Sigowet",
+    "county": "Kericho",
+    "lat": -0.344988,
+    "lng": 35.304616
+  },
+  {
+    "name": "Banana",
+    "county": "Kiambu",
+    "lat": -1.169675,
+    "lng": 36.81411
+  },
+  {
+    "name": "Gatundu",
+    "county": "Kiambu",
+    "lat": -1.159949,
+    "lng": 36.796227
+  },
+  {
+    "name": "Githurai",
+    "county": "Kiambu",
+    "lat": -1.172812,
+    "lng": 36.824149
+  },
+  {
+    "name": "Juja",
+    "county": "Kiambu",
+    "lat": -1.140498,
+    "lng": 36.827914
+  },
+  {
+    "name": "Kahawa",
+    "county": "Kiambu",
+    "lat": -1.133282,
+    "lng": 36.805325
+  },
+  {
+    "name": "Kiambu",
+    "county": "Kiambu",
+    "lat": -1.132027,
+    "lng": 36.863051
+  },
+  {
+    "name": "Kiambu Road",
+    "county": "Kiambu",
+    "lat": -1.171243,
+    "lng": 36.836071
+  },
+  {
+    "name": "Kiambu Town",
+    "county": "Kiambu",
+    "lat": -1.133596,
+    "lng": 36.829482
+  },
+  {
+    "name": "Kikuyu",
+    "county": "Kiambu",
+    "lat": -1.169988,
+    "lng": 36.837012
+  },
+  {
+    "name": "Limuru",
+    "county": "Kiambu",
+    "lat": -1.20889,
+    "lng": 36.817247
+  },
+  {
+    "name": "Membley",
+    "county": "Kiambu",
+    "lat": -1.155243,
+    "lng": 36.833561
+  },
+  {
+    "name": "Muthaiga North",
+    "county": "Kiambu",
+    "lat": -1.2114,
+    "lng": 36.7956
+  },
+  {
+    "name": "Ndumberi",
+    "county": "Kiambu",
+    "lat": -1.158694,
+    "lng": 36.868698
+  },
+  {
+    "name": "Ridgeways",
+    "county": "Kiambu",
+    "lat": -1.176576,
+    "lng": 36.804384
+  },
+  {
+    "name": "Rongai",
+    "county": "Kiambu",
+    "lat": -1.171871,
+    "lng": 36.80658
+  },
+  {
+    "name": "Ruaka",
+    "county": "Kiambu",
+    "lat": -1.195086,
+    "lng": 36.810659
+  },
+  {
+    "name": "Ruiru",
+    "county": "Kiambu",
+    "lat": -1.198537,
+    "lng": 36.820384
+  },
+  {
+    "name": "Ruiru Bypass",
+    "county": "Kiambu",
+    "lat": -1.2114,
+    "lng": 36.856149
+  },
+  {
+    "name": "Ruiru Kamakis",
+    "county": "Kiambu",
+    "lat": -1.2114,
+    "lng": 36.865875
+  },
+  {
+    "name": "Runda",
+    "county": "Kiambu",
+    "lat": -1.198851,
+    "lng": 36.825718
+  },
+  {
+    "name": "Tatu City",
+    "county": "Kiambu",
+    "lat": -1.162145,
+    "lng": 36.816933
+  },
+  {
+    "name": "Thika",
+    "county": "Kiambu",
+    "lat": -1.177831,
+    "lng": 36.842031
+  },
+  {
+    "name": "Wangige",
+    "county": "Kiambu",
+    "lat": -1.210145,
+    "lng": 36.853953
+  },
+  {
+    "name": "Gede",
+    "county": "Kilifi",
+    "lat": -3.470651,
+    "lng": 39.933641
+  },
+  {
+    "name": "Kaloleni",
+    "county": "Kilifi",
+    "lat": -3.476298,
+    "lng": 39.933641
+  },
+  {
+    "name": "Kilifi",
+    "county": "Kilifi",
+    "lat": -3.511122,
+    "lng": 39.932386
+  },
+  {
+    "name": "Kilifi Town",
+    "county": "Kilifi",
+    "lat": -3.543122,
+    "lng": 39.89066
+  },
+  {
+    "name": "Malindi",
+    "county": "Kilifi",
+    "lat": -3.499827,
+    "lng": 39.885954
+  },
+  {
+    "name": "Mariakani",
+    "county": "Kilifi",
+    "lat": -3.518337,
+    "lng": 39.921092
+  },
+  {
+    "name": "Mtwapa",
+    "county": "Kilifi",
+    "lat": -3.509867,
+    "lng": 39.899445
+  },
+  {
+    "name": "Watamu",
+    "county": "Kilifi",
+    "lat": -3.490729,
+    "lng": 39.92768
+  },
+  {
+    "name": "Kerugoya",
+    "county": "Kirinyaga",
+    "lat": -0.643781,
+    "lng": 37.131046
+  },
+  {
+    "name": "Kirinyaga",
+    "county": "Kirinyaga",
+    "lat": -0.679546,
+    "lng": 37.171202
+  },
+  {
+    "name": "Kutus",
+    "county": "Kirinyaga",
+    "lat": -0.675468,
+    "lng": 37.178732
+  },
+  {
+    "name": "Sagana",
+    "county": "Kirinyaga",
+    "lat": -0.659468,
+    "lng": 37.147046
+  },
+  {
+    "name": "Wanguru",
+    "county": "Kirinyaga",
+    "lat": -0.66135,
+    "lng": 37.185006
+  },
+  {
+    "name": "Keroka",
+    "county": "Kisii",
+    "lat": -0.65302,
+    "lng": 34.758427
+  },
+  {
+    "name": "Kisii",
+    "county": "Kisii",
+    "lat": -0.670589,
+    "lng": 34.767838
+  },
+  {
+    "name": "Kisii Town",
+    "county": "Kisii",
+    "lat": -0.688158,
+    "lng": 34.802662
+  },
+  {
+    "name": "Nyamache",
+    "county": "Kisii",
+    "lat": -0.680314,
+    "lng": 34.768466
+  },
+  {
+    "name": "Ogembo",
+    "county": "Kisii",
+    "lat": -0.642981,
+    "lng": 34.808623
+  },
+  {
+    "name": "Suneka",
+    "county": "Kisii",
+    "lat": -0.652393,
+    "lng": 34.780387
+  },
+  {
+    "name": "Ahero",
+    "county": "Kisumu",
+    "lat": -0.073035,
+    "lng": 34.790387
+  },
+  {
+    "name": "Dunga",
+    "county": "Kisumu",
+    "lat": -0.094369,
+    "lng": 34.735172
+  },
+  {
+    "name": "Kisumu",
+    "county": "Kisumu",
+    "lat": -0.129192,
+    "lng": 34.739878
+  },
+  {
+    "name": "Kisumu CBD",
+    "county": "Kisumu",
+    "lat": -0.077427,
+    "lng": 34.763407
+  },
+  {
+    "name": "Kondele",
+    "county": "Kisumu",
+    "lat": -0.120408,
+    "lng": 34.758074
+  },
+  {
+    "name": "Mamboleo",
+    "county": "Kisumu",
+    "lat": -0.126682,
+    "lng": 34.749603
+  },
+  {
+    "name": "Manyatta",
+    "county": "Kisumu",
+    "lat": -0.061741,
+    "lng": 34.807015
+  },
+  {
+    "name": "Maseno",
+    "county": "Kisumu",
+    "lat": -0.109427,
+    "lng": 34.797917
+  },
+  {
+    "name": "Milimani",
+    "county": "Kisumu",
+    "lat": -0.129192,
+    "lng": 34.796348
+  },
+  {
+    "name": "Muhoroni",
+    "county": "Kisumu",
+    "lat": -0.129506,
+    "lng": 34.749917
+  },
+  {
+    "name": "Nyalenda",
+    "county": "Kisumu",
+    "lat": -0.112878,
+    "lng": 34.747721
+  },
+  {
+    "name": "Ikutha",
+    "county": "Kitui",
+    "lat": -1.399065,
+    "lng": 38.013223
+  },
+  {
+    "name": "Kitui",
+    "county": "Kitui",
+    "lat": -1.343849,
+    "lng": 38.00036
+  },
+  {
+    "name": "Kitui Town",
+    "county": "Kitui",
+    "lat": -1.384634,
+    "lng": 38.02985
+  },
+  {
+    "name": "Mutomo",
+    "county": "Kitui",
+    "lat": -1.395614,
+    "lng": 37.99534
+  },
+  {
+    "name": "Mwingi",
+    "county": "Kitui",
+    "lat": -1.361732,
+    "lng": 38.008517
+  },
+  {
+    "name": "Diani",
+    "county": "Kwale",
+    "lat": -4.207066,
+    "lng": 39.456395
+  },
+  {
+    "name": "Kinango",
+    "county": "Kwale",
+    "lat": -4.172557,
+    "lng": 39.425337
+  },
+  {
+    "name": "Kwale",
+    "county": "Kwale",
+    "lat": -4.169733,
+    "lng": 39.456709
+  },
+  {
+    "name": "Kwale Town",
+    "county": "Kwale",
+    "lat": -4.213027,
+    "lng": 39.421258
+  },
+  {
+    "name": "Lunga Lunga",
+    "county": "Kwale",
+    "lat": -4.164086,
+    "lng": 39.490278
+  },
+  {
+    "name": "Matuga",
+    "county": "Kwale",
+    "lat": -4.149341,
+    "lng": 39.464866
+  },
+  {
+    "name": "Msambweni",
+    "county": "Kwale",
+    "lat": -4.1964,
+    "lng": 39.489023
+  },
+  {
+    "name": "Ukunda",
+    "county": "Kwale",
+    "lat": -4.17036,
+    "lng": 39.468003
+  },
+  {
+    "name": "Kinamba",
+    "county": "Laikipia",
+    "lat": -0.011529,
+    "lng": 36.330432
+  },
+  {
+    "name": "Laikipia",
+    "county": "Laikipia",
+    "lat": 0.01702,
+    "lng": 36.396314
+  },
+  {
+    "name": "Nanyuki",
+    "county": "Laikipia",
+    "lat": 0.056863,
+    "lng": 36.326667
+  },
+  {
+    "name": "Nyahururu",
+    "county": "Laikipia",
+    "lat": 0.03302,
+    "lng": 36.392236
+  },
+  {
+    "name": "Rumuruti",
+    "county": "Laikipia",
+    "lat": 0.041176,
+    "lng": 36.328236
+  },
+  {
+    "name": "Faza",
+    "county": "Lamu",
+    "lat": -2.290949,
+    "lng": 40.886169
+  },
+  {
+    "name": "Lamu",
+    "county": "Lamu",
+    "lat": -2.232282,
+    "lng": 40.863581
+  },
+  {
+    "name": "Lamu Town",
+    "county": "Lamu",
+    "lat": -2.234792,
+    "lng": 40.941698
+  },
+  {
+    "name": "Mpeketoni",
+    "county": "Lamu",
+    "lat": -2.28593,
+    "lng": 40.911894
+  },
+  {
+    "name": "Athi River",
+    "county": "Machakos",
+    "lat": -1.527565,
+    "lng": 36.277006
+  },
+  {
+    "name": "Kangundo",
+    "county": "Machakos",
+    "lat": -1.551722,
+    "lng": 36.302104
+  },
+  {
+    "name": "Machakos",
+    "county": "Machakos",
+    "lat": -1.545448,
+    "lng": 36.302418
+  },
+  {
+    "name": "Machakos Town",
+    "county": "Machakos",
+    "lat": -1.557683,
+    "lng": 36.253477
+  },
+  {
+    "name": "Matuu",
+    "county": "Machakos",
+    "lat": -1.487408,
+    "lng": 36.297084
+  },
+  {
+    "name": "Mavoko",
+    "county": "Machakos",
+    "lat": -1.512193,
+    "lng": 36.25379
+  },
+  {
+    "name": "Mlolongo",
+    "county": "Machakos",
+    "lat": -1.486467,
+    "lng": 36.259751
+  },
+  {
+    "name": "Mwala",
+    "county": "Machakos",
+    "lat": -1.513761,
+    "lng": 36.274496
+  },
+  {
+    "name": "Syokimau",
+    "county": "Machakos",
+    "lat": -1.539487,
+    "lng": 36.277947
+  },
+  {
+    "name": "Tala",
+    "county": "Machakos",
+    "lat": -1.49682,
+    "lng": 36.276065
+  },
+  {
+    "name": "Kibwezi",
+    "county": "Makueni",
+    "lat": -1.832703,
+    "lng": 37.653284
+  },
+  {
+    "name": "Makindu",
+    "county": "Makueni",
+    "lat": -1.828938,
+    "lng": 37.595245
+  },
+  {
+    "name": "Makueni",
+    "county": "Makueni",
+    "lat": -1.842429,
+    "lng": 37.621598
+  },
+  {
+    "name": "Mtito Andei",
+    "county": "Makueni",
+    "lat": -1.825487,
+    "lng": 37.597127
+  },
+  {
+    "name": "Wote",
+    "county": "Makueni",
+    "lat": -1.810115,
+    "lng": 37.604343
+  },
+  {
+    "name": "Elwak",
+    "county": "Mandera",
+    "lat": 3.954986,
+    "lng": 41.844513
+  },
+  {
+    "name": "Mandera",
+    "county": "Mandera",
+    "lat": 3.949966,
+    "lng": 41.90663
+  },
+  {
+    "name": "Mandera Town",
+    "county": "Mandera",
+    "lat": 3.896633,
+    "lng": 41.860199
+  },
+  {
+    "name": "Rhamu",
+    "county": "Mandera",
+    "lat": 3.95279,
+    "lng": 41.849219
+  },
+  {
+    "name": "Marsabit",
+    "county": "Marsabit",
+    "lat": 2.334915,
+    "lng": 37.995068
+  },
+  {
+    "name": "Marsabit Town",
+    "county": "Marsabit",
+    "lat": 2.294444,
+    "lng": 37.980951
+  },
+  {
+    "name": "Moyale",
+    "county": "Marsabit",
+    "lat": 2.315464,
+    "lng": 38.017029
+  },
+  {
+    "name": "North Horr",
+    "county": "Marsabit",
+    "lat": 2.295071,
+    "lng": 38.013578
+  },
+  {
+    "name": "Laare",
+    "county": "Meru",
+    "lat": 0.05674,
+    "lng": 37.659795
+  },
+  {
+    "name": "Maua",
+    "county": "Meru",
+    "lat": 0.026936,
+    "lng": 37.654461
+  },
+  {
+    "name": "Meru",
+    "county": "Meru",
+    "lat": 0.085603,
+    "lng": 37.658853
+  },
+  {
+    "name": "Meru Town",
+    "county": "Meru",
+    "lat": 0.06427,
+    "lng": 37.638775
+  },
+  {
+    "name": "Nkubu",
+    "county": "Meru",
+    "lat": 0.050466,
+    "lng": 37.661049
+  },
+  {
+    "name": "Timau",
+    "county": "Meru",
+    "lat": 0.060819,
+    "lng": 37.622775
+  },
+  {
+    "name": "Awendo",
+    "county": "Migori",
+    "lat": -1.080201,
+    "lng": 34.473268
+  },
+  {
+    "name": "Isebania",
+    "county": "Migori",
+    "lat": -1.029378,
+    "lng": 34.483621
+  },
+  {
+    "name": "Migori",
+    "county": "Migori",
+    "lat": -1.034711,
+    "lng": 34.456954
+  },
+  {
+    "name": "Migori Town",
+    "county": "Migori",
+    "lat": -1.035652,
+    "lng": 34.458836
+  },
+  {
+    "name": "Rongo",
+    "county": "Migori",
+    "lat": -1.075495,
+    "lng": 34.485189
+  },
+  {
+    "name": "Bamburi",
+    "county": "Mombasa",
+    "lat": -4.025752,
+    "lng": 39.682794
+  },
+  {
+    "name": "Bombolulu",
+    "county": "Mombasa",
+    "lat": -4.063712,
+    "lng": 39.650794
+  },
+  {
+    "name": "Changamwe",
+    "county": "Mombasa",
+    "lat": -4.028575,
+    "lng": 39.629461
+  },
+  {
+    "name": "Diani",
+    "county": "Mombasa",
+    "lat": -4.076261,
+    "lng": 39.664284
+  },
+  {
+    "name": "Jomvu",
+    "county": "Mombasa",
+    "lat": -4.051163,
+    "lng": 39.70099
+  },
+  {
+    "name": "Kinango",
+    "county": "Mombasa",
+    "lat": -4.041752,
+    "lng": 39.633226
+  },
+  {
+    "name": "Kisauni",
+    "county": "Mombasa",
+    "lat": -4.072183,
+    "lng": 39.678716
+  },
+  {
+    "name": "Kwale Town",
+    "county": "Mombasa",
+    "lat": -4.082222,
+    "lng": 39.629147
+  },
+  {
+    "name": "Likoni",
+    "county": "Mombasa",
+    "lat": -4.064653,
+    "lng": 39.649853
+  },
+  {
+    "name": "Lunga Lunga",
+    "county": "Mombasa",
+    "lat": -4.033281,
+    "lng": 39.698167
+  },
+  {
+    "name": "Mariakani",
+    "county": "Mombasa",
+    "lat": -4.051163,
+    "lng": 39.679971
+  },
+  {
+    "name": "Matuga",
+    "county": "Mombasa",
+    "lat": -4.018536,
+    "lng": 39.672755
+  },
+  {
+    "name": "Mikindani",
+    "county": "Mombasa",
+    "lat": -4.039555,
+    "lng": 39.663343
+  },
+  {
+    "name": "Mkomani",
+    "county": "Mombasa",
+    "lat": -4.063399,
+    "lng": 39.674637
+  },
+  {
+    "name": "Mombasa",
+    "county": "Mombasa",
+    "lat": -4.065908,
+    "lng": 39.690951
+  },
+  {
+    "name": "Mombasa CBD",
+    "county": "Mombasa",
+    "lat": -4.013202,
+    "lng": 39.666794
+  },
+  {
+    "name": "Msambweni",
+    "county": "Mombasa",
+    "lat": -4.065595,
+    "lng": 39.696912
+  },
+  {
+    "name": "Mtwapa",
+    "county": "Mombasa",
+    "lat": -4.042693,
+    "lng": 39.658324
+  },
+  {
+    "name": "Nyali",
+    "county": "Mombasa",
+    "lat": -4.017281,
+    "lng": 39.679343
+  },
+  {
+    "name": "Port Reitz",
+    "county": "Mombasa",
+    "lat": -4.06434,
+    "lng": 39.662402
+  },
+  {
+    "name": "Shanzu",
+    "county": "Mombasa",
+    "lat": -4.074379,
+    "lng": 39.672128
+  },
+  {
+    "name": "Tudor",
+    "county": "Mombasa",
+    "lat": -4.081595,
+    "lng": 39.661775
+  },
+  {
+    "name": "Ukunda",
+    "county": "Mombasa",
+    "lat": -4.039555,
+    "lng": 39.675892
+  },
+  {
+    "name": "Kangema",
+    "county": "Murang'a",
+    "lat": -0.708473,
+    "lng": 37.182085
+  },
+  {
+    "name": "Kenol",
+    "county": "Murang'a",
+    "lat": -0.756473,
+    "lng": 37.147889
+  },
+  {
+    "name": "Kigumo",
+    "county": "Murang'a",
+    "lat": -0.717257,
+    "lng": 37.166085
+  },
+  {
+    "name": "Murang'a",
+    "county": "Murang'a",
+    "lat": -0.758669,
+    "lng": 37.149144
+  },
+  {
+    "name": "Murang'a Town",
+    "county": "Murang'a",
+    "lat": -0.761806,
+    "lng": 37.160752
+  },
+  {
+    "name": "Adams Arcade",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.813301
+  },
+  {
+    "name": "Athi River",
+    "county": "Nairobi",
+    "lat": -1.296271,
+    "lng": 36.83087
+  },
+  {
+    "name": "Baba Dogo",
+    "county": "Nairobi",
+    "lat": -1.259565,
+    "lng": 36.850007
+  },
+  {
+    "name": "Buru Buru",
+    "county": "Nairobi",
+    "lat": -1.256114,
+    "lng": 36.795105
+  },
+  {
+    "name": "Buruburu",
+    "county": "Nairobi",
+    "lat": -1.262389,
+    "lng": 36.791027
+  },
+  {
+    "name": "CBD",
+    "county": "Nairobi",
+    "lat": -1.264585,
+    "lng": 36.778164
+  },
+  {
+    "name": "Dagoretti",
+    "county": "Nairobi",
+    "lat": -1.27086,
+    "lng": 36.808282
+  },
+  {
+    "name": "Dandora",
+    "county": "Nairobi",
+    "lat": -1.252664,
+    "lng": 36.781615
+  },
+  {
+    "name": "Donholm",
+    "county": "Nairobi",
+    "lat": -1.29282,
+    "lng": 36.834948
+  },
+  {
+    "name": "Eastleigh",
+    "county": "Nairobi",
+    "lat": -1.24984,
+    "lng": 36.786007
+  },
+  {
+    "name": "Embakasi",
+    "county": "Nairobi",
+    "lat": -1.270232,
+    "lng": 36.79887
+  },
+  {
+    "name": "Fedha",
+    "county": "Nairobi",
+    "lat": -1.316977,
+    "lng": 36.845929
+  },
+  {
+    "name": "Garden Estate",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.847498
+  },
+  {
+    "name": "Gigiri",
+    "county": "Nairobi",
+    "lat": -1.277762,
+    "lng": 36.78789
+  },
+  {
+    "name": "Githurai",
+    "county": "Nairobi",
+    "lat": -1.287801,
+    "lng": 36.805772
+  },
+  {
+    "name": "Harambee Estate",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.777223
+  },
+  {
+    "name": "Highridge",
+    "county": "Nairobi",
+    "lat": -1.313526,
+    "lng": 36.791654
+  },
+  {
+    "name": "Hurlingham",
+    "county": "Nairobi",
+    "lat": -1.298467,
+    "lng": 36.84687
+  },
+  {
+    "name": "Huruma",
+    "county": "Nairobi",
+    "lat": -1.264899,
+    "lng": 36.797615
+  },
+  {
+    "name": "Imara Daima",
+    "county": "Nairobi",
+    "lat": -1.293762,
+    "lng": 36.82836
+  },
+  {
+    "name": "Industrial Area",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.777223
+  },
+  {
+    "name": "Jericho",
+    "county": "Nairobi",
+    "lat": -1.278703,
+    "lng": 36.800439
+  },
+  {
+    "name": "Kahawa",
+    "county": "Nairobi",
+    "lat": -1.248271,
+    "lng": 36.786948
+  },
+  {
+    "name": "Kahawa Sukari",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.787262
+  },
+  {
+    "name": "Kahawa Wendani",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.777223
+  },
+  {
+    "name": "Kahawa West",
+    "county": "Nairobi",
+    "lat": -1.281213,
+    "lng": 36.855341
+  },
+  {
+    "name": "Kangemi",
+    "county": "Nairobi",
+    "lat": -1.270546,
+    "lng": 36.848752
+  },
+  {
+    "name": "Karen",
+    "county": "Nairobi",
+    "lat": -1.294703,
+    "lng": 36.83338
+  },
+  {
+    "name": "Kasarani",
+    "county": "Nairobi",
+    "lat": -1.291879,
+    "lng": 36.786007
+  },
+  {
+    "name": "Kawangware",
+    "county": "Nairobi",
+    "lat": -1.289369,
+    "lng": 36.826792
+  },
+  {
+    "name": "Kayole",
+    "county": "Nairobi",
+    "lat": -1.284664,
+    "lng": 36.781301
+  },
+  {
+    "name": "Kibera",
+    "county": "Nairobi",
+    "lat": -1.31133,
+    "lng": 36.792282
+  },
+  {
+    "name": "Kileleshwa",
+    "county": "Nairobi",
+    "lat": -1.321683,
+    "lng": 36.817066
+  },
+  {
+    "name": "Kilimani",
+    "county": "Nairobi",
+    "lat": -1.303173,
+    "lng": 36.81738
+  },
+  {
+    "name": "Kitengela",
+    "county": "Nairobi",
+    "lat": -1.310703,
+    "lng": 36.832752
+  },
+  {
+    "name": "Komarock",
+    "county": "Nairobi",
+    "lat": -1.287173,
+    "lng": 36.815184
+  },
+  {
+    "name": "Langata",
+    "county": "Nairobi",
+    "lat": -1.266154,
+    "lng": 36.782556
+  },
+  {
+    "name": "Lavington",
+    "county": "Nairobi",
+    "lat": -1.250467,
+    "lng": 36.840596
+  },
+  {
+    "name": "Loresho",
+    "county": "Nairobi",
+    "lat": -1.25486,
+    "lng": 36.827733
+  },
+  {
+    "name": "Makadara",
+    "county": "Nairobi",
+    "lat": -1.289369,
+    "lng": 36.803576
+  },
+  {
+    "name": "Maringo",
+    "county": "Nairobi",
+    "lat": -1.322938,
+    "lng": 36.838399
+  },
+  {
+    "name": "Mathare",
+    "county": "Nairobi",
+    "lat": -1.312585,
+    "lng": 36.801694
+  },
+  {
+    "name": "Mihango",
+    "county": "Nairobi",
+    "lat": -1.326075,
+    "lng": 36.855654
+  },
+  {
+    "name": "Mlolongo",
+    "county": "Nairobi",
+    "lat": -1.255173,
+    "lng": 36.813615
+  },
+  {
+    "name": "Mountain View",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.797301
+  },
+  {
+    "name": "Mukuru",
+    "county": "Nairobi",
+    "lat": -1.249526,
+    "lng": 36.801694
+  },
+  {
+    "name": "Muthaiga",
+    "county": "Nairobi",
+    "lat": -1.306938,
+    "lng": 36.854713
+  },
+  {
+    "name": "Mwiki",
+    "county": "Nairobi",
+    "lat": -1.287173,
+    "lng": 36.837772
+  },
+  {
+    "name": "Nairobi",
+    "county": "Nairobi",
+    "lat": -1.308193,
+    "lng": 36.79887
+  },
+  {
+    "name": "Nairobi West",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.854086
+  },
+  {
+    "name": "Ngara",
+    "county": "Nairobi",
+    "lat": -1.258938,
+    "lng": 36.813929
+  },
+  {
+    "name": "Ngong Road",
+    "county": "Nairobi",
+    "lat": -1.26082,
+    "lng": 36.784125
+  },
+  {
+    "name": "Ngumo",
+    "county": "Nairobi",
+    "lat": -1.296899,
+    "lng": 36.837458
+  },
+  {
+    "name": "Nyari",
+    "county": "Nairobi",
+    "lat": -1.282154,
+    "lng": 36.828674
+  },
+  {
+    "name": "Ofafa",
+    "county": "Nairobi",
+    "lat": -1.284664,
+    "lng": 36.784439
+  },
+  {
+    "name": "Pangani",
+    "county": "Nairobi",
+    "lat": -1.320742,
+    "lng": 36.856909
+  },
+  {
+    "name": "Parklands",
+    "county": "Nairobi",
+    "lat": -1.316977,
+    "lng": 36.800439
+  },
+  {
+    "name": "Pipeline",
+    "county": "Nairobi",
+    "lat": -1.265526,
+    "lng": 36.781615
+  },
+  {
+    "name": "Riverside",
+    "county": "Nairobi",
+    "lat": -1.305369,
+    "lng": 36.782556
+  },
+  {
+    "name": "Roasters",
+    "county": "Nairobi",
+    "lat": -1.305997,
+    "lng": 36.855027
+  },
+  {
+    "name": "Rongai",
+    "county": "Nairobi",
+    "lat": -1.28686,
+    "lng": 36.788203
+  },
+  {
+    "name": "Rosslyn",
+    "county": "Nairobi",
+    "lat": -1.25486,
+    "lng": 36.807654
+  },
+  {
+    "name": "Roysambu",
+    "county": "Nairobi",
+    "lat": -1.309448,
+    "lng": 36.837458
+  },
+  {
+    "name": "Ruai",
+    "county": "Nairobi",
+    "lat": -1.262703,
+    "lng": 36.780047
+  },
+  {
+    "name": "Ruaka",
+    "county": "Nairobi",
+    "lat": -1.310075,
+    "lng": 36.792282
+  },
+  {
+    "name": "Ruaraka",
+    "county": "Nairobi",
+    "lat": -1.315409,
+    "lng": 36.791968
+  },
+  {
+    "name": "Ruiru",
+    "county": "Nairobi",
+    "lat": -1.313526,
+    "lng": 36.802007
+  },
+  {
+    "name": "Runda",
+    "county": "Nairobi",
+    "lat": -1.31384,
+    "lng": 36.807341
+  },
+  {
+    "name": "South B",
+    "county": "Nairobi",
+    "lat": -1.281526,
+    "lng": 36.789145
+  },
+  {
+    "name": "South C",
+    "county": "Nairobi",
+    "lat": -1.281213,
+    "lng": 36.789145
+  },
+  {
+    "name": "Southlands",
+    "county": "Nairobi",
+    "lat": -1.29784,
+    "lng": 36.84436
+  },
+  {
+    "name": "Spring Valley",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.777223
+  },
+  {
+    "name": "Syokimau",
+    "county": "Nairobi",
+    "lat": -1.308193,
+    "lng": 36.831811
+  },
+  {
+    "name": "Tassia",
+    "county": "Nairobi",
+    "lat": -1.284664,
+    "lng": 36.857223
+  },
+  {
+    "name": "Tena Estate",
+    "county": "Nairobi",
+    "lat": -1.323879,
+    "lng": 36.820831
+  },
+  {
+    "name": "Thika Road",
+    "county": "Nairobi",
+    "lat": -1.259565,
+    "lng": 36.805145
+  },
+  {
+    "name": "Tumaini",
+    "county": "Nairobi",
+    "lat": -1.261448,
+    "lng": 36.788203
+  },
+  {
+    "name": "Umoja",
+    "county": "Nairobi",
+    "lat": -1.311958,
+    "lng": 36.779733
+  },
+  {
+    "name": "Upper Hill",
+    "county": "Nairobi",
+    "lat": -1.306624,
+    "lng": 36.845929
+  },
+  {
+    "name": "Utawala",
+    "county": "Nairobi",
+    "lat": -1.305997,
+    "lng": 36.801694
+  },
+  {
+    "name": "Valley Arcade",
+    "county": "Nairobi",
+    "lat": -1.326389,
+    "lng": 36.807341
+  },
+  {
+    "name": "Westlands",
+    "county": "Nairobi",
+    "lat": -1.288428,
+    "lng": 36.847184
+  },
+  {
+    "name": "Woodley",
+    "county": "Nairobi",
+    "lat": -1.310389,
+    "lng": 36.804831
+  },
+  {
+    "name": "Zimmerman",
+    "county": "Nairobi",
+    "lat": -1.266781,
+    "lng": 36.827733
+  },
+  {
+    "name": "Bahati",
+    "county": "Nakuru",
+    "lat": -0.339021,
+    "lng": 36.08081
+  },
+  {
+    "name": "Elburgon",
+    "county": "Nakuru",
+    "lat": -0.328668,
+    "lng": 36.051634
+  },
+  {
+    "name": "Gilgil",
+    "county": "Nakuru",
+    "lat": -0.272824,
+    "lng": 36.06983
+  },
+  {
+    "name": "Lanet",
+    "county": "Nakuru",
+    "lat": -0.270315,
+    "lng": 36.098693
+  },
+  {
+    "name": "Milimani",
+    "county": "Nakuru",
+    "lat": -0.340589,
+    "lng": 36.108418
+  },
+  {
+    "name": "Molo",
+    "county": "Nakuru",
+    "lat": -0.281295,
+    "lng": 36.094614
+  },
+  {
+    "name": "Naivasha",
+    "county": "Nakuru",
+    "lat": -0.269374,
+    "lng": 36.09085
+  },
+  {
+    "name": "Nakuru",
+    "county": "Nakuru",
+    "lat": -0.302942,
+    "lng": 36.065438
+  },
+  {
+    "name": "Nakuru CBD",
+    "county": "Nakuru",
+    "lat": -0.331491,
+    "lng": 36.050379
+  },
+  {
+    "name": "Njoro",
+    "county": "Nakuru",
+    "lat": -0.297923,
+    "lng": 36.042222
+  },
+  {
+    "name": "Rongai",
+    "county": "Nakuru",
+    "lat": -0.30357,
+    "lng": 36.051006
+  },
+  {
+    "name": "Section 58",
+    "county": "Nakuru",
+    "lat": -0.273452,
+    "lng": 36.056653
+  },
+  {
+    "name": "Subukia",
+    "county": "Nakuru",
+    "lat": -0.318628,
+    "lng": 36.041281
+  },
+  {
+    "name": "Chepterwai",
+    "county": "Nandi",
+    "lat": 0.147725,
+    "lng": 35.123137
+  },
+  {
+    "name": "Kapsabet",
+    "county": "Nandi",
+    "lat": 0.146157,
+    "lng": 35.134117
+  },
+  {
+    "name": "Mosoriot",
+    "county": "Nandi",
+    "lat": 0.221764,
+    "lng": 35.10149
+  },
+  {
+    "name": "Nandi",
+    "county": "Nandi",
+    "lat": 0.203568,
+    "lng": 35.166745
+  },
+  {
+    "name": "Nandi Hills",
+    "county": "Nandi",
+    "lat": 0.208588,
+    "lng": 35.166117
+  },
+  {
+    "name": "Kilgoris",
+    "county": "Narok",
+    "lat": -1.096095,
+    "lng": 35.85808
+  },
+  {
+    "name": "Maasai Mara",
+    "county": "Narok",
+    "lat": -1.102997,
+    "lng": 35.865295
+  },
+  {
+    "name": "Narok",
+    "county": "Narok",
+    "lat": -1.109585,
+    "lng": 35.898864
+  },
+  {
+    "name": "Narok Town",
+    "county": "Narok",
+    "lat": -1.070683,
+    "lng": 35.864041
+  },
+  {
+    "name": "Suswa",
+    "county": "Narok",
+    "lat": -1.059389,
+    "lng": 35.864041
+  },
+  {
+    "name": "Keroka",
+    "county": "Nyamira",
+    "lat": -0.539019,
+    "lng": 34.914657
+  },
+  {
+    "name": "Nyamira",
+    "county": "Nyamira",
+    "lat": -0.552823,
+    "lng": 34.935049
+  },
+  {
+    "name": "Nyamira Town",
+    "county": "Nyamira",
+    "lat": -0.603333,
+    "lng": 34.950421
+  },
+  {
+    "name": "Nyansiongo",
+    "county": "Nyamira",
+    "lat": -0.546549,
+    "lng": 34.933166
+  },
+  {
+    "name": "Engineer",
+    "county": "Nyandarua",
+    "lat": -0.298193,
+    "lng": 36.495346
+  },
+  {
+    "name": "Ndaragwa",
+    "county": "Nyandarua",
+    "lat": -0.305723,
+    "lng": 36.426326
+  },
+  {
+    "name": "Nyahururu",
+    "county": "Nyandarua",
+    "lat": -0.290036,
+    "lng": 36.490013
+  },
+  {
+    "name": "Nyandarua",
+    "county": "Nyandarua",
+    "lat": -0.300076,
+    "lng": 36.46962
+  },
+  {
+    "name": "Ol Kalou",
+    "county": "Nyandarua",
+    "lat": -0.325174,
+    "lng": 36.467738
+  },
+  {
+    "name": "Karatina",
+    "county": "Nyeri",
+    "lat": -0.415883,
+    "lng": 36.930833
+  },
+  {
+    "name": "Mukurweini",
+    "county": "Nyeri",
+    "lat": -0.392981,
+    "lng": 36.946519
+  },
+  {
+    "name": "Nyeri",
+    "county": "Nyeri",
+    "lat": -0.414628,
+    "lng": 36.963774
+  },
+  {
+    "name": "Nyeri Town",
+    "county": "Nyeri",
+    "lat": -0.38953,
+    "lng": 36.961892
+  },
+  {
+    "name": "Othaya",
+    "county": "Nyeri",
+    "lat": -0.438157,
+    "lng": 36.928009
+  },
+  {
+    "name": "Baragoi",
+    "county": "Samburu",
+    "lat": 0.666291,
+    "lng": 37.531997
+  },
+  {
+    "name": "Maralal",
+    "county": "Samburu",
+    "lat": 0.656566,
+    "lng": 37.500938
+  },
+  {
+    "name": "Samburu",
+    "county": "Samburu",
+    "lat": 0.596644,
+    "lng": 37.543291
+  },
+  {
+    "name": "Wamba",
+    "county": "Samburu",
+    "lat": 0.610762,
+    "lng": 37.552075
+  },
+  {
+    "name": "Bondo",
+    "county": "Siaya",
+    "lat": 0.094733,
+    "lng": 34.26259
+  },
+  {
+    "name": "Siaya",
+    "county": "Siaya",
+    "lat": 0.096929,
+    "lng": 34.314982
+  },
+  {
+    "name": "Siaya Town",
+    "county": "Siaya",
+    "lat": 0.080616,
+    "lng": 34.256315
+  },
+  {
+    "name": "Ugunja",
+    "county": "Siaya",
+    "lat": 0.0414,
+    "lng": 34.266982
+  },
+  {
+    "name": "Yala",
+    "county": "Siaya",
+    "lat": 0.069949,
+    "lng": 34.323139
+  },
+  {
+    "name": "Mwatate",
+    "county": "Taita-Taveta",
+    "lat": -3.357804,
+    "lng": 38.586621
+  },
+  {
+    "name": "Taita-Taveta",
+    "county": "Taita-Taveta",
+    "lat": -3.434667,
+    "lng": 38.557444
+  },
+  {
+    "name": "Taveta",
+    "county": "Taita-Taveta",
+    "lat": -3.401726,
+    "lng": 38.548974
+  },
+  {
+    "name": "Voi",
+    "county": "Taita-Taveta",
+    "lat": -3.379451,
+    "lng": 38.561209
+  },
+  {
+    "name": "Wundanyi",
+    "county": "Taita-Taveta",
+    "lat": -3.419294,
+    "lng": 38.56466
+  },
+  {
+    "name": "Bura",
+    "county": "Tana River",
+    "lat": -1.468154,
+    "lng": 40.044526
+  },
+  {
+    "name": "Garsen",
+    "county": "Tana River",
+    "lat": -1.487605,
+    "lng": 40.026016
+  },
+  {
+    "name": "Hola",
+    "county": "Tana River",
+    "lat": -1.470036,
+    "lng": 40.015349
+  },
+  {
+    "name": "Tana River",
+    "county": "Tana River",
+    "lat": -1.475056,
+    "lng": 39.984604
+  },
+  {
+    "name": "Chuka",
+    "county": "Tharaka-Nithi",
+    "lat": -0.023954,
+    "lng": 37.624262
+  },
+  {
+    "name": "Kathwana",
+    "county": "Tharaka-Nithi",
+    "lat": -0.063797,
+    "lng": 37.67885
+  },
+  {
+    "name": "Marimanti",
+    "county": "Tharaka-Nithi",
+    "lat": -0.074778,
+    "lng": 37.640575
+  },
+  {
+    "name": "Tharaka-Nithi",
+    "county": "Tharaka-Nithi",
+    "lat": -0.096111,
+    "lng": 37.639007
+  },
+  {
+    "name": "Endebess",
+    "county": "Trans Nzoia",
+    "lat": 1.05102,
+    "lng": 35.002353
+  },
+  {
+    "name": "Kiminini",
+    "county": "Trans Nzoia",
+    "lat": 1.001765,
+    "lng": 35.033725
+  },
+  {
+    "name": "Kitale",
+    "county": "Trans Nzoia",
+    "lat": 0.987961,
+    "lng": 34.984784
+  },
+  {
+    "name": "Saboti",
+    "county": "Trans Nzoia",
+    "lat": 1.051961,
+    "lng": 34.98949
+  },
+  {
+    "name": "Trans Nzoia",
+    "county": "Trans Nzoia",
+    "lat": 1.036902,
+    "lng": 34.988863
+  },
+  {
+    "name": "Kakuma",
+    "county": "Turkana",
+    "lat": 3.155668,
+    "lng": 35.619391
+  },
+  {
+    "name": "Lodwar",
+    "county": "Turkana",
+    "lat": 3.091354,
+    "lng": 35.617508
+  },
+  {
+    "name": "Lokichoggio",
+    "county": "Turkana",
+    "lat": 3.104217,
+    "lng": 35.5899
+  },
+  {
+    "name": "Turkana",
+    "county": "Turkana",
+    "lat": 3.15755,
+    "lng": 35.559155
+  },
+  {
+    "name": "Burnt Forest",
+    "county": "Uasin Gishu",
+    "lat": 0.474277,
+    "lng": 35.303504
+  },
+  {
+    "name": "Eldoret",
+    "county": "Uasin Gishu",
+    "lat": 0.539218,
+    "lng": 35.287191
+  },
+  {
+    "name": "Eldoret CBD",
+    "county": "Uasin Gishu",
+    "lat": 0.549571,
+    "lng": 35.29221
+  },
+  {
+    "name": "Elgon View",
+    "county": "Uasin Gishu",
+    "lat": 0.546434,
+    "lng": 35.290955
+  },
+  {
+    "name": "Huruma",
+    "county": "Uasin Gishu",
+    "lat": 0.535767,
+    "lng": 35.250171
+  },
+  {
+    "name": "Kapsoya",
+    "county": "Uasin Gishu",
+    "lat": 0.483689,
+    "lng": 35.284681
+  },
+  {
+    "name": "Kipkaren",
+    "county": "Uasin Gishu",
+    "lat": 0.480238,
+    "lng": 35.298799
+  },
+  {
+    "name": "Langas",
+    "county": "Uasin Gishu",
+    "lat": 0.534512,
+    "lng": 35.291897
+  },
+  {
+    "name": "Moiben",
+    "county": "Uasin Gishu",
+    "lat": 0.49561,
+    "lng": 35.274955
+  },
+  {
+    "name": "Pioneer",
+    "county": "Uasin Gishu",
+    "lat": 0.482434,
+    "lng": 35.236995
+  },
+  {
+    "name": "Turbo",
+    "county": "Uasin Gishu",
+    "lat": 0.553963,
+    "lng": 35.279034
+  },
+  {
+    "name": "Chavakali",
+    "county": "Vihiga",
+    "lat": 0.119542,
+    "lng": 34.731056
+  },
+  {
+    "name": "Luanda",
+    "county": "Vihiga",
+    "lat": 0.087229,
+    "lng": 34.747683
+  },
+  {
+    "name": "Mbale",
+    "county": "Vihiga",
+    "lat": 0.102915,
+    "lng": 34.690272
+  },
+  {
+    "name": "Vihiga",
+    "county": "Vihiga",
+    "lat": 0.115778,
+    "lng": 34.705017
+  },
+  {
+    "name": "Griftu",
+    "county": "Wajir",
+    "lat": 1.780195,
+    "lng": 40.083518
+  },
+  {
+    "name": "Habaswein",
+    "county": "Wajir",
+    "lat": 1.731568,
+    "lng": 40.030812
+  },
+  {
+    "name": "Wajir",
+    "county": "Wajir",
+    "lat": 1.780195,
+    "lng": 40.072224
+  },
+  {
+    "name": "Wajir Town",
+    "county": "Wajir",
+    "lat": 1.750077,
+    "lng": 40.070028
+  },
+  {
+    "name": "Kapenguria",
+    "county": "West Pokot",
+    "lat": 1.226811,
+    "lng": 35.124336
+  },
+  {
+    "name": "Kitale Border",
+    "county": "West Pokot",
+    "lat": 1.198889,
+    "lng": 35.142219
+  },
+  {
+    "name": "Sigor",
+    "county": "West Pokot",
+    "lat": 1.225242,
+    "lng": 35.145356
+  },
+  {
+    "name": "West Pokot",
+    "county": "West Pokot",
+    "lat": 1.239046,
+    "lng": 35.131866
+  }
+]

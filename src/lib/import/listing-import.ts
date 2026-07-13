@@ -31,6 +31,10 @@ const TYPE_MAP: Record<string, Database["public"]["Enums"]["property_type"]> = {
   studio: "studio",
   maisonette: "maisonette",
   bungalow: "bungalow",
+  commercial: "commercial",
+  villa: "villa",
+  bnb: "bnb",
+  hotel: "hotel",
 };
 
 function pick(row: ImportRowInput, ...keys: string[]): string {

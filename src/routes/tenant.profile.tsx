@@ -32,6 +32,7 @@ import {
 import { listTransactions } from "@/lib/api/payment.functions";
 import { listSavedSearches, setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
 import { errorMessage } from "@/lib/utils";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
 
@@ -308,7 +309,11 @@ function Profile() {
 
       {user ? (
         <>
-          <form onSubmit={saveProfile} className="mt-8 rounded-2xl border bg-card p-4">
+          <form
+            onSubmit={saveProfile}
+            className="mt-8 rounded-2xl border bg-card p-4"
+            data-tour="tenant-profile-details"
+          >
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-primary" />
               <h2 className="font-display text-lg font-semibold">Account details</h2>
@@ -347,6 +352,22 @@ function Profile() {
               Save profile
             </button>
           </form>
+
+          <div
+            className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4"
+            data-tour="tenant-profile-plus"
+          >
+            <h2 className="font-display text-sm font-semibold">NyumbaSearch Plus</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Unlimited contact unlocks, scam-risk scores, and early access to new listings.
+            </p>
+            <Link
+              to="/tenant/checkout"
+              className="mt-3 inline-flex rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+            >
+              View Plus plans
+            </Link>
+          </div>
 
           {/* Verification section */}
           <section className="mt-6 rounded-2xl border bg-card p-4">
@@ -569,6 +590,7 @@ function Profile() {
           Sign in or create an account
         </Link>
       )}
+      <OnboardingTourHost tourId="tenant-profile" />
     </div>
   );
 }

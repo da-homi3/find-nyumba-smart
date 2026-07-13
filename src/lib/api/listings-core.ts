@@ -9,8 +9,33 @@ import {
   PUBLIC_PROPERTY_COLUMNS_LEGACY,
 } from "@/lib/api/public-client";
 import { filterMockListings, mockListingsEnabled } from "@/data/mockListings";
+import { effectiveMaxRent } from "@/lib/tenant-filter-defaults";
 import { mapPropertyRows } from "@/lib/api/nyumba/nyumba-shared";
-import { normalizeNeighborhoodFilter } from "@/lib/security/neighborhoods";
+import { normalizeNeighborhoodFilter, parseCountyWideFilter } from "@/lib/security/neighborhoods";
+import { areasForCounty, neighborhoodStorageValue } from "@/data/kenya-locations";
+import { withCache } from "@/lib/cache/manager";
+
+export function listingsCacheKey(data?: PropertySearchFilters): string {
+  const f = data ?? {};
+  const parts = [
+    `l${f.limit ?? 50}`,
+    `o${f.offset ?? 0}`,
+    f.sortBy ?? "newest",
+    f.neighborhood ?? "",
+    f.propertyType ?? "",
+    f.query ?? "",
+    f.minRent != null ? String(f.minRent) : "",
+    f.maxRent != null ? String(f.maxRent) : "",
+    f.verifiedOnly ? "v1" : "",
+    f.minBedrooms != null ? String(f.minBedrooms) : "",
+  ];
+  if (f.bounds) {
+    parts.push(
+      `b${f.bounds.minLat.toFixed(3)},${f.bounds.maxLat.toFixed(3)},${f.bounds.minLng.toFixed(3)},${f.bounds.maxLng.toFixed(3)}`,
+    );
+  }
+  return parts.join("|");
+}
 
 export type ListingsResult = {
   items: ReturnType<typeof mapPropertyRows>;
@@ -27,16 +52,54 @@ function buildPropertySelect(supabase: Db, columns: string) {
 
 type PropertyQuery = ReturnType<typeof buildPropertySelect>;
 
+function applyNeighborhoodFilter(query: PropertyQuery, neighborhood: string | undefined) {
+  const normalized = normalizeNeighborhoodFilter(neighborhood);
+  if (!normalized) return query;
+
+  const county = parseCountyWideFilter(normalized);
+  if (county) {
+    const values = areasForCounty(county).map((loc) => neighborhoodStorageValue(loc));
+    return values.length > 0 ? query.in("neighborhood", values) : query;
+  }
+  return query.eq("neighborhood", normalized);
+}
+
+function applySearchTermFilter(query: PropertyQuery, rawQuery: string | undefined) {
+  if (!rawQuery) return query;
+
+  const term = rawQuery
+    .replaceAll(",", " ")
+    .replace(/[()[\].,:*!%\\]/g, "")
+    .trim()
+    .slice(0, 100);
+  if (!term) return query;
+
+  const typeTerm = term.replaceAll(" ", "_");
+  return query.or(
+    `title.ilike.*${term}*,neighborhood.ilike.*${term}*,property_type.eq.${typeTerm}`,
+  );
+}
+
+function applyListingSort(query: PropertyQuery, sortBy: PropertySearchFilters["sortBy"]) {
+  switch (sortBy ?? "newest") {
+    case "price_asc":
+      return query.order("rent_kes", { ascending: true });
+    case "price_desc":
+      return query.order("rent_kes", { ascending: false });
+    case "score":
+      return query.order("authenticity_score", { ascending: false });
+    default:
+      return query.order("created_at", { ascending: false });
+  }
+}
+
 function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters | undefined) {
   let next = query.eq("is_active", true);
-
-  const neighborhood = normalizeNeighborhoodFilter(data?.neighborhood);
-  if (neighborhood) {
-    next = next.eq("neighborhood", neighborhood);
-  }
+  next = applyNeighborhoodFilter(next, data?.neighborhood);
   if (data?.propertyType) next = next.eq("property_type", data.propertyType);
   if (data?.minRent) next = next.gte("rent_kes", data.minRent);
-  if (data?.maxRent) next = next.lte("rent_kes", data.maxRent);
+  const maxRent = effectiveMaxRent(data?.maxRent);
+  if (maxRent) next = next.lte("rent_kes", maxRent);
   if (data?.verifiedOnly) next = next.eq("is_verified", true);
   if (data?.minBedrooms) next = next.gte("bedrooms", data.minBedrooms);
   if (data?.minAuthenticityScore) {
@@ -49,35 +112,8 @@ function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters |
       .gte("longitude", data.bounds.minLng)
       .lte("longitude", data.bounds.maxLng);
   }
-  if (data?.query) {
-    const term = data.query
-      .replaceAll(",", " ")
-      .replace(/[()[\].,:*!%\\]/g, "")
-      .trim()
-      .slice(0, 100);
-    if (term) {
-      const typeTerm = term.replaceAll(" ", "_");
-      next = next.or(
-        `title.ilike.*${term}*,neighborhood.ilike.*${term}*,property_type.eq.${typeTerm}`,
-      );
-    }
-  }
-
-  switch (data?.sortBy ?? "newest") {
-    case "price_asc":
-      next = next.order("rent_kes", { ascending: true });
-      break;
-    case "price_desc":
-      next = next.order("rent_kes", { ascending: false });
-      break;
-    case "score":
-      next = next.order("authenticity_score", { ascending: false });
-      break;
-    default:
-      next = next.order("created_at", { ascending: false });
-  }
-
-  return next;
+  next = applySearchTermFilter(next, data?.query);
+  return applyListingSort(next, data?.sortBy);
 }
 
 function isCurrentlyBoosted(featuredUntil: string | null | undefined, now: number): boolean {
@@ -101,7 +137,7 @@ async function runListingsSelect(
 }
 
 /** Public listings query — retries with legacy columns when revenue fields are missing. */
-export async function queryListings(
+async function queryListingsDirect(
   data?: PropertySearchFilters,
   supabase: Db = createPublicClient(),
 ): Promise<ListingsResult> {
@@ -137,7 +173,7 @@ export async function queryListings(
       neighborhood: data?.neighborhood,
       propertyType: data?.propertyType,
       minRent: data?.minRent,
-      maxRent: data?.maxRent,
+      maxRent: effectiveMaxRent(data?.maxRent),
       verifiedOnly: data?.verifiedOnly,
       minBedrooms: data?.minBedrooms,
       minAuthenticityScore: data?.minAuthenticityScore,
@@ -154,6 +190,17 @@ export async function queryListings(
   }
 
   return { items, total, limit, offset };
+}
+
+export async function queryListings(
+  data?: PropertySearchFilters,
+  supabase: Db = createPublicClient(),
+): Promise<ListingsResult> {
+  const key = listingsCacheKey(data);
+  const { data: result } = await withCache(key, "listings_search", () =>
+    queryListingsDirect(data, supabase),
+  );
+  return result;
 }
 
 export async function listingsHealthCheck(): Promise<{

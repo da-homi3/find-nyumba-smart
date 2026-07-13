@@ -11,7 +11,10 @@ const items: Array<{ to: string; label: string; icon: typeof Home; exact?: boole
 
 export function TenantBottomNav() {
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <nav
+      data-tour="tenant-bottom-nav"
+      className="fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80"
+    >
       <div className="mx-auto flex max-w-2xl items-stretch justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {items.map((i) => (
           <Link

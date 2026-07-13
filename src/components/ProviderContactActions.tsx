@@ -1,16 +1,21 @@
 import type { ReactNode } from "react";
 import { Globe, MessageCircle, Phone } from "lucide-react";
 import type { PublicServiceProvider } from "@/lib/api/service-provider.functions";
+import { trackProviderAnalytics } from "@/lib/provider-analytics";
 import { whatsAppUrl } from "@/lib/phone";
 
 type ProviderContactProps = Readonly<{
   provider: Pick<
     PublicServiceProvider,
-    "businessName" | "phone" | "phoneVerified" | "websiteUrl" | "category"
+    "id" | "businessName" | "phone" | "phoneVerified" | "websiteUrl" | "category"
   >;
   category?: string;
   size?: "sm" | "md";
 }>;
+
+function trackContactClick(providerId: string) {
+  trackProviderAnalytics(providerId, "contact_click");
+}
 
 export function ProviderContactDetails({
   provider,
@@ -24,7 +29,11 @@ export function ProviderContactDetails({
     contactLine = (
       <p className={`mt-1.5 flex items-center gap-1.5 font-medium ${textClass}`}>
         <Phone className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-        <a href={`tel:${provider.phone}`} className="hover:text-primary">
+        <a
+          href={`tel:${provider.phone}`}
+          onClick={() => trackContactClick(provider.id)}
+          className="hover:text-primary"
+        >
           {provider.phone}
         </a>
       </p>
@@ -37,6 +46,7 @@ export function ProviderContactDetails({
           href={provider.websiteUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackContactClick(provider.id)}
           className="hover:text-primary"
         >
           Contact via website
@@ -75,6 +85,7 @@ export function ProviderContactActions({ provider, category, size = "md" }: Prov
           href={waLink}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackContactClick(provider.id)}
           className={`${btnClass} bg-[#25D366] text-white hover:opacity-95`}
         >
           <MessageCircle className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
@@ -82,7 +93,11 @@ export function ProviderContactActions({ provider, category, size = "md" }: Prov
         </a>
       ) : null}
       {canCall ? (
-        <a href={`tel:${provider.phone}`} className={`${btnClass} border hover:bg-secondary`}>
+        <a
+          href={`tel:${provider.phone}`}
+          onClick={() => trackContactClick(provider.id)}
+          className={`${btnClass} border hover:bg-secondary`}
+        >
           <Phone className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
           Call
         </a>
@@ -92,6 +107,7 @@ export function ProviderContactActions({ provider, category, size = "md" }: Prov
           href={provider.websiteUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackContactClick(provider.id)}
           className={`${btnClass} border hover:bg-secondary`}
         >
           <Globe className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />

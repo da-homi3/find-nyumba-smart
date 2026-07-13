@@ -1,12 +1,20 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listMyPortalApplications,
   getMyProfilePortal,
-  setActivePortal,
+  setActivePortal as setActivePortalApi,
   type PortalApplication,
 } from "@/lib/api/portal.functions";
 import { clearCaretakerToken } from "@/lib/caretaker-session";
@@ -48,25 +56,31 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [pendingApplications, setPendingApplications] = useState<PortalApplication[]>([]);
-  const [activePortal, setActivePortalState] = useState<PortalId>("tenant");
+  const [activePortal, setActivePortal] = useState<PortalId>("tenant");
   const [loading, setLoading] = useState(true);
 
-  const refreshPortalState = async (userId?: string) => {
+  const refreshPortalState = useCallback(async (userId?: string) => {
     if (!userId) {
       setPendingApplications([]);
-      setActivePortalState("tenant");
+      setActivePortal("tenant");
+      setRoles([]);
       return;
     }
     try {
-      const [apps, profile] = await Promise.all([listMyPortalApplications(), getMyProfilePortal()]);
+      const [apps, profile, nextRoles] = await Promise.all([
+        listMyPortalApplications(),
+        getMyProfilePortal(),
+        fetchUserRoles(userId),
+      ]);
       setPendingApplications(apps);
+      setRoles(nextRoles);
       const portal = (profile?.active_portal as PortalId) ?? "tenant";
-      setActivePortalState(portal);
+      setActivePortal(portal);
     } catch (err) {
       console.warn("[use-auth] Could not refresh portal state:", err);
       setPendingApplications([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -79,7 +93,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       if (!s?.user) {
         setRoles([]);
         setPendingApplications([]);
-        setActivePortalState("tenant");
+        setActivePortal("tenant");
         setLoading(false);
         return;
       }
@@ -112,45 +126,61 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       active = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [refreshPortalState]);
 
   const roleSet = useMemo(() => new Set(roles), [roles]);
-  const hasApprovedRole = (role: AppRole) => roleSet.has(role);
+  const hasApprovedRole = useCallback((role: AppRole) => roleSet.has(role), [roleSet]);
 
-  const setActivePortalChoice = async (portal: PortalId) => {
-    await setActivePortal({ data: { portal } });
-    setActivePortalState(portal);
-  };
+  const setActivePortalChoice = useCallback(async (portal: PortalId) => {
+    await setActivePortalApi({ data: { portal } });
+    setActivePortal(portal);
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     clearCaretakerToken();
     await supabase.auth.signOut();
     globalThis.location.href = "/tenant";
-  };
+  }, []);
 
-  return (
-    <Ctx.Provider
-      value={{
-        user,
-        session,
-        roles,
-        pendingApplications,
-        activePortal,
-        loading,
-        isLandlord: roleSet.has("landlord"),
-        isManager: roleSet.has("manager"),
-        isAgency: roleSet.has("agency"),
-        isAdmin: roleSet.has("admin"),
-        isTenant: roleSet.has("tenant") || roles.length === 0,
-        hasApprovedRole,
-        setActivePortalChoice,
-        refreshPortalState: async () => refreshPortalState(user?.id),
-        signOut,
-      }}
-    >
-      {children}
-    </Ctx.Provider>
+  const refreshPortalStateForUser = useCallback(
+    async () => refreshPortalState(user?.id),
+    [refreshPortalState, user?.id],
   );
+
+  const value = useMemo<AuthCtx>(
+    () => ({
+      user,
+      session,
+      roles,
+      pendingApplications,
+      activePortal,
+      loading,
+      isLandlord: roleSet.has("landlord"),
+      isManager: roleSet.has("manager"),
+      isAgency: roleSet.has("agency"),
+      isAdmin: roleSet.has("admin"),
+      isTenant: roleSet.has("tenant") || roles.length === 0,
+      hasApprovedRole,
+      setActivePortalChoice,
+      refreshPortalState: refreshPortalStateForUser,
+      signOut,
+    }),
+    [
+      user,
+      session,
+      roles,
+      pendingApplications,
+      activePortal,
+      loading,
+      roleSet,
+      hasApprovedRole,
+      setActivePortalChoice,
+      refreshPortalStateForUser,
+      signOut,
+    ],
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {

@@ -1,14 +1,24 @@
-import { useRef, type KeyboardEvent, type ClipboardEvent } from "react";
+import { useRef, useEffect, type KeyboardEvent, type ClipboardEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { MOTION_DURATION } from "@/lib/design/motion";
+
+const OTP_SLOT_IDS = ["otp-a", "otp-b", "otp-c", "otp-d", "otp-e", "otp-f"] as const;
 
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  onComplete?: (code: string) => void;
   length?: number;
 };
 
-export function OtpInput({ value, onChange, length = 6 }: Readonly<Props>) {
+export function OtpInput({ value, onChange, onComplete, length = 6 }: Readonly<Props>) {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const digits = Array.from({ length }, (_, i) => value[i] ?? "");
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (value.length === length && onComplete) onComplete(value);
+  }, [value, length, onComplete]);
 
   function updateAt(index: number, char: string) {
     const next = digits.slice();
@@ -40,8 +50,8 @@ export function OtpInput({ value, onChange, length = 6 }: Readonly<Props>) {
   return (
     <div className="flex justify-between gap-2">
       {digits.map((digit, index) => (
-        <input
-          key={`otp-slot-${index}`}
+        <motion.input
+          key={OTP_SLOT_IDS[index] ?? `otp-extra-${index}`}
           ref={(el) => {
             inputsRef.current[index] = el;
           }}
@@ -53,7 +63,13 @@ export function OtpInput({ value, onChange, length = 6 }: Readonly<Props>) {
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onPaste={handlePaste}
-          className="h-12 w-11 rounded-xl border bg-card text-center text-lg font-semibold outline-none focus:ring-2 focus:ring-ring"
+          animate={
+            digit && !reduceMotion
+              ? { borderColor: "var(--color-mint)", scale: [1, 1.08, 1] }
+              : { borderColor: "rgba(255,255,255,0.15)", scale: 1 }
+          }
+          transition={{ duration: MOTION_DURATION.micro }}
+          className="h-[52px] w-11 rounded-xl border bg-card text-center text-[22px] font-semibold text-foreground outline-none focus:ring-2 focus:ring-ring sm:w-[44px]"
           aria-label={`Digit ${index + 1}`}
         />
       ))}

@@ -5,6 +5,7 @@ import { getAuthContext, profileFromMap } from "@/lib/api/server-context";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
+import { redactProfilePhone, resolveLeadContactAccess } from "@/lib/revenue/lead-access";
 
 const bookViewingSchema = z.object({
   propertyId: z.string().uuid(),
@@ -25,7 +26,7 @@ export const bookViewing = createServerFn({ method: "POST" })
 
     const scheduledAt = new Date(data.scheduledAt);
     if (Number.isNaN(scheduledAt.getTime())) {
-      throw new Error("Invalid viewing date or time");
+      throw new TypeError("Invalid viewing date or time");
     }
     if (scheduledAt.getTime() <= Date.now()) {
       throw new Error("Please choose a future date and time for your viewing");
@@ -214,10 +215,19 @@ export const listMyViewings = createServerFn({ method: "GET" })
     const propertyMap = new Map((properties ?? []).map((p) => [p.id, p]));
     const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-    return rows.map((row) => ({
-      ...row,
-      properties: propertyMap.get(row.property_id) ?? null,
-      tenant_profile: profileMap.get(row.tenant_id) ?? null,
-      landlord_profile: profileFromMap(row.landlord_id, profileMap),
-    })) as ViewingListItem[];
+    const leadAccess = await resolveLeadContactAccess(supabase, userId);
+
+    return rows.map((row) => {
+      const isLandlordView = row.landlord_id === userId;
+      const tenantProfile = profileMap.get(row.tenant_id) ?? null;
+      return {
+        ...row,
+        properties: propertyMap.get(row.property_id) ?? null,
+        tenant_profile: isLandlordView
+          ? redactProfilePhone(tenantProfile, leadAccess.canView)
+          : tenantProfile,
+        landlord_profile: profileFromMap(row.landlord_id, profileMap),
+        leadContactsLocked: isLandlordView && !leadAccess.canView,
+      };
+    }) as ViewingListItem[];
   });

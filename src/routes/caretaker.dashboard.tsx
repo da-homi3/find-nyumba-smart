@@ -15,6 +15,7 @@ import type { Property } from "@/lib/properties";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 export const Route = createFileRoute("/caretaker/dashboard")({
   head: () => ({ meta: [{ title: "Caretaker dashboard — NyumbaSearch" }] }),
@@ -232,7 +233,7 @@ function CaretakerDashboard() {
           Assigned properties only — you cannot change pricing or view analytics.
         </p>
 
-        <section className="rounded-2xl border bg-card p-4">
+        <section className="rounded-2xl border bg-card p-4" data-tour="caretaker-viewings">
           <h2 className="flex items-center gap-2 font-display text-sm font-semibold">
             <Calendar className="h-4 w-4 text-primary" />
             Upcoming viewings
@@ -240,7 +241,7 @@ function CaretakerDashboard() {
           <CaretakerViewingsPanel loading={viewingsLoading} viewings={viewings} />
         </section>
 
-        <section className="rounded-2xl border bg-card p-4">
+        <section className="rounded-2xl border bg-card p-4" data-tour="caretaker-quick-replies">
           <h2 className="font-display text-sm font-semibold">Quick replies</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Tap to copy a reply for tenant inquiries.
@@ -266,7 +267,7 @@ function CaretakerDashboard() {
           </div>
         </section>
 
-        <section>
+        <section data-tour="caretaker-properties">
           <h2 className="font-display text-sm font-semibold">Your properties</h2>
           <CaretakerPropertiesPanel
             loading={propertiesLoading}
@@ -277,6 +278,7 @@ function CaretakerDashboard() {
           />
         </section>
       </main>
+      <OnboardingTourHost tourId="caretaker-dashboard" />
     </div>
   );
 }

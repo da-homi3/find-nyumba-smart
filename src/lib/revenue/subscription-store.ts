@@ -10,6 +10,9 @@ const LANDLORD_PLANS = new Set<LandlordPlan>([
   "free",
   "pro",
   "premium",
+  "manager-solo",
+  "manager-team",
+  "manager-enterprise",
   "agency-starter",
   "agency-pro",
   "agency-enterprise",
@@ -17,6 +20,42 @@ const LANDLORD_PLANS = new Set<LandlordPlan>([
 
 function isLandlordPlan(plan: string): plan is LandlordPlan {
   return LANDLORD_PLANS.has(plan as LandlordPlan);
+}
+
+export type PortalSubscriptionMeta = {
+  status: "active" | "trialing" | "past_due";
+  plan: string;
+  trialEnd: string | null;
+  nextBillingDate: string;
+};
+
+export async function getPortalSubscriptionMeta(
+  supabase: Db,
+  userId: string,
+): Promise<PortalSubscriptionMeta | null> {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("plan, status, trial_end, next_billing_date")
+    .eq("user_id", userId)
+    .in("status", ["active", "trialing", "past_due"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data || new Date(data.next_billing_date).getTime() <= Date.now()) {
+    return null;
+  }
+
+  if (data.status !== "active" && data.status !== "trialing" && data.status !== "past_due") {
+    return null;
+  }
+
+  return {
+    status: data.status,
+    plan: data.plan,
+    trialEnd: data.trial_end,
+    nextBillingDate: data.next_billing_date,
+  };
 }
 
 export async function getActiveLandlordPlan(supabase: Db, userId: string): Promise<LandlordPlan> {

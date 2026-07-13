@@ -4,25 +4,27 @@ import { useAuth } from "@/hooks/use-auth";
 import { getManageableProperty, updateProperty } from "@/lib/api/nyumba.functions";
 import { PropertyMediaManager } from "@/components/PropertyMediaManager";
 import { PropertyLocationPicker } from "@/components/PropertyLocationPicker";
-import { NAIROBI_NEIGHBORHOODS } from "@/data/nairobi-neighborhoods";
+import { KENYA_LOCATION_LABELS } from "@/data/kenya-locations";
+import {
+  applyPropertyTypePricingDefaults,
+  PropertyPricingFields,
+} from "@/components/PropertyPricingFields";
 import type { PropertyType } from "@/lib/properties";
+import {
+  defaultPricePeriod,
+  isCommercialType,
+  isNightlyRentType,
+  listingPriceAmountLabel,
+  normalizePricingMode,
+  PROPERTY_TYPE_OPTIONS,
+  type PricePeriod,
+  type PricingMode,
+} from "@/lib/property-types";
+import { validateCommercialRanges } from "@/lib/commercial-ranges";
 import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FileText, Image as ImageIcon, Loader2, MapPin } from "lucide-react";
-
-const PROPERTY_TYPES: PropertyType[] = [
-  "bedsitter",
-  "single_room",
-  "one_bedroom",
-  "two_bedroom",
-  "three_bedroom",
-  "studio",
-  "hostel",
-  "maisonette",
-  "bungalow",
-  "townhouse",
-];
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -63,11 +65,17 @@ export function PropertyEditForm({
     latitude: null as number | null,
     longitude: null as number | null,
     rent_kes: "",
+    rent_kes_max: "" as number | "",
     deposit_kes: "",
+    area_sqm: "" as number | "",
+    area_sqm_max: "" as number | "",
     bedrooms: "1",
     bathrooms: "1",
     description: "",
     amenities: "",
+    minimum_rent_period_months: "" as number | "",
+    pricing_mode: "rent" as PricingMode,
+    price_period: "month" as PricePeriod | "",
   });
 
   useEffect(() => {
@@ -80,11 +88,22 @@ export function PropertyEditForm({
       latitude: property.latitude,
       longitude: property.longitude,
       rent_kes: String(property.rent_kes),
+      rent_kes_max: property.rent_kes_max != null ? String(property.rent_kes_max) : "",
       deposit_kes: property.deposit_kes != null ? String(property.deposit_kes) : "",
+      area_sqm: property.area_sqm != null ? String(property.area_sqm) : "",
+      area_sqm_max: property.area_sqm_max != null ? String(property.area_sqm_max) : "",
       bedrooms: String(property.bedrooms),
       bathrooms: String(property.bathrooms),
       description: property.description ?? "",
       amenities: (property.amenities ?? []).join(", "),
+      minimum_rent_period_months: property.minimum_rent_period_months ?? "",
+      pricing_mode: normalizePricingMode(property.property_type, property.pricing_mode),
+      price_period: (property.price_period ??
+        defaultPricePeriod(
+          property.property_type,
+          normalizePricingMode(property.property_type, property.pricing_mode),
+        ) ??
+        "month") as PricePeriod | "",
     });
   }, [property]);
 
@@ -100,7 +119,16 @@ export function PropertyEditForm({
           latitude: form.latitude,
           longitude: form.longitude,
           rent_kes: Number.parseInt(form.rent_kes, 10),
+          rent_kes_max:
+            isCommercialType(form.property_type) && form.rent_kes_max
+              ? Number.parseInt(String(form.rent_kes_max), 10)
+              : null,
           deposit_kes: form.deposit_kes ? Number.parseInt(form.deposit_kes, 10) : null,
+          area_sqm: form.area_sqm ? Number.parseInt(String(form.area_sqm), 10) : null,
+          area_sqm_max:
+            isCommercialType(form.property_type) && form.area_sqm_max
+              ? Number.parseInt(String(form.area_sqm_max), 10)
+              : null,
           bedrooms: Number.parseInt(form.bedrooms, 10),
           bathrooms: Number.parseInt(form.bathrooms, 10),
           description: form.description.trim() || null,
@@ -111,6 +139,12 @@ export function PropertyEditForm({
           images: property?.images ?? [],
           video_url: property?.video_url ?? null,
           tour_url: property?.tour_url ?? null,
+          minimum_rent_period_months:
+            isCommercialType(form.property_type) && form.pricing_mode === "rent"
+              ? Number(form.minimum_rent_period_months) || null
+              : null,
+          pricing_mode: form.pricing_mode,
+          price_period: form.pricing_mode === "sale" ? null : form.price_period || null,
           is_active: property?.is_active ?? true,
         },
       }),
@@ -136,7 +170,46 @@ export function PropertyEditForm({
       return false;
     }
     if (!form.rent_kes || Number.parseInt(form.rent_kes, 10) <= 0) {
-      toast.error("Enter a valid monthly rent");
+      toast.error(
+        `Enter a valid ${listingPriceAmountLabel({
+          property_type: form.property_type,
+          pricing_mode: form.pricing_mode,
+          price_period: form.price_period || null,
+        }).toLowerCase()}`,
+      );
+      setActiveTab("details");
+      return false;
+    }
+    if (
+      isCommercialType(form.property_type) &&
+      form.pricing_mode === "rent" &&
+      !form.minimum_rent_period_months
+    ) {
+      toast.error("Select a minimum rent period for commercial lease listings");
+      setActiveTab("details");
+      return false;
+    }
+    if (
+      (isNightlyRentType(form.property_type) || form.pricing_mode === "booking") &&
+      !form.price_period
+    ) {
+      toast.error("Select a booking period");
+      setActiveTab("details");
+      return false;
+    }
+    const rangeIssues: { path: string; message: string }[] = [];
+    validateCommercialRanges(
+      {
+        property_type: form.property_type,
+        rent_kes: Number.parseInt(form.rent_kes, 10),
+        rent_kes_max: form.rent_kes_max ? Number(form.rent_kes_max) : null,
+        area_sqm: form.area_sqm ? Number(form.area_sqm) : null,
+        area_sqm_max: form.area_sqm_max ? Number(form.area_sqm_max) : null,
+      },
+      (path, message) => rangeIssues.push({ path, message }),
+    );
+    if (rangeIssues.length > 0) {
+      toast.error(rangeIssues[0]!.message);
       setActiveTab("details");
       return false;
     }
@@ -229,28 +302,41 @@ export function PropertyEditForm({
               <Field label="Property type">
                 <select
                   value={form.property_type}
-                  onChange={(e) => update("property_type", e.target.value as PropertyType)}
+                  onChange={(e) => {
+                    const nextType = e.target.value as PropertyType;
+                    update("property_type", nextType);
+                    const defaults = applyPropertyTypePricingDefaults(nextType);
+                    update("pricing_mode", defaults.pricing_mode);
+                    update("price_period", defaults.price_period);
+                    update("minimum_rent_period_months", defaults.minimum_rent_period_months);
+                    update("rent_kes_max", defaults.rent_kes_max);
+                    if (!isCommercialType(nextType)) update("area_sqm_max", "");
+                    if (isCommercialType(nextType) && Number(form.bathrooms) < 1)
+                      update("bathrooms", "0");
+                    if (!isCommercialType(nextType) && Number(form.bathrooms) < 1)
+                      update("bathrooms", "1");
+                  }}
                   className={inputCls}
                 >
-                  {PROPERTY_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.replaceAll("_", " ")}
+                  {PROPERTY_TYPE_OPTIONS.map((typeOption) => (
+                    <option key={typeOption.id} value={typeOption.id}>
+                      {typeOption.label}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="Neighborhood">
+              <Field label="Neighborhood / area">
                 <input
                   required
-                  list="edit-nairobi-neighborhoods"
+                  list="edit-kenya-locations"
                   value={form.neighborhood}
                   onChange={(e) => update("neighborhood", e.target.value)}
-                  placeholder="e.g. Tumaini, Rongai"
+                  placeholder="e.g. Kilimani or Nyali, Mombasa"
                   className={inputCls}
                 />
-                <datalist id="edit-nairobi-neighborhoods">
-                  {NAIROBI_NEIGHBORHOODS.map((n) => (
-                    <option key={n} value={n} />
+                <datalist id="edit-kenya-locations">
+                  {KENYA_LOCATION_LABELS.map((label) => (
+                    <option key={label} value={label} />
                   ))}
                 </datalist>
               </Field>
@@ -277,13 +363,47 @@ export function PropertyEditForm({
               <Field label="Bathrooms">
                 <input
                   type="number"
-                  min={1}
+                  min={isCommercialType(form.property_type) ? 0 : 1}
                   value={form.bathrooms}
                   onChange={(e) => update("bathrooms", e.target.value)}
                   className={inputCls}
                 />
               </Field>
             </div>
+
+            {isCommercialType(form.property_type) ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Size from (m²)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.area_sqm}
+                    onChange={(e) => update("area_sqm", e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Size to (m², optional)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.area_sqm_max}
+                    onChange={(e) => update("area_sqm_max", e.target.value)}
+                    placeholder="Leave blank for a single size"
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+            ) : (
+              <Field label="Area (m²)" full>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.area_sqm}
+                  onChange={(e) => update("area_sqm", e.target.value)}
+                  className={inputCls}
+                />
+              </Field>
+            )}
 
             <Field label="Description" full>
               <textarea
@@ -303,27 +423,13 @@ export function PropertyEditForm({
               />
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Rent (KES/month)">
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  value={form.rent_kes}
-                  onChange={(e) => update("rent_kes", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Deposit (KES)">
-                <input
-                  type="number"
-                  min={0}
-                  value={form.deposit_kes}
-                  onChange={(e) => update("deposit_kes", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-            </div>
+            <PropertyPricingFields
+              form={form}
+              update={
+                update as (key: keyof typeof form, value: (typeof form)[keyof typeof form]) => void
+              }
+              inputCls={inputCls}
+            />
           </div>
         )}
 
@@ -346,6 +452,7 @@ export function PropertyEditForm({
               update("latitude", lat);
               update("longitude", lng);
             }}
+            onNeighborhoodSelect={(value) => update("neighborhood", value)}
           />
         )}
 

@@ -128,121 +128,38 @@ const LISTINGS = [
     authenticity_score: 92,
     health_score: 88,
   },
-  {
-    title: "1BR apartment — South B",
-    property_type: "one_bedroom",
-    neighborhood: "South B",
-    address: "Muhoho Ave",
-    latitude: -1.3123,
-    longitude: 36.8345,
-    rent_kes: 28000,
-    deposit_kes: 56000,
-    bedrooms: 1,
-    bathrooms: 1,
-    area_sqm: 55,
-    description: "Near Nairobi West shopping centre. Reliable water supply.",
-    amenities: ["Parking", "Security"],
-    images: [IMG(7)],
-    is_verified: true,
-    authenticity_score: 80,
-    health_score: 78,
-  },
-  {
-    title: "Bedsitter — Umoja Innercore",
-    property_type: "bedsitter",
-    neighborhood: "Umoja",
-    address: "Innercore",
-    latitude: -1.3012,
-    longitude: 36.8912,
-    rent_kes: 12000,
-    deposit_kes: 24000,
-    bedrooms: 0,
-    bathrooms: 1,
-    area_sqm: 20,
-    description: "Budget-friendly with good matatu access.",
-    amenities: ["Water tank"],
-    images: [IMG(8)],
-    is_verified: false,
-    authenticity_score: 58,
-    health_score: 55,
-  },
-  {
-    title: "2BR with balcony — Parklands",
-    property_type: "two_bedroom",
-    neighborhood: "Parklands",
-    address: "Forest Rd",
-    latitude: -1.2634,
-    longitude: 36.8156,
-    rent_kes: 55000,
-    deposit_kes: 110000,
-    bedrooms: 2,
-    bathrooms: 2,
-    area_sqm: 90,
-    description: "Bright unit with city views. 24hr security.",
-    amenities: ["Parking", "Lift", "Fibre", "Balcony"],
-    images: [IMG(9), IMG(10)],
-    is_verified: true,
-    authenticity_score: 85,
-    health_score: 83,
-  },
-  {
-    title: "Single room — Githurai 44",
-    property_type: "single_room",
-    neighborhood: "Githurai",
-    address: "Githurai 44",
-    latitude: -1.1987,
-    longitude: 36.9456,
-    rent_kes: 8000,
-    deposit_kes: 16000,
-    bedrooms: 0,
-    bathrooms: 1,
-    area_sqm: 15,
-    description: "Affordable single room near stage.",
-    amenities: ["Shared bathroom"],
-    images: [IMG(11)],
-    is_verified: false,
-    authenticity_score: 55,
-    health_score: 52,
-  },
 ];
 
 const DEMO_LANDLORD_EMAIL = "demo-landlord@nyumbasearch.app";
 const DEMO_LANDLORD_PASSWORD = `NyumbaDemo-${randomUUID().slice(0, 8)}!`;
 
-async function main() {
-  const env = loadEnv();
-  const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
-  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+function listingKey(title, neighborhood) {
+  return `${title}::${neighborhood}`;
+}
 
-  if (!url || !serviceKey) {
-    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
+async function resolveDemoLandlordId(admin) {
+  const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
+  const existingId = existingUsers?.users?.find((u) => u.email === DEMO_LANDLORD_EMAIL)?.id;
+  if (existingId) {
+    console.log("Using existing demo landlord:", DEMO_LANDLORD_EMAIL);
+    return existingId;
+  }
+
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: DEMO_LANDLORD_EMAIL,
+    password: DEMO_LANDLORD_PASSWORD,
+    email_confirm: true,
+    user_metadata: { full_name: "NyumbaSearch Demo Landlord" },
+  });
+  if (createErr) {
+    console.error("Could not create demo landlord:", createErr.message);
     process.exit(1);
   }
+  console.log("Created demo landlord user:", DEMO_LANDLORD_EMAIL);
+  return created.user.id;
+}
 
-  const admin = createClient(url, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
-  let landlordId = existingUsers?.users?.find((u) => u.email === DEMO_LANDLORD_EMAIL)?.id;
-
-  if (!landlordId) {
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      email: DEMO_LANDLORD_EMAIL,
-      password: DEMO_LANDLORD_PASSWORD,
-      email_confirm: true,
-      user_metadata: { full_name: "NyumbaSearch Demo Landlord" },
-    });
-    if (createErr) {
-      console.error("Could not create demo landlord:", createErr.message);
-      process.exit(1);
-    }
-    landlordId = created.user.id;
-    console.log("Created demo landlord user:", DEMO_LANDLORD_EMAIL);
-  } else {
-    console.log("Using existing demo landlord:", DEMO_LANDLORD_EMAIL);
-  }
-
+async function ensureLandlordProfile(admin, landlordId) {
   await admin.from("profiles").upsert({
     id: landlordId,
     full_name: "NyumbaSearch Demo Landlord",
@@ -258,27 +175,45 @@ async function main() {
     .eq("role", "landlord")
     .maybeSingle();
 
-  if (!existingRole) {
-    const { error: roleErr } = await admin
-      .from("user_roles")
-      .insert({ user_id: landlordId, role: "landlord" });
-    if (roleErr) console.warn("Role insert:", roleErr.message);
-  }
+  if (existingRole) return;
 
-  const { data: existingProps } = await admin
+  const { error: roleErr } = await admin
+    .from("user_roles")
+    .insert({ user_id: landlordId, role: "landlord" });
+  if (roleErr) console.warn("Role insert:", roleErr.message);
+}
+
+async function deactivateExtraDemoListings(admin, landlordId, keepKeys) {
+  const { data: activeDemoProps } = await admin
     .from("properties")
-    .select("id, title, neighborhood, images")
-    .eq("owner_id", landlordId);
+    .select("id, title, neighborhood")
+    .eq("owner_id", landlordId)
+    .eq("is_active", true);
 
-  const existingKeys = new Set((existingProps ?? []).map((p) => `${p.title}::${p.neighborhood}`));
+  let deactivated = 0;
+  for (const prop of activeDemoProps ?? []) {
+    if (keepKeys.has(listingKey(prop.title, prop.neighborhood))) continue;
+    const { error: deactivateErr } = await admin
+      .from("properties")
+      .update({ is_active: false })
+      .eq("id", prop.id);
+    if (deactivateErr) {
+      console.warn(`Deactivate "${prop.title}":`, deactivateErr.message);
+    } else {
+      deactivated++;
+    }
+  }
+  return deactivated;
+}
 
-  let inserted = 0;
-  let skipped = 0;
+async function fixBrokenListingImages(admin) {
+  const { data: activeProps } = await admin
+    .from("properties")
+    .select("id, title, images")
+    .eq("is_active", true);
+
   let imagesFixed = 0;
-
-  for (const row of (
-    await admin.from("properties").select("id, title, images").eq("is_active", true)
-  ).data ?? []) {
+  for (const row of activeProps ?? []) {
     const needsFix = (row.images ?? []).some((url) => isBrokenListingImageUrl(url));
     if (!needsFix) continue;
     const images = normalizePropertyImages(row.images, row.id);
@@ -286,9 +221,15 @@ async function main() {
     if (fixErr) console.warn(`Image fix "${row.title}":`, fixErr.message);
     else imagesFixed++;
   }
+  return imagesFixed;
+}
+
+async function insertMissingListings(admin, landlordId, existingKeys) {
+  let inserted = 0;
+  let skipped = 0;
 
   for (const listing of LISTINGS) {
-    const key = `${listing.title}::${listing.neighborhood}`;
+    const key = listingKey(listing.title, listing.neighborhood);
     if (existingKeys.has(key)) {
       skipped++;
       continue;
@@ -331,12 +272,10 @@ async function main() {
     }
   }
 
-  const { count } = await admin
-    .from("properties")
-    .select("id", { count: "exact", head: true })
-    .eq("is_active", true);
+  return { inserted, skipped };
+}
 
-  // Assign any active listings missing an owner to the demo landlord
+async function assignOrphanListings(admin, landlordId) {
   const { count: orphanCount } = await admin
     .from("properties")
     .update({ owner_id: landlordId })
@@ -347,14 +286,57 @@ async function main() {
   if (orphanCount) {
     console.log(`Assigned ${orphanCount} orphan listing(s) to demo landlord.`);
   }
+}
+
+async function main() {
+  const env = loadEnv();
+  const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceKey) {
+    console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
+    process.exit(1);
+  }
+
+  const admin = createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const landlordId = await resolveDemoLandlordId(admin);
+  await ensureLandlordProfile(admin, landlordId);
+
+  const { data: existingProps } = await admin
+    .from("properties")
+    .select("id, title, neighborhood, images")
+    .eq("owner_id", landlordId);
+
+  const existingKeys = new Set(
+    (existingProps ?? []).map((p) => listingKey(p.title, p.neighborhood)),
+  );
+  const keepKeys = new Set(
+    LISTINGS.map((listing) => listingKey(listing.title, listing.neighborhood)),
+  );
+
+  const deactivated = await deactivateExtraDemoListings(admin, landlordId, keepKeys);
+  const imagesFixed = await fixBrokenListingImages(admin);
+  const { inserted, skipped } = await insertMissingListings(admin, landlordId, existingKeys);
+
+  const { count } = await admin
+    .from("properties")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true);
+
+  await assignOrphanListings(admin, landlordId);
 
   console.log(
-    `Done. Inserted ${inserted}, skipped ${skipped} (already seeded), fixed ${imagesFixed} broken image set(s).`,
+    `Done. Inserted ${inserted}, skipped ${skipped} (already seeded), deactivated ${deactivated} extra demo listing(s), fixed ${imagesFixed} broken image set(s).`,
   );
   console.log(`Active listings in DB: ${count ?? "?"}`);
 }
 
-main().catch((err) => {
+try {
+  await main();
+} catch (err) {
   console.error(err);
   process.exit(1);
-});
+}

@@ -18,6 +18,8 @@ import { useEffect, type ReactNode } from "react";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 import { PortalMobileHeader } from "@/components/dashboard/PortalMobileHeader";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
+import { portalNavTourAttr } from "@/lib/onboarding/portal-nav-tour";
 
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -58,6 +60,7 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
             <Link
               key={n.to}
               to={n.to}
+              data-tour={portalNavTourAttr(n.to)}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10 hover:text-background"
               activeProps={{ className: "bg-background/10 text-background font-semibold" }}
             >
@@ -68,6 +71,7 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
         <div className="space-y-1 px-3 pb-6">
           <Link
             to="/landlord/properties/new"
+            data-tour="portal-add-property"
             className="flex items-center justify-center gap-2 rounded-lg bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground"
           >
             <Plus className="h-4 w-4" /> Add property
@@ -96,6 +100,7 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
         )}
         {children}
       </main>
+      <OnboardingTourHost tourId="landlord-dashboard" />
     </div>
   );
 }

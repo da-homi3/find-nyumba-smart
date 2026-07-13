@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { formatKes, prettyType, type Property } from "@/lib/properties";
+import { prettyType, type Property } from "@/lib/properties";
+import { formatListingPrice } from "@/lib/commercial-ranges";
 import { PropertyImage } from "@/components/PropertyImage";
 import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
 import { isPreviewListing, previewListingStats } from "@/lib/listings-preview";
@@ -188,7 +189,7 @@ export function TenantMapChrome({
                   ) : null}
                   <div className="min-w-0">
                     <p className="truncate text-xs font-semibold">{p.title}</p>
-                    <p className="text-[10px] text-primary">{formatKes(p.rent_kes)}</p>
+                    <p className="text-[10px] text-primary">{formatListingPrice(p)}</p>
                   </div>
                 </button>
               </ListingsPreviewOverlay>
@@ -229,10 +230,7 @@ export function TenantMapChrome({
                 ) : null}
               </p>
               <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-primary">
-                  {formatKes(selected.rent_kes)}
-                  <span className="text-xs font-normal text-muted-foreground">/mo</span>
-                </p>
+                <p className="text-sm font-semibold text-primary">{formatListingPrice(selected)}</p>
                 <Link
                   to="/tenant/property/$id"
                   params={{ id: selected.id }}

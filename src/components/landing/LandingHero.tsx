@@ -4,8 +4,10 @@ import { motion } from "framer-motion";
 import { Search, MapPin, ArrowRight } from "lucide-react";
 import heroImg from "@/assets/hero-garden-city.jpg";
 import { HOOD_META } from "@/components/landing/hood-meta";
+import { HOMEPAGE_DESCRIPTION } from "@/lib/site";
 import type { PropertyType } from "@/lib/properties";
 import { useDeviceCapability } from "@/hooks/useDeviceCapability";
+import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 
 const HeroScene3D = lazy(() =>
   import("@/components/hero/HeroScene3D").then((m) => ({ default: m.HeroScene3D })),
@@ -89,7 +91,7 @@ export function LandingHero({
 
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-7xl flex-col items-center justify-center px-4 py-28 text-center sm:min-h-[92vh] sm:px-6 sm:py-32">
         <motion.p
-          initial={{ opacity: 0, y: 10 }}
+          initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="hero-eyebrow mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(30,184,138,0.4)] bg-[rgba(30,184,138,0.15)] px-4 py-1.5 text-sm font-medium text-[#1eb88a]"
@@ -102,29 +104,28 @@ export function LandingHero({
         </motion.p>
 
         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+          initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: [0.19, 1, 0.22, 1] }}
           className="display-heading hero-title max-w-4xl text-4xl text-white sm:text-5xl lg:text-6xl"
         >
           Your next home in Nairobi —
           <br />
-          <span className="text-[#1eb88a]">verified</span>, no agents.
+          <span className="text-[#1eb88a]">deal with verified property owners</span>.
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25, duration: 0.6 }}
           className="mt-5 max-w-xl text-lg text-white/70"
         >
-          Map-first search across Nairobi. Real reviews. AI that warns about red flags before you
-          visit.
+          {HOMEPAGE_DESCRIPTION}
         </motion.p>
 
         <motion.form
           onSubmit={submit}
-          initial={{ opacity: 0, y: 16 }}
+          initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.6 }}
           className="mt-8 w-full max-w-2xl overflow-hidden rounded-2xl border border-(--glass-border) bg-glass-bg shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl"
@@ -204,7 +205,7 @@ export function LandingHero({
         </motion.form>
 
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.55 }}
           className="mt-8 flex flex-col gap-3 sm:flex-row"

@@ -1,6 +1,6 @@
 import { getProperty, listProperties } from "@/lib/api/nyumba.functions";
 import { fetchListingsApi } from "@/lib/listings-client";
-import type { PropertyType } from "@/lib/property-types";
+import type { PropertyType, PricingMode, PricePeriod } from "@/lib/property-types";
 
 export type { PropertyType } from "@/lib/property-types";
 export { prettyPropertyType as prettyType } from "@/lib/property-types";
@@ -15,10 +15,12 @@ export interface Property {
   latitude: number | null;
   longitude: number | null;
   rent_kes: number;
+  rent_kes_max?: number | null;
   deposit_kes: number | null;
   bedrooms: number;
   bathrooms: number;
   area_sqm: number | null;
+  area_sqm_max?: number | null;
   description: string | null;
   amenities: string[];
   images: string[];
@@ -31,6 +33,9 @@ export interface Property {
   authenticity_score?: number;
   health_score?: number;
   available_from: string | null;
+  minimum_rent_period_months?: number | null;
+  pricing_mode?: PricingMode | null;
+  price_period?: PricePeriod | null;
   views: number;
   created_at: string;
   updated_at: string;

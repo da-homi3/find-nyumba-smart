@@ -103,13 +103,21 @@ function RegisterProviderPage() {
         <main className="mx-auto max-w-lg px-5 py-12 text-center">
           <h1 className="font-display text-2xl font-semibold">You&apos;re already listed</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {existing.provider.business_name} is live on NyumbaSearch.
+            {existing.provider.business_name} is live on NyumbaSearch. Manage your profile, pricing,
+            and analytics from the dashboard.
           </p>
           <Link
             to="/services/provider/dashboard"
             className="mt-6 inline-flex rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
           >
             Open provider dashboard
+          </Link>
+          <Link
+            to="/services/provider/dashboard"
+            search={{ tab: "plan" }}
+            className="mt-3 block text-sm text-primary hover:underline"
+          >
+            Change subscription plan →
           </Link>
         </main>
       </PublicPageShell>

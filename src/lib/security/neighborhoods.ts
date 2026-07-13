@@ -1,34 +1,25 @@
-/** Whitelisted Nairobi neighbourhoods — reject unknown filter values at the API layer. */
-export const ALLOWED_NEIGHBORHOODS = new Set([
-  "Kilimani",
-  "Westlands",
-  "Karen",
-  "Lavington",
-  "Kasarani",
-  "South B",
-  "South C",
-  "Roysambu",
-  "Kileleshwa",
-  "Embakasi",
-  "Rongai",
-  "Ruaka",
-  "Ruiru",
-  "Zimmerman",
-  "Thika Road",
-  "Lang'ata",
-  "Ngong Road",
-  "Eastleigh",
-  "Donholm",
-  "Parklands",
-  "Hurlingham",
-  "Upper Hill",
-  "Gigiri",
-  "Muthaiga",
-]);
+import {
+  ALLOWED_NEIGHBORHOOD_FILTERS,
+  matchLocation,
+  neighborhoodStorageValue,
+  parseCountyWideFilter,
+} from "@/data/kenya-locations";
+
+/** Whitelisted neighbourhood / area values for API listing filters. */
+export const ALLOWED_NEIGHBORHOODS = ALLOWED_NEIGHBORHOOD_FILTERS;
 
 export function normalizeNeighborhoodFilter(value: string | undefined | null): string | undefined {
   if (!value || value === "All") return undefined;
   const trimmed = value.trim();
-  if (!ALLOWED_NEIGHBORHOODS.has(trimmed)) return undefined;
-  return trimmed;
+  if (!trimmed) return undefined;
+
+  if (parseCountyWideFilter(trimmed)) return trimmed;
+  if (ALLOWED_NEIGHBORHOODS.has(trimmed)) return trimmed;
+
+  const matched = matchLocation(trimmed);
+  if (matched) return neighborhoodStorageValue(matched);
+
+  return undefined;
 }
+
+export { parseCountyWideFilter };

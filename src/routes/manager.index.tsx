@@ -45,8 +45,8 @@ function ManagerEntry() {
               Manage portfolios <span className="text-gold">at scale</span>.
             </h1>
             <p className="mt-5 max-w-md text-background/75">
-              Onboard landlord clients, publish listings, and track leads from one dashboard.
-              NyumbaSearch ops reviews new manager accounts before access is granted.
+              Onboard landlord clients, publish listings, and track leads from one dashboard. Sign
+              up to start your 30-day free trial with full access — no payment required upfront.
             </p>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">

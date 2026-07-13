@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Loader2, MessageCircle, Phone } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ContactRevealAnimation } from "@/components/ContactRevealAnimation";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatKes } from "@/lib/properties";
@@ -9,7 +10,6 @@ import { getListingUnlockState, unlockListingContact } from "@/lib/api/contact-u
 import { pollPaymentUntilComplete } from "@/lib/payments/poll-payment-client";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { whatsAppUrl } from "@/lib/phone";
 import { errorMessage } from "@/lib/utils";
 import type { Property } from "@/lib/properties";
 
@@ -147,61 +147,12 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
   }
 
   if (unlocked && contactPhone) {
-    const waMessage = `Hi, I saw your listing *${listing.title}* (${listing.neighborhood}) on NyumbaSearch (nyumbasearch.com). Is it still available? I'd like to arrange a viewing.`;
-    const waLink = whatsAppUrl(contactPhone, waMessage);
-
     return (
-      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-          Contact unlocked
-        </p>
-        <a
-          href={`tel:${contactPhone}`}
-          className="mt-2 flex items-center gap-2 font-display text-xl font-bold text-foreground"
-        >
-          <Phone className="h-5 w-5" />
-          {contactPhone}
-        </a>
-        <div className="mt-3 flex flex-col gap-2">
-          {waLink ? (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-95"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Message on WhatsApp
-            </a>
-          ) : null}
-          <a
-            href={`tel:${contactPhone}`}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border bg-background px-4 py-2.5 text-sm font-semibold"
-          >
-            <Phone className="h-4 w-4" />
-            Call landlord
-          </a>
-          {isPlus ? (
-            <Link
-              to="/tenant/messages"
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary"
-            >
-              Open in-app messages
-            </Link>
-          ) : (
-            <p className="text-center text-xs text-muted-foreground">
-              <Link
-                to="/tenant/checkout"
-                search={{ plan: "plus" }}
-                className="font-medium text-primary"
-              >
-                Upgrade to Plus
-              </Link>{" "}
-              for in-app messaging threads
-            </p>
-          )}
-        </div>
-      </div>
+      <ContactRevealAnimation
+        phone={contactPhone}
+        listingTitle={listing.title}
+        neighborhood={listing.neighborhood}
+      />
     );
   }
 

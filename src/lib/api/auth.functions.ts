@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { ORG_REQUIRED_ROLES } from "@/lib/account-roles";
+import { ORG_REQUIRED_ROLES, isPrivilegedAccountRole, type AccountRole } from "@/lib/account-roles";
+import { grantPortalListerAccess } from "@/lib/api/portal-approval";
+import type { PortalListerRole } from "@/lib/payments/portal-trial";
 import { checkRateLimit, rateLimitKeyFromHeaders, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { passwordResetEmail } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/send";
@@ -150,26 +152,138 @@ async function findAuthUserByEmail(email: string) {
   return null;
 }
 
+async function verifyUserPassword(email: string, password: string): Promise<boolean> {
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const anonKey =
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return false;
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) {
+    console.debug("[auth] link-account password check failed:", error.message);
+  }
+  return !error;
+}
+
+async function linkPortalRoleToExistingUser(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  input: {
+    userId: string;
+    email: string;
+    password: string;
+    fullName: string;
+    phone: string;
+    role: PortalListerRole;
+    organizationName?: string;
+  },
+) {
+  const passwordOk = await verifyUserPassword(input.email, input.password);
+  if (!passwordOk) {
+    throw new Error(
+      "An account with this email already exists. Sign in with your current password, or use Forgot password.",
+    );
+  }
+
+  await grantPortalListerAccess(supabaseAdmin, {
+    userId: input.userId,
+    requestedRole: input.role,
+    organizationName: input.organizationName ?? null,
+    startTrial: true,
+  });
+
+  await supabaseAdmin.from("profiles").upsert({
+    id: input.userId,
+    full_name: input.fullName.trim(),
+    phone: input.phone.trim(),
+    updated_at: new Date().toISOString(),
+  });
+
+  const { data: existingUser } = await supabaseAdmin.auth.admin.getUserById(input.userId);
+  await supabaseAdmin.auth.admin.updateUserById(input.userId, {
+    user_metadata: {
+      ...existingUser.user?.user_metadata,
+      full_name: input.fullName.trim(),
+      phone: input.phone.trim(),
+      role: input.role,
+      organization_name: input.organizationName?.trim() || undefined,
+    },
+  });
+}
+
+function validateSignupInput(data: z.infer<typeof signupSchema>) {
+  if (ORG_REQUIRED_ROLES.has(data.role) && !data.organizationName?.trim()) {
+    throw new Error(
+      data.role === "landlord"
+        ? "Portfolio or business name is required for landlord accounts"
+        : "Organization name is required for this account type",
+    );
+  }
+  if (!isKenyanPhone(data.phone)) {
+    throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
+  }
+}
+
+type SignupMetadata = {
+  full_name: string;
+  phone: string;
+  role: z.infer<typeof signupSchema>["role"];
+  organization_name?: string;
+};
+
+async function handleDuplicateSignup(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  email: string,
+  data: z.infer<typeof signupSchema>,
+  metadata: SignupMetadata,
+) {
+  const existing = await findAuthUserByEmail(email);
+  if (!existing) {
+    throw new Error("An account with this email already exists. Try signing in.");
+  }
+
+  if (existing.email_confirmed_at) {
+    if (!isPrivilegedAccountRole(data.role as AccountRole)) {
+      throw new Error("An account with this email already exists. Try signing in.");
+    }
+
+    await linkPortalRoleToExistingUser(supabaseAdmin, {
+      userId: existing.id,
+      email,
+      password: data.password,
+      fullName: data.fullName,
+      phone: data.phone,
+      role: data.role as PortalListerRole,
+      organizationName: data.organizationName,
+    });
+    const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, existing.id, data);
+    return { userId: existing.id, recovered: false as const, linked: true as const, foundingMember };
+  }
+
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
+    email_confirm: true,
+    password: data.password,
+    user_metadata: { ...existing.user_metadata, ...metadata },
+  });
+  if (updateError) throw updateError;
+
+  const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, existing.id, data);
+  return { userId: existing.id, recovered: true as const, foundingMember };
+}
+
 /** Creates (or completes) an account without Supabase confirmation emails — avoids auth email rate limits. */
 export const registerAccountSignup = createServerFn({ method: "POST" })
   .inputValidator(signupSchema)
   .handler(async ({ data }) => {
     checkRateLimit(`signup:${data.email.toLowerCase()}`, RATE_LIMITS.signup);
-
-    if (ORG_REQUIRED_ROLES.has(data.role) && !data.organizationName?.trim()) {
-      throw new Error(
-        data.role === "landlord"
-          ? "Portfolio or business name is required for landlord accounts"
-          : "Organization name is required for this account type",
-      );
-    }
-    if (!isKenyanPhone(data.phone)) {
-      throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
-    }
+    validateSignupInput(data);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const email = data.email.trim().toLowerCase();
-    const metadata = {
+    const metadata: SignupMetadata = {
       full_name: data.fullName.trim(),
       phone: data.phone.trim(),
       role: data.role,
@@ -193,23 +307,7 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
     }
 
     if (error && isDuplicateAuthUserError(error.message)) {
-      const existing = await findAuthUserByEmail(email);
-      if (!existing) {
-        throw new Error("An account with this email already exists. Try signing in.");
-      }
-      if (existing.email_confirmed_at) {
-        throw new Error("An account with this email already exists. Try signing in.");
-      }
-
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
-        email_confirm: true,
-        password: data.password,
-        user_metadata: { ...existing.user_metadata, ...metadata },
-      });
-      if (updateError) throw updateError;
-
-      const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, existing.id, data);
-      return { userId: existing.id, recovered: true as const, foundingMember };
+      return handleDuplicateSignup(supabaseAdmin, email, data, metadata);
     }
 
     throw new Error(error?.message ?? "Could not create account");

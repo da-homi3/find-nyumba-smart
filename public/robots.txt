@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /admin/revenue
+Disallow: /admin/listings/new
 Disallow: /auth
 Disallow: /settings
 Disallow: /landlord/dashboard
@@ -36,6 +38,8 @@ Disallow: /tenant/checkout
 Disallow: /tenant/profile
 Disallow: /tenant/compare
 Disallow: /tenant/saved
+Disallow: /services/register
+Disallow: /services/provider
 Disallow: /api
 
 Sitemap: https://nyumbasearch.com/sitemap.xml

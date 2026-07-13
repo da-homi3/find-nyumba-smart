@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
 import { listTenantInquiries } from "@/lib/api/nyumba.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
@@ -12,6 +12,7 @@ import { PropertyImage } from "@/components/PropertyImage";
 import { SiteNav } from "@/components/SiteNav";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 export const Route = createFileRoute("/tenant/messages/")({
   head: () => ({ meta: [{ title: "Messages — NyumbaSearch" }] }),
@@ -74,14 +75,17 @@ function Messages() {
           </div>
         )}
 
-        <MessagesInbox
-          inquiries={inquiries}
-          userId={user.id}
-          isPlus={isPlus}
-          isLoading={isLoading}
-          error={error}
-          onRetry={() => void refetch()}
-        />
+        <div data-tour="tenant-messages-list">
+          <MessagesInbox
+            inquiries={inquiries}
+            userId={user.id}
+            isPlus={isPlus}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => void refetch()}
+          />
+        </div>
+        <OnboardingTourHost tourId="tenant-messages" />
       </div>
     </div>
   );
@@ -169,17 +173,7 @@ function MessagesBody({
   }
 
   if (inquiries.length === 0) {
-    return (
-      <div className="mt-10 rounded-2xl border border-dashed p-10 text-center">
-        <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground" />
-        <p className="mt-3 text-sm text-muted-foreground">
-          No conversations yet. Message a landlord from a property page to start.
-        </p>
-        <Link to="/tenant" className="mt-4 inline-block text-sm font-semibold text-primary">
-          Browse listings
-        </Link>
-      </div>
-    );
+    return <EmptyState type="no_messages" className="mt-10" />;
   }
 
   return (

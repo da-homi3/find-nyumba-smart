@@ -15,6 +15,16 @@ export type PortalPaths = {
   team?: string;
 };
 
+export function listerPortalFromRoles(roles: {
+  isLandlord?: boolean;
+  isManager?: boolean;
+  isAgency?: boolean;
+}): ListingPortal {
+  if (roles.isAgency) return "agency";
+  if (roles.isManager) return "manager";
+  return "landlord";
+}
+
 export const PORTAL_PATHS: Record<ListingPortal, PortalPaths> = {
   landlord: {
     dashboard: "/landlord/dashboard",

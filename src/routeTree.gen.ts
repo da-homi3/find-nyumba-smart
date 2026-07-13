@@ -108,6 +108,7 @@ import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.
 import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
 import { Route as AgencyDashboardPlanRouteImport } from './routes/agency.dashboard.plan'
 import { Route as AgencyDashboardBillingRouteImport } from './routes/agency.dashboard.billing'
+import { Route as AdminListingsNewRouteImport } from './routes/admin.listings.new'
 import { Route as ManagerPropertiesIdEditRouteImport } from './routes/manager.properties.$id.edit'
 import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
 import { Route as AgencyPropertiesIdEditRouteImport } from './routes/agency.properties.$id.edit'
@@ -609,6 +610,11 @@ const AgencyDashboardBillingRoute = AgencyDashboardBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AgencyDashboardRoute,
 } as any)
+const AdminListingsNewRoute = AdminListingsNewRouteImport.update({
+  id: '/listings/new',
+  path: '/listings/new',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ManagerPropertiesIdEditRoute = ManagerPropertiesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -704,6 +710,7 @@ export interface FileRoutesByFullPath {
   '/services/': typeof ServicesIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/verify/': typeof VerifyIndexRoute
+  '/admin/listings/new': typeof AdminListingsNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
@@ -791,6 +798,7 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesIndexRoute
   '/tenant': typeof TenantIndexRoute
   '/verify': typeof VerifyIndexRoute
+  '/admin/listings/new': typeof AdminListingsNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
@@ -896,6 +904,7 @@ export interface FileRoutesById {
   '/services/': typeof ServicesIndexRoute
   '/tenant/': typeof TenantIndexRoute
   '/verify/': typeof VerifyIndexRoute
+  '/admin/listings/new': typeof AdminListingsNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
@@ -1002,6 +1011,7 @@ export interface FileRouteTypes {
     | '/services/'
     | '/tenant/'
     | '/verify/'
+    | '/admin/listings/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
     | '/agency/properties/new'
@@ -1089,6 +1099,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/tenant'
     | '/verify'
+    | '/admin/listings/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
     | '/agency/properties/new'
@@ -1193,6 +1204,7 @@ export interface FileRouteTypes {
     | '/services/'
     | '/tenant/'
     | '/verify/'
+    | '/admin/listings/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
     | '/agency/properties/new'
@@ -1944,6 +1956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyDashboardBillingRouteImport
       parentRoute: typeof AgencyDashboardRoute
     }
+    '/admin/listings/new': {
+      id: '/admin/listings/new'
+      path: '/listings/new'
+      fullPath: '/admin/listings/new'
+      preLoaderRoute: typeof AdminListingsNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/manager/properties/$id/edit': {
       id: '/manager/properties/$id/edit'
       path: '/$id/edit'
@@ -1971,11 +1990,13 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminRevenueRoute: typeof AdminRevenueRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminListingsNewRoute: typeof AdminListingsNewRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminRevenueRoute: AdminRevenueRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminListingsNewRoute: AdminListingsNewRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

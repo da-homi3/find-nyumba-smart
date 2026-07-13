@@ -22,6 +22,7 @@ import {
   getBrandLogoUrl,
   getSiteUrl,
   HOMEPAGE_TITLE,
+  HOMEPAGE_DESCRIPTION,
   CUSTOMER_CARE_EMAIL,
   CUSTOMER_CARE_PHONE_E164,
 } from "@/lib/site";
@@ -34,7 +35,7 @@ import {
   fetchFeaturedTestimonialsApi,
   fetchIntelligenceStatsApi,
 } from "@/lib/homepage-client";
-import { prefetchHomepageQueries } from "@/lib/seo/prefetch-homepage";
+import { prefetchHomepageQueries, HOMEPAGE_LISTINGS_LIMIT } from "@/lib/seo/prefetch-homepage";
 import { buildPageHead } from "@/lib/seo/head";
 
 async function fetchPublicStatsApi(): Promise<PublicStats> {
@@ -50,8 +51,7 @@ export const Route = createFileRoute("/")({
     return { providerCounts };
   },
   head: () => {
-    const description =
-      "Discover verified vacant homes across Nairobi. Map-first search, real reviews, AI guidance — no agent fees, no scams.";
+    const description = HOMEPAGE_DESCRIPTION;
     return buildPageHead({
       title: HOMEPAGE_TITLE,
       description,
@@ -103,7 +103,7 @@ function Landing() {
   const { providerCounts } = Route.useLoaderData();
   const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties", "homepage-featured"],
-    queryFn: () => fetchProperties({ limit: 50 }),
+    queryFn: () => fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT }),
     staleTime: 60_000,
   });
 

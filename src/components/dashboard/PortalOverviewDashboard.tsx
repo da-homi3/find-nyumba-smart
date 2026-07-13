@@ -16,12 +16,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { DashboardListingCard } from "@/components/dashboard/DashboardListingCard";
+import { EmptyState } from "@/components/EmptyState";
 import {
   listMyViewings,
   updateViewingStatus,
   type ViewingListItem,
 } from "@/lib/api/booking.functions";
 import { PORTAL_PATHS } from "@/lib/portal-paths";
+import { PortalTrialBanner } from "@/components/dashboard/portal/PortalTrialBanner";
 import { formatKes, type Property } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { useOrgMembership } from "@/hooks/use-org-membership";
@@ -50,7 +53,7 @@ export function PortalOverviewDashboard({
   totalViews = 0,
   propertiesPath,
   propertiesNewPath,
-  leadsPath,
+  leadsPath: _leadsPath,
   teamPath,
 }: Props) {
   const qc = useQueryClient();
@@ -82,7 +85,11 @@ export function PortalOverviewDashboard({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const roleHint = isOwner ? "Owner" : isMember ? "Team member" : null;
+  const roleHint = (() => {
+    if (isOwner) return "Owner";
+    if (isMember) return "Team member";
+    return null;
+  })();
   const paths = PORTAL_PATHS[portal];
   const showOwnerTools = !isMember;
 
@@ -106,6 +113,8 @@ export function PortalOverviewDashboard({
           </Link>
         </div>
       </header>
+
+      <PortalTrialBanner portal={portal} />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
@@ -208,71 +217,21 @@ export function PortalOverviewDashboard({
           </div>
 
           {properties.length === 0 ? (
-            <div className="mt-4 rounded-2xl border-2 border-dashed bg-card p-10 text-center">
-              <Building2 className="mx-auto h-10 w-10 text-muted-foreground" />
-              <h3 className="mt-3 font-display text-lg font-semibold">No properties yet</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add your first listing to start receiving tenant leads.
-              </p>
-              <Link
-                to={propertiesNewPath}
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-emerald px-5 py-2.5 text-sm font-semibold text-primary-foreground"
-              >
-                <Plus className="h-4 w-4" /> Add your first property
-              </Link>
-            </div>
+            <EmptyState
+              type="no_listings"
+              className="mt-4"
+              href={propertiesNewPath}
+              cta="Add your first property"
+            />
           ) : (
-            <div className="mt-4 overflow-hidden rounded-2xl border bg-card">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Property</th>
-                    <th className="px-4 py-3 text-left">Rent</th>
-                    <th className="px-4 py-3 text-left">Status</th>
-                    <th className="px-4 py-3 text-left">Verification</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {properties.slice(0, 8).map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3 font-medium">{p.title}</td>
-                      <td className="px-4 py-3">{formatKes(p.rent_kes)}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            p.is_active
-                              ? "bg-success/15 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {p.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            p.is_verified
-                              ? "bg-emerald-500/10 text-emerald-600"
-                              : "bg-gray-500/10 text-gray-600"
-                          }`}
-                        >
-                          {p.is_verified ? "Verified" : "Unverified"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          to={leadsPath}
-                          search={{ thread: undefined }}
-                          className="text-xs font-semibold text-primary hover:underline"
-                        >
-                          Leads
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4 space-y-3">
+              {properties.slice(0, 8).map((p) => (
+                <DashboardListingCard
+                  key={p.id}
+                  listing={p}
+                  portal={portal === "agency" ? "agency" : "manager"}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -283,9 +242,12 @@ export function PortalOverviewDashboard({
             Viewing Requests
           </h2>
           {viewings.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed bg-card p-6 text-center text-xs text-muted-foreground">
-              No active viewing requests yet.
-            </div>
+            <EmptyState
+              type="no_leads"
+              className="mt-4 p-6"
+              href={paths.plan}
+              cta="View plan options"
+            />
           ) : (
             <div className="mt-4 space-y-3">
               {viewings.slice(0, 6).map((v: ViewingListItem) => (

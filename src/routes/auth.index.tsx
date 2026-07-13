@@ -5,7 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
-import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
+import {
+  resolvePostLoginPath,
+  listerDashboardPath,
+  type AppRole,
+  type PortalId,
+} from "@/lib/portal-guard";
 import {
   type AccountRole,
   DASHBOARD_APPROVAL_ROLES,
@@ -24,9 +29,11 @@ import {
 } from "@/lib/api/portal.functions";
 import { registerAccountSignup } from "@/lib/api/auth.functions";
 import { PromoBadge } from "@/components/auth/PromoBadge";
+import { RoleSelector } from "@/components/auth/RoleSelector";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
 import { buildPageHead } from "@/lib/seo/head";
+import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -118,19 +125,27 @@ function TenantAuth() {
 
     if (isPrivilegedAccountRole(role)) {
       const privilegedRole = role as "landlord" | "manager" | "agency";
-      const portalPayload = {
-        requestedRole: privilegedRole,
-        organizationName: organizationName.trim() || undefined,
-        phone: phone.trim() || undefined,
-      };
 
-      await submitPortalApplication({ data: portalPayload });
+      if (!signupResult.linked) {
+        const portalPayload = {
+          requestedRole: privilegedRole,
+          organizationName: organizationName.trim() || undefined,
+          phone: phone.trim() || undefined,
+        };
+        await submitPortalApplication({ data: portalPayload });
+      }
 
-      toast.success("Application submitted — we'll email you when approved.");
-      navigate({ to: "/auth/pending" });
+      markSignupTourPending(privilegedRole);
+      toast.success(
+        signupResult.linked
+          ? "Portal linked to your existing account — your 30-day free trial is active."
+          : "Welcome! Your 30-day free trial is active — explore your dashboard.",
+      );
+      globalThis.location.href = listerDashboardPath(privilegedRole);
       return;
     }
 
+    markSignupTourPending("tenant");
     toast.success("Welcome to NyumbaSearch!");
     globalThis.location.href = "/tenant";
   }
@@ -159,7 +174,12 @@ function TenantAuth() {
       console.debug("[auth] Profile portal not ready after login:", err);
     }
 
-    globalThis.location.href = resolvePostLoginPath(roles as AppRole[], activePortal, redirect);
+    globalThis.location.href = resolvePostLoginPath(
+      roles as AppRole[],
+      activePortal,
+      redirect,
+      apps,
+    );
   }
 
   async function submitForm() {
@@ -253,16 +273,7 @@ function TenantAuth() {
                   </Field>
 
                   <Field label="Account type">
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(e.target.value as AccountRole)}
-                      className={inputCls}
-                    >
-                      <option value="tenant">Tenant</option>
-                      <option value="landlord">Landlord</option>
-                      <option value="manager">Property manager</option>
-                      <option value="agency">Real estate agency</option>
-                    </select>
+                    <RoleSelector value={role} onSelect={setRole} />
                     <PromoBadge role={role} />
                   </Field>
 
@@ -280,8 +291,8 @@ function TenantAuth() {
 
                   {isPrivilegedAccountRole(role) && (
                     <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
-                      Landlord, property manager, and agency accounts are reviewed by NyumbaSearch
-                      operations before dashboard access is granted.
+                      Landlord, property manager, and agency accounts start with a 30-day free trial
+                      — full dashboard access, no payment required upfront.
                     </p>
                   )}
                 </>

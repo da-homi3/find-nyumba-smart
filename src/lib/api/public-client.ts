@@ -14,7 +14,7 @@ export function createPublicClient() {
 }
 
 const PUBLIC_PROPERTY_COLUMNS_BASE =
-  "id,title,property_type,neighborhood,address,latitude,longitude,rent_kes,deposit_kes,bedrooms,bathrooms,area_sqm,description,amenities,images,video_url,tour_url,is_verified,is_active,is_vacant,authenticity_score,health_score,available_from,views,created_at,updated_at" as const;
+  "id,title,property_type,neighborhood,address,latitude,longitude,rent_kes,rent_kes_max,deposit_kes,bedrooms,bathrooms,area_sqm,area_sqm_max,description,amenities,images,video_url,tour_url,is_verified,is_active,is_vacant,authenticity_score,health_score,available_from,pricing_mode,price_period,minimum_rent_period_months,views,created_at,updated_at" as const;
 
 const PUBLIC_PROPERTY_COLUMNS_REVENUE = ",featured_until,boost_package,nyumba_verified_at" as const;
 
@@ -35,6 +35,11 @@ export function isMissingRevenueColumnError(message: string | undefined): boolea
     message.includes("featured_until") ||
     message.includes("boost_package") ||
     message.includes("nyumba_verified_at") ||
+    message.includes("minimum_rent_period_months") ||
+    message.includes("pricing_mode") ||
+    message.includes("price_period") ||
+    message.includes("rent_kes_max") ||
+    message.includes("area_sqm_max") ||
     message.includes("landlord_plan") ||
     message.includes("tenant_plan") ||
     message.includes("plus_expires_at")

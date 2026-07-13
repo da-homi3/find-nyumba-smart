@@ -25,7 +25,7 @@ import {
   FAVICON_PATH,
   WEB_MANIFEST_PATH,
 } from "@/lib/brand";
-import { getOgImageUrl, HOMEPAGE_TITLE } from "@/lib/site";
+import { getOgImageUrl, HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site";
 import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CookieConsentBanner } from "@/components/CookieConsent";
@@ -115,8 +115,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: HOMEPAGE_TITLE },
       {
         name: "description",
-        content:
-          "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
+        content: HOMEPAGE_DESCRIPTION,
       },
       { name: "author", content: "NyumbaSearch" },
       { name: "theme-color", content: BRAND_THEME_COLOR },
@@ -125,16 +124,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: HOMEPAGE_TITLE },
       {
         property: "og:description",
-        content:
-          "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
+        content: HOMEPAGE_DESCRIPTION,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: HOMEPAGE_TITLE },
       {
         name: "twitter:description",
-        content:
-          "Discover verified vacant houses, apartments, and bedsitters across Nairobi — no agents, no scams.",
+        content: HOMEPAGE_DESCRIPTION,
       },
       { property: "og:image", content: getOgImageUrl() },
       { name: "twitter:image", content: getOgImageUrl() },

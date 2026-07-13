@@ -7,9 +7,10 @@ import {
   ProviderContactActions,
   ProviderContactDetails,
 } from "@/components/ProviderContactActions";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
+import { trackProviderAnalytics } from "@/lib/provider-analytics";
 
 export const Route = createFileRoute("/services/provider/$id")({
   loader: async ({ params }) => {
@@ -22,6 +23,12 @@ export const Route = createFileRoute("/services/provider/$id")({
 function ProviderPage() {
   const { provider } = Route.useLoaderData();
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (provider?.id && !provider.isPlaceholder) {
+      trackProviderAnalytics(provider.id, "profile_view");
+    }
+  }, [provider?.id, provider?.isPlaceholder]);
 
   if (!provider) {
     return (
@@ -104,7 +111,12 @@ function ProviderPage() {
                 },
                 "Quote request sent",
               );
-              if (ok) setSent(true);
+              if (ok) {
+                if (!provider.isPlaceholder) {
+                  trackProviderAnalytics(provider.id, "quote_request");
+                }
+                setSent(true);
+              }
             }}
           >
             <h2 className="font-display font-semibold">Request a quote</h2>

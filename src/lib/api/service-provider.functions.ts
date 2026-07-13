@@ -34,20 +34,33 @@ const categories = [
   "laundry",
   "locksmiths",
   "roofing",
+  "mama_fua",
+  "nanny",
+  "gas_delivery",
+  "delivery",
+  "courier",
 ] as const;
+
+export const providerProfileSchema = z.object({
+  businessName: z.string().min(2),
+  categories: z.array(z.enum(categories)).min(1),
+  areasServed: z.array(z.string().min(1)).min(1),
+  counties: z.array(z.string().min(1)).min(1).optional(),
+  description: z.string().optional(),
+  priceRange: z.string().optional(),
+  phone: z.string().min(9),
+  sourceUrl: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid website URL"),
+});
+
+export type ProviderProfileInput = z.infer<typeof providerProfileSchema>;
 
 export const createServiceProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    z.object({
-      businessName: z.string().min(2),
-      categories: z.array(z.enum(categories)).min(1),
-      areasServed: z.array(z.string().min(1)).min(1),
-      description: z.string().optional(),
-      priceRange: z.string().optional(),
-      phone: z.string().min(9),
-    }),
-  )
+  .inputValidator(providerProfileSchema)
   .handler(async ({ context, data }) => {
     const { userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -72,9 +85,11 @@ export const createServiceProvider = createServerFn({ method: "POST" })
           business_name: data.businessName,
           categories: data.categories,
           areas_served: data.areasServed,
+          counties: data.counties ?? ["Nairobi"],
           description: data.description ?? null,
           price_range: data.priceRange ?? null,
           phone: data.phone,
+          source_url: data.sourceUrl?.trim() || null,
           ...resubmit,
         })
         .eq("id", existing.id)
@@ -98,9 +113,11 @@ export const createServiceProvider = createServerFn({ method: "POST" })
         business_name: data.businessName,
         categories: data.categories,
         areas_served: data.areasServed,
+        counties: data.counties ?? ["Nairobi"],
         description: data.description ?? null,
         price_range: data.priceRange ?? null,
         phone: data.phone,
+        source_url: data.sourceUrl?.trim() || null,
         status: "pending",
         tier: "basic",
       })
@@ -200,6 +217,193 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
     return { provider, subscription, inquiries: mergedQuotes };
   });
 
+export const updateServiceProviderProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(providerProfileSchema)
+  .handler(async ({ context, data }) => {
+    const { userId } = getAuthContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: provider, error: fetchErr } = await supabaseAdmin
+      .from("service_providers")
+      .select("id, status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (fetchErr || !provider) throw new Error("Provider profile not found");
+    if (provider.status === "suspended") {
+      throw new Error("Your account is suspended. Contact customer care.");
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from("service_providers")
+      .update({
+        business_name: data.businessName,
+        categories: data.categories,
+        areas_served: data.areasServed,
+        counties: data.counties ?? ["Nairobi"],
+        description: data.description ?? null,
+        price_range: data.priceRange ?? null,
+        phone: data.phone,
+        source_url: data.sourceUrl?.trim() || null,
+      })
+      .eq("id", provider.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { id: updated.id };
+  });
+
+const ANALYTICS_EVENT_TYPES = [
+  "profile_view",
+  "directory_view",
+  "contact_click",
+  "quote_request",
+] as const;
+
+export type ProviderAnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
+
+export type ProviderAnalyticsSummary = {
+  profileViews: number;
+  directoryViews: number;
+  contactClicks: number;
+  quoteRequests: number;
+  inquiriesTotal: number;
+  conversionRate: number;
+  viewsByDay: { date: string; views: number }[];
+  eventsByType: { type: string; count: number }[];
+};
+
+export const trackProviderEvent = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      providerId: z.string().uuid(),
+      eventType: z.enum(ANALYTICS_EVENT_TYPES),
+      metadata: z.record(z.string(), z.string()).optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: provider } = await supabaseAdmin
+      .from("service_providers")
+      .select("id, status")
+      .eq("id", data.providerId)
+      .maybeSingle();
+    if (provider?.status !== "active") return { ok: false as const };
+
+    const { error } = await supabaseAdmin.from("provider_analytics_events").insert({
+      provider_id: data.providerId,
+      event_type: data.eventType,
+      metadata: data.metadata ?? {},
+    });
+    if (error) {
+      console.warn("[provider-analytics] track failed", error.message);
+      return { ok: false as const };
+    }
+    return { ok: true as const };
+  });
+
+function formatDayKey(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-KE", { month: "short", day: "numeric" });
+}
+
+export const getProviderAnalytics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = getAuthContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: provider } = await supabaseAdmin
+      .from("service_providers")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const empty: ProviderAnalyticsSummary = {
+      profileViews: 0,
+      directoryViews: 0,
+      contactClicks: 0,
+      quoteRequests: 0,
+      inquiriesTotal: 0,
+      conversionRate: 0,
+      viewsByDay: [],
+      eventsByType: ANALYTICS_EVENT_TYPES.map((type) => ({ type, count: 0 })),
+    };
+    if (!provider) return empty;
+
+    const since = new Date();
+    since.setDate(since.getDate() - 30);
+
+    const [{ data: events, error: eventsErr }, { data: inquiries }, { data: quoteLeads }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("provider_analytics_events")
+          .select("event_type, created_at")
+          .eq("provider_id", provider.id)
+          .gte("created_at", since.toISOString())
+          .order("created_at", { ascending: true }),
+        supabaseAdmin
+          .from("provider_inquiries")
+          .select("id")
+          .eq("provider_id", provider.id)
+          .gte("created_at", since.toISOString()),
+        supabaseAdmin
+          .from("partnership_inquiries")
+          .select("id, metadata")
+          .eq("inquiry_type", "service_quote")
+          .gte("created_at", since.toISOString()),
+      ]);
+
+    const quoteLeadCount = (quoteLeads ?? []).filter((row) => {
+      const meta = row.metadata as Record<string, string> | null;
+      return meta?.providerId === provider.id;
+    }).length;
+    const inquiriesTotal = (inquiries?.length ?? 0) + quoteLeadCount;
+
+    if (eventsErr) {
+      return {
+        ...empty,
+        inquiriesTotal,
+        quoteRequests: inquiriesTotal,
+      };
+    }
+
+    const counts: Record<ProviderAnalyticsEventType, number> = {
+      profile_view: 0,
+      directory_view: 0,
+      contact_click: 0,
+      quote_request: 0,
+    };
+    const dayMap = new Map<string, number>();
+
+    for (const row of events ?? []) {
+      const type = row.event_type as ProviderAnalyticsEventType;
+      if (type in counts) counts[type]++;
+      const day = formatDayKey(row.created_at);
+      dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
+    }
+
+    const profileViews = counts.profile_view;
+    const quoteRequests = Math.max(counts.quote_request, inquiriesTotal);
+    const conversionRate =
+      profileViews > 0 ? Math.round((quoteRequests / profileViews) * 1000) / 10 : 0;
+
+    return {
+      profileViews,
+      directoryViews: counts.directory_view,
+      contactClicks: counts.contact_click,
+      quoteRequests,
+      inquiriesTotal,
+      conversionRate,
+      viewsByDay: [...dayMap.entries()].map(([date, views]) => ({ date, views })),
+      eventsByType: ANALYTICS_EVENT_TYPES.map((type) => ({
+        type,
+        count: counts[type],
+      })),
+    };
+  });
+
 import { PROVIDER_TIERS } from "@/lib/revenue/plans";
 
 export const SERVICE_PROVIDER_CATEGORIES = categories;
@@ -207,7 +411,7 @@ export const SERVICE_PROVIDER_CATEGORIES = categories;
 export { PROVIDER_TIERS };
 
 export function providerTierPrice(tier: string): number {
-  return PROVIDER_TIERS.find((t) => t.value === tier)?.priceKes ?? 1500;
+  return PROVIDER_TIERS.find((t) => t.value === tier)?.priceKes ?? 500;
 }
 
 export type PublicServiceProvider = {

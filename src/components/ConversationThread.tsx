@@ -13,6 +13,8 @@ import { Check, CheckCheck, Loader2, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { LeadPackUpgradeBanner } from "@/components/dashboard/portal/LeadPackUpgradeBanner";
+import { listerPortalFromRoles } from "@/lib/portal-paths";
 import { whatsAppUrl } from "@/lib/phone";
 
 type Message = {
@@ -64,8 +66,8 @@ export function ConversationThread({
   showQuickReplies = false,
   fullHeight = false,
 }: Readonly<ConversationThreadProps>) {
-  const { user } = useAuth();
-  const { isPlus } = useEntitlements();
+  const { user, isLandlord, isManager, isAgency } = useAuth();
+  const { isPlus, entitlements } = useEntitlements();
   const qc = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState("");
@@ -169,6 +171,11 @@ export function ConversationThread({
   const propertyTitle = inquiry?.properties?.title ?? "Listing";
   const propertyId = inquiry?.property_id ?? inquiry?.properties?.id;
   const isTenantViewer = inquiry?.tenant_id === user?.id;
+  const listerPortal = listerPortalFromRoles({ isLandlord, isManager, isAgency });
+  const showLeadPackBanner =
+    !isTenantViewer &&
+    (isLandlord || isManager || isAgency) &&
+    entitlements.canViewLeadContacts === false;
   const landlordPhone = counterparty?.phone?.trim() ?? null;
   const waLink =
     isTenantViewer && landlordPhone
@@ -213,6 +220,12 @@ export function ConversationThread({
           )}
         </div>
       </header>
+
+      {showLeadPackBanner ? (
+        <div className="shrink-0 border-b px-4 py-3">
+          <LeadPackUpgradeBanner portal={listerPortal} />
+        </div>
+      ) : null}
 
       {waLink ? (
         <div className="shrink-0 border-b bg-secondary/40 px-4 py-3">

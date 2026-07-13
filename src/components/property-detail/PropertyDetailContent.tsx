@@ -1,7 +1,11 @@
 import { Bath, BedDouble, Calendar, MapPin, Sparkles, Square } from "lucide-react";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
+import { formatListingArea, formatListingPrice } from "@/lib/commercial-ranges";
+import { listingPricingNote } from "@/lib/property-types";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { PropertyIntelligencePanel } from "@/components/PropertyIntelligencePanel";
+import { AdminPropertyVerifyButton } from "@/components/admin/AdminPropertyVerifyButton";
+import { AdminPropertyAuthenticityPanel } from "@/components/admin/AdminPropertyAuthenticityPanel";
 import { PropertyCard } from "@/components/PropertyCard";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyRevenueBlocks } from "@/components/PropertyRevenueBlocks";
@@ -118,16 +122,25 @@ export function PropertyDetailContent({
         </div>
         <div className="text-right">
           <div className="font-display text-2xl font-semibold text-primary">
-            {formatKes(p.rent_kes)}
+            {formatListingPrice(p)}
           </div>
-          <div className="text-xs text-muted-foreground">/month</div>
+          {listingPricingNote(p) ? (
+            <div className="mt-1 text-[10px] font-medium text-muted-foreground">
+              {listingPricingNote(p).replace(/^ · /, "")}
+            </div>
+          ) : null}
         </div>
       </div>
+
+      <div className="mt-3 flex justify-end">
+        <AdminPropertyVerifyButton property={p} />
+      </div>
+      <AdminPropertyAuthenticityPanel property={p} />
 
       <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border bg-card p-3">
         <PropertyStat icon={BedDouble} label="Beds" value={String(p.bedrooms)} />
         <PropertyStat icon={Bath} label="Baths" value={String(p.bathrooms)} />
-        <PropertyStat icon={Square} label="Area" value={p.area_sqm ? `${p.area_sqm}m²` : "—"} />
+        <PropertyStat icon={Square} label="Area" value={formatListingArea(p) ?? "—"} />
         <PropertyStat
           icon={Calendar}
           label="Move-in"
@@ -139,6 +152,7 @@ export function PropertyDetailContent({
         <span className="font-medium">Type:</span> {prettyType(p.property_type)} ·{" "}
         <span className="font-medium">Deposit:</span>{" "}
         {p.deposit_kes ? formatKes(p.deposit_kes) : "—"}
+        {listingPricingNote(p)}
         {intel.parking ? " · Parking" : ""}
       </div>
 

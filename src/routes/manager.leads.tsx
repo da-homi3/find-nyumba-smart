@@ -6,6 +6,7 @@ import { ConversationThread } from "@/components/ConversationThread";
 import { useEffect, useState } from "react";
 import { Inbox } from "lucide-react";
 import { ManagerShell } from "@/components/ManagerShell";
+import { LeadPackUpgradeBanner } from "@/components/dashboard/portal/LeadPackUpgradeBanner";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 
 export const Route = createFileRoute("/manager/leads")({
@@ -68,6 +69,7 @@ function ManagerLeadsPage() {
       <p className="mt-2 text-sm text-muted-foreground">
         {leads.length} inquiries across your managed portfolio
       </p>
+      <LeadPackUpgradeBanner portal="manager" />
       <ManagerLeadsBody isLoading={isLoading} leads={leads} onOpenThread={openThread} />
     </div>
   );

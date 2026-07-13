@@ -16,6 +16,7 @@ import {
   updateInquiryStatusSchema,
   type InquiryRecord,
 } from "@/lib/api/nyumba/nyumba-shared";
+import { redactProfilePhone, resolveLeadContactAccess } from "@/lib/revenue/lead-access";
 
 export const createInquiry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -153,7 +154,15 @@ export const listLandlordLeads = createServerFn({ method: "GET" })
     const { data, error } = await query;
 
     if (error) throw error;
-    return (data ?? []).map(mapInquiryWithDetails);
+    const leadAccess = await resolveLeadContactAccess(supabase, userId);
+    return (data ?? []).map((row) => {
+      const mapped = mapInquiryWithDetails(row);
+      return {
+        ...mapped,
+        profiles: redactProfilePhone(mapped.profiles, leadAccess.canView),
+        leadContactsLocked: !leadAccess.canView,
+      };
+    });
   });
 
 export const updateInquiryStatus = createServerFn({ method: "POST" })
@@ -215,6 +224,12 @@ export const getInquiryThread = createServerFn({ method: "POST" })
     const inquiry = await assertInquiryParticipant(supabase, userId, data.inquiryId);
     const counterpartyId = inquiry.tenant_id === userId ? inquiry.landlord_id : inquiry.tenant_id;
     if (!counterpartyId) throw new Error("Conversation participant missing");
+
+    const isLandlordSide = inquiry.tenant_id !== userId;
+    const leadAccess = isLandlordSide
+      ? await resolveLeadContactAccess(supabase, userId)
+      : { canView: true };
+
     const { data: counterparty } = await supabase
       .from("profiles")
       .select("id, full_name, phone, avatar_url")
@@ -231,6 +246,10 @@ export const getInquiryThread = createServerFn({ method: "POST" })
       phone = property?.contact_phone?.trim() ?? null;
     }
 
+    if (!leadAccess.canView && isLandlordSide) {
+      phone = null;
+    }
+
     return {
       inquiry,
       counterparty: {
@@ -239,6 +258,7 @@ export const getInquiryThread = createServerFn({ method: "POST" })
         phone,
         avatar_url: counterparty?.avatar_url ?? null,
       },
+      leadContactsLocked: isLandlordSide && !leadAccess.canView,
     };
   });
 

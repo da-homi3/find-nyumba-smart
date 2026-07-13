@@ -21,6 +21,19 @@ export default defineConfig({
         output: {
           manualChunks(id: string) {
             if (!id.includes("node_modules")) return;
+            // React must live in its own vendor chunk. Splitting framer-motion (or other
+            // React libs) into a separate chunk that re-imports React from the app entry
+            // creates a circular dependency and a blank screen in production.
+            if (
+              id.includes("react-dom") ||
+              id.includes("react/jsx-runtime") ||
+              /\/react\//.test(id)
+            ) {
+              return "react-vendor";
+            }
+            if (id.includes("mapbox-gl")) return "mapbox";
+            if (id.includes("/three") || id.includes("three/build")) return "three";
+            if (id.includes("recharts")) return "recharts";
             if (id.includes("@supabase")) return "supabase";
             if (id.includes("@tanstack")) return "tanstack";
           },

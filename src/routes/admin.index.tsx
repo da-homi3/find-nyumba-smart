@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import {
   listAdminVerifications,
   updateVerificationStatus,
@@ -10,13 +10,16 @@ import {
   listAdminScamReports,
   updateScamReportStatus,
   listAdminAuditLogs,
+  listAdminProperties,
+  setAdminPropertyVerification,
+  adjustAdminPropertyAuthenticityScore,
 } from "@/lib/api/admin.functions";
 import { listPendingApplications, reviewPortalApplication } from "@/lib/api/portal.functions";
 import {
   listPendingServiceProviders,
   reviewServiceProvider,
 } from "@/lib/api/service-provider.functions";
-import { listProperties } from "@/lib/api/nyumba.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import type { AdminTab } from "@/components/admin/admin-shared";
 import { AdminApplicationsTab } from "@/components/admin/AdminApplicationsTab";
@@ -29,10 +32,12 @@ import { AdminPropertyChecksTab } from "@/components/admin/AdminPropertyChecksTa
 import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab";
 import { AdminAdvertiseTab } from "@/components/admin/AdminAdvertiseTab";
 import { AdminFoundingPromoTab } from "@/components/admin/AdminFoundingPromoTab";
+import { AdminListingAccountsTab } from "@/components/admin/AdminListingAccountsTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
 import { buildPageHead } from "@/lib/seo/head";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 export const Route = createFileRoute("/admin/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -53,11 +58,13 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminDashboard() {
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const { tab: tabFromUrl } = Route.useSearch();
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     if (tabFromUrl === "applications") return "applications";
     if (tabFromUrl === "providers") return "providers";
     if (tabFromUrl === "property_checks") return "property_checks";
+    if (tabFromUrl === "properties") return "properties";
     return "verifications";
   });
   const qc = useQueryClient();
@@ -66,44 +73,49 @@ function AdminDashboard() {
     if (tabFromUrl === "applications") setActiveTab("applications");
     if (tabFromUrl === "providers") setActiveTab("providers");
     if (tabFromUrl === "property_checks") setActiveTab("property_checks");
+    if (tabFromUrl === "properties") setActiveTab("properties");
   }, [tabFromUrl]);
 
   const { data: verifications = [], isLoading: verLoading } = useQuery({
     queryKey: ["admin-verifications"],
     queryFn: () => listAdminVerifications(),
+    enabled: isAdmin && !authLoading,
   });
 
   const { data: propertyChecks = [], isLoading: checksLoading } = useQuery({
     queryKey: ["admin-property-checks"],
     queryFn: () => listAdminVerificationRequests(),
-    enabled: activeTab === "property_checks",
+    enabled: isAdmin && !authLoading && activeTab === "property_checks",
   });
 
   const { data: scams = [], isLoading: scamsLoading } = useQuery({
     queryKey: ["admin-scams"],
     queryFn: () => listAdminScamReports(),
+    enabled: isAdmin && !authLoading,
   });
 
-  const { data: propertiesResult, isLoading: propLoading } = useQuery({
+  const { data: properties = [], isLoading: propLoading } = useQuery({
     queryKey: ["admin-properties"],
-    queryFn: () => listProperties({ data: {} }),
+    queryFn: () => listAdminProperties(),
+    enabled: isAdmin && !authLoading,
   });
-  const properties = propertiesResult?.items ?? [];
 
   const { data: audits = [], isLoading: auditsLoading } = useQuery({
     queryKey: ["admin-audits"],
     queryFn: () => listAdminAuditLogs(),
+    enabled: isAdmin && !authLoading,
   });
 
   const { data: applications = [], isLoading: appsLoading } = useQuery({
     queryKey: ["admin-applications"],
     queryFn: () => listPendingApplications(),
-    enabled: activeTab === "applications",
+    enabled: isAdmin && !authLoading && activeTab === "applications",
   });
 
   const { data: pendingProviders = [], isLoading: providersLoading } = useQuery({
     queryKey: ["admin-service-providers"],
     queryFn: () => listPendingServiceProviders(),
+    enabled: isAdmin && !authLoading,
   });
 
   const reviewApp = useMutation({
@@ -179,6 +191,28 @@ function AdminDashboard() {
     },
   });
 
+  const togglePropertyVerification = useMutation({
+    mutationFn: (payload: { propertyId: string; verified: boolean }) =>
+      setAdminPropertyVerification({ data: payload }),
+    onSuccess: (_row, vars) => {
+      toast.success(vars.verified ? "Property verified" : "Verification removed");
+      qc.invalidateQueries({ queryKey: ["admin-properties"] });
+      qc.invalidateQueries({ queryKey: ["admin-audits"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const adjustAuthenticityScore = useMutation({
+    mutationFn: (payload: { propertyId: string; delta: number }) =>
+      adjustAdminPropertyAuthenticityScore({ data: payload }),
+    onSuccess: (row) => {
+      toast.success(`Authenticity score set to ${row.authenticity_score}%`);
+      qc.invalidateQueries({ queryKey: ["admin-properties"] });
+      qc.invalidateQueries({ queryKey: ["admin-audits"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const tabs = [
     {
       id: "verifications" as const,
@@ -206,8 +240,31 @@ function AdminDashboard() {
     },
     { id: "advertise" as const, label: "Advertise", count: 0 },
     { id: "announcements" as const, label: "Announcements", count: 0 },
+    { id: "listing_accounts" as const, label: "Listing limits", count: 0 },
     { id: "founding_promo" as const, label: "Founding promo", count: 0 },
   ];
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="mx-auto max-w-md px-6 py-20 text-center">
+        <h1 className="font-display text-xl font-semibold">Administrator access required</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in with an admin account to manage verifications and listings.
+        </p>
+        <Link to="/tenant" className="mt-6 inline-block text-sm font-semibold text-primary">
+          Back to home
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -238,7 +295,7 @@ function AdminDashboard() {
       </header>
 
       <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" data-tour="admin-tabs">
           <div className="flex min-w-max border-b text-xs font-semibold">
             {tabs.map((t) => (
               <button
@@ -262,7 +319,7 @@ function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6" data-tour="admin-content">
           {activeTab === "verifications" && (
             <AdminVerificationsTab
               verifications={verifications}
@@ -282,7 +339,12 @@ function AdminDashboard() {
             <AdminScamsTab scams={scams} loading={scamsLoading} resolve={resolveScam} />
           )}
           {activeTab === "properties" && (
-            <AdminPropertiesTab properties={properties} loading={propLoading} />
+            <AdminPropertiesTab
+              properties={properties}
+              loading={propLoading}
+              toggleVerification={togglePropertyVerification}
+              adjustAuthenticityScore={adjustAuthenticityScore}
+            />
           )}
           {activeTab === "audits" && <AdminAuditsTab audits={audits} loading={auditsLoading} />}
           {activeTab === "applications" && (
@@ -302,8 +364,10 @@ function AdminDashboard() {
           {activeTab === "advertise" && <AdminAdvertiseTab />}
           {activeTab === "announcements" && <AdminAnnouncementsTab />}
           {activeTab === "founding_promo" && <AdminFoundingPromoTab />}
+          {activeTab === "listing_accounts" && <AdminListingAccountsTab />}
         </div>
       </div>
+      <OnboardingTourHost tourId="admin-dashboard" />
     </div>
   );
 }

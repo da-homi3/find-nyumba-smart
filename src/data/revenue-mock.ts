@@ -22,6 +22,9 @@ export const SERVICE_CATEGORIES = [
   { id: "laundry", label: "Laundry & dry cleaning" },
   { id: "locksmiths", label: "Locksmiths" },
   { id: "roofing", label: "Roofing & waterproofing" },
+  { id: "mama_fua", label: "Mama fua & domestic help" },
+  { id: "gas_delivery", label: "Gas & LPG delivery" },
+  { id: "delivery", label: "Courier & delivery" },
 ] as const;
 
 export const MOCK_PROVIDERS: ServiceProvider[] = [

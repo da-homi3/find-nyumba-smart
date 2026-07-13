@@ -2,16 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { PublicPageShell } from "@/components/SiteNav";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BrandBarChart, BrandLineChart } from "@/components/dashboard/AnalyticsChart";
 import { formatKes } from "@/lib/properties";
 import { getMarketReportTeaser } from "@/lib/api/stats.functions";
 import { Loader2 } from "lucide-react";
@@ -64,14 +55,12 @@ function ReportsPage() {
                 </h2>
                 <div className="mt-4 h-56 min-h-56">
                   <ClientChart>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={rentByHood}>
-                        <XAxis dataKey="hood" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
-                        <Tooltip formatter={(v: number) => formatKes(v)} />
-                        <Bar dataKey="rent" fill="#1eb88a" radius={4} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <BrandBarChart
+                      data={rentByHood}
+                      xKey="hood"
+                      yKey="rent"
+                      tooltipFormatter={(v) => formatKes(v)}
+                    />
                   </ClientChart>
                 </div>
               </div>
@@ -79,20 +68,7 @@ function ReportsPage() {
                 <h2 className="text-sm font-semibold">Nairobi rental price index</h2>
                 <div className="mt-4 h-56 min-h-56">
                   <ClientChart>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={trend}>
-                        <XAxis dataKey="year" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="index"
-                          stroke="#1eb88a"
-                          strokeWidth={2}
-                          dot={{ fill: "#1eb88a" }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <BrandLineChart data={trend} xKey="year" yKey="index" />
                   </ClientChart>
                 </div>
               </div>

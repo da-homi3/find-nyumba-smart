@@ -1014,6 +1014,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      provider_analytics_events: {
+        Row: {
+          id: string;
+          provider_id: string;
+          event_type: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider_id: string;
+          event_type: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider_id?: string;
+          event_type?: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       provider_inquiries: {
         Row: {
           created_at: string;
@@ -1372,6 +1396,7 @@ export type Database = {
       profiles: {
         Row: {
           active_portal: string | null;
+          admin_listing_limit_override: number | null;
           avatar_url: string | null;
           bonus_listing_slots: number;
           created_at: string;
@@ -1398,6 +1423,7 @@ export type Database = {
         };
         Insert: {
           active_portal?: string | null;
+          admin_listing_limit_override?: number | null;
           avatar_url?: string | null;
           bonus_listing_slots?: number;
           created_at?: string;
@@ -1424,6 +1450,7 @@ export type Database = {
         };
         Update: {
           active_portal?: string | null;
+          admin_listing_limit_override?: number | null;
           avatar_url?: string | null;
           bonus_listing_slots?: number;
           created_at?: string;
@@ -1463,6 +1490,7 @@ export type Database = {
           address: string | null;
           amenities: string[];
           area_sqm: number | null;
+          area_sqm_max: number | null;
           authenticity_score: number;
           available_from: string | null;
           bathrooms: number;
@@ -1483,12 +1511,16 @@ export type Database = {
           is_verified: boolean;
           latitude: number | null;
           longitude: number | null;
+          minimum_rent_period_months: number | null;
           neighborhood: string;
           nyumba_verified_at: string | null;
           organization_id: string | null;
           owner_id: string | null;
+          price_period: Database["public"]["Enums"]["price_period"] | null;
+          pricing_mode: Database["public"]["Enums"]["pricing_mode"];
           property_type: Database["public"]["Enums"]["property_type"];
           rent_kes: number;
+          rent_kes_max: number | null;
           title: string;
           tour_url: string | null;
           updated_at: string;
@@ -1499,6 +1531,7 @@ export type Database = {
           address?: string | null;
           amenities?: string[];
           area_sqm?: number | null;
+          area_sqm_max?: number | null;
           authenticity_score?: number;
           available_from?: string | null;
           bathrooms?: number;
@@ -1519,12 +1552,16 @@ export type Database = {
           is_verified?: boolean;
           latitude?: number | null;
           longitude?: number | null;
+          minimum_rent_period_months?: number | null;
           neighborhood: string;
           nyumba_verified_at?: string | null;
           organization_id?: string | null;
           owner_id?: string | null;
+          price_period?: Database["public"]["Enums"]["price_period"] | null;
+          pricing_mode?: Database["public"]["Enums"]["pricing_mode"];
           property_type: Database["public"]["Enums"]["property_type"];
           rent_kes: number;
+          rent_kes_max: number | null;
           title: string;
           tour_url?: string | null;
           updated_at?: string;
@@ -1535,6 +1572,7 @@ export type Database = {
           address?: string | null;
           amenities?: string[];
           area_sqm?: number | null;
+          area_sqm_max?: number | null;
           authenticity_score?: number;
           available_from?: string | null;
           bathrooms?: number;
@@ -1559,8 +1597,12 @@ export type Database = {
           nyumba_verified_at?: string | null;
           organization_id?: string | null;
           owner_id?: string | null;
+          minimum_rent_period_months?: number | null;
+          price_period?: Database["public"]["Enums"]["price_period"] | null;
+          pricing_mode?: Database["public"]["Enums"]["pricing_mode"];
           property_type?: Database["public"]["Enums"]["property_type"];
           rent_kes?: number;
+          rent_kes_max?: number | null;
           title?: string;
           tour_url?: string | null;
           updated_at?: string;
@@ -2414,7 +2456,12 @@ export type Database = {
         | "four_bedroom"
         | "penthouse"
         | "guest_house"
-        | "commercial";
+        | "commercial"
+        | "bnb"
+        | "hotel"
+        | "villa";
+      price_period: "night" | "week" | "month";
+      pricing_mode: "rent" | "sale" | "booking";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -2547,7 +2594,12 @@ export const Constants = {
         "penthouse",
         "guest_house",
         "commercial",
+        "bnb",
+        "hotel",
+        "villa",
       ],
+      price_period: ["night", "week", "month"],
+      pricing_mode: ["rent", "sale", "booking"],
     },
   },
 } as const;

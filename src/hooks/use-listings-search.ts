@@ -21,7 +21,9 @@ export function useListingsSearch(filters: PropertySearchFilters) {
   return useQuery({
     queryKey: listingsQueryKey(filters),
     queryFn: () => fetchListingsApi(filters),
-    staleTime: 60_000,
+    staleTime: 90_000,
+    gcTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });

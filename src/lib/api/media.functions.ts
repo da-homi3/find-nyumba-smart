@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireRole, ForbiddenError } from "@/lib/api/_authz";
 
 import { callGeminiChat } from "@/lib/api/ai-client";
 import { getAuthContext, JSON_OBJECT_RE } from "@/lib/api/server-context";
@@ -202,16 +203,66 @@ const signSchema = z.object({
     .optional(),
 });
 
+const UUID_SEGMENT_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function userIsAdmin(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return (roleRows ?? []).some((row) => row.role === "admin");
+}
+
+function assertMediaPathsAllowed(paths: string[], userId: string, isAdmin: boolean): void {
+  for (const path of paths) {
+    const ownerSegment = path.split("/")[0];
+    if (!ownerSegment) throw new ForbiddenError("Forbidden path");
+    if (isAdmin) {
+      if (!UUID_SEGMENT_RE.test(ownerSegment)) throw new ForbiddenError("Forbidden path");
+    } else if (!path.startsWith(`${userId}/`)) {
+      throw new ForbiddenError("Forbidden path");
+    }
+  }
+}
+
+export const createAdminListingMediaUploadUrls = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      ownerUserId: z.string().uuid(),
+      paths: z.array(z.string().min(1).max(512)).min(1).max(20),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    assertMediaPathsAllowed(data.paths, data.ownerUserId, true);
+    for (const path of data.paths) {
+      if (!path.startsWith(`${data.ownerUserId}/`)) {
+        throw new ForbiddenError("Media path must belong to the target account");
+      }
+    }
+
+    const admin = await adminClient();
+    const uploads = [];
+    for (const path of data.paths) {
+      const { data: signed, error } = await admin.storage
+        .from("property-media")
+        .createSignedUploadUrl(path, { upsert: false });
+      if (error) throw error;
+      uploads.push({ path, token: signed.token, signedUrl: signed.signedUrl });
+    }
+    return uploads;
+  });
+
 export const createSignedMediaUrls = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(signSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    // ensure paths belong to the user
-    for (const p of data.paths) {
-      if (!p.startsWith(`${userId}/`)) throw new Error("Forbidden path");
-    }
-    const { data: signed, error } = await supabase.storage
+    const isAdmin = await userIsAdmin(supabase, userId);
+    assertMediaPathsAllowed(data.paths, userId, isAdmin);
+
+    const storageClient = isAdmin ? await adminClient() : supabase;
+    const { data: signed, error } = await storageClient.storage
       .from("property-media")
       .createSignedUrls(data.paths, data.expiresIn ?? 60 * 60 * 24 * 365);
     if (error) throw error;

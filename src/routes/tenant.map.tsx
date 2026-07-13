@@ -11,6 +11,7 @@ import { TenantMapChrome } from "@/components/tenant-map/TenantMapChrome";
 import { LazyRadar } from "@/components/LazyRadar";
 import { useTenantGoogleMap } from "@/hooks/use-tenant-google-map";
 import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks/use-tenant-mapbox";
+import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 import { mergeListingsForDisplay } from "@/lib/listings-preview";
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -67,7 +68,7 @@ function MapLoadingState({ message }: Readonly<{ message: string }>) {
       />
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
         <motion.span
-          initial={{ opacity: 0 }}
+          initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1 }}
           className="text-center text-base text-white/70"
         >

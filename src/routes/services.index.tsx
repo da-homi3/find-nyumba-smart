@@ -4,13 +4,14 @@ import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { ServiceCategoryIcon } from "@/components/services/ServiceCategoryIcon";
 import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 import { buildPageHead } from "@/lib/seo/head";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 export const Route = createFileRoute("/services/")({
   head: () =>
     buildPageHead({
       title: "Home services — NyumbaSearch",
       description:
-        "Find verified electricians, plumbers, movers, cleaners, and 17 more home service categories across 14 Kenyan counties.",
+        "Find verified electricians, plumbers, movers, cleaners, and 21 more home service categories across 14 Kenyan counties.",
       path: "/services",
     }),
   loader: async () => {
@@ -40,7 +41,10 @@ function ServicesIndexPage() {
             : "Trusted providers across Nairobi — electricians, movers, cleaners, and more."}
         </p>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <div
+          className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+          data-tour="services-categories"
+        >
           {SERVICE_CATEGORIES.map((c) => {
             const count = counts[c.id] ?? 0;
             return (
@@ -60,7 +64,10 @@ function ServicesIndexPage() {
           })}
         </div>
 
-        <section className="mt-12 rounded-2xl border bg-secondary/40 p-6 sm:p-8">
+        <section
+          className="mt-12 rounded-2xl border bg-secondary/40 p-6 sm:p-8"
+          data-tour="services-register"
+        >
           <h2 className="font-display text-xl font-semibold">Are you a service provider?</h2>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             List your business on NyumbaSearch and reach tenants who just found a home. First month
@@ -89,6 +96,7 @@ function ServicesIndexPage() {
           </p>
         ) : null}
       </main>
+      <OnboardingTourHost tourId="services-directory" />
     </PublicPageShell>
   );
 }

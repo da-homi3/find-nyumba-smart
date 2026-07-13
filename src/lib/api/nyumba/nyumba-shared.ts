@@ -3,8 +3,18 @@ import { z } from "zod";
 
 import type { Database } from "@/integrations/supabase/types";
 import type { Property } from "@/lib/properties";
-import { PROPERTY_TYPE_OPTIONS, type PropertyType } from "@/lib/property-types";
-import { ForbiddenError } from "@/lib/api/_authz";
+import {
+  PROPERTY_TYPE_OPTIONS,
+  type PropertyType,
+  type PricingMode,
+  type PricePeriod,
+  normalizeMinimumRentPeriodMonths,
+  normalizePricingMode,
+  normalizePricePeriod,
+  isCommercialType,
+  isNightlyRentType,
+} from "@/lib/property-types";
+import { normalizeCommercialRangeFields, validateCommercialRanges } from "@/lib/commercial-ranges";
 import { getSiteUrl } from "@/lib/site";
 import { normalizePropertyImages } from "@/lib/property-images";
 
@@ -63,7 +73,13 @@ export const propertyIdSchema = z.object({
   source: z.string().trim().max(64).optional(),
 });
 
-export const propertyPayloadSchema = z.object({
+const pricingModeValues = ["rent", "sale", "booking"] as const;
+const pricePeriodValues = ["night", "week", "month"] as const;
+
+export const pricingModeSchema = z.enum(pricingModeValues);
+export const pricePeriodSchema = z.enum(pricePeriodValues);
+
+export const propertyPayloadBaseSchema = z.object({
   title: z.string().trim().min(3),
   property_type: propertyTypeSchema,
   neighborhood: z.string().trim().min(2),
@@ -71,18 +87,104 @@ export const propertyPayloadSchema = z.object({
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
   rent_kes: z.number().int().positive(),
+  rent_kes_max: z.number().int().positive().nullable().optional(),
   deposit_kes: z.number().int().nonnegative().nullable().optional(),
   bedrooms: z.number().int().min(0),
-  bathrooms: z.number().int().min(1),
+  bathrooms: z.number().int().min(0),
   area_sqm: z.number().int().positive().nullable().optional(),
+  area_sqm_max: z.number().int().positive().nullable().optional(),
   description: z.string().trim().nullable().optional(),
   amenities: z.array(z.string().trim().min(1)).default([]),
   images: z.array(z.string().url()).default([]),
   video_url: z.string().url().nullable().optional(),
   tour_url: z.string().url().nullable().optional(),
   available_from: z.string().nullable().optional(),
+  pricing_mode: pricingModeSchema.optional(),
+  price_period: pricePeriodSchema.nullable().optional(),
+  minimum_rent_period_months: z.number().int().min(1).max(120).nullable().optional(),
   is_active: z.boolean().default(true),
 });
+
+export function withPropertyPayloadRules<T extends z.ZodTypeAny>(schema: T) {
+  return schema
+    .superRefine((data, ctx) => {
+      const mode = normalizePricingMode(data.property_type, data.pricing_mode);
+      const period = normalizePricePeriod(data.property_type, mode, data.price_period ?? null);
+
+      if (isNightlyRentType(data.property_type) && mode !== "booking") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["pricing_mode"],
+          message: "BnB and hotel listings must use booking pricing",
+        });
+      }
+
+      if (
+        mode === "rent" &&
+        isCommercialType(data.property_type) &&
+        !data.minimum_rent_period_months
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["minimum_rent_period_months"],
+          message: "Minimum rent period is required for commercial lease listings",
+        });
+      }
+
+      if (mode === "booking" && !period) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["price_period"],
+          message: "Select a booking period (night, week, or month)",
+        });
+      }
+
+      if (mode === "sale" && data.price_period) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["price_period"],
+          message: "Sale listings do not use a billing period",
+        });
+      }
+
+      if (!isCommercialType(data.property_type) && data.bathrooms < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["bathrooms"],
+          message: "Residential listings need at least one bathroom",
+        });
+      }
+
+      validateCommercialRanges(data, (path, message) => {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [path],
+          message,
+        });
+      });
+    })
+    .transform((data) => {
+      const pricing_mode = normalizePricingMode(data.property_type, data.pricing_mode);
+      const price_period = normalizePricePeriod(
+        data.property_type,
+        pricing_mode,
+        data.price_period ?? null,
+      );
+      const normalized = normalizeCommercialRangeFields({
+        ...data,
+        pricing_mode,
+        price_period,
+        minimum_rent_period_months: normalizeMinimumRentPeriodMonths(
+          data.property_type,
+          pricing_mode,
+          data.minimum_rent_period_months ?? null,
+        ),
+      });
+      return normalized;
+    });
+}
+
+export const propertyPayloadSchema = withPropertyPayloadRules(propertyPayloadBaseSchema);
 
 export const createInquirySchema = z.object({
   propertyId: z.string().uuid(),
@@ -124,10 +226,12 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     latitude: row.latitude,
     longitude: row.longitude,
     rent_kes: row.rent_kes,
+    rent_kes_max: row.rent_kes_max ?? null,
     deposit_kes: row.deposit_kes,
     bedrooms: row.bedrooms,
     bathrooms: row.bathrooms,
     area_sqm: row.area_sqm,
+    area_sqm_max: row.area_sqm_max ?? null,
     description: row.description,
     amenities: row.amenities ?? [],
     images: normalizePropertyImages(row.images, row.id),
@@ -140,6 +244,9 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     authenticity_score: row.authenticity_score ?? undefined,
     health_score: row.health_score ?? undefined,
     available_from: row.available_from,
+    pricing_mode: (row.pricing_mode as PricingMode | null) ?? null,
+    price_period: (row.price_period as PricePeriod | null) ?? null,
+    minimum_rent_period_months: row.minimum_rent_period_months ?? null,
     views: row.views,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -246,6 +353,9 @@ export async function assertCanManageProperty(
   const roles = new Set((roleRows ?? []).map((r) => r.role));
 
   let allowed = property.owner_id === userId;
+  if (!allowed && roles.has("admin")) {
+    allowed = true;
+  }
   if (!allowed && (roles.has("manager") || roles.has("agency")) && property.organization_id) {
     const orgId = await getUserOrganizationId(supabase, userId);
     allowed = orgId === property.organization_id;

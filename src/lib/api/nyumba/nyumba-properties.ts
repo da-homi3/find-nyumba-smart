@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
@@ -19,13 +20,176 @@ import {
   mapPropertyRow,
   mapPropertyRows,
   propertyIdSchema,
+  propertyPayloadBaseSchema,
   propertyPayloadSchema,
+  withPropertyPayloadRules,
 } from "@/lib/api/nyumba/nyumba-shared";
 import {
   duplicateListingMessage,
   throwIfListingDuplicateDbError,
 } from "@/lib/api/nyumba/listing-duplicate-errors";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
+
+type PropertyPayload = z.infer<typeof propertyPayloadSchema>;
+type ListingPortalRole = "landlord" | "agency" | "manager";
+
+const LISTING_PORTAL_ROLES = new Set<ListingPortalRole>(["landlord", "agency", "manager"]);
+
+async function resolveListingPortalRoles(
+  admin: SupabaseClient,
+  ownerUserId: string,
+): Promise<{ roles: Set<ListingPortalRole>; organizationId: string | null }> {
+  const { data: roleRows } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", ownerUserId);
+  const roles = new Set(
+    (roleRows ?? [])
+      .map((row) => row.role)
+      .filter((role): role is ListingPortalRole =>
+        LISTING_PORTAL_ROLES.has(role as ListingPortalRole),
+      ),
+  );
+  if (roles.size === 0) {
+    throw new ForbiddenError("Account must be a landlord, agency, or property manager");
+  }
+  const organizationId =
+    roles.has("agency") || roles.has("manager")
+      ? await getUserOrganizationId(admin, ownerUserId)
+      : null;
+  return { roles, organizationId };
+}
+
+async function insertPropertyListing(
+  insertClient: SupabaseClient,
+  admin: SupabaseClient,
+  ownerUserId: string,
+  organizationId: string | null,
+  data: PropertyPayload,
+): Promise<Property> {
+  const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
+  const [cap, activeCount] = await Promise.all([
+    getListingCap(admin, ownerUserId),
+    countActiveListings(admin, ownerUserId),
+  ]);
+  if (activeCount >= cap) {
+    throw new ForbiddenError(
+      `This account has reached its listing limit of ${cap}. Upgrade the plan for more.`,
+    );
+  }
+
+  const { computeListingFingerprint, findDuplicateActiveListing } =
+    await import("@/lib/api/nyumba/listing-fingerprint");
+  const fingerprintInput = {
+    title: data.title,
+    neighborhood: data.neighborhood,
+    property_type: data.property_type,
+    bedrooms: data.bedrooms,
+    address: data.address ?? null,
+  };
+  const duplicate = await findDuplicateActiveListing(admin, fingerprintInput);
+  if (duplicate) {
+    const ownedBySameAccount =
+      duplicate.ownerId === ownerUserId ||
+      (organizationId != null && duplicate.organizationId === organizationId);
+    throw new ForbiddenError(duplicateListingMessage(ownedBySameAccount));
+  }
+  const duplicateHash = await computeListingFingerprint(fingerprintInput);
+
+  const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
+  let latitude = data.latitude ?? null;
+  let longitude = data.longitude ?? null;
+  if ((latitude == null || longitude == null) && data.neighborhood) {
+    const centroid = neighborhoodCentroid(data.neighborhood);
+    if (centroid) {
+      latitude = centroid.lat;
+      longitude = centroid.lng;
+    }
+  }
+
+  const { data: property, error } = await insertClient
+    .from("properties")
+    .insert({
+      ...data,
+      latitude,
+      longitude,
+      owner_id: ownerUserId,
+      organization_id: organizationId,
+      property_type: data.property_type,
+      duplicate_hash: duplicateHash,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    throwIfListingDuplicateDbError(error);
+    throw error;
+  }
+
+  try {
+    const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
+    await applyPropertyAreaAnalysis(admin, property.id);
+    const { data: refreshed } = await admin
+      .from("properties")
+      .select("*")
+      .eq("id", property.id)
+      .single();
+    if (refreshed) {
+      const mapped = mapPropertyRow(refreshed);
+      void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
+        notifyMatchingSearchAlerts(mapped),
+      );
+      return mapped;
+    }
+  } catch (err) {
+    console.error("[insertPropertyListing] area analysis failed:", err);
+  }
+
+  const mapped = mapPropertyRow(property);
+  void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
+    notifyMatchingSearchAlerts(mapped),
+  );
+  return mapped;
+}
+
+export const createPropertyOnBehalfSchema = withPropertyPayloadRules(
+  propertyPayloadBaseSchema.extend({
+    ownerUserId: z.string().uuid(),
+  }),
+);
+
+export const createPropertyOnBehalf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(createPropertyOnBehalfSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = authContext(context);
+    await requireRole(supabase, adminId, "admin");
+
+    const { ownerUserId, ...payload } = data;
+    const admin = await adminClient();
+    const { organizationId } = await resolveListingPortalRoles(admin, ownerUserId);
+    const property = await insertPropertyListing(
+      admin,
+      admin,
+      ownerUserId,
+      organizationId,
+      payload,
+    );
+
+    await admin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: "PROPERTY_CREATED_ON_BEHALF",
+      target_id: property.id,
+      details: JSON.stringify({
+        ownerUserId,
+        organizationId,
+        title: payload.title,
+        neighborhood: payload.neighborhood,
+      }),
+    });
+
+    return property;
+  });
 
 export const listProperties = createServerFn({ method: "POST" })
   .inputValidator(listPropertiesSchema)
@@ -127,107 +291,9 @@ export const createProperty = createServerFn({ method: "POST" })
   .inputValidator(propertyPayloadSchema)
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
-    const { data: roleRows } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const roles = new Set((roleRows ?? []).map((r) => r.role));
-    const isLandlord = roles.has("landlord");
-    const isAgency = roles.has("agency");
-    const isManager = roles.has("manager");
-    if (!isLandlord && !isAgency && !isManager) {
-      throw new ForbiddenError("Forbidden: requires role landlord, manager, or agency");
-    }
-
-    const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
-    const [cap, activeCount] = await Promise.all([
-      getListingCap(supabase, userId),
-      countActiveListings(supabase, userId),
-    ]);
-    if (activeCount >= cap) {
-      throw new ForbiddenError(
-        `You've reached your listing limit of ${cap}. Upgrade your plan for more.`,
-      );
-    }
-
-    const organizationId =
-      isAgency || isManager ? await getUserOrganizationId(supabase, userId) : null;
-
+    const { organizationId } = await resolveListingPortalRoles(supabase, userId);
     const admin = await adminClient();
-    const { computeListingFingerprint, findDuplicateActiveListing } =
-      await import("@/lib/api/nyumba/listing-fingerprint");
-    const fingerprintInput = {
-      title: data.title,
-      neighborhood: data.neighborhood,
-      property_type: data.property_type,
-      bedrooms: data.bedrooms,
-      address: data.address ?? null,
-    };
-    const duplicate = await findDuplicateActiveListing(admin, fingerprintInput);
-    if (duplicate) {
-      const ownedBySameAccount =
-        duplicate.ownerId === userId ||
-        (organizationId != null && duplicate.organizationId === organizationId);
-      throw new ForbiddenError(duplicateListingMessage(ownedBySameAccount));
-    }
-    const duplicateHash = await computeListingFingerprint(fingerprintInput);
-
-    const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
-    let latitude = data.latitude ?? null;
-    let longitude = data.longitude ?? null;
-    if ((latitude == null || longitude == null) && data.neighborhood) {
-      const centroid = neighborhoodCentroid(data.neighborhood);
-      if (centroid) {
-        latitude = centroid.lat;
-        longitude = centroid.lng;
-      }
-    }
-
-    const { data: property, error } = await supabase
-      .from("properties")
-      .insert({
-        ...data,
-        latitude,
-        longitude,
-        owner_id: userId,
-        organization_id: organizationId,
-        property_type: data.property_type,
-        duplicate_hash: duplicateHash,
-      })
-      .select("*")
-      .single();
-
-    if (error) {
-      throwIfListingDuplicateDbError(error);
-      throw error;
-    }
-
-    // Automatic area analysis for landlord / manager / agency uploads
-    try {
-      const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
-      await applyPropertyAreaAnalysis(admin, property.id);
-      const { data: refreshed } = await admin
-        .from("properties")
-        .select("*")
-        .eq("id", property.id)
-        .single();
-      if (refreshed) {
-        const mapped = mapPropertyRow(refreshed);
-        void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
-          notifyMatchingSearchAlerts(mapped),
-        );
-        return mapped;
-      }
-    } catch (err) {
-      console.error("[createProperty] area analysis failed:", err);
-    }
-
-    const mapped = mapPropertyRow(property);
-    void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
-      notifyMatchingSearchAlerts(mapped),
-    );
-
-    return mapped;
+    return insertPropertyListing(supabase, admin, userId, organizationId, data);
   });
 
 export const listLandlordProperties = createServerFn({ method: "GET" })
@@ -434,9 +500,11 @@ export const getManageableProperty = createServerFn({ method: "POST" })
 export const updateProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    propertyPayloadSchema.extend({
-      propertyId: z.string().uuid(),
-    }),
+    withPropertyPayloadRules(
+      propertyPayloadBaseSchema.extend({
+        propertyId: z.string().uuid(),
+      }),
+    ),
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);

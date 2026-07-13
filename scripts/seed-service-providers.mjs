@@ -1,5 +1,5 @@
 /**
- * Seed 141 real Kenyan service providers into Supabase.
+ * Seed 168 real Kenyan service providers into Supabase.
  * Usage: npm run db:seed:providers
  * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env
  */

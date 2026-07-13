@@ -1,6 +1,8 @@
 import type { LandlordPlan, TenantPlan } from "@/lib/revenue/types";
 import { LISTING_LIMITS } from "@/lib/revenue/plans";
 
+export type PortalSubscriptionStatus = "active" | "trialing" | "past_due" | "none";
+
 export type UserEntitlements = {
   landlordPlan: LandlordPlan;
   tenantPlan: TenantPlan;
@@ -11,6 +13,10 @@ export type UserEntitlements = {
   trialEndsAt?: string | null;
   trialActive?: boolean;
   monthlyUnlockSpend?: number;
+  portalSubscriptionStatus?: PortalSubscriptionStatus;
+  portalTrialEndsAt?: string | null;
+  leadPackBalance?: number;
+  canViewLeadContacts?: boolean;
 };
 
 export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
@@ -22,6 +28,10 @@ export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
   trialEndsAt: null,
   trialActive: false,
   monthlyUnlockSpend: 0,
+  portalSubscriptionStatus: "none",
+  portalTrialEndsAt: null,
+  leadPackBalance: 0,
+  canViewLeadContacts: false,
 };
 
 export function isPlusMember(entitlements: UserEntitlements): boolean {
@@ -32,6 +42,18 @@ export function isPlusMember(entitlements: UserEntitlements): boolean {
   return false;
 }
 
+export type LeadContactAccessInput = {
+  landlordPlan: LandlordPlan;
+  subscriptionStatus: PortalSubscriptionStatus;
+  leadPackBalance: number;
+};
+
+export function canViewLeadContactDetails(input: LeadContactAccessInput): boolean {
+  if (input.leadPackBalance > 0) return true;
+  return input.subscriptionStatus === "active" && input.landlordPlan !== "free";
+}
+
+/** @deprecated Use canViewLeadContactDetails for portal lead gating. */
 export function canViewLeadDetails(plan: LandlordPlan): boolean {
   return plan !== "free";
 }

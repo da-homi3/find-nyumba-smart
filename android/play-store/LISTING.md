@@ -54,7 +54,7 @@ BUILT FOR KENYA
 • Optimised for slower mobile networks — loads fast on 3G
 • Works on everyday Android phones (Android 7.0 and up)
 • Kenyan neighbourhoods: Kilimani, Westlands, Kasarani, Ruaka, Rongai, and more
-• Customer care: nyumbasearch101@gmail.com | 0768 314 076
+• Customer care: nyumbasearch101@gmail.com | 0714 725 598
 
 TRUST & SAFETY
 
@@ -101,7 +101,7 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 | Field   | Value                     |
 | ------- | ------------------------- |
 | Email   | nyumbasearch101@gmail.com |
-| Phone   | +254768314076             |
+| Phone   | +254714725598             |
 | Website | https://nyumbasearch.com  |
 
 ---

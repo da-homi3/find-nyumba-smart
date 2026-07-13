@@ -1,8 +1,17 @@
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { PROPERTY_TYPE_OPTIONS } from "@/lib/property-types";
 import type { PropertyType } from "@/lib/property-types";
+import {
+  KENYA_COUNTIES,
+  areasForCounty,
+  neighborhoodStorageValue,
+  countyWideFilterValue,
+  parseCountyWideFilter,
+} from "@/data/kenya-locations";
+import { formatRentBudget } from "@/lib/format-rent-budget";
+import { TENANT_MAX_RENT, TENANT_MIN_RENT, TENANT_RENT_STEP } from "@/lib/tenant-filter-defaults";
 
 export type TenantSort = "newest" | "price_asc" | "price_desc" | "score";
 
@@ -19,19 +28,29 @@ export type TenantFilters = {
 
 const ALL_TYPES = PROPERTY_TYPE_OPTIONS;
 
-const NEIGHBORHOODS = [
-  "All",
-  "Kilimani",
-  "Westlands",
-  "Kasarani",
-  "South B",
-  "Rongai",
-  "Ruaka",
-  "Lavington",
-  "Karen",
-  "Kileleshwa",
-  "Roysambu",
-];
+function areaFilterOptions(county: string) {
+  if (county === "All") {
+    return [{ value: "All", label: "All Kenya" }];
+  }
+  return [
+    { value: countyWideFilterValue(county), label: `All ${county}` },
+    ...areasForCounty(county).map((loc) => ({
+      value: neighborhoodStorageValue(loc),
+      label: loc.name,
+    })),
+  ];
+}
+
+function countyFromNeighborhoodFilter(neighborhood: string): string {
+  if (neighborhood === "All") return "All";
+  const countyWide = parseCountyWideFilter(neighborhood);
+  if (countyWide) return countyWide;
+  return (
+    KENYA_COUNTIES.find((county) =>
+      areasForCounty(county).some((loc) => neighborhoodStorageValue(loc) === neighborhood),
+    ) ?? "All"
+  );
+}
 
 type Props = {
   filters: TenantFilters;
@@ -47,9 +66,21 @@ export function TenantFiltersBar({
   resultsLoading = false,
 }: Readonly<Props>) {
   const [expanded, setExpanded] = useState(false);
+  const [countyFilter, setCountyFilter] = useState(() =>
+    countyFromNeighborhoodFilter(filters.neighborhood),
+  );
+
+  useEffect(() => {
+    setCountyFilter(countyFromNeighborhoodFilter(filters.neighborhood));
+  }, [filters.neighborhood]);
+
+  const areaOptions = useMemo(() => areaFilterOptions(countyFilter), [countyFilter]);
 
   return (
-    <div className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-5">
+    <div
+      className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-5"
+      data-tour="tenant-filters"
+    >
       <div className="mx-auto max-w-2xl">
         <div className="flex items-center gap-2">
           <button
@@ -101,16 +132,38 @@ export function TenantFiltersBar({
             <div className="flex items-center gap-2">
               <input
                 type="range"
-                min={5000}
-                max={200000}
-                step={5000}
+                min={TENANT_MIN_RENT}
+                max={TENANT_MAX_RENT}
+                step={TENANT_RENT_STEP}
                 value={filters.maxRent}
                 onChange={(e) => onChange({ maxRent: Number(e.target.value) })}
                 className="w-full min-w-0 accent-primary"
                 aria-label="Maximum monthly rent"
               />
-              <span className="shrink-0 tabular-nums">{filters.maxRent.toLocaleString()}</span>
+              <span className="shrink-0 tabular-nums">{formatRentBudget(filters.maxRent)}</span>
             </div>
+          </label>
+
+          <label className="w-[calc(50%-0.375rem)] text-xs sm:w-auto">
+            <span className="mb-1 block font-medium text-muted-foreground">County</span>
+            <select
+              value={countyFilter}
+              onChange={(e) => {
+                const nextCounty = e.target.value;
+                setCountyFilter(nextCounty);
+                onChange({
+                  neighborhood: nextCounty === "All" ? "All" : countyWideFilterValue(nextCounty),
+                });
+              }}
+              className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
+            >
+              <option value="All">All Kenya</option>
+              {KENYA_COUNTIES.map((county) => (
+                <option key={county} value={county}>
+                  {county}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="w-[calc(50%-0.375rem)] text-xs sm:w-auto">
@@ -120,9 +173,9 @@ export function TenantFiltersBar({
               onChange={(e) => onChange({ neighborhood: e.target.value })}
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
             >
-              {NEIGHBORHOODS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
+              {areaOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

@@ -165,3 +165,19 @@ export async function createPropertyLocationMap(
 }
 
 export { flyToPin };
+
+/** Ensures a draggable pin exists at the given coordinates. */
+export async function syncPropertyLocationPin(
+  map: MapboxMap,
+  markerRef: MarkerHolder,
+  lng: number,
+  lat: number,
+  onPinChange: (lat: number, lng: number) => void,
+): Promise<void> {
+  if (markerRef.current) {
+    markerRef.current.setLngLat([lng, lat]);
+    return;
+  }
+  const mapboxgl = await loadMapboxGl();
+  placeDraggableMarker(mapboxgl, map, markerRef, lng, lat, onPinChange);
+}

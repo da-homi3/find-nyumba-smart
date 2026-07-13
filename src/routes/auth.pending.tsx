@@ -3,15 +3,18 @@ import { useEffect } from "react";
 import { Clock, LogOut } from "lucide-react";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
+import { resolveListerDashboardPath } from "@/lib/portal-guard";
 
 export const Route = createFileRoute("/auth/pending")({
   component: PendingApproval,
 });
 
 function PendingApproval() {
-  const { user, pendingApplications, signOut } = useAuth();
+  const { user, roles, activePortal, pendingApplications, signOut, loading, refreshPortalState } =
+    useAuth();
   const navigate = useNavigate();
   const pending = pendingApplications.filter((a) => a.status === "pending");
+  const hasListerRole = roles.some((role) => ["landlord", "manager", "agency"].includes(role));
 
   useEffect(() => {
     if (!user) {
@@ -22,6 +25,33 @@ function PendingApproval() {
       });
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (loading || !user || !hasListerRole) return;
+    globalThis.location.href = resolveListerDashboardPath({
+      roles,
+      activePortal,
+      applications: pendingApplications,
+    });
+  }, [loading, user, hasListerRole, roles, activePortal, pendingApplications]);
+
+  useEffect(() => {
+    if (!user || hasListerRole) return;
+
+    const interval = globalThis.setInterval(() => {
+      void refreshPortalState();
+    }, 15_000);
+
+    const onFocus = () => {
+      void refreshPortalState();
+    };
+    globalThis.addEventListener("focus", onFocus);
+
+    return () => {
+      globalThis.clearInterval(interval);
+      globalThis.removeEventListener("focus", onFocus);
+    };
+  }, [user, hasListerRole, refreshPortalState]);
 
   return (
     <div className="min-h-screen bg-background">

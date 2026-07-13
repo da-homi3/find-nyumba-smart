@@ -14,8 +14,9 @@ import {
 } from "@/components/ProviderContactActions";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
+import { trackProviderAnalytics } from "@/lib/provider-analytics";
 import { useState } from "react";
-import { buildPageHead } from "@/lib/seo/head";
+import { KENYA_LOCATION_LABELS, matchLocation } from "@/data/kenya-locations";
 
 const VALID_CATEGORIES = new Set<string>(SERVICE_CATEGORIES.map((c) => c.id));
 
@@ -220,6 +221,9 @@ function ProviderCard({
             <Link
               to="/services/provider/$id"
               params={{ id: p.id }}
+              onClick={() => {
+                if (!p.isPlaceholder) trackProviderAnalytics(p.id, "directory_view");
+              }}
               className="font-display text-lg font-semibold hover:text-primary"
             >
               {p.businessName}
@@ -311,7 +315,10 @@ function ProviderCard({
               },
               `Request sent. ${p.businessName} will contact you within 2 hours.`,
             );
-            if (ok) onQuoteSent();
+            if (ok) {
+              if (!p.isPlaceholder) trackProviderAnalytics(p.id, "quote_request");
+              onQuoteSent();
+            }
           }}
         >
           <input
@@ -353,40 +360,133 @@ function ProviderCard({
   );
 }
 
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+const MOVE_SIZE_MULTIPLIER: Record<string, number> = {
+  Bedsitter: 0.7,
+  "1BR": 1,
+  "2BR": 1.4,
+  "3BR+": 1.9,
+};
+
 function MovingEstimator() {
-  const [show, setShow] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [size, setSize] = useState("1BR");
+  const [moveDate, setMoveDate] = useState("");
+  const [estimate, setEstimate] = useState<{ low: number; high: number } | null>(null);
+
+  function handleEstimate() {
+    const fromLoc = matchLocation(from);
+    const toLoc = matchLocation(to);
+    const multiplier = MOVE_SIZE_MULTIPLIER[size] ?? 1;
+
+    if (!fromLoc || !toLoc) {
+      setEstimate({
+        low: Math.round(6000 * multiplier),
+        high: Math.round(15000 * multiplier),
+      });
+      return;
+    }
+
+    const km = Math.max(5, haversineKm(fromLoc, toLoc));
+    const low = Math.round((3500 + km * 75) * multiplier);
+    const high = Math.round((5500 + km * 115) * multiplier);
+    setEstimate({ low, high });
+  }
+
   return (
     <div className="mt-8 rounded-2xl border bg-secondary/40 p-5">
       <h2 className="font-semibold">Moving cost estimator</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Pick any town or neighbourhood across all 47 Kenyan counties.
+      </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <select className="rounded-xl border px-3 py-2 text-sm">
-          <option>From: Kilimani</option>
-          <option>From: Westlands</option>
-        </select>
-        <select className="rounded-xl border px-3 py-2 text-sm">
-          <option>To: Karen</option>
-          <option>To: Kasarani</option>
-        </select>
-        <select className="rounded-xl border px-3 py-2 text-sm">
-          <option>Bedsitter</option>
-          <option>1BR</option>
-          <option>2BR</option>
-        </select>
-        <input type="date" className="rounded-xl border px-3 py-2 text-sm" />
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-muted-foreground">
+            Moving from
+          </span>
+          <input
+            list="mover-locations"
+            value={from}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              setEstimate(null);
+            }}
+            placeholder="e.g. Kilimani, Kisumu, Mombasa"
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-muted-foreground">Moving to</span>
+          <input
+            list="mover-locations"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+              setEstimate(null);
+            }}
+            placeholder="e.g. Karen, Nakuru, Eldoret"
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-muted-foreground">Home size</span>
+          <select
+            value={size}
+            onChange={(e) => {
+              setSize(e.target.value);
+              setEstimate(null);
+            }}
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+          >
+            <option>Bedsitter</option>
+            <option>1BR</option>
+            <option>2BR</option>
+            <option>3BR+</option>
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block text-xs font-semibold text-muted-foreground">Move date</span>
+          <input
+            type="date"
+            value={moveDate}
+            onChange={(e) => setMoveDate(e.target.value)}
+            className="w-full rounded-xl border px-3 py-2 text-sm"
+          />
+        </label>
       </div>
+      <datalist id="mover-locations">
+        {KENYA_LOCATION_LABELS.map((label) => (
+          <option key={label} value={label} />
+        ))}
+      </datalist>
       <button
         type="button"
-        onClick={() => setShow(true)}
-        className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        onClick={handleEstimate}
+        disabled={!from.trim() || !to.trim()}
+        className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
       >
         Get estimate
       </button>
-      {show && (
+      {estimate ? (
         <p className="mt-3 text-sm">
-          Estimated cost: <strong>KES 8,000 – 15,000</strong> based on distance and size. Request a
-          quote below to confirm availability.
+          Estimated cost:{" "}
+          <strong>
+            {formatKes(estimate.low)} – {formatKes(estimate.high)}
+          </strong>{" "}
+          based on distance and home size. Request a quote below to confirm availability with a
+          mover.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

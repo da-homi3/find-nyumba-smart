@@ -22,9 +22,9 @@ export const LANDLORD_PLANS: PlanCardDef[] = [
     name: "Free",
     priceKes: 0,
     period: "/ month",
-    desc: "One verified listing to get started.",
+    desc: "Get started with multiple listings at no cost.",
     features: [
-      "1 active listing",
+      "Up to 9 active listings",
       "Basic analytics (views only)",
       "Manual verification (Level 1)",
       "Standard search placement",
@@ -88,7 +88,7 @@ export const AGENCY_PLANS: PlanCardDef[] = [
   {
     id: "agency-pro",
     name: "Professional Agency",
-    priceKes: 15000,
+    priceKes: 10000,
     period: "/ month",
     desc: "Growing portfolios with priority placement.",
     features: [
@@ -105,8 +105,7 @@ export const AGENCY_PLANS: PlanCardDef[] = [
   {
     id: "agency-enterprise",
     name: "Enterprise Agency",
-    priceKes: 30000,
-    priceLabel: "KES 30,000+",
+    priceKes: 15000,
     period: "/ month",
     desc: "Unlimited scale with dedicated support.",
     features: [
@@ -161,8 +160,7 @@ export const MANAGER_PLANS: PlanCardDef[] = [
   {
     id: "manager-enterprise",
     name: "Enterprise Manager",
-    priceKes: 18000,
-    priceLabel: "KES 18,000+",
+    priceKes: 10000,
     period: "/ month",
     desc: "Large management companies with unlimited scale.",
     features: [
@@ -248,23 +246,23 @@ export const PLUS_PLAN = {
 };
 
 export const PROVIDER_TIERS = [
-  { value: "basic" as const, label: "Basic", priceKes: 1500, desc: "Listed in category directory" },
+  { value: "basic" as const, label: "Basic", priceKes: 500, desc: "Listed in category directory" },
   {
     value: "featured" as const,
     label: "Featured",
-    priceKes: 3500,
+    priceKes: 1500,
     desc: "Higher placement + Featured badge",
   },
   {
     value: "premium" as const,
     label: "Premium",
-    priceKes: 6000,
+    priceKes: 2500,
     desc: "Top placement + multiple categories",
   },
 ];
 
 export function providerTierPrice(tier: string): number {
-  return PROVIDER_TIERS.find((t) => t.value === tier)?.priceKes ?? 1500;
+  return PROVIDER_TIERS.find((t) => t.value === tier)?.priceKes ?? 500;
 }
 
 export const REPORT_CATALOG: {
@@ -311,7 +309,7 @@ export const VERIFICATION_TIERS: {
 ];
 
 export const LISTING_LIMITS: Record<LandlordPlan, number> = {
-  free: 1,
+  free: 9,
   pro: 10,
   premium: 30,
   "manager-solo": 25,

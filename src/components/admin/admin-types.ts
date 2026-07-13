@@ -3,10 +3,10 @@ import {
   listAdminVerificationRequests,
   listAdminScamReports,
   listAdminAuditLogs,
+  listAdminProperties,
 } from "@/lib/api/admin.functions";
 import { listPendingApplications } from "@/lib/api/portal.functions";
 import { listPendingServiceProviders } from "@/lib/api/service-provider.functions";
-import { listProperties } from "@/lib/api/nyumba.functions";
 
 export type AdminTab =
   | "verifications"
@@ -18,14 +18,13 @@ export type AdminTab =
   | "providers"
   | "advertise"
   | "announcements"
-  | "founding_promo";
+  | "founding_promo"
+  | "listing_accounts";
 
 export type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
 export type AdminPropertyCheck = Awaited<ReturnType<typeof listAdminVerificationRequests>>[number];
 export type AdminScamReport = Awaited<ReturnType<typeof listAdminScamReports>>[number];
-export type AdminProperty = NonNullable<
-  Awaited<ReturnType<typeof listProperties>>["items"]
->[number];
+export type AdminProperty = Awaited<ReturnType<typeof listAdminProperties>>[number];
 export type AdminAuditLog = Awaited<ReturnType<typeof listAdminAuditLogs>>[number];
 export type PendingApplication = Awaited<ReturnType<typeof listPendingApplications>>[number];
 export type PendingServiceProvider = Awaited<

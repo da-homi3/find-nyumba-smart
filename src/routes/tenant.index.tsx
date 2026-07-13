@@ -10,7 +10,8 @@ import { hasAnalyticsConsent } from "@/lib/cookie-consent";
 import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
-import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
+import { EmptyState } from "@/components/EmptyState";
+import { defaultTenantFilters, effectiveMaxRent } from "@/lib/tenant-filter-defaults";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -34,6 +35,7 @@ import {
   TENANT_LISTINGS_PAGE_SIZE,
 } from "@/lib/seo/prefetch-tenant-listings";
 import { buildPageHead } from "@/lib/seo/head";
+import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
@@ -51,7 +53,7 @@ export const Route = createFileRoute("/tenant/")({
     buildPageHead({
       title: "Discover homes — NyumbaSearch",
       description:
-        "Search verified vacant homes across Nairobi. Filter by budget, bedrooms, and neighbourhood — map view, saved listings, and NyumbaAI.",
+        "Search verified vacant homes across Kenya. Filter by budget, bedrooms, and area — map view, saved listings, and NyumbaAI.",
       path: "/tenant",
     }),
   component: TenantHome,
@@ -132,7 +134,7 @@ function TenantHome() {
     () => ({
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
-      maxRent: filters.maxRent,
+      maxRent: effectiveMaxRent(filters.maxRent),
       minRent: filters.minRent,
       sortBy: filters.sort,
       limit: PAGE_SIZE * page,
@@ -256,7 +258,10 @@ function TenantHome() {
           <h1 className="mt-1 font-display text-3xl font-semibold leading-tight">
             Find your next home in Nairobi
           </h1>
-          <div className="mt-6 flex items-center gap-2 rounded-2xl bg-background p-2 shadow-elegant">
+          <div
+            className="mt-6 flex items-center gap-2 rounded-2xl bg-background p-2 shadow-elegant"
+            data-tour="tenant-search"
+          >
             <Search className="ml-2 h-5 w-5 text-muted-foreground" />
             <input
               value={q}
@@ -339,7 +344,7 @@ function TenantHome() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-2xl px-5 pt-8 pb-12">
+      <section className="mx-auto max-w-2xl px-5 pt-8 pb-12" data-tour="tenant-listings">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">
             <MapPin className="mr-1 inline h-4 w-4 text-primary" />
@@ -366,8 +371,10 @@ function TenantHome() {
           onRetry={() => void refetch()}
           onLoadMore={() => setPage((n) => n + 1)}
           onToggleSave={handleToggleSave}
+          onClearFilters={() => setFilters(defaultTenantFilters)}
         />
       </section>
+      <OnboardingTourHost tourId="tenant-browse" />
     </div>
   );
 }
@@ -384,6 +391,7 @@ type TenantListingsGridProps = Readonly<{
   onRetry: () => void;
   onLoadMore: () => void;
   onToggleSave: (propertyId: string) => (e: MouseEvent) => void;
+  onClearFilters: () => void;
 }>;
 
 function TenantListingsGrid({
@@ -398,6 +406,7 @@ function TenantListingsGrid({
   onRetry,
   onLoadMore,
   onToggleSave,
+  onClearFilters,
 }: TenantListingsGridProps) {
   if (isLoading) {
     return <ListingGridSkeleton count={9} />;
@@ -420,11 +429,7 @@ function TenantListingsGrid({
   }
 
   if (displayCount === 0) {
-    return (
-      <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-        No homes match these filters yet — try widening your budget or area.
-      </div>
-    );
+    return <EmptyState type="no_search_results" className="mt-8" onAction={onClearFilters} />;
   }
 
   return (

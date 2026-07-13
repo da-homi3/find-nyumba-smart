@@ -8,6 +8,7 @@ import {
 } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
+import { listerDashboardPath } from "@/lib/portal-guard";
 
 export const OPS_EMAIL = process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";
 
@@ -44,9 +45,9 @@ export async function notifyOpsNewApplication(opts: {
 export async function notifyApplicantApproved(opts: { email: string; name: string; role: string }) {
   if (!opts.email) return false;
   const portalPaths: Record<string, string> = {
-    landlord: "/landlord/dashboard",
-    manager: "/manager/dashboard",
-    agency: "/agency/dashboard",
+    landlord: listerDashboardPath("landlord"),
+    manager: listerDashboardPath("manager"),
+    agency: listerDashboardPath("agency"),
     service_provider: "/services/provider/dashboard",
     "service provider": "/services/provider/dashboard",
   };

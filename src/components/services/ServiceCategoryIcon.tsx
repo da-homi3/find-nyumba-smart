@@ -22,6 +22,9 @@ import {
   Wrench,
   Zap,
   Home,
+  Flame,
+  Users,
+  PackageCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +50,9 @@ export const SERVICE_CATEGORY_IDS = [
   "laundry",
   "locksmiths",
   "roofing",
+  "mama_fua",
+  "gas_delivery",
+  "delivery",
 ] as const;
 
 export type ServiceCategoryId = (typeof SERVICE_CATEGORY_IDS)[number];
@@ -162,6 +168,21 @@ const CATEGORY_ICON_STYLES: Record<ServiceCategoryId, CategoryIconStyle> = {
     icon: Home,
     tile: "from-red-600/25 via-orange-500/10 to-amber-700/5",
     iconClass: "text-red-400",
+  },
+  mama_fua: {
+    icon: Users,
+    tile: "from-pink-500/25 via-rose-400/10 to-fuchsia-700/5",
+    iconClass: "text-pink-300",
+  },
+  gas_delivery: {
+    icon: Flame,
+    tile: "from-orange-600/30 via-red-500/10 to-amber-600/5",
+    iconClass: "text-orange-400",
+  },
+  delivery: {
+    icon: PackageCheck,
+    tile: "from-blue-500/25 via-indigo-400/10 to-violet-600/5",
+    iconClass: "text-blue-300",
   },
 };
 
