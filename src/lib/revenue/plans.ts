@@ -1,4 +1,4 @@
-import { formatKes } from "@/lib/properties";
+import { formatKES as formatKes } from "@/lib/format-kes";
 import type { BoostPackage, LandlordPlan, VerificationTier } from "@/lib/revenue/types";
 import type { ListingPortal } from "@/lib/portal-paths";
 
