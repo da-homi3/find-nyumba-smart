@@ -40,4 +40,11 @@ sendgrid.env
 tmp_*.js
 tmp_*.ts
 tmp_*.html
+tmp-crawl-*.html
 tsc-errors*.txt
+
+# Android Gradle build output
+android/app/build/
+
+# Playwright / local test output
+test-results/
