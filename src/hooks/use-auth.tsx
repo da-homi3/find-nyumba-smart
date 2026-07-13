@@ -42,6 +42,8 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
+const AUTH_BOOT_TIMEOUT_MS = 12_000;
+
 async function fetchUserRoles(userId: string): Promise<AppRole[]> {
   const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   if (error) {
@@ -84,6 +86,29 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   useEffect(() => {
     let active = true;
+    let bootTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const clearBootTimer = () => {
+      if (bootTimer) {
+        clearTimeout(bootTimer);
+        bootTimer = undefined;
+      }
+    };
+
+    const finishLoading = () => {
+      if (!active) return;
+      clearBootTimer();
+      setLoading(false);
+    };
+
+    const armBootTimeout = () => {
+      clearBootTimer();
+      bootTimer = setTimeout(() => {
+        if (!active) return;
+        console.warn("[use-auth] Auth boot timed out — continuing without full portal state");
+        setLoading(false);
+      }, AUTH_BOOT_TIMEOUT_MS);
+    };
 
     const syncSession = async (s: Session | null) => {
       if (!active) return;
@@ -94,16 +119,18 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         setRoles([]);
         setPendingApplications([]);
         setActivePortal("tenant");
-        setLoading(false);
+        finishLoading();
         return;
       }
 
-      const nextRoles = await fetchUserRoles(s.user.id);
-      if (!active) return;
-      setRoles(nextRoles);
-      await refreshPortalState(s.user.id);
-      if (!active) return;
-      setLoading(false);
+      try {
+        const nextRoles = await fetchUserRoles(s.user.id);
+        if (!active) return;
+        setRoles(nextRoles);
+        await refreshPortalState(s.user.id);
+      } finally {
+        finishLoading();
+      }
     };
 
     const {
@@ -115,15 +142,20 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
       const showLoading =
         event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "SIGNED_OUT";
-      if (showLoading) setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+        armBootTimeout();
+      }
       void syncSession(s);
     });
 
     setLoading(true);
+    armBootTimeout();
     supabase.auth.getSession().then(({ data: { session: s } }) => void syncSession(s));
 
     return () => {
       active = false;
+      clearBootTimer();
       subscription.unsubscribe();
     };
   }, [refreshPortalState]);

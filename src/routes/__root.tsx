@@ -29,10 +29,12 @@ import { getOgImageUrl, HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site"
 import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CookieConsentBanner } from "@/components/CookieConsent";
+import { TenantBottomNav } from "@/components/TenantBottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { useSmoothScroll } from "@/lib/smooth-scroll";
+import { shouldShowTenantBottomNav } from "@/lib/tenant-mobile-nav";
 
 function NotFoundComponent() {
   return (
@@ -186,6 +188,12 @@ function AnimatedOutlet() {
   );
 }
 
+function TenantMobileNav() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (!shouldShowTenantBottomNav(pathname)) return null;
+  return <TenantBottomNav />;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useSmoothScroll();
@@ -200,6 +208,7 @@ function RootComponent() {
         <ErrorBoundary>
           <AnimatedOutlet />
         </ErrorBoundary>
+        <TenantMobileNav />
         <Toaster />
         <CookieConsentBanner />
       </AuthProvider>

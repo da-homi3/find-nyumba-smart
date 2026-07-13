@@ -198,7 +198,7 @@ export function TenantMapChrome({
         </div>
       </aside>
 
-      <div className="pointer-events-none absolute inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-10">
+      <div className="pointer-events-none absolute inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 max-md:bottom-[max(4.5rem,calc(env(safe-area-inset-bottom)+4rem))]">
         {selected ? (
           <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
             <button

@@ -344,7 +344,7 @@ function TenantHome() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-2xl px-5 pt-8 pb-12" data-tour="tenant-listings">
+      <section className="mx-auto max-w-2xl px-5 pt-8 pb-24 md:pb-12" data-tour="tenant-listings">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">
             <MapPin className="mr-1 inline h-4 w-4 text-primary" />

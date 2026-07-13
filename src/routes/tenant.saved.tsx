@@ -74,7 +74,7 @@ function SavedPage() {
   return (
     <div>
       <SiteNav variant="light" />
-      <div className="mx-auto max-w-2xl px-5 pt-6 pb-8">
+      <div className="mx-auto max-w-2xl px-5 pt-6 pb-24 md:pb-8">
         <h1 className="font-display text-2xl font-semibold">Saved homes</h1>
         <p className="text-sm text-muted-foreground">{saved.length} saved</p>
 

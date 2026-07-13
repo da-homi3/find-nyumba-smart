@@ -53,7 +53,7 @@ export function CookieConsentBanner() {
       className="pointer-events-none fixed inset-x-0 bottom-0 z-50"
       aria-label="Cookie consent"
     >
-      <div className="pointer-events-auto border-t border-white/10 bg-background/95 p-4 backdrop-blur-md">
+      <div className="pointer-events-auto border-t border-white/10 bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <div className="relative mx-auto max-w-3xl pr-10">
           <button
             type="button"
