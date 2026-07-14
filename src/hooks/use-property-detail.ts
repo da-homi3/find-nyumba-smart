@@ -225,21 +225,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     globalThis.location.href = `tel:${phone}`;
   };
 
-  const handleShare = async () => {
-    const shareUrl = globalThis.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: p?.title ?? "NyumbaSearch listing", url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success("Listing link copied");
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      toast.error("Could not share this listing");
-    }
-  };
-
   const submitChatMessage = useCallback(async () => {
     if (!chatInput.trim() || chatLoading) return;
     const userMsg = chatInput.trim();
@@ -356,7 +341,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     toggleSave,
     messageLandlord,
     handleCall,
-    handleShare,
     handleSendChat,
     openReportForm,
     submitReport,

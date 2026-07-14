@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, Flame, Share2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import type { Property } from "@/lib/properties";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyImage } from "@/components/PropertyImage";
 import { SaveButton } from "@/components/motion/SaveButton";
+import { ShareListingButton } from "@/components/ShareListingButton";
 
 type PropertyDetailGalleryProps = Readonly<{
   property: Property;
@@ -15,7 +16,6 @@ type PropertyDetailGalleryProps = Readonly<{
   verificationLevel: number;
   authenticityScore: number;
   isSaved: boolean | undefined;
-  onShare: () => void;
   onToggleSave: () => void;
 }>;
 
@@ -39,7 +39,6 @@ export function PropertyDetailGallery({
   verificationLevel,
   authenticityScore,
   isSaved,
-  onShare,
   onToggleSave,
 }: PropertyDetailGalleryProps) {
   const slideCount = gallery.length;
@@ -129,15 +128,7 @@ export function PropertyDetailGallery({
         </div>
 
         <div className="absolute top-4 right-4 z-20 flex gap-2">
-          <motion.button
-            type="button"
-            onClick={onShare}
-            whileTap={{ scale: 0.9 }}
-            aria-label="Share listing"
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-md"
-          >
-            <Share2 className="h-4 w-4" aria-hidden />
-          </motion.button>
+          <ShareListingButton property={property} />
           <SaveButton
             saved={isSaved}
             onToggle={(e) => {

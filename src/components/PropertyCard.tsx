@@ -20,6 +20,7 @@ import { PropertyImage } from "@/components/PropertyImage";
 import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { isListingEarlyAccess } from "@/lib/revenue/entitlements";
 import { SaveButton } from "@/components/motion/SaveButton";
+import { ShareListingButton } from "@/components/ShareListingButton";
 import { isTouchDevice } from "@/lib/motion/performance";
 import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
 
@@ -173,9 +174,12 @@ function PropertyCardImage({
         plusMember={plusMember}
         earlyAccess={earlyAccess}
       />
-      {showSave && onToggleSave ? (
-        <SaveButton saved={saved} onToggle={onToggleSave} className="absolute top-3 right-3" />
-      ) : null}
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+        <ShareListingButton property={property} variant="card" />
+        {showSave && onToggleSave ? (
+          <SaveButton saved={saved} onToggle={onToggleSave} className="static" />
+        ) : null}
+      </div>
       <motion.span
         whileHover={{ scale: 1.05 }}
         className="listing-price-chip absolute bottom-3 left-3"

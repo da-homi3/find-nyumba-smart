@@ -84,7 +84,6 @@ function PropertyDetail() {
           verificationLevel={vLevel}
           authenticityScore={score}
           isSaved={detail.isSaved}
-          onShare={() => void detail.handleShare()}
           onToggleSave={() => detail.toggleSave.mutate()}
         />
 

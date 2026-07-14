@@ -203,7 +203,7 @@ function AdminDashboard() {
   });
 
   const adjustAuthenticityScore = useMutation({
-    mutationFn: (payload: { propertyId: string; delta: number }) =>
+    mutationFn: (payload: { propertyId: string; delta?: number; score?: number }) =>
       adjustAdminPropertyAuthenticityScore({ data: payload }),
     onSuccess: (row) => {
       toast.success(`Authenticity score set to ${row.authenticity_score}%`);

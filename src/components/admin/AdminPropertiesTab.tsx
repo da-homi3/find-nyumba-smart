@@ -21,7 +21,7 @@ type ToggleVerification = UseMutationResult<
 type AdjustAuthenticityScore = UseMutationResult<
   { id: string; title: string; authenticity_score: number },
   Error,
-  { propertyId: string; delta: number },
+  { propertyId: string; delta?: number; score?: number },
   unknown
 >;
 

@@ -11,9 +11,17 @@ export function AdminPropertyAuthenticityPanel({ property }: Readonly<{ property
   const qc = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ({ propertyId, delta }: { propertyId: string; delta: number }) =>
+    mutationFn: ({
+      propertyId,
+      delta,
+      score,
+    }: {
+      propertyId: string;
+      delta?: number;
+      score?: number;
+    }) =>
       adjustAdminPropertyAuthenticityScore({
-        data: { propertyId, delta },
+        data: { propertyId, delta, score },
       }),
     onSuccess: (row) => {
       toast.success(`Authenticity score set to ${row.authenticity_score}%`);
@@ -31,7 +39,7 @@ export function AdminPropertyAuthenticityPanel({ property }: Readonly<{ property
       <div className="text-xs">
         <p className="font-semibold text-primary">Admin: authenticity score</p>
         <p className="text-muted-foreground">
-          Adjust trust score shown on cards and search ranking.
+          Adjust trust score (±5) or set authenticity to 100% for fully verified listings.
         </p>
       </div>
       <AdminPropertyAuthenticityControls

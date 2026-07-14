@@ -352,10 +352,17 @@ export const setAdminPropertyVerification = createServerFn({ method: "POST" })
 export const adjustAdminPropertyAuthenticityScore = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    z.object({
-      propertyId: z.string().uuid(),
-      delta: z.number().int().min(-100).max(100),
-    }),
+    z
+      .object({
+        propertyId: z.string().uuid(),
+        /** Relative adjust (−5 / +5 from admin UI). */
+        delta: z.number().int().min(-100).max(100).optional(),
+        /** Absolute set (e.g. admin “set to 100%”). */
+        score: z.number().int().min(0).max(100).optional(),
+      })
+      .refine((data) => data.delta != null || data.score != null, {
+        message: "Provide delta or score",
+      }),
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
@@ -371,7 +378,10 @@ export const adjustAdminPropertyAuthenticityScore = createServerFn({ method: "PO
     if (fetchError) throw fetchError;
 
     const previous = current.authenticity_score ?? 70;
-    const next = Math.max(0, Math.min(100, previous + data.delta));
+    const next =
+      data.score != null
+        ? Math.max(0, Math.min(100, data.score))
+        : Math.max(0, Math.min(100, previous + (data.delta ?? 0)));
 
     const { data: row, error } = await supabaseAdmin
       .from("properties")
@@ -385,11 +395,16 @@ export const adjustAdminPropertyAuthenticityScore = createServerFn({ method: "PO
 
     if (error) throw error;
 
+    const changeNote =
+      data.score != null
+        ? `set to ${next}%`
+        : `${previous}% → ${next}% (${(data.delta ?? 0) >= 0 ? "+" : ""}${data.delta ?? 0})`;
+
     await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: userId,
       action: "PROPERTY_AUTHENTICITY_SCORE_ADJUSTED",
       target_id: data.propertyId,
-      details: `Authenticity score ${previous}% → ${next}% (${data.delta >= 0 ? "+" : ""}${data.delta}) on ${row.title}`,
+      details: `Authenticity score ${changeNote} on ${row.title}`,
     });
 
     return row;
