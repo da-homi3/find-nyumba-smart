@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, Facebook, Link2, Mail, MessageCircle, Share2, X } from "lucide-react";
+import { Check, Copy, Link2, Mail, MessageCircle, Share2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -17,11 +17,13 @@ import {
 } from "@/lib/share-listing";
 import type { Property } from "@/lib/properties";
 
+type ShareVariant = "icon" | "chip" | "card";
+
 type ShareListingButtonProps = Readonly<{
   property: Pick<Property, "id" | "title" | "neighborhood" | "rent_kes">;
   className?: string;
   /** Gallery-style circular control. */
-  variant?: "icon" | "chip" | "card";
+  variant?: ShareVariant;
   children?: ReactNode;
 }>;
 
@@ -33,6 +35,16 @@ type Channel = {
   icon: ReactNode;
 };
 
+function triggerButtonClass(variant: ShareVariant): string {
+  if (variant === "chip") {
+    return "inline-flex h-9 items-center gap-1.5 rounded-full border bg-background/90 px-3 text-xs font-semibold shadow-card backdrop-blur";
+  }
+  if (variant === "card") {
+    return "grid h-9 w-9 place-items-center rounded-full border border-white/25 bg-black/45 text-white backdrop-blur-md";
+  }
+  return "grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-md";
+}
+
 export function ShareListingButton({
   property,
   className,
@@ -40,7 +52,8 @@ export function ShareListingButton({
   children,
 }: ShareListingButtonProps) {
   const panelId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -54,15 +67,23 @@ export function ShareListingButton({
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (open && !dialog.open) {
+      dialog.showModal();
+      return;
     }
-    document.addEventListener("keydown", onKey);
+    if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open, mounted]);
+
+  useEffect(() => {
+    if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
   }, [open]);
@@ -109,7 +130,7 @@ export function ShareListingButton({
       id: "facebook",
       label: "Facebook",
       href: facebookShareUrl(url),
-      icon: <Facebook className="h-4 w-4 text-[#1877F2]" />,
+      icon: <FacebookIcon />,
     },
     {
       id: "x",
@@ -121,7 +142,7 @@ export function ShareListingButton({
       id: "telegram",
       label: "Telegram",
       href: telegramShareUrl(url, text),
-      icon: <SendIcon />,
+      icon: <TelegramIcon />,
     },
     {
       id: "sms",
@@ -144,26 +165,31 @@ export function ShareListingButton({
   ];
 
   const sheet =
-    open && mounted
+    mounted
       ? createPortal(
-          <div className="fixed inset-0 z-100 flex items-end justify-center sm:items-center">
+          <dialog
+            ref={dialogRef}
+            id={panelId}
+            aria-labelledby={titleId}
+            className="fixed inset-0 z-100 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-transparent p-0 open:flex sm:items-center backdrop:bg-black/50"
+            onClose={() => setOpen(false)}
+            onCancel={(event) => {
+              event.preventDefault();
+              setOpen(false);
+            }}
+          >
             <button
               type="button"
               aria-label="Dismiss share sheet"
-              className="absolute inset-0 bg-black/50"
+              className="absolute inset-0 cursor-default bg-transparent"
               onClick={() => setOpen(false)}
             />
-            <div
-              id={panelId}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Share listing"
-              className="relative z-10 w-full max-w-md rounded-t-2xl border bg-card p-4 text-foreground shadow-elegant sm:rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative z-10 w-full max-w-md rounded-t-2xl border bg-card p-4 text-foreground shadow-elegant sm:rounded-2xl">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">Share listing</p>
+                  <p id={titleId} className="text-sm font-semibold">
+                    Share listing
+                  </p>
                   <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{title}</p>
                 </div>
                 <button
@@ -211,13 +237,13 @@ export function ShareListingButton({
                 <span className="truncate">{url}</span>
               </div>
             </div>
-          </div>,
+          </dialog>,
           document.body,
         )
       : null;
 
   return (
-    <div ref={rootRef} className={cn("relative", className)}>
+    <div className={cn("relative", className)}>
       <button
         type="button"
         onClick={(e) => {
@@ -227,14 +253,9 @@ export function ShareListingButton({
         }}
         aria-expanded={open}
         aria-controls={panelId}
+        aria-haspopup="dialog"
         aria-label="Share listing"
-        className={
-          variant === "chip"
-            ? "inline-flex h-9 items-center gap-1.5 rounded-full border bg-background/90 px-3 text-xs font-semibold shadow-card backdrop-blur"
-            : variant === "card"
-              ? "grid h-9 w-9 place-items-center rounded-full border border-white/25 bg-black/45 text-white backdrop-blur-md"
-              : "grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-md"
-        }
+        className={triggerButtonClass(variant)}
       >
         {children ?? <Share2 className="h-4 w-4" aria-hidden />}
       </button>
@@ -243,7 +264,18 @@ export function ShareListingButton({
   );
 }
 
-function SendIcon() {
+function FacebookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#1877F2]" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M14 8h2V5h-2c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h2.1l.4-3H13V9c0-.6.4-1 1-1Z"
+      />
+    </svg>
+  );
+}
+
+function TelegramIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#2AABEE]" aria-hidden>
       <path
