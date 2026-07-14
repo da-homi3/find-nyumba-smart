@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import { resolveMapboxToken } from "@/hooks/use-tenant-mapbox";
 import { neighborhoodCentroid } from "@/lib/geo/property-map-coords";
-import { searchLocations, type LocationSearchResult } from "@/lib/geo/location-search";
+import type { LocationSearchResult } from "@/lib/geo/location-search";
+import { PlaceSearchField } from "@/components/PlaceSearchField";
 import { NAIROBI_CENTER } from "@/components/tenant-map/map-constants";
 import {
   createPropertyLocationMap,
@@ -10,7 +11,7 @@ import {
   syncPropertyLocationPin,
 } from "@/lib/mapbox/property-location-map";
 import { fitMapboxToKenya } from "@/lib/mapbox/mapbox-3d";
-import { Loader2, MapPin, Navigation, Search } from "lucide-react";
+import { Loader2, MapPin, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PropertyLocationPickerProps = Readonly<{
@@ -21,57 +22,6 @@ type PropertyLocationPickerProps = Readonly<{
   onNeighborhoodSelect?: (neighborhood: string) => void;
   className?: string;
 }>;
-
-function LocationSearchDropdown({
-  searchLoading,
-  searchResults,
-  onSelect,
-}: Readonly<{
-  searchLoading: boolean;
-  searchResults: LocationSearchResult[];
-  onSelect: (result: LocationSearchResult) => void;
-}>) {
-  if (searchLoading) {
-    return (
-      <div className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        Searching locations…
-      </div>
-    );
-  }
-
-  if (searchResults.length === 0) {
-    return (
-      <p className="px-3 py-3 text-xs text-muted-foreground">
-        No locations found. Try a different spelling or pin manually on the map.
-      </p>
-    );
-  }
-
-  return (
-    <ul className="py-1">
-      {searchResults.map((result) => (
-        <li key={result.id}>
-          <button
-            type="button"
-            onClick={() => onSelect(result)}
-            className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-secondary/70"
-          >
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-            <span className="min-w-0">
-              <span className="block text-sm font-medium">{result.label}</span>
-              {result.subtitle ? (
-                <span className="block truncate text-xs text-muted-foreground">
-                  {result.subtitle}
-                </span>
-              ) : null}
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 export function PropertyLocationPicker({
   latitude,
@@ -86,13 +36,9 @@ export function PropertyLocationPicker({
   const markerRef = useRef<MapboxMarker | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const mapTokenRef = useRef<string | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(neighborhood ?? "");
-  const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
@@ -173,50 +119,14 @@ export function PropertyLocationPicker({
     }
   }, [neighborhood, searchQuery]);
 
-  useEffect(() => {
-    const query = searchQuery.trim();
-    if (query.length < 2) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setSearchLoading(true);
-    const timer = window.setTimeout(() => {
-      void searchLocations(query, { mapboxToken: mapTokenRef.current, limit: 8 }).then(
-        (results) => {
-          if (cancelled) return;
-          setSearchResults(results);
-          setSearchLoading(false);
-        },
-      );
-    }, 280);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [searchQuery]);
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!searchRef.current?.contains(event.target as Node)) {
-        setSearchOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, []);
-
   function selectSearchResult(result: LocationSearchResult) {
     setError(null);
     setSearchQuery(result.neighborhood ?? result.label);
-    setSearchOpen(false);
-    setSearchResults([]);
     onChange(result.lat, result.lng);
     if (result.neighborhood) {
       onNeighborhoodSelect?.(result.neighborhood);
+    } else if (result.kind === "neighborhood" || result.kind === "locality") {
+      onNeighborhoodSelect?.(result.label);
     }
     const map = mapInstance.current;
     if (!map) return;
@@ -256,35 +166,28 @@ export function PropertyLocationPicker({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div ref={searchRef} className="relative">
+      <div className="rounded-xl border bg-card p-3 shadow-soft">
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium">Search location</span>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSearchOpen(true);
-              }}
-              onFocus={() => setSearchOpen(true)}
-              placeholder="Type area name, e.g. Kilimani, Westlands, Karen, Mombasa"
-              className="w-full rounded-xl border py-2.5 pl-10 pr-3"
-              autoComplete="off"
-            />
-          </div>
+          <PlaceSearchField
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            onSelectPlace={selectSearchResult}
+            onClear={() => setSearchQuery("")}
+            placeholder="Search landmark, road, or area — e.g. Junction Mall, Ngong Rd, Karen"
+            className="rounded-xl border px-3 py-1"
+            showNearbyAfterSelect
+            proximity={
+              latitude != null && longitude != null
+                ? { lat: latitude, lng: longitude }
+                : NAIROBI_CENTER
+            }
+          />
         </label>
-
-        {searchOpen && searchQuery.trim().length >= 2 ? (
-          <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border bg-card shadow-elegant">
-            <LocationSearchDropdown
-              searchLoading={searchLoading}
-              searchResults={searchResults}
-              onSelect={selectSearchResult}
-            />
-          </div>
-        ) : null}
+        <p className="mt-2 text-xs text-muted-foreground">
+          Pick a place like Google Maps, then drag the pin to the exact building. Nearby areas
+          appear after you select.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

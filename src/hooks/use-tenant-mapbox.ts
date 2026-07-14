@@ -1,14 +1,21 @@
 import type { GeoJSONSource, Map as MapboxMap, MapMouseEvent } from "mapbox-gl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Property } from "@/lib/properties";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { getMapboxPublicToken } from "@/lib/api/map.functions";
 import {
   compactKes,
   filterMappableProperties,
+  filterPropertiesNearPlace,
   NAIROBI_CENTER,
+  zoomForPlaceRadiusKm,
 } from "@/components/tenant-map/map-constants";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
+import {
+  createPlaceFocus,
+  type LocationSearchResult,
+  type MapPlaceFocus,
+} from "@/lib/geo/location-search";
 import { loadMapboxGl } from "@/lib/mapbox/mapbox-init";
 import { syncHeatmapForZoom, syncMapbox3DForZoom } from "@/lib/mapbox/mapbox-3d";
 import {
@@ -356,7 +363,8 @@ export function useTenantMapbox(properties: Property[]) {
   const [showWater, setShowWater] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQueryState] = useState("");
+  const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [mapStyle, setMapStyle] = useState<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(
@@ -368,7 +376,17 @@ export function useTenantMapbox(properties: Property[]) {
   const [tokenLoading, setTokenLoading] = useState(!hasMapboxTokenSync());
 
   propertiesRef.current = properties;
-  const filteredProperties = filterMappableProperties(properties, query);
+  const filteredProperties = useMemo(() => {
+    if (placeFocus) {
+      return filterPropertiesNearPlace(
+        properties,
+        placeFocus.lat,
+        placeFocus.lng,
+        placeFocus.radiusKm,
+      );
+    }
+    return filterMappableProperties(properties, query);
+  }, [properties, query, placeFocus]);
   const filteredRef = useRef(filteredProperties);
   filteredRef.current = filteredProperties;
 
@@ -598,6 +616,7 @@ export function useTenantMapbox(properties: Property[]) {
     if (!map) return;
     flyToNairobiMetro(map, 1200);
     setSelected(null);
+    setPlaceFocus(null);
   };
 
   const locateMe = () => {
@@ -614,6 +633,33 @@ export function useTenantMapbox(properties: Property[]) {
       },
       () => setError("Could not access your location"),
     );
+  };
+
+  const focusPlace = (place: LocationSearchResult) => {
+    const focus = createPlaceFocus(place);
+    setPlaceFocus(focus);
+    setQueryState(place.neighborhood ?? place.label);
+    setSelected(null);
+    const map = mapInstance.current;
+    if (!map) return;
+    map.flyTo({
+      center: [focus.lng, focus.lat],
+      zoom: zoomForPlaceRadiusKm(focus.radiusKm),
+      pitch: selectedPropertyFlyToPitch() > 0 ? 40 : 0,
+      duration: 1400,
+      essential: true,
+    });
+    syncMapbox3DForZoom(map);
+  };
+
+  const clearPlaceFocus = () => {
+    setPlaceFocus(null);
+    setQueryState("");
+  };
+
+  const setQuery = (value: string) => {
+    setQueryState(value);
+    if (placeFocus) setPlaceFocus(null);
   };
 
   const visibleCount = ready && !error ? markerCount : filteredProperties.length;
@@ -634,6 +680,9 @@ export function useTenantMapbox(properties: Property[]) {
     setPanelOpen,
     query,
     setQuery,
+    placeFocus,
+    focusPlace,
+    clearPlaceFocus,
     isOnline,
     filteredProperties,
     visibleCount,

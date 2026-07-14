@@ -1,6 +1,7 @@
 /// <reference types="google.maps" />
 import { prettyType, type Property } from "@/lib/properties";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
+import { haversineKm } from "@/lib/geo/location-search";
 
 export const NAIROBI_CENTER = { lat: -1.286389, lng: 36.817223 };
 export const NAIROBI_BOUNDS = {
@@ -74,6 +75,38 @@ export function filterMappableProperties(properties: Property[], query: string):
         map_approximate: coords.approximate,
       };
     });
+}
+
+/** Keep listings within radius of a searched place (landmark / area focus). */
+export function filterPropertiesNearPlace(
+  properties: Property[],
+  lat: number,
+  lng: number,
+  radiusKm: number,
+): Property[] {
+  return properties
+    .filter((p) => p.is_active !== false)
+    .map((p) => {
+      const coords = resolvePropertyMapCoords(p);
+      return {
+        ...p,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        map_approximate: coords.approximate,
+        _km: haversineKm(lat, lng, coords.lat, coords.lng),
+      };
+    })
+    .filter((p) => p._km <= radiusKm)
+    .sort((a, b) => a._km - b._km)
+    .map(({ _km: _distanceKm, ...p }) => p);
+}
+
+export function zoomForPlaceRadiusKm(radiusKm: number): number {
+  if (radiusKm <= 1.5) return 15;
+  if (radiusKm <= 2.5) return 14;
+  if (radiusKm <= 4) return 13.2;
+  if (radiusKm <= 7) return 12.2;
+  return 11.2;
 }
 
 export function projectToFallbackMap(p: Property) {

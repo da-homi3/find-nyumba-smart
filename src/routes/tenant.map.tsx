@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { type Property } from "@/lib/properties";
 import { useListingsSearch } from "@/hooks/use-listings-search";
 import { FallbackMap } from "@/components/tenant-map/FallbackMap";
-import { filterMappableProperties } from "@/components/tenant-map/map-constants";
+import {
+  filterMappableProperties,
+  filterPropertiesNearPlace,
+} from "@/components/tenant-map/map-constants";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { TenantMapChrome } from "@/components/tenant-map/TenantMapChrome";
 import { LazyRadar } from "@/components/LazyRadar";
@@ -14,6 +17,7 @@ import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 import { canUseWebGl, mapLoadTimeoutMs } from "@/lib/mapbox/map-device";
 import { mergeListingsForDisplay } from "@/lib/listings-preview";
+import { createPlaceFocus, type MapPlaceFocus } from "@/lib/geo/location-search";
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -156,9 +160,12 @@ function TenantMap() {
 function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewProps) {
   const [selected, setSelected] = useState<Property | null>(null);
   const [query, setQuery] = useState("");
+  const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
   const [showHeat, setShowHeat] = useState(true);
   const [panelOpen, setPanelOpen] = useState(true);
-  const filtered = filterMappableProperties(properties, query);
+  const filtered = placeFocus
+    ? filterPropertiesNearPlace(properties, placeFocus.lat, placeFocus.lng, placeFocus.radiusKm)
+    : filterMappableProperties(properties, query);
 
   return (
     <TenantMapShell
@@ -178,10 +185,23 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
         setPanelOpen,
         query,
         setQuery,
+        placeFocus,
+        focusPlace: (place) => {
+          const focus = createPlaceFocus(place);
+          setPlaceFocus(focus);
+          setQuery(place.neighborhood ?? place.label);
+        },
+        clearPlaceFocus: () => {
+          setPlaceFocus(null);
+          setQuery("");
+        },
         filteredProperties: filtered,
         visibleCount: filtered.length,
         locateMe: () => undefined,
-        recenter: () => undefined,
+        recenter: () => {
+          setPlaceFocus(null);
+          setSelected(null);
+        },
         isOnline: true,
       }}
       propertiesLoading={propertiesLoading}
@@ -296,6 +316,9 @@ function TenantMapShell({
       <TenantMapChrome
         query={map.query}
         onQueryChange={map.setQuery}
+        placeFocus={map.placeFocus ?? null}
+        onSelectPlace={(place) => map.focusPlace?.(place)}
+        onClearPlace={() => map.clearPlaceFocus?.()}
         showHeat={map.showHeat}
         onToggleHeat={() => map.setShowHeat((v) => !v)}
         showWater={map.showWater}

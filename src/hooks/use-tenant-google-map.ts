@@ -1,5 +1,5 @@
 /// <reference types="google.maps" />
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getGoogleMapsWindow, loadGoogleMaps } from "@/lib/google-maps-loader";
 import type { Property } from "@/lib/properties";
 import {
@@ -9,7 +9,9 @@ import {
   NAIROBI_CENTER,
   compactKes,
   filterMappableProperties,
+  filterPropertiesNearPlace,
   priceTagSvg,
+  zoomForPlaceRadiusKm,
 } from "@/components/tenant-map/map-constants";
 import {
   buildRentHeatCircles,
@@ -17,6 +19,11 @@ import {
   createListingMarkers,
   type PropertyMarker,
 } from "@/lib/tenant-map/google-map-build";
+import {
+  createPlaceFocus,
+  type LocationSearchResult,
+  type MapPlaceFocus,
+} from "@/lib/geo/location-search";
 
 type MarkerClustererType = import("@googlemaps/markerclusterer").MarkerClusterer;
 type MarkerClustererModule = typeof import("@googlemaps/markerclusterer") & {
@@ -40,11 +47,22 @@ export function useTenantGoogleMap(properties: Property[]) {
   const [showWater, setShowWater] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
-  const [query, setQuery] = useState("");
+  const [query, setQueryState] = useState("");
+  const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
 
-  const filteredProperties = filterMappableProperties(properties, query);
+  const filteredProperties = useMemo(() => {
+    if (placeFocus) {
+      return filterPropertiesNearPlace(
+        properties,
+        placeFocus.lat,
+        placeFocus.lng,
+        placeFocus.radiusKm,
+      );
+    }
+    return filterMappableProperties(properties, query);
+  }, [properties, query, placeFocus]);
 
   function cullHeatmap() {
     const map = mapInstance.current;
@@ -225,6 +243,7 @@ export function useTenantGoogleMap(properties: Property[]) {
     mapInstance.current?.panTo(NAIROBI_CENTER);
     mapInstance.current?.setZoom(12);
     setSelected(null);
+    setPlaceFocus(null);
   };
 
   const locateMe = () => {
@@ -237,6 +256,25 @@ export function useTenantGoogleMap(properties: Property[]) {
       },
       () => setError("Could not access your location"),
     );
+  };
+
+  const focusPlace = (place: LocationSearchResult) => {
+    const focus = createPlaceFocus(place);
+    setPlaceFocus(focus);
+    setQueryState(place.neighborhood ?? place.label);
+    setSelected(null);
+    mapInstance.current?.panTo({ lat: focus.lat, lng: focus.lng });
+    mapInstance.current?.setZoom(zoomForPlaceRadiusKm(focus.radiusKm));
+  };
+
+  const clearPlaceFocus = () => {
+    setPlaceFocus(null);
+    setQueryState("");
+  };
+
+  const setQuery = (value: string) => {
+    setQueryState(value);
+    if (placeFocus) setPlaceFocus(null);
   };
 
   const visibleCount = ready && !error ? markerCount : filteredProperties.length;
@@ -257,6 +295,9 @@ export function useTenantGoogleMap(properties: Property[]) {
     setPanelOpen,
     query,
     setQuery,
+    placeFocus,
+    focusPlace,
+    clearPlaceFocus,
     isOnline,
     filteredProperties,
     visibleCount,
