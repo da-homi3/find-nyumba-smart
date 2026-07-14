@@ -1,5 +1,5 @@
 /**
- * Apply supabase/migrations/20260611120000_whatsapp.sql via Supabase Management API.
+ * Apply supabase/migrations/20260702120000_whatsapp.sql via Supabase Management API.
  * Requires SUPABASE_ACCESS_TOKEN and SUPABASE_URL in .env
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const envPath = join(root, ".env");
-const sqlPath = join(root, "supabase", "migrations", "20260611120000_whatsapp.sql");
+const sqlPath = join(root, "supabase", "migrations", "20260702120000_whatsapp.sql");
 
 function parseEnv(text) {
   const env = {};
