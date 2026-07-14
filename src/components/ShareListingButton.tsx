@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check, Copy, Link2, Mail, MessageCircle, Share2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -56,37 +56,31 @@ export function ShareListingButton({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   const url = listingShareUrl(property.id);
   const text = listingShareText(property);
   const title = property.title || "NyumbaSearch listing";
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!open) return;
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (open && !dialog.open) {
-      dialog.showModal();
-      return;
-    }
-    if (!open && dialog.open) {
-      dialog.close();
-    }
-  }, [open, mounted]);
+    if (!dialog.open) dialog.showModal();
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
+      if (dialog.open) dialog.close();
     };
   }, [open]);
+
+  function closeSheet() {
+    setOpen(false);
+    dialogRef.current?.close();
+  }
 
   async function copyLink() {
     const ok = await copyTextToClipboard(url);
@@ -102,7 +96,7 @@ export function ShareListingButton({
   async function shareNative() {
     const result = await nativeShareListing({ title, text, url });
     if (result === "shared") {
-      setOpen(false);
+      closeSheet();
       return;
     }
     if (result === "copied") {
@@ -164,83 +158,6 @@ export function ShareListingButton({
     },
   ];
 
-  const sheet = mounted
-    ? createPortal(
-        <dialog
-          ref={dialogRef}
-          id={panelId}
-          aria-labelledby={titleId}
-          className="fixed inset-0 z-100 m-0 flex h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-transparent p-0 open:flex sm:items-center backdrop:bg-black/50"
-          onClose={() => setOpen(false)}
-          onCancel={(event) => {
-            event.preventDefault();
-            setOpen(false);
-          }}
-        >
-          <button
-            type="button"
-            aria-label="Dismiss share sheet"
-            className="absolute inset-0 cursor-default bg-transparent"
-            onClick={() => setOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-md rounded-t-2xl border bg-card p-4 text-foreground shadow-elegant sm:rounded-2xl">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p id={titleId} className="text-sm font-semibold">
-                  Share listing
-                </p>
-                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{title}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-secondary"
-                aria-label="Close share options"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <ul className="grid grid-cols-2 gap-2">
-              {channels.map((channel) => (
-                <li key={channel.id}>
-                  {channel.href ? (
-                    <a
-                      href={channel.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-medium hover:bg-secondary"
-                      onClick={() => setOpen(false)}
-                    >
-                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary">
-                        {channel.icon}
-                      </span>
-                      {channel.label}
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => void channel.onClick?.()}
-                      className="flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-medium hover:bg-secondary"
-                    >
-                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary">
-                        {channel.icon}
-                      </span>
-                      {channel.label}
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary/60 px-3 py-2 text-[11px] text-muted-foreground">
-              <Link2 className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{url}</span>
-            </div>
-          </div>
-        </dialog>,
-        document.body,
-      )
-    : null;
-
   return (
     <div className={cn("relative", className)}>
       <button
@@ -248,17 +165,93 @@ export function ShareListingButton({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setOpen((v) => !v);
+          setOpen(true);
         }}
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         aria-haspopup="dialog"
         aria-label="Share listing"
         className={triggerButtonClass(variant)}
       >
         {children ?? <Share2 className="h-4 w-4" aria-hidden />}
       </button>
-      {sheet}
+
+      {open && typeof document !== "undefined"
+        ? createPortal(
+            <dialog
+              ref={dialogRef}
+              id={panelId}
+              aria-labelledby={titleId}
+              className="z-100 m-0 max-h-none w-full max-w-none border-0 bg-transparent p-0 open:fixed open:inset-0 open:flex open:h-full open:items-end open:justify-center sm:open:items-center backdrop:bg-black/50"
+              onClose={() => setOpen(false)}
+            >
+              <button
+                type="button"
+                aria-label="Dismiss share sheet"
+                className="absolute inset-0 cursor-default bg-transparent"
+                onClick={closeSheet}
+              />
+              <div className="relative z-10 mx-auto w-full max-w-md rounded-t-2xl border bg-card p-4 text-foreground shadow-elegant sm:rounded-2xl">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p id={titleId} className="text-sm font-semibold">
+                      Share listing
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{title}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      closeSheet();
+                    }}
+                    className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    aria-label="Close share options"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <ul className="grid grid-cols-2 gap-2">
+                  {channels.map((channel) => (
+                    <li key={channel.id}>
+                      {channel.href ? (
+                        <a
+                          href={channel.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-medium hover:bg-secondary"
+                          onClick={closeSheet}
+                        >
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary">
+                            {channel.icon}
+                          </span>
+                          {channel.label}
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void channel.onClick?.()}
+                          className="flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-medium hover:bg-secondary"
+                        >
+                          <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary">
+                            {channel.icon}
+                          </span>
+                          {channel.label}
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-secondary/60 px-3 py-2 text-[11px] text-muted-foreground">
+                  <Link2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{url}</span>
+                </div>
+              </div>
+            </dialog>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
