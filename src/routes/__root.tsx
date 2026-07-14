@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
+import "@/lib/random-uuid";
 import { reportClientError } from "@/lib/error-reporting";
 import {
   clearChunkReloadGuard,

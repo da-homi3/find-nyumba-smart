@@ -13,6 +13,7 @@ import {
 } from "@/lib/media/upload-limits";
 import { uploadStorageBatchWithProgress } from "@/lib/media/storage-upload";
 import { enhanceMediaFilesForUpload } from "@/lib/media/enhance-upload";
+import { randomUuid } from "@/lib/random-uuid";
 import { FileDropZone } from "@/components/FileDropZone";
 
 type UpdateMediaResult = Awaited<ReturnType<typeof updatePropertyMedia>>;
@@ -84,7 +85,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
       const uploads = enhanced.map((file) => {
         const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
         const prefix = prefixByKind[kind];
-        const path = `${user.id}/${property.id}/${prefix}-${crypto.randomUUID()}.${ext}`;
+        const path = `${user.id}/${property.id}/${prefix}-${randomUuid()}.${ext}`;
         return { bucket: BUCKET, path, file, kind };
       });
 

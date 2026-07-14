@@ -12,6 +12,7 @@ import {
 import { transactionReference } from "@/lib/revenue/plans";
 import { isPesapalCheckoutEnabled } from "@/lib/pesapal-client";
 import { errorMessage } from "@/lib/utils";
+import { randomUuid } from "@/lib/random-uuid";
 import type { InitiatePaymentInput } from "@/lib/payments/initiate-payment-core";
 
 type PaymentPhase = "idle" | "sending" | "awaiting_pin" | "confirming";
@@ -100,7 +101,7 @@ export function CheckoutFlow({
   const [phase, setPhase] = useState<PaymentPhase>("idle");
   const [ref, setRef] = useState("");
   const [receipt, setReceipt] = useState<string | undefined>();
-  const idempotencyRef = useRef(crypto.randomUUID());
+  const idempotencyRef = useRef(randomUuid());
 
   const waiting = phase !== "idle";
   const amountKes =
@@ -224,7 +225,7 @@ export function CheckoutFlow({
       onSuccess(reference);
     } catch (err) {
       toast.error(errorMessage(err));
-      idempotencyRef.current = crypto.randomUUID();
+      idempotencyRef.current = randomUuid();
     } finally {
       setPhase("idle");
     }

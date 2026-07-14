@@ -27,6 +27,7 @@ import {
 import { Loader2, FileText, MapPin, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { portalLabelForRole } from "@/lib/portal-labels";
 import { isWithinUploadLimit, uploadLimitLabel } from "@/lib/media/upload-limits";
+import { randomUuid } from "@/lib/random-uuid";
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -77,7 +78,7 @@ function buildMediaUploads(
 
   for (const file of imageFiles) {
     const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${userId}/${propertyKey}/img-${crypto.randomUUID()}.${ext}`;
+    const path = `${userId}/${propertyKey}/img-${randomUuid()}.${ext}`;
     uploads.push({ path, file });
     uploadedImagePaths.push(path);
   }
@@ -85,14 +86,14 @@ function buildMediaUploads(
   let videoPath: string | null = null;
   if (videoFile) {
     const ext = videoFile.name.split(".").pop() ?? "mp4";
-    videoPath = `${userId}/${propertyKey}/video-${crypto.randomUUID()}.${ext}`;
+    videoPath = `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`;
     uploads.push({ path: videoPath, file: videoFile });
   }
 
   let tourPath: string | null = null;
   if (tourFile) {
     const ext = tourFile.name.split(".").pop() ?? "jpg";
-    tourPath = `${userId}/${propertyKey}/tour360-${crypto.randomUUID()}.${ext}`;
+    tourPath = `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`;
     uploads.push({ path: tourPath, file: tourFile });
   }
 
@@ -499,7 +500,7 @@ async function publishListing(input: PublishListingInput) {
 
   setLoading(true);
   try {
-    const propertyKey = crypto.randomUUID();
+    const propertyKey = randomUuid();
     setUploading(true);
     setUploadProgress(0);
     const media = await uploadListingMedia({
