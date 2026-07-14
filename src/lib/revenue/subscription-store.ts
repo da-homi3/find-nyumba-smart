@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { Property } from "@/lib/properties";
-import { planRank } from "@/lib/revenue/entitlements";
+import { planRank } from "@/lib/revenue/plan-limits";
 import type { LandlordPlan, TenantPlan } from "@/lib/revenue/types";
 
 type Db = SupabaseClient<Database>;

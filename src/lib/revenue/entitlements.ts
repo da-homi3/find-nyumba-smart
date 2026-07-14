@@ -1,5 +1,5 @@
 import type { LandlordPlan, TenantPlan } from "@/lib/revenue/types";
-import { LISTING_LIMITS } from "@/lib/revenue/plans";
+import { LISTING_LIMITS, planRank } from "@/lib/revenue/plan-limits";
 
 export type PortalSubscriptionStatus = "active" | "trialing" | "past_due" | "none";
 
@@ -72,17 +72,4 @@ export function maxSavedSearchAlerts(plan: TenantPlan): number {
   return plan === "plus" ? 999 : 1;
 }
 
-export function planRank(plan: LandlordPlan): number {
-  const order: LandlordPlan[] = [
-    "free",
-    "pro",
-    "premium",
-    "manager-solo",
-    "manager-team",
-    "manager-enterprise",
-    "agency-starter",
-    "agency-pro",
-    "agency-enterprise",
-  ];
-  return order.indexOf(plan);
-}
+export { planRank };
