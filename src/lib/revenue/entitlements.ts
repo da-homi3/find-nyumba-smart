@@ -1,5 +1,5 @@
 import type { LandlordPlan, TenantPlan } from "@/lib/revenue/types";
-import { LISTING_LIMITS } from "@/lib/revenue/plans";
+import { LISTING_LIMITS } from "@/lib/revenue/plan-limits";
 
 export type PortalSubscriptionStatus = "active" | "trialing" | "past_due" | "none";
 
