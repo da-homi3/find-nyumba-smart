@@ -1,6 +1,7 @@
-import { formatKes } from "@/lib/properties";
 import type { BoostPackage, LandlordPlan, VerificationTier } from "@/lib/revenue/types";
 import type { ListingPortal } from "@/lib/portal-paths";
+
+const formatPlanKes = (amount: number) => "KES " + amount.toLocaleString("en-KE");
 
 export type PlanCardDef = {
   id: string;
@@ -322,7 +323,7 @@ export const LISTING_LIMITS: Record<LandlordPlan, number> = {
 
 export function planPriceLabel(plan: PlanCardDef): string {
   if (plan.priceLabel) return plan.priceLabel;
-  return formatKes(plan.priceKes);
+  return formatPlanKes(plan.priceKes);
 }
 
 export function resolveLandlordPlan(planId: string | undefined): LandlordPlan {
