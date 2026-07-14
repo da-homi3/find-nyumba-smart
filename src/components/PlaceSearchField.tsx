@@ -85,8 +85,6 @@ export function PlaceSearchField({
       cancelled = true;
       window.clearTimeout(timer);
     };
-    // Depend on coordinates, not object identity, to avoid refetch loops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- proximity lat/lng
   }, [value, proximity?.lat, proximity?.lng]);
 
   useEffect(() => {
