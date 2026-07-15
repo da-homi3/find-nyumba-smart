@@ -161,7 +161,9 @@ async function verifyUserPassword(email: string, password: string): Promise<bool
   if (!url || !anonKey) return false;
 
   const { createClient } = await import("@supabase/supabase-js");
-  const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const client = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const { error } = await client.auth.signInWithPassword({ email, password });
   if (error) {
     console.debug("[auth] link-account password check failed:", error.message);
@@ -262,7 +264,12 @@ async function handleDuplicateSignup(
       organizationName: data.organizationName,
     });
     const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, existing.id, data);
-    return { userId: existing.id, recovered: false as const, linked: true as const, foundingMember };
+    return {
+      userId: existing.id,
+      recovered: false as const,
+      linked: true as const,
+      foundingMember,
+    };
   }
 
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {

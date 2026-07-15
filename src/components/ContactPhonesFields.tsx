@@ -44,9 +44,7 @@ export function ContactPhonesFields({ phones, onChange, required, className }: P
             value={phone}
             onChange={(e) => setAt(index, e.target.value)}
             placeholder={
-              index === 0
-                ? "e.g. 0712 345 678 or +254712345678"
-                : "Another number (optional)"
+              index === 0 ? "e.g. 0712 345 678 or +254712345678" : "Another number (optional)"
             }
             className={inputCls}
             aria-label={index === 0 ? "Primary contact phone" : `Contact phone ${index + 1}`}

@@ -128,11 +128,7 @@ function ListingWizardDetailsTab({
         />
       </Field>
       <Field
-        label={
-          requireContactPhone
-            ? "Contact name (required)"
-            : "Contact name (optional)"
-        }
+        label={requireContactPhone ? "Contact name (required)" : "Contact name (optional)"}
         full
       >
         <input
@@ -457,10 +453,7 @@ function ListingWizardReviewTab({
           <div>
             <dt className="text-xs text-muted-foreground">Contact</dt>
             <dd>
-              {[
-                form.contact_name.trim(),
-                ...normalizeContactPhones(form.contact_phones),
-              ]
+              {[form.contact_name.trim(), ...normalizeContactPhones(form.contact_phones)]
                 .filter(Boolean)
                 .join(" · ")}
             </dd>

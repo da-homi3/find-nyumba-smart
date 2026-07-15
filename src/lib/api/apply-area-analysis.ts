@@ -33,10 +33,7 @@ export async function applyPropertyAreaAnalysis(
 
   const analysis = analyzePropertyArea(property, comps ?? []);
   // Never lower an admin-boosted authenticity score when re-running area analysis.
-  const authenticityScore = Math.max(
-    analysis.authenticityScore,
-    property.authenticity_score ?? 0,
-  );
+  const authenticityScore = Math.max(analysis.authenticityScore, property.authenticity_score ?? 0);
 
   const { error: updateError } = await admin
     .from("properties")
