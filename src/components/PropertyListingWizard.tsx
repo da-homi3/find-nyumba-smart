@@ -1,12 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
-import { createProperty, createPropertyOnBehalf } from "@/lib/api/nyumba.functions";
+import {
+  createAdminProperty,
+  createProperty,
+  createPropertyOnBehalf,
+} from "@/lib/api/nyumba.functions";
 import {
   analyzePropertyQuality,
   createAdminListingMediaUploadUrls,
   createSignedMediaUrls,
 } from "@/lib/api/media.functions";
 import { ListingWizardTabContent } from "@/components/PropertyListingWizardTabs";
-import { useState, type SubmitEvent } from "react";
+import { useCallback, useRef, useState, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
 import type { PropertyType, PricingMode, PricePeriod } from "@/lib/property-types";
@@ -24,6 +28,13 @@ import {
   uploadStorageObjectViaSignedUrl,
   uploadStorageObjectWithProgress,
 } from "@/lib/media/storage-upload";
+import {
+  fileUploadIdentity,
+  getListingUploadSnapshot,
+  runDurableListingUpload,
+  type DurableUploadController,
+} from "@/lib/media/listing-upload-session";
+import { useKeepListingUploadAlive } from "@/lib/media/use-keep-listing-upload-alive";
 import { Loader2, FileText, MapPin, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { portalLabelForRole } from "@/lib/portal-labels";
 import { isWithinUploadLimit, uploadLimitLabel } from "@/lib/media/upload-limits";
@@ -50,8 +61,9 @@ async function uploadToStorage(
   path: string,
   file: File,
   onFileProgress?: (percent: number) => void,
+  upsert = false,
 ) {
-  await uploadStorageObjectWithProgress("property-media", path, file, onFileProgress);
+  await uploadStorageObjectWithProgress("property-media", path, file, onFileProgress, { upsert });
 }
 
 type UploadListingMediaInput = {
@@ -64,21 +76,41 @@ type UploadListingMediaInput = {
   externalTourUrl: string;
   adminOnBehalf?: boolean;
   onProgress?: (percent: number) => void;
+  controller?: DurableUploadController;
 };
 
-function buildMediaUploads(
-  userId: string,
-  propertyKey: string,
-  imageFiles: File[],
-  videoFile: File | null,
-  tourFile: File | null,
-) {
+function buildMediaUploads(input: {
+  userId: string;
+  propertyKey: string;
+  imageFiles: File[];
+  imageSourceIds: string[];
+  videoFile: File | null;
+  videoSourceId: string | null;
+  tourFile: File | null;
+  tourSourceId: string | null;
+  controller?: DurableUploadController;
+}) {
+  const {
+    userId,
+    propertyKey,
+    imageFiles,
+    imageSourceIds,
+    videoFile,
+    videoSourceId,
+    tourFile,
+    tourSourceId,
+    controller,
+  } = input;
   const uploads: Array<{ path: string; file: File }> = [];
   const uploadedImagePaths: string[] = [];
+  const resolvePath =
+    controller?.resolvePath ?? ((_fileId: string, buildPath: () => string) => buildPath());
 
-  for (const file of imageFiles) {
+  for (let i = 0; i < imageFiles.length; i++) {
+    const file = imageFiles[i]!;
     const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${userId}/${propertyKey}/img-${randomUuid()}.${ext}`;
+    const fileId = `img:${imageSourceIds[i] ?? fileUploadIdentity(file)}`;
+    const path = resolvePath(fileId, () => `${userId}/${propertyKey}/img-${randomUuid()}.${ext}`);
     uploads.push({ path, file });
     uploadedImagePaths.push(path);
   }
@@ -86,14 +118,22 @@ function buildMediaUploads(
   let videoPath: string | null = null;
   if (videoFile) {
     const ext = videoFile.name.split(".").pop() ?? "mp4";
-    videoPath = `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`;
+    const fileId = `video:${videoSourceId ?? fileUploadIdentity(videoFile)}`;
+    videoPath = resolvePath(
+      fileId,
+      () => `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`,
+    );
     uploads.push({ path: videoPath, file: videoFile });
   }
 
   let tourPath: string | null = null;
   if (tourFile) {
     const ext = tourFile.name.split(".").pop() ?? "jpg";
-    tourPath = `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`;
+    const fileId = `tour:${tourSourceId ?? fileUploadIdentity(tourFile)}`;
+    tourPath = resolvePath(
+      fileId,
+      () => `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`,
+    );
     uploads.push({ path: tourPath, file: tourFile });
   }
 
@@ -103,16 +143,30 @@ function buildMediaUploads(
 async function runMediaUploads(
   uploads: Array<{ path: string; file: File }>,
   onProgress?: (percent: number) => void,
+  controller?: DurableUploadController,
 ) {
+  const pending = uploads.filter((item) => !controller?.completedPaths.has(item.path));
+  const alreadyDoneBytes = uploads
+    .filter((item) => controller?.completedPaths.has(item.path))
+    .reduce((sum, item) => sum + item.file.size, 0);
   const totalBytes = uploads.reduce((sum, item) => sum + item.file.size, 0) || 1;
-  let completedBytes = 0;
+  let completedBytes = alreadyDoneBytes;
+  if (alreadyDoneBytes > 0) {
+    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
+  }
 
-  for (const item of uploads) {
-    await uploadToStorage(item.path, item.file, (filePercent) => {
-      if (!onProgress) return;
-      const loaded = (filePercent / 100) * item.file.size;
-      onProgress(Math.min(100, Math.round(((completedBytes + loaded) / totalBytes) * 100)));
-    });
+  for (const item of pending) {
+    await uploadToStorage(
+      item.path,
+      item.file,
+      (filePercent) => {
+        if (!onProgress) return;
+        const loaded = (filePercent / 100) * item.file.size;
+        onProgress(Math.min(100, Math.round(((completedBytes + loaded) / totalBytes) * 100)));
+      },
+      Boolean(controller),
+    );
+    controller?.markPathDone(item.path);
     completedBytes += item.file.size;
     onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
   }
@@ -122,18 +176,29 @@ async function runAdminMediaUploads(
   ownerUserId: string,
   uploads: Array<{ path: string; file: File }>,
   onProgress?: (percent: number) => void,
+  controller?: DurableUploadController,
 ) {
-  if (uploads.length === 0) return;
+  const pending = uploads.filter((item) => !controller?.completedPaths.has(item.path));
+  if (pending.length === 0) {
+    onProgress?.(100);
+    return;
+  }
 
   const signed = await createAdminListingMediaUploadUrls({
-    data: { ownerUserId, paths: uploads.map((item) => item.path) },
+    data: { ownerUserId, paths: pending.map((item) => item.path) },
   });
   const signedByPath = new Map(signed.map((entry) => [entry.path, entry]));
 
+  const alreadyDoneBytes = uploads
+    .filter((item) => controller?.completedPaths.has(item.path))
+    .reduce((sum, item) => sum + item.file.size, 0);
   const totalBytes = uploads.reduce((sum, item) => sum + item.file.size, 0) || 1;
-  let completedBytes = 0;
+  let completedBytes = alreadyDoneBytes;
+  if (alreadyDoneBytes > 0) {
+    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
+  }
 
-  for (const item of uploads) {
+  for (const item of pending) {
     const entry = signedByPath.get(item.path);
     if (!entry) throw new Error("Missing signed upload URL for media");
     await uploadStorageObjectViaSignedUrl(
@@ -145,7 +210,9 @@ async function runAdminMediaUploads(
         const loaded = (filePercent / 100) * item.file.size;
         onProgress(Math.min(100, Math.round(((completedBytes + loaded) / totalBytes) * 100)));
       },
+      { upsert: true },
     );
+    controller?.markPathDone(item.path);
     completedBytes += item.file.size;
     onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
   }
@@ -209,7 +276,13 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
     externalTourUrl,
     adminOnBehalf,
     onProgress,
+    controller,
   } = input;
+
+  controller?.setPhase("enhancing");
+  const imageSourceIds = imageFiles.map((file) => fileUploadIdentity(file));
+  const videoSourceId = videoFile ? fileUploadIdentity(videoFile) : null;
+  const tourSourceId = tourFile ? fileUploadIdentity(tourFile) : null;
 
   const { enhancedImages, enhancedVideo, enhancedTour } = await prepareEnhancedMediaFiles(
     imageFiles,
@@ -217,18 +290,23 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
     tourFile,
   );
 
-  const { uploads, uploadedImagePaths, videoPath, tourPath } = buildMediaUploads(
+  const { uploads, uploadedImagePaths, videoPath, tourPath } = buildMediaUploads({
     userId,
     propertyKey,
-    enhancedImages,
-    enhancedVideo,
-    enhancedTour,
-  );
+    imageFiles: enhancedImages,
+    imageSourceIds,
+    videoFile: enhancedVideo,
+    videoSourceId,
+    tourFile: enhancedTour,
+    tourSourceId,
+    controller,
+  });
 
+  controller?.setPhase("uploading");
   if (adminOnBehalf) {
-    await runAdminMediaUploads(userId, uploads, onProgress);
+    await runAdminMediaUploads(userId, uploads, onProgress, controller);
   } else {
-    await runMediaUploads(uploads, onProgress);
+    await runMediaUploads(uploads, onProgress, controller);
   }
 
   return signUploadedMediaPaths(
@@ -251,6 +329,8 @@ export type ListingFormState = {
   property_type: PropertyType;
   neighborhood: string;
   address: string;
+  contact_phone: string;
+  contact_name: string;
   rent_kes: number;
   rent_kes_max: number | "";
   deposit_kes: number;
@@ -269,9 +349,17 @@ export type ListingFormState = {
   longitude: number | null;
 };
 
-function validateListingDetailsTab(form: ListingFormState): boolean {
+function validateListingDetailsTab(form: ListingFormState, requireContactPhone: boolean): boolean {
   if (!form.title.trim() || !form.neighborhood.trim()) {
     toast.error("Title and neighborhood are required");
+    return false;
+  }
+  if (requireContactPhone && form.contact_phone.trim().length < 9) {
+    toast.error("Add a contact phone tenants can unlock (at least 9 digits)");
+    return false;
+  }
+  if (requireContactPhone && form.contact_name.trim().length < 2) {
+    toast.error("Add the contact person's name");
     return false;
   }
   if (form.rent_kes <= 0) {
@@ -321,8 +409,13 @@ function validateListingDetailsTab(form: ListingFormState): boolean {
   return true;
 }
 
-function validateListingTab(tab: TabId, form: ListingFormState, imageCount: number): boolean {
-  if (tab === "details") return validateListingDetailsTab(form);
+function validateListingTab(
+  tab: TabId,
+  form: ListingFormState,
+  imageCount: number,
+  requireContactPhone: boolean,
+): boolean {
+  if (tab === "details") return validateListingDetailsTab(form, requireContactPhone);
   if (tab === "media" && imageCount === 0) {
     toast.error("Add at least one photo");
     return false;
@@ -362,6 +455,8 @@ function buildListingPayload(
     images: media.images,
     video_url: media.video_url,
     tour_url: media.tour_url,
+    contact_phone: form.contact_phone.trim() || null,
+    contact_name: form.contact_name.trim() || null,
     minimum_rent_period_months:
       isCommercialType(form.property_type) && form.pricing_mode === "rent"
         ? Number(form.minimum_rent_period_months)
@@ -374,13 +469,61 @@ function buildListingPayload(
 
 function listingSuccessMessage(
   onBehalfOf: ListingOnBehalfTarget | undefined,
+  adminOwned: boolean | undefined,
   created: { health_score?: number | null; authenticity_score?: number | null },
 ) {
   const stats = `health ${created.health_score ?? "—"} · authenticity ${created.authenticity_score ?? "—"}`;
   if (onBehalfOf) {
     return `Listed on behalf of ${onBehalfOf.displayName}! Area stats: ${stats}`;
   }
+  if (adminOwned) {
+    return `Admin listing published! Area stats: ${stats}`;
+  }
   return `Property listed! Area stats: ${stats}`;
+}
+
+function wizardHeading(
+  onBehalfOf: ListingOnBehalfTarget | undefined,
+  adminOwned: boolean,
+): string {
+  if (onBehalfOf) return "List on behalf of account";
+  if (adminOwned) return "Upload listing as admin";
+  return "Add a property";
+}
+
+function wizardSubtitle(
+  onBehalfOf: ListingOnBehalfTarget | undefined,
+  adminOwned: boolean,
+  portalLabel: string,
+): string {
+  if (onBehalfOf) {
+    return `Publishing for ${onBehalfOf.displayName} (${portalLabelForRole(onBehalfOf.portalRole)}) — leads and billing go to their account.`;
+  }
+  if (adminOwned) {
+    return "You own this listing. Add contact name + phone (WhatsApp inquiries), media, and map pin.";
+  }
+  return `${portalLabel} portal — add details, upload media, and pin the exact location on the map.`;
+}
+
+async function createListingFromWizard(
+  form: ListingFormState,
+  payload: ReturnType<typeof buildListingPayload>,
+  onBehalfOf: ListingOnBehalfTarget | undefined,
+  adminOwned: boolean | undefined,
+) {
+  if (onBehalfOf) {
+    return createPropertyOnBehalf({ data: { ...payload, ownerUserId: onBehalfOf.userId } });
+  }
+  if (adminOwned) {
+    return createAdminProperty({
+      data: {
+        ...payload,
+        contact_phone: form.contact_phone.trim(),
+        contact_name: form.contact_name.trim(),
+      },
+    });
+  }
+  return createProperty({ data: payload });
 }
 
 function getSubmitLabel(
@@ -442,6 +585,7 @@ type PublishListingInput = {
   form: ListingFormState;
   userId: string;
   onBehalfOf?: ListingOnBehalfTarget;
+  adminOwned?: boolean;
   imageFiles: File[];
   videoFile: File | null;
   tourFile: File | null;
@@ -453,6 +597,7 @@ type PublishListingInput = {
   setLoading: (value: boolean) => void;
   setUploading: (value: boolean) => void;
   setUploadProgress: (value: number | null) => void;
+  propertyKeyRef: { current: string | null };
 };
 
 function canAdvanceToTab(
@@ -485,6 +630,7 @@ async function publishListing(input: PublishListingInput) {
     form,
     userId,
     onBehalfOf,
+    adminOwned,
     imageFiles,
     videoFile,
     tourFile,
@@ -496,48 +642,62 @@ async function publishListing(input: PublishListingInput) {
     setLoading,
     setUploading,
     setUploadProgress,
+    propertyKeyRef,
   } = input;
 
   setLoading(true);
   try {
-    const propertyKey = randomUuid();
-    setUploading(true);
-    setUploadProgress(0);
-    const media = await uploadListingMedia({
-      userId,
-      propertyKey,
-      imageFiles,
-      videoFile,
-      tourFile,
-      externalVideoUrl: form.video_url,
-      externalTourUrl: form.tour_url,
-      adminOnBehalf: Boolean(onBehalfOf),
-      onProgress: setUploadProgress,
-    });
-    setUploading(false);
-    setUploadProgress(null);
+    const existingKey = getListingUploadSnapshot().propertyKey;
+    if (!propertyKeyRef.current) {
+      propertyKeyRef.current = existingKey ?? randomUuid();
+    }
+    const propertyKey = propertyKeyRef.current;
 
-    const payload = buildListingPayload(form, media);
-    const created = onBehalfOf
-      ? await createPropertyOnBehalf({ data: { ...payload, ownerUserId: onBehalfOf.userId } })
-      : await createProperty({ data: payload });
+    await runDurableListingUpload(propertyKey, async (controller) => {
+      setUploading(true);
+      setUploadProgress(0);
+      controller.setPhase("enhancing");
 
-    toast.success(listingSuccessMessage(onBehalfOf, created));
-    try {
-      const report = await analyzePropertyQuality({ data: { propertyId: created.id } });
-      toast.success(`Listing quality: ${report.grade} (${report.score}/100)`, {
-        description: report.summary,
-        duration: 8000,
+      const media = await uploadListingMedia({
+        userId,
+        propertyKey,
+        imageFiles,
+        videoFile,
+        tourFile,
+        externalVideoUrl: form.video_url,
+        externalTourUrl: form.tour_url,
+        adminOnBehalf: Boolean(onBehalfOf) || Boolean(adminOwned),
+        onProgress: (percent) => {
+          controller.setProgress(percent);
+          setUploadProgress(percent);
+        },
+        controller,
       });
-    } catch (err) {
-      toast.warning("Quality analysis failed", { description: errorMessage(err) });
-    }
+      setUploading(false);
+      setUploadProgress(null);
+      controller.setPhase("publishing");
 
-    if (redirectTo) {
-      navigate({ to: redirectTo, search: redirectSearch });
-    } else {
-      navigate({ to: propertiesListPath(isAgency, isManager) });
-    }
+      const payload = buildListingPayload(form, media);
+      const created = await createListingFromWizard(form, payload, onBehalfOf, adminOwned);
+
+      toast.success(listingSuccessMessage(onBehalfOf, adminOwned, created));
+      try {
+        const report = await analyzePropertyQuality({ data: { propertyId: created.id } });
+        toast.success(`Listing quality: ${report.grade} (${report.score}/100)`, {
+          description: report.summary,
+          duration: 8000,
+        });
+      } catch (err) {
+        toast.warning("Quality analysis failed", { description: errorMessage(err) });
+      }
+
+      if (redirectTo) {
+        navigate({ to: redirectTo, search: redirectSearch });
+      } else {
+        navigate({ to: propertiesListPath(isAgency, isManager) });
+      }
+      return created;
+    });
   } catch (err) {
     toast.error(errorMessage(err));
   } finally {
@@ -550,11 +710,14 @@ async function publishListing(input: PublishListingInput) {
 export function PropertyListingWizard({
   portalLabel = "Landlord",
   onBehalfOf,
+  adminOwned = false,
   redirectTo,
   redirectSearch,
 }: Readonly<{
   portalLabel?: string;
   onBehalfOf?: ListingOnBehalfTarget;
+  /** Admin creates a listing owned by their own account (requires contact phone). */
+  adminOwned?: boolean;
   redirectTo?: string;
   redirectSearch?: Record<string, unknown>;
 }>) {
@@ -567,11 +730,40 @@ export function PropertyListingWizard({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [tourFile, setTourFile] = useState<File | null>(null);
+  const propertyKeyRef = useRef<string | null>(null);
+
+  const onUploadSnapshot = useCallback(
+    (snapshot: {
+      phase: string;
+      progress: number | null;
+    }) => {
+      const busyPhase =
+        snapshot.phase === "enhancing" ||
+        snapshot.phase === "uploading" ||
+        snapshot.phase === "publishing";
+      setLoading(busyPhase);
+      setUploading(snapshot.phase === "enhancing" || snapshot.phase === "uploading");
+      setUploadProgress(
+        snapshot.phase === "uploading" || snapshot.phase === "enhancing"
+          ? snapshot.progress
+          : null,
+      );
+      if (snapshot.phase === "done" || snapshot.phase === "error" || snapshot.phase === "idle") {
+        setLoading(false);
+        setUploading(false);
+        setUploadProgress(null);
+      }
+    },
+    [],
+  );
+  useKeepListingUploadAlive(onUploadSnapshot);
   const [form, setForm] = useState<ListingFormState>({
     title: "",
     property_type: "one_bedroom" as PropertyType,
     neighborhood: "",
     address: "",
+    contact_phone: "",
+    contact_name: "",
     rent_kes: 0,
     rent_kes_max: "" as number | "",
     deposit_kes: 0,
@@ -615,7 +807,7 @@ export function PropertyListingWizard({
   }
 
   function validateTab(tab: TabId): boolean {
-    return validateListingTab(tab, form, imageFiles.length);
+    return validateListingTab(tab, form, imageFiles.length, adminOwned);
   }
 
   function switchTab(tab: TabId) {
@@ -636,6 +828,7 @@ export function PropertyListingWizard({
       form,
       userId: onBehalfOf?.userId ?? user.id,
       onBehalfOf,
+      adminOwned,
       imageFiles,
       videoFile,
       tourFile,
@@ -647,6 +840,7 @@ export function PropertyListingWizard({
       setLoading,
       setUploading,
       setUploadProgress,
+      propertyKeyRef,
     });
   }
 
@@ -664,16 +858,22 @@ export function PropertyListingWizard({
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <h1 className="font-display text-3xl font-semibold">
-        {onBehalfOf ? "List on behalf of account" : "Add a property"}
+        {wizardHeading(onBehalfOf, adminOwned)}
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {onBehalfOf
-          ? `Publishing for ${onBehalfOf.displayName} (${portalLabelForRole(onBehalfOf.portalRole)}) — leads and billing go to their account.`
-          : `${portalLabel} portal — add details, upload media, and pin the exact location on the map.`}
+        {wizardSubtitle(onBehalfOf, adminOwned, portalLabel)}
       </p>
       {onBehalfOf ? (
         <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
           <span className="font-semibold text-primary">On behalf of:</span> {onBehalfOf.displayName}
+        </div>
+      ) : null}
+
+      {busy ? (
+        <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+          Upload in progress
+          {uploadProgress != null ? ` · ${uploadProgress}%` : ""}. Keep this tab open — switching
+          apps is fine, but closing the page will cancel it.
         </div>
       ) : null}
 
@@ -715,6 +915,7 @@ export function PropertyListingWizard({
           form={form}
           update={update}
           busy={busy}
+          requireContactPhone={adminOwned}
           imageFiles={imageFiles}
           videoFile={videoFile}
           tourFile={tourFile}

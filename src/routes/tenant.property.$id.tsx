@@ -120,6 +120,11 @@ function PropertyDetail() {
           onCall={detail.handleCall}
           onMessage={() => detail.messageLandlord.mutate()}
           messagePending={detail.messageLandlord.isPending}
+          messageLabel={
+            detail.landlordContact?.preferWhatsApp || detail.p?.whatsapp_inquiries
+              ? "WhatsApp"
+              : "Message"
+          }
           onBook={detail.openBooking}
         />
 

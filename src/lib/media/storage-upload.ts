@@ -21,12 +21,17 @@ function getSupabaseAnonKey(): string {
 
 export type StorageUploadProgress = (percent: number) => void;
 
+type UploadOptions = {
+  upsert?: boolean;
+};
+
 /** Upload a single object with byte-level progress via XHR (Supabase Storage REST API). */
 export async function uploadStorageObjectWithProgress(
   bucket: string,
   path: string,
   file: File,
   onProgress?: StorageUploadProgress,
+  options?: UploadOptions,
 ): Promise<void> {
   const {
     data: { session },
@@ -66,7 +71,7 @@ export async function uploadStorageObjectWithProgress(
     xhr.setRequestHeader("apikey", getSupabaseAnonKey());
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("x-upsert", options?.upsert ? "true" : "false");
     xhr.send(file);
   });
 }
@@ -77,6 +82,7 @@ export async function uploadStorageObjectViaSignedUrl(
   token: string,
   file: File,
   onProgress?: StorageUploadProgress,
+  options?: UploadOptions,
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -105,7 +111,7 @@ export async function uploadStorageObjectViaSignedUrl(
     xhr.open("PUT", signedUrl);
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-upsert", "false");
+    xhr.setRequestHeader("x-upsert", options?.upsert ? "true" : "false");
     xhr.send(file);
   });
 }

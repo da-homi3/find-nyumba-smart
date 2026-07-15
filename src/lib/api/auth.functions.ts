@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { ORG_REQUIRED_ROLES, isPrivilegedAccountRole, type AccountRole } from "@/lib/account-roles";
-import { grantPortalListerAccess } from "@/lib/api/portal-approval";
+import { submitPendingPortalApplicationForUser } from "@/lib/api/portal.functions";
 import type { PortalListerRole } from "@/lib/payments/portal-trial";
 import { checkRateLimit, rateLimitKeyFromHeaders, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { passwordResetEmail } from "@/lib/email/templates";
@@ -188,11 +188,13 @@ async function linkPortalRoleToExistingUser(
     );
   }
 
-  await grantPortalListerAccess(supabaseAdmin, {
+  await submitPendingPortalApplicationForUser({
     userId: input.userId,
     requestedRole: input.role,
-    organizationName: input.organizationName ?? null,
-    startTrial: true,
+    organizationName: input.organizationName,
+    phone: input.phone,
+    applicantName: input.fullName.trim(),
+    applicantEmail: input.email,
   });
 
   await supabaseAdmin.from("profiles").upsert({

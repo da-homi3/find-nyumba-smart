@@ -4,6 +4,7 @@ type PropertyDetailActionBarProps = Readonly<{
   onCall: () => void;
   onMessage: () => void;
   messagePending: boolean;
+  messageLabel?: string;
   onBook: () => void;
 }>;
 
@@ -11,6 +12,7 @@ export function PropertyDetailActionBar({
   onCall,
   onMessage,
   messagePending,
+  messageLabel = "Message",
   onBook,
 }: PropertyDetailActionBarProps) {
   return (
@@ -31,7 +33,7 @@ export function PropertyDetailActionBar({
           className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border px-2 py-2.5 text-xs font-semibold sm:flex-row sm:gap-2 sm:px-4 sm:py-3 sm:text-sm"
         >
           <MessageCircle className="h-4 w-4 shrink-0" />
-          <span>Message</span>
+          <span className="truncate">{messageLabel}</span>
         </button>
         <button
           type="button"

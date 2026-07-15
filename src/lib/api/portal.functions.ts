@@ -7,6 +7,7 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/api/rate-limit";
 import { getAuthContext } from "@/lib/api/server-context";
 import { grantPortalListerAccess } from "@/lib/api/portal-approval";
 import type { PortalListerRole } from "@/lib/payments/portal-trial";
+import { getSiteUrl } from "@/lib/site";
 
 async function sendApplicantApproved(
   payload: Parameters<Awaited<typeof import("@/lib/api/notify")>["notifyApplicantApproved"]>[0],
@@ -22,19 +23,34 @@ async function sendApplicantRejected(
   await notifyApplicantRejected(payload);
 }
 
+async function notifyOpsPendingApplication(opts: {
+  applicantName: string;
+  applicantEmail: string;
+  role: string;
+  orgName?: string;
+}) {
+  const { notifyOpsNewApplication } = await import("@/lib/api/notify");
+  await notifyOpsNewApplication({
+    ...opts,
+    reviewUrl: `${getSiteUrl()}/admin?tab=applications`,
+  });
+}
+
 export type PortalApplication = {
   id: string;
   user_id: string;
-  requested_role: "landlord" | "manager" | "agency";
+  requested_role: PortalListerRole;
   organization_name: string | null;
   phone: string | null;
   notes: string | null;
-  status: "pending" | "approved" | "rejected";
+  status: PortalApplicationStatus;
   reviewed_by: string | null;
   reviewed_at: string | null;
   rejection_reason: string | null;
   created_at: string;
 };
+
+export type PortalApplicationStatus = "pending" | "approved" | "rejected";
 
 export const listMyPortalApplications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -51,13 +67,14 @@ export const listMyPortalApplications = createServerFn({ method: "GET" })
 
 const privilegedRoleSchema = z.enum(["landlord", "manager", "agency"]);
 
-async function upsertAutoApprovedPortalApplication(input: {
+/** Creates or refreshes a pending portal application — does not grant portal access. */
+async function upsertPendingPortalApplication(input: {
   userId: string;
-  requestedRole: "landlord" | "manager" | "agency";
+  requestedRole: PortalListerRole;
   organizationName?: string;
   phone?: string;
   notes?: string;
-}) {
+}): Promise<{ id: string; status: PortalApplicationStatus; alreadyApproved: boolean }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const now = new Date().toISOString();
 
@@ -71,7 +88,7 @@ async function upsertAutoApprovedPortalApplication(input: {
     .maybeSingle();
 
   if (existing?.status === "approved") {
-    return existing;
+    return { id: existing.id, status: "approved", alreadyApproved: true };
   }
 
   if (existing?.id) {
@@ -81,16 +98,17 @@ async function upsertAutoApprovedPortalApplication(input: {
         organization_name: input.organizationName ?? null,
         phone: input.phone ?? null,
         notes: input.notes ?? null,
-        status: "approved",
-        reviewed_at: now,
+        status: "pending",
+        reviewed_by: null,
+        reviewed_at: null,
         rejection_reason: null,
         updated_at: now,
       })
       .eq("id", existing.id)
-      .select("id")
+      .select("id, status")
       .single();
     if (error) throw error;
-    return row;
+    return { id: row.id, status: "pending", alreadyApproved: false };
   }
 
   const { data: row, error } = await supabaseAdmin
@@ -101,42 +119,48 @@ async function upsertAutoApprovedPortalApplication(input: {
       organization_name: input.organizationName ?? null,
       phone: input.phone ?? null,
       notes: input.notes ?? null,
-      status: "approved",
-      reviewed_at: now,
+      status: "pending",
     })
-    .select("id")
+    .select("id, status")
     .single();
   if (error) {
     if (error.code === "23505") {
       const { data: retry } = await supabaseAdmin
         .from("portal_applications")
-        .select("id")
+        .select("id, status")
         .eq("user_id", input.userId)
         .eq("requested_role", input.requestedRole)
-        .eq("status", "approved")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
-      if (retry) return retry;
+      if (retry) {
+        return {
+          id: retry.id,
+          status: retry.status as PortalApplicationStatus,
+          alreadyApproved: retry.status === "approved",
+        };
+      }
     }
     throw error;
   }
-  return row;
+  return { id: row.id, status: "pending", alreadyApproved: false };
 }
 
-async function activatePortalListerAccount(input: {
-  userId: string;
-  requestedRole: "landlord" | "manager" | "agency";
+function validatePortalApplicationInput(data: {
+  requestedRole: PortalListerRole;
   organizationName?: string;
   phone?: string;
-  notes?: string;
 }) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await upsertAutoApprovedPortalApplication(input);
-  return grantPortalListerAccess(supabaseAdmin, {
-    userId: input.userId,
-    requestedRole: input.requestedRole,
-    organizationName: input.organizationName,
-    startTrial: true,
-  });
+  if (!data.phone?.trim()) {
+    throw new Error("A verified M-Pesa phone number is required for this application");
+  }
+  if (ORG_REQUIRED_ROLES.has(data.requestedRole) && !data.organizationName?.trim()) {
+    throw new Error(
+      data.requestedRole === "landlord"
+        ? "Portfolio or business name is required for landlord applications"
+        : "Organization name is required for this account type",
+    );
+  }
 }
 
 /** Persists portal application when signup returns a user id but no session yet. */
@@ -149,22 +173,12 @@ export const registerPortalApplicationAfterSignup = createServerFn({ method: "PO
       requestedRole: privilegedRoleSchema,
       organizationName: z.string().trim().max(200).optional(),
       phone: z.string().trim().max(30).optional(),
-      reviewUrl: z.string().url(),
+      reviewUrl: z.string().url().optional(),
     }),
   )
   .handler(async ({ data }) => {
     checkRateLimit(`portal-signup:${data.applicantEmail}`, RATE_LIMITS.portalSignup);
-
-    if (!data.phone?.trim()) {
-      throw new Error("A verified M-Pesa phone number is required for this application");
-    }
-    if (ORG_REQUIRED_ROLES.has(data.requestedRole) && !data.organizationName?.trim()) {
-      throw new Error(
-        data.requestedRole === "landlord"
-          ? "Portfolio or business name is required for landlord applications"
-          : "Organization name is required for this account type",
-      );
-    }
+    validatePortalApplicationInput(data);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(data.userId);
@@ -172,20 +186,23 @@ export const registerPortalApplicationAfterSignup = createServerFn({ method: "PO
       throw new Error("Invalid signup reference");
     }
 
-    await activatePortalListerAccount({
+    const app = await upsertPendingPortalApplication({
       userId: data.userId,
       requestedRole: data.requestedRole,
       organizationName: data.organizationName,
       phone: data.phone,
     });
 
-    await sendApplicantApproved({
-      email: data.applicantEmail,
-      name: data.applicantName,
-      role: data.requestedRole,
-    });
+    if (!app.alreadyApproved) {
+      await notifyOpsPendingApplication({
+        applicantName: data.applicantName,
+        applicantEmail: data.applicantEmail,
+        role: data.requestedRole,
+        orgName: data.organizationName,
+      });
+    }
 
-    return { ok: true as const, autoApproved: true as const };
+    return { ok: true as const, autoApproved: false as const, status: app.status };
   });
 
 export const submitPortalApplication = createServerFn({ method: "POST" })
@@ -200,19 +217,9 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
+    validatePortalApplicationInput(data);
 
-    if (!data.phone?.trim()) {
-      throw new Error("A verified M-Pesa phone number is required for this application");
-    }
-    if (ORG_REQUIRED_ROLES.has(data.requestedRole) && !data.organizationName?.trim()) {
-      throw new Error(
-        data.requestedRole === "landlord"
-          ? "Portfolio or business name is required for landlord applications"
-          : "Organization name is required for this account type",
-      );
-    }
-
-    const activation = await activatePortalListerAccount({
+    const app = await upsertPendingPortalApplication({
       userId,
       requestedRole: data.requestedRole,
       organizationName: data.organizationName,
@@ -223,26 +230,28 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
     const { data: row, error: fetchErr } = await supabase
       .from("portal_applications")
       .select("*")
-      .eq("user_id", userId)
-      .eq("requested_role", data.requestedRole)
-      .eq("status", "approved")
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .eq("id", app.id)
       .maybeSingle();
     if (fetchErr) throw fetchErr;
-    if (!row) throw new Error("Could not activate your account. Please try again.");
+    if (!row) throw new Error("Could not submit your application. Please try again.");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const email = userData.user?.email ?? "";
-    const name = userData.user?.user_metadata?.full_name ?? userData.user?.email ?? "Applicant";
-
-    await sendApplicantApproved({ email, name, role: data.requestedRole });
+    if (!app.alreadyApproved) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const email = userData.user?.email ?? "";
+      const name = userData.user?.user_metadata?.full_name ?? userData.user?.email ?? "Applicant";
+      await notifyOpsPendingApplication({
+        applicantName: name,
+        applicantEmail: email,
+        role: data.requestedRole,
+        orgName: data.organizationName,
+      });
+    }
 
     return {
       ...(row as PortalApplication),
-      trialStarted: activation.trialStarted,
-      trialEnd: activation.trialEnd ?? null,
+      trialStarted: false,
+      trialEnd: null,
     };
   });
 
@@ -388,3 +397,34 @@ export const setActivePortal = createServerFn({ method: "POST" })
     if (error) throw error;
     return { portal: data.portal };
   });
+
+/** Used when an existing user applies to a privileged portal (auth duplicate signup path). */
+export async function submitPendingPortalApplicationForUser(input: {
+  userId: string;
+  requestedRole: PortalListerRole;
+  organizationName?: string;
+  phone?: string;
+  applicantName: string;
+  applicantEmail: string;
+}) {
+  validatePortalApplicationInput({
+    requestedRole: input.requestedRole,
+    organizationName: input.organizationName,
+    phone: input.phone,
+  });
+  const app = await upsertPendingPortalApplication({
+    userId: input.userId,
+    requestedRole: input.requestedRole,
+    organizationName: input.organizationName,
+    phone: input.phone,
+  });
+  if (!app.alreadyApproved) {
+    await notifyOpsPendingApplication({
+      applicantName: input.applicantName,
+      applicantEmail: input.applicantEmail,
+      role: input.requestedRole,
+      orgName: input.organizationName,
+    });
+  }
+  return app;
+}

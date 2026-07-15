@@ -39,6 +39,7 @@
     "db:migrate:admin-listing-limit": "node scripts/apply-admin-listing-limit-override.mjs",
     "db:migrate:dedupe": "node scripts/apply-listing-duplicate-prevention.mjs",
     "db:migrate:dedupe-unique": "node scripts/apply-listing-duplicate-unique.mjs",
+    "db:migrate:contact-name": "node scripts/apply-property-contact-name.mjs",
     "test:mpesa": "node scripts/test-mpesa.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "db:seed:providers": "node scripts/seed-service-providers.mjs",

@@ -39,13 +39,19 @@ const inputCls =
 
 type PropertyEditFormProps = Readonly<{
   propertyId: string;
-  backTo: "/landlord/properties" | "/agency/properties" | "/manager/properties";
+  backTo:
+    | "/landlord/properties"
+    | "/agency/properties"
+    | "/manager/properties"
+    | "/admin";
+  backSearch?: Record<string, unknown>;
   invalidateQueryKey?: string;
 }>;
 
 export function PropertyEditForm({
   propertyId,
   backTo,
+  backSearch,
   invalidateQueryKey,
 }: PropertyEditFormProps) {
   const { user } = useAuth();
@@ -62,6 +68,8 @@ export function PropertyEditForm({
     property_type: "one_bedroom" as PropertyType,
     neighborhood: "",
     address: "",
+    contact_phone: "",
+    contact_name: "",
     latitude: null as number | null,
     longitude: null as number | null,
     rent_kes: "",
@@ -85,6 +93,8 @@ export function PropertyEditForm({
       property_type: property.property_type,
       neighborhood: property.neighborhood,
       address: property.address ?? "",
+      contact_phone: property.contact_phone ?? "",
+      contact_name: property.contact_name ?? "",
       latitude: property.latitude,
       longitude: property.longitude,
       rent_kes: String(property.rent_kes),
@@ -139,6 +149,9 @@ export function PropertyEditForm({
           images: property?.images ?? [],
           video_url: property?.video_url ?? null,
           tour_url: property?.tour_url ?? null,
+          contact_phone: form.contact_phone.trim() || null,
+          contact_name: form.contact_name.trim() || null,
+          whatsapp_inquiries: property?.whatsapp_inquiries ?? false,
           minimum_rent_period_months:
             isCommercialType(form.property_type) && form.pricing_mode === "rent"
               ? Number(form.minimum_rent_period_months) || null
@@ -154,7 +167,7 @@ export function PropertyEditForm({
       if (invalidateQueryKey) {
         void qc.invalidateQueries({ queryKey: [invalidateQueryKey] });
       }
-      navigate({ to: backTo });
+      navigate({ to: backTo, search: backSearch });
     },
     onError: (err: Error) => toast.error(errorMessage(err)),
   });
@@ -233,7 +246,7 @@ export function PropertyEditForm({
     return (
       <div className="px-6 py-12 text-center">
         <p className="text-sm text-muted-foreground">Property not found.</p>
-        <Link to={backTo} className="mt-4 inline-block text-primary">
+        <Link to={backTo} search={backSearch} className="mt-4 inline-block text-primary">
           ← Back to properties
         </Link>
       </div>
@@ -242,7 +255,7 @@ export function PropertyEditForm({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <Link to={backTo} className="text-sm text-primary">
+      <Link to={backTo} search={backSearch} className="text-sm text-primary">
         ← Properties
       </Link>
       <h1 className="mt-4 font-display text-2xl font-semibold">Edit listing</h1>
@@ -346,6 +359,25 @@ export function PropertyEditForm({
               <input
                 value={form.address}
                 onChange={(e) => update("address", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+
+            <Field label="Contact name" full>
+              <input
+                value={form.contact_name}
+                onChange={(e) => update("contact_name", e.target.value)}
+                placeholder="e.g. Jane Wanjiku"
+                className={inputCls}
+              />
+            </Field>
+
+            <Field label="Contact phone (shown after tenant unlock)" full>
+              <input
+                type="tel"
+                value={form.contact_phone}
+                onChange={(e) => update("contact_phone", e.target.value)}
+                placeholder="e.g. 0712 345 678 or +254712345678"
                 className={inputCls}
               />
             </Field>

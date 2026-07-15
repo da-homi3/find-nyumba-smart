@@ -7,7 +7,6 @@ import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import {
   resolvePostLoginPath,
-  listerDashboardPath,
   type AppRole,
   type PortalId,
 } from "@/lib/portal-guard";
@@ -135,13 +134,12 @@ function TenantAuth() {
         await submitPortalApplication({ data: portalPayload });
       }
 
-      markSignupTourPending(privilegedRole);
       toast.success(
         signupResult.linked
-          ? "Portal linked to your existing account — your 30-day free trial is active."
-          : "Welcome! Your 30-day free trial is active — explore your dashboard.",
+          ? "Application submitted for your existing account — we’ll email you once approved."
+          : "Application submitted — NyumbaSearch ops will review and email you when approved.",
       );
-      globalThis.location.href = listerDashboardPath(privilegedRole);
+      navigate({ to: "/auth/pending" });
       return;
     }
 
@@ -291,8 +289,8 @@ function TenantAuth() {
 
                   {isPrivilegedAccountRole(role) && (
                     <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
-                      Landlord, property manager, and agency accounts start with a 30-day free trial
-                      — full dashboard access, no payment required upfront.
+                      Landlord, property manager, and agency accounts require NyumbaSearch admin
+                      approval before dashboard access. After approval you get a 30-day free trial.
                     </p>
                   )}
                 </>

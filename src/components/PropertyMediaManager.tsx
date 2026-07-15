@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useBlocker } from "@tanstack/react-router";
 import { createSignedMediaUrls, updatePropertyMedia } from "@/lib/api/media.functions";
 import { useAuth } from "@/hooks/use-auth";
 import type { Property } from "@/lib/properties";
@@ -145,6 +146,29 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
   }
 
   const busy = uploading || save.isPending;
+
+  useBlocker({
+    shouldBlockFn: () => {
+      if (!busy) return false;
+      return !globalThis.confirm("Media is still uploading. Leave this page and cancel the upload?");
+    },
+    enableBeforeUnload: () => busy,
+  });
+
+  useEffect(() => {
+    if (!uploading) return;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        toast.message("Upload still running", {
+          id: "property-media-keep-open",
+          description: "Keep this tab open until media finishes uploading.",
+          duration: 6000,
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [uploading]);
 
   return (
     <div className="mt-4 space-y-4 rounded-xl border bg-background p-3 sm:p-4">

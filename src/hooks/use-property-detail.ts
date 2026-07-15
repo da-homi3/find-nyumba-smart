@@ -20,6 +20,7 @@ import { errorMessage } from "@/lib/utils";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import type { Property } from "@/lib/properties";
+import { whatsAppUrl } from "@/lib/phone";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
 
@@ -175,6 +176,26 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
         throw new PlusRequiredError();
       }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
+
+      const preferWhatsApp = Boolean(
+        landlordContact?.preferWhatsApp || p.whatsapp_inquiries,
+      );
+      if (preferWhatsApp) {
+        const phone = unlockedPhone?.trim() || landlordContact?.phone?.trim() || null;
+        if (!phone) {
+          document.getElementById("contact-unlock")?.scrollIntoView({ behavior: "smooth" });
+          throw new Error("Unlock the contact number first, then tap Message to open WhatsApp");
+        }
+        const contactLabel = landlordContact?.fullName?.trim() || "there";
+        const url = whatsAppUrl(
+          phone,
+          `Hi ${contactLabel}, I'm interested in "${p.title}" (${p.neighborhood}) on NyumbaSearch. Is it still available?`,
+        );
+        if (!url) throw new Error("Contact phone is not a valid WhatsApp number");
+        globalThis.open(url, "_blank", "noopener,noreferrer");
+        return { channel: "whatsapp" as const };
+      }
+
       return createInquiry({
         data: {
           propertyId: id,
@@ -182,9 +203,13 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
         },
       });
     },
-    onSuccess: (inquiry) => {
+    onSuccess: (result) => {
+      if (result && "channel" in result && result.channel === "whatsapp") {
+        toast.success("Opening WhatsApp…");
+        return;
+      }
       toast.success("Message sent to the landlord");
-      navigate({ to: "/tenant/messages/$id", params: { id: inquiry.id } });
+      navigate({ to: "/tenant/messages/$id", params: { id: (result as { id: string }).id } });
     },
     onError: (err) => {
       if (err instanceof PlusRequiredError) {

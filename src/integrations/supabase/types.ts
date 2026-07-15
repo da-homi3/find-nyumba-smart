@@ -1496,6 +1496,7 @@ export type Database = {
           bathrooms: number;
           bedrooms: number;
           boost_package: string | null;
+          contact_name: string | null;
           contact_phone: string | null;
           created_at: string;
           deposit_kes: number | null;
@@ -1526,6 +1527,7 @@ export type Database = {
           updated_at: string;
           video_url: string | null;
           views: number;
+          whatsapp_inquiries: boolean;
         };
         Insert: {
           address?: string | null;
@@ -1537,6 +1539,7 @@ export type Database = {
           bathrooms?: number;
           bedrooms?: number;
           boost_package?: string | null;
+          contact_name?: string | null;
           contact_phone?: string | null;
           created_at?: string;
           deposit_kes?: number | null;
@@ -1567,6 +1570,7 @@ export type Database = {
           updated_at?: string;
           video_url?: string | null;
           views?: number;
+          whatsapp_inquiries?: boolean;
         };
         Update: {
           address?: string | null;
@@ -1578,6 +1582,7 @@ export type Database = {
           bathrooms?: number;
           bedrooms?: number;
           boost_package?: string | null;
+          contact_name?: string | null;
           contact_phone?: string | null;
           created_at?: string;
           deposit_kes?: number | null;
@@ -1608,6 +1613,7 @@ export type Database = {
           updated_at?: string;
           video_url?: string | null;
           views?: number;
+          whatsapp_inquiries?: boolean;
         };
         Relationships: [
           {

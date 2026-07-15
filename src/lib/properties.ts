@@ -36,6 +36,11 @@ export interface Property {
   minimum_rent_period_months?: number | null;
   pricing_mode?: PricingMode | null;
   price_period?: PricePeriod | null;
+  /** Listing-level contact; omitted from public selects, present when managing a listing. */
+  contact_phone?: string | null;
+  contact_name?: string | null;
+  /** Admin listings: Message CTA opens WhatsApp instead of in-app inquiry. */
+  whatsapp_inquiries?: boolean;
   views: number;
   created_at: string;
   updated_at: string;

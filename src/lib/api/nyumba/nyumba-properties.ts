@@ -66,16 +66,19 @@ async function insertPropertyListing(
   ownerUserId: string,
   organizationId: string | null,
   data: PropertyPayload,
+  options?: { skipListingCap?: boolean },
 ): Promise<Property> {
-  const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
-  const [cap, activeCount] = await Promise.all([
-    getListingCap(admin, ownerUserId),
-    countActiveListings(admin, ownerUserId),
-  ]);
-  if (activeCount >= cap) {
-    throw new ForbiddenError(
-      `This account has reached its listing limit of ${cap}. Upgrade the plan for more.`,
-    );
+  if (!options?.skipListingCap) {
+    const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
+    const [cap, activeCount] = await Promise.all([
+      getListingCap(admin, ownerUserId),
+      countActiveListings(admin, ownerUserId),
+    ]);
+    if (activeCount >= cap) {
+      throw new ForbiddenError(
+        `This account has reached its listing limit of ${cap}. Upgrade the plan for more.`,
+      );
+    }
   }
 
   const { computeListingFingerprint, findDuplicateActiveListing } =
@@ -185,6 +188,49 @@ export const createPropertyOnBehalf = createServerFn({ method: "POST" })
         organizationId,
         title: payload.title,
         neighborhood: payload.neighborhood,
+      }),
+    });
+
+    return property;
+  });
+
+/** Admin publishes a listing owned by themselves (not on behalf of a portal account). */
+export const createAdminPropertySchema = withPropertyPayloadRules(
+  propertyPayloadBaseSchema.extend({
+    contact_phone: z.string().trim().min(9).max(30),
+    contact_name: z.string().trim().min(2).max(120),
+  }),
+);
+
+export const createAdminProperty = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(createAdminPropertySchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = authContext(context);
+    await requireRole(supabase, adminId, "admin");
+
+    const admin = await adminClient();
+    const property = await insertPropertyListing(
+      admin,
+      admin,
+      adminId,
+      null,
+      {
+        ...data,
+        whatsapp_inquiries: true,
+      },
+      { skipListingCap: true },
+    );
+
+    await admin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: "PROPERTY_CREATED_BY_ADMIN",
+      target_id: property.id,
+      details: JSON.stringify({
+        title: data.title,
+        neighborhood: data.neighborhood,
+        contact_phone: data.contact_phone,
+        contact_name: data.contact_name,
       }),
     });
 
@@ -391,29 +437,32 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
     const admin = await adminClient();
     const { data: property, error: propertyError } = await admin
       .from("properties")
-      .select("owner_id, is_active, contact_phone")
+      .select("owner_id, is_active, contact_phone, contact_name, whatsapp_inquiries")
       .eq("id", data.propertyId)
       .maybeSingle();
     if (propertyError) throw propertyError;
     if (!property?.owner_id || !property.is_active) {
-      return { phone: null, fullName: null, unlocked: false };
+      return { phone: null, fullName: null, unlocked: false, preferWhatsApp: false };
     }
 
+    const preferWhatsApp = Boolean(property.whatsapp_inquiries);
+    const listingContactName = property.contact_name?.trim() || null;
+
     if (property.owner_id === userId) {
-      const phone =
-        property.contact_phone?.trim() ||
-        (
-          await admin
-            .from("profiles")
-            .select("phone, full_name")
-            .eq("id", property.owner_id)
-            .maybeSingle()
-        ).data?.phone?.trim() ||
-        null;
-      const fullName =
-        (await admin.from("profiles").select("full_name").eq("id", property.owner_id).maybeSingle())
-          .data?.full_name ?? null;
-      return { phone, fullName, unlocked: true };
+      const profile = (
+        await admin
+          .from("profiles")
+          .select("phone, full_name")
+          .eq("id", property.owner_id)
+          .maybeSingle()
+      ).data;
+      const phone = property.contact_phone?.trim() || profile?.phone?.trim() || null;
+      return {
+        phone,
+        fullName: listingContactName || profile?.full_name || null,
+        unlocked: true,
+        preferWhatsApp,
+      };
     }
 
     const plus = await getTenantPlusStatus(admin, userId);
@@ -425,7 +474,7 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (plus.tenantPlan !== "plus" && !unlock) {
-      return { phone: null, fullName: null, unlocked: false };
+      return { phone: null, fullName: listingContactName, unlocked: false, preferWhatsApp };
     }
 
     const { data: profile, error: profileError } = await admin
@@ -438,8 +487,9 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
     const phone = property.contact_phone?.trim() || profile?.phone?.trim() || null;
     return {
       phone,
-      fullName: profile?.full_name ?? null,
+      fullName: listingContactName || profile?.full_name || null,
       unlocked: true,
+      preferWhatsApp,
     };
   });
 

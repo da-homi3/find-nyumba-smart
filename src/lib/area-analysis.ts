@@ -394,6 +394,134 @@ function amenityBoost(amenities: string[], pattern: RegExp, amount: number): num
   return amenities.some((a) => pattern.test(a)) ? amount : 0;
 }
 
+function capScore(n: number, boost: number): number {
+  return Math.min(4, n + boost);
+}
+
+function accessibilityScoreFromCommute(commuteCbdMins: number): number {
+  if (commuteCbdMins <= 25) return 4;
+  if (commuteCbdMins <= 45) return 3;
+  return 2;
+}
+
+type DimensionScores = {
+  waterScore: number;
+  securityScore: number;
+  electricityScore: number;
+  internetScore: number;
+  cleanlinessScore: number;
+  accessibilityScore: number;
+};
+
+function dimensionScoresFromProfile(
+  profile: AreaProfile & { areaKey: string },
+  amenities: string[],
+  property: PropertyAnalysisInput,
+): DimensionScores {
+  let waterScore = LABEL_SCORE[profile.water];
+  let securityScore = LABEL_SCORE[profile.security];
+  let electricityScore = LABEL_SCORE[profile.electricity];
+  let internetScore = Math.min(4, 1 + profile.internetProviders.length);
+  let cleanlinessScore = 2.5;
+  let accessibilityScore = accessibilityScoreFromCommute(profile.commuteCbdMins);
+
+  waterScore = capScore(waterScore, amenityBoost(amenities, /borehole|water|tank/i, 0.5));
+  securityScore = capScore(
+    securityScore,
+    amenityBoost(amenities, /gated|guard|cctv|security/i, 0.5),
+  );
+  electricityScore = capScore(
+    electricityScore,
+    amenityBoost(amenities, /backup|generator|solar|inverter/i, 0.5),
+  );
+  internetScore = capScore(
+    internetScore,
+    amenityBoost(amenities, /fibre|wifi|internet/i, 0.5),
+  );
+  cleanlinessScore = capScore(
+    cleanlinessScore,
+    amenityBoost(amenities, /cleaning|housekeep|furnished/i, 0.5),
+  );
+  if (property.latitude != null && property.longitude != null) {
+    accessibilityScore = Math.min(4, accessibilityScore + 0.5);
+  }
+
+  return {
+    waterScore,
+    securityScore,
+    electricityScore,
+    internetScore,
+    cleanlinessScore,
+    accessibilityScore,
+  };
+}
+
+function mediaCompletenessHealthBoost(
+  property: PropertyAnalysisInput,
+  images: string[],
+): number {
+  let boost = 0;
+  if (images.length >= 5) boost += 5;
+  else if (images.length >= 3) boost += 3;
+  else if (images.length === 0) boost -= 8;
+  if (property.video_url) boost += 2;
+  if (property.tour_url) boost += 2;
+  if ((property.description?.trim().length ?? 0) >= 80) boost += 3;
+  if (property.area_sqm && property.area_sqm > 0) boost += 2;
+  if (property.address?.trim()) boost += 2;
+  return boost;
+}
+
+function rentFairnessFromComps(
+  property: PropertyAnalysisInput,
+  comps?: { rent_kes: number; bedrooms: number }[],
+): {
+  areaComps: { rent_kes: number; bedrooms: number }[];
+  areaMedianRent: number | null;
+  rentVsAreaMedianPct: number | null;
+  healthAdjust: number;
+} {
+  const areaComps = (comps ?? []).filter((c) => c.rent_kes > 0);
+  const sameBeds = areaComps.filter((c) => c.bedrooms === property.bedrooms);
+  const rentPool = (sameBeds.length >= 3 ? sameBeds : areaComps).map((c) => c.rent_kes);
+  let areaMedianRent: number | null = null;
+  let rentVsAreaMedianPct: number | null = null;
+  let healthAdjust = 0;
+
+  if (rentPool.length === 0) {
+    return { areaComps, areaMedianRent, rentVsAreaMedianPct, healthAdjust };
+  }
+
+  const sorted = [...rentPool].sort((a, b) => a - b);
+  areaMedianRent = sorted[Math.floor(sorted.length / 2)] ?? null;
+  if (areaMedianRent && areaMedianRent > 0) {
+    rentVsAreaMedianPct = Math.round(
+      ((property.rent_kes - areaMedianRent) / areaMedianRent) * 100,
+    );
+    if (rentVsAreaMedianPct <= -10) healthAdjust = 4;
+    else if (rentVsAreaMedianPct >= 25) healthAdjust = -4;
+  }
+
+  return { areaComps, areaMedianRent, rentVsAreaMedianPct, healthAdjust };
+}
+
+function authenticityScoreFromInputs(
+  property: PropertyAnalysisInput,
+  images: string[],
+  amenities: string[],
+): number {
+  let authenticityScore = 55;
+  if (property.is_verified) authenticityScore += 20;
+  if (images.length >= 5) authenticityScore += 10;
+  else if (images.length >= 3) authenticityScore += 8;
+  if (property.latitude != null && property.longitude != null) authenticityScore += 8;
+  if (property.address?.trim()) authenticityScore += 5;
+  if ((property.description?.trim().length ?? 0) >= 40) authenticityScore += 5;
+  if (property.video_url || property.tour_url) authenticityScore += 4;
+  if (amenities.length >= 3) authenticityScore += 3;
+  return Math.max(20, Math.min(100, authenticityScore));
+}
+
 /**
  * Compute area-aware health + authenticity scores for a listing.
  * Uses neighborhood profile, amenities, media, and optional area rent comps.
@@ -405,98 +533,37 @@ export function analyzePropertyArea(
   const profile = getAreaProfile(property.neighborhood);
   const amenities = property.amenities ?? [];
   const images = property.images ?? [];
-
-  let waterScore = LABEL_SCORE[profile.water];
-  let securityScore = LABEL_SCORE[profile.security];
-  let electricityScore = LABEL_SCORE[profile.electricity];
-  let internetScore = Math.min(4, 1 + profile.internetProviders.length);
-  let cleanlinessScore = 2.5;
-  let accessibilityScore = profile.commuteCbdMins <= 25 ? 4 : profile.commuteCbdMins <= 45 ? 3 : 2;
-
-  waterScore = Math.min(4, waterScore + amenityBoost(amenities, /borehole|water|tank/i, 0.5));
-  securityScore = Math.min(
-    4,
-    securityScore + amenityBoost(amenities, /gated|guard|cctv|security/i, 0.5),
-  );
-  electricityScore = Math.min(
-    4,
-    electricityScore + amenityBoost(amenities, /backup|generator|solar|inverter/i, 0.5),
-  );
-  internetScore = Math.min(4, internetScore + amenityBoost(amenities, /fibre|wifi|internet/i, 0.5));
-  cleanlinessScore = Math.min(
-    4,
-    cleanlinessScore + amenityBoost(amenities, /cleaning|housekeep|furnished/i, 0.5),
-  );
-  if (property.latitude != null && property.longitude != null)
-    accessibilityScore = Math.min(4, accessibilityScore + 0.5);
+  const dims = dimensionScoresFromProfile(profile, amenities, property);
 
   const dimensionAvg =
-    (waterScore +
-      securityScore +
-      electricityScore +
-      internetScore +
-      cleanlinessScore +
-      accessibilityScore) /
+    (dims.waterScore +
+      dims.securityScore +
+      dims.electricityScore +
+      dims.internetScore +
+      dims.cleanlinessScore +
+      dims.accessibilityScore) /
     6;
-  let healthScore = Math.round(dimensionAvg * 20);
-
-  // Media & listing completeness
-  if (images.length >= 5) healthScore += 5;
-  else if (images.length >= 3) healthScore += 3;
-  else if (images.length === 0) healthScore -= 8;
-  if (property.video_url) healthScore += 2;
-  if (property.tour_url) healthScore += 2;
-  if ((property.description?.trim().length ?? 0) >= 80) healthScore += 3;
-  if (property.area_sqm && property.area_sqm > 0) healthScore += 2;
-  if (property.address?.trim()) healthScore += 2;
-
-  // Rent fairness vs area comps (same bedroom band when possible)
-  const areaComps = (comps ?? []).filter((c) => c.rent_kes > 0);
-  const sameBeds = areaComps.filter((c) => c.bedrooms === property.bedrooms);
-  const rentPool = (sameBeds.length >= 3 ? sameBeds : areaComps).map((c) => c.rent_kes);
-  let areaMedianRent: number | null = null;
-  let rentVsAreaMedianPct: number | null = null;
-  if (rentPool.length > 0) {
-    const sorted = [...rentPool].sort((a, b) => a - b);
-    areaMedianRent = sorted[Math.floor(sorted.length / 2)] ?? null;
-    if (areaMedianRent && areaMedianRent > 0) {
-      rentVsAreaMedianPct = Math.round(
-        ((property.rent_kes - areaMedianRent) / areaMedianRent) * 100,
-      );
-      if (rentVsAreaMedianPct <= -10) healthScore += 4;
-      else if (rentVsAreaMedianPct >= 25) healthScore -= 4;
-    }
-  }
-
+  const rent = rentFairnessFromComps(property, comps);
+  let healthScore =
+    Math.round(dimensionAvg * 20) +
+    mediaCompletenessHealthBoost(property, images) +
+    rent.healthAdjust;
   healthScore = Math.max(15, Math.min(98, healthScore));
-
-  // Authenticity: listing trust signals (complements DB trigger)
-  let authenticityScore = 55;
-  if (property.is_verified) authenticityScore += 20;
-  if (images.length >= 3) authenticityScore += 8;
-  if (property.latitude != null && property.longitude != null) authenticityScore += 8;
-  if (property.address?.trim()) authenticityScore += 4;
-  if ((property.description?.trim().length ?? 0) >= 40) authenticityScore += 4;
-  if (property.video_url || property.tour_url) authenticityScore += 3;
-  if (amenities.length >= 3) authenticityScore += 3;
-  authenticityScore = Math.max(20, Math.min(98, authenticityScore));
-
-  const subArea = profile.subAreas[0] ?? profile.areaKey;
 
   return {
     areaKey: profile.areaKey,
-    water: labelFromScore(waterScore),
-    security: labelFromScore(securityScore),
-    electricity: labelFromScore(electricityScore),
+    water: labelFromScore(dims.waterScore),
+    security: labelFromScore(dims.securityScore),
+    electricity: labelFromScore(dims.electricityScore),
     internetProviders: profile.internetProviders,
     matatuRoute: profile.matatuRoute,
     commuteCbdMins: profile.commuteCbdMins,
     noise: profile.noise,
-    subArea,
+    subArea: profile.subAreas[0] ?? profile.areaKey,
     healthScore,
-    authenticityScore,
-    rentVsAreaMedianPct,
-    areaMedianRent,
-    areaListingCount: areaComps.length,
+    authenticityScore: authenticityScoreFromInputs(property, images, amenities),
+    rentVsAreaMedianPct: rent.rentVsAreaMedianPct,
+    areaMedianRent: rent.areaMedianRent,
+    areaListingCount: rent.areaComps.length,
   };
 }

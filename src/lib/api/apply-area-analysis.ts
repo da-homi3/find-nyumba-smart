@@ -15,7 +15,7 @@ export async function applyPropertyAreaAnalysis(
   const { data: property, error } = await admin
     .from("properties")
     .select(
-      "id, neighborhood, amenities, images, video_url, tour_url, description, latitude, longitude, area_sqm, rent_kes, bedrooms, bathrooms, is_verified, address",
+      "id, neighborhood, amenities, images, video_url, tour_url, description, latitude, longitude, area_sqm, rent_kes, bedrooms, bathrooms, is_verified, address, authenticity_score",
     )
     .eq("id", propertyId)
     .maybeSingle();
@@ -32,12 +32,17 @@ export async function applyPropertyAreaAnalysis(
     .limit(40);
 
   const analysis = analyzePropertyArea(property, comps ?? []);
+  // Never lower an admin-boosted authenticity score when re-running area analysis.
+  const authenticityScore = Math.max(
+    analysis.authenticityScore,
+    property.authenticity_score ?? 0,
+  );
 
   const { error: updateError } = await admin
     .from("properties")
     .update({
       health_score: analysis.healthScore,
-      authenticity_score: analysis.authenticityScore,
+      authenticity_score: authenticityScore,
       updated_at: new Date().toISOString(),
     })
     .eq("id", propertyId);
@@ -46,6 +51,6 @@ export async function applyPropertyAreaAnalysis(
 
   return {
     healthScore: analysis.healthScore,
-    authenticityScore: analysis.authenticityScore,
+    authenticityScore,
   };
 }

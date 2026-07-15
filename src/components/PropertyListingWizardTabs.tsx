@@ -59,7 +59,12 @@ function ImagePreview({ file, onRemove }: Readonly<{ file: File; onRemove: () =>
 function ListingWizardDetailsTab({
   form,
   update,
-}: Readonly<{ form: ListingFormState; update: ListingFormUpdater }>) {
+  requireContactPhone,
+}: Readonly<{
+  form: ListingFormState;
+  update: ListingFormUpdater;
+  requireContactPhone?: boolean;
+}>) {
   return (
     <div className="space-y-5">
       <Field label="Listing title" full>
@@ -117,6 +122,39 @@ function ListingWizardDetailsTab({
           value={form.address}
           onChange={(e) => update("address", e.target.value)}
           placeholder="Building name, street"
+          className={inputCls}
+        />
+      </Field>
+      <Field
+        label={
+          requireContactPhone
+            ? "Contact name (required)"
+            : "Contact name (optional)"
+        }
+        full
+      >
+        <input
+          required={requireContactPhone}
+          value={form.contact_name}
+          onChange={(e) => update("contact_name", e.target.value)}
+          placeholder="e.g. Jane Wanjiku"
+          className={inputCls}
+        />
+      </Field>
+      <Field
+        label={
+          requireContactPhone
+            ? "Contact phone (required)"
+            : "Contact phone (optional — used for tenant unlocks)"
+        }
+        full
+      >
+        <input
+          type="tel"
+          required={requireContactPhone}
+          value={form.contact_phone}
+          onChange={(e) => update("contact_phone", e.target.value)}
+          placeholder="e.g. 0712 345 678 or +254712345678"
           className={inputCls}
         />
       </Field>
@@ -418,6 +456,14 @@ function ListingWizardReviewTab({
           <dt className="text-xs text-muted-foreground">Location</dt>
           <dd>{locationParts.join(" · ")}</dd>
         </div>
+        {form.contact_name.trim() || form.contact_phone.trim() ? (
+          <div>
+            <dt className="text-xs text-muted-foreground">Contact</dt>
+            <dd>
+              {[form.contact_name.trim(), form.contact_phone.trim()].filter(Boolean).join(" · ")}
+            </dd>
+          </div>
+        ) : null}
         <div>
           <dt className="text-xs text-muted-foreground">Pricing</dt>
           <dd>{reviewPricingSummary(form)}</dd>
@@ -445,6 +491,7 @@ export type ListingWizardTabContentProps = Readonly<{
   form: ListingFormState;
   update: ListingFormUpdater;
   busy: boolean;
+  requireContactPhone?: boolean;
   imageFiles: File[];
   videoFile: File | null;
   tourFile: File | null;
@@ -462,6 +509,7 @@ export function ListingWizardTabContent({
   form,
   update,
   busy,
+  requireContactPhone,
   imageFiles,
   videoFile,
   tourFile,
@@ -475,7 +523,13 @@ export function ListingWizardTabContent({
 }: ListingWizardTabContentProps) {
   switch (activeTab) {
     case "details":
-      return <ListingWizardDetailsTab form={form} update={update} />;
+      return (
+        <ListingWizardDetailsTab
+          form={form}
+          update={update}
+          requireContactPhone={requireContactPhone}
+        />
+      );
     case "media":
       return (
         <ListingWizardMediaTab

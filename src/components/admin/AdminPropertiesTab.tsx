@@ -1,12 +1,13 @@
 import { Link } from "@tanstack/react-router";
 
-import { BadgeCheck, Loader2, Plus, ShieldCheck, ShieldOff } from "lucide-react";
+import { BadgeCheck, Loader2, Pencil, Plus, ShieldCheck, ShieldOff } from "lucide-react";
 
 import type { UseMutationResult } from "@tanstack/react-query";
 
 import type { AdminProperty } from "@/components/admin/admin-types";
 import { AdminPropertyAuthenticityControls } from "@/components/admin/AdminPropertyAuthenticityControls";
 import { ReviewQueueItem } from "@/components/admin/ReviewQueueItem";
+import { useAuth } from "@/hooks/use-auth";
 import { reviewPrioritySort, resolveReviewPriority } from "@/lib/design/status";
 
 import { isDemoListingId } from "@/data/mockListings";
@@ -61,12 +62,16 @@ function AdminPropertyRow({
   toggleVerification,
 
   adjustAuthenticityScore,
+
+  currentUserId,
 }: Readonly<{
   property: AdminProperty;
   toggleVerification: ToggleVerification;
   adjustAuthenticityScore: AdjustAuthenticityScore;
+  currentUserId: string | undefined;
 }>) {
   const isDemo = isDemoListingId(property.id);
+  const isOwnListing = Boolean(currentUserId && property.owner_id === currentUserId);
 
   const pending =
     toggleVerification.isPending && toggleVerification.variables?.propertyId === property.id;
@@ -81,6 +86,11 @@ function AdminPropertyRow({
         {isDemo ? (
           <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
             Demo
+          </span>
+        ) : null}
+        {isOwnListing ? (
+          <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            Yours
           </span>
         ) : null}
       </td>
@@ -121,26 +131,38 @@ function AdminPropertyRow({
       </td>
 
       <td className="px-4 py-3">
-        {isDemo ? (
-          <span className="text-xs text-muted-foreground">Live listing only</span>
-        ) : (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              toggleVerification.mutate({
-                propertyId: property.id,
+        <div className="flex flex-wrap items-center gap-2">
+          {isDemo ? (
+            <span className="text-xs text-muted-foreground">Live listing only</span>
+          ) : (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                toggleVerification.mutate({
+                  propertyId: property.id,
 
-                verified: !property.is_verified,
-              })
-            }
-            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
-          >
-            <VerificationToggleIcon pending={pending} isVerified={property.is_verified} />
+                  verified: !property.is_verified,
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
+            >
+              <VerificationToggleIcon pending={pending} isVerified={property.is_verified} />
 
-            {property.is_verified ? "Unverify" : "Verify"}
-          </button>
-        )}
+              {property.is_verified ? "Unverify" : "Verify"}
+            </button>
+          )}
+          {isOwnListing && !isDemo ? (
+            <Link
+              to="/admin/listings/$id/edit"
+              params={{ id: property.id }}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Link>
+          ) : null}
+        </div>
       </td>
     </tr>
   );
@@ -152,6 +174,8 @@ export function AdminPropertiesTab({
   toggleVerification,
   adjustAuthenticityScore,
 }: Props) {
+  const { user } = useAuth();
+
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading listings...</div>;
   }
@@ -163,17 +187,27 @@ export function AdminPropertiesTab({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Review live listings, verify any property, or publish on behalf of a landlord, agency, or
-          manager.
+          Upload listings yourself, review live inventory, or publish on behalf of a landlord,
+          agency, or manager.
         </p>
 
-        <Link
-          to="/admin/listings/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
-        >
-          <Plus className="h-4 w-4" />
-          List on behalf
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/listings/new"
+            search={{ mode: "self" }}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            <Plus className="h-4 w-4" />
+            Upload independently
+          </Link>
+          <Link
+            to="/admin/listings/new"
+            search={{ mode: "behalf" }}
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold hover:bg-secondary"
+          >
+            List on behalf
+          </Link>
+        </div>
       </div>
 
       {flagged.length > 0 ? (
@@ -227,6 +261,7 @@ export function AdminPropertiesTab({
                 property={property}
                 toggleVerification={toggleVerification}
                 adjustAuthenticityScore={adjustAuthenticityScore}
+                currentUserId={user?.id}
               />
             ))}
           </tbody>

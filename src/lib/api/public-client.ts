@@ -14,7 +14,7 @@ export function createPublicClient() {
 }
 
 const PUBLIC_PROPERTY_COLUMNS_BASE =
-  "id,title,property_type,neighborhood,address,latitude,longitude,rent_kes,rent_kes_max,deposit_kes,bedrooms,bathrooms,area_sqm,area_sqm_max,description,amenities,images,video_url,tour_url,is_verified,is_active,is_vacant,authenticity_score,health_score,available_from,pricing_mode,price_period,minimum_rent_period_months,views,created_at,updated_at" as const;
+  "id,title,property_type,neighborhood,address,latitude,longitude,rent_kes,rent_kes_max,deposit_kes,bedrooms,bathrooms,area_sqm,area_sqm_max,description,amenities,images,video_url,tour_url,is_verified,is_active,is_vacant,authenticity_score,health_score,available_from,pricing_mode,price_period,minimum_rent_period_months,views,created_at,updated_at,whatsapp_inquiries" as const;
 
 const PUBLIC_PROPERTY_COLUMNS_REVENUE = ",featured_until,boost_package,nyumba_verified_at" as const;
 
