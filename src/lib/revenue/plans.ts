@@ -1,6 +1,7 @@
-import { formatKes } from "@/lib/properties";
 import type { BoostPackage, LandlordPlan, VerificationTier } from "@/lib/revenue/types";
 import type { ListingPortal } from "@/lib/portal-paths";
+
+const formatKes = (n: number) => "KES " + n.toLocaleString("en-KE");
 
 export type PlanCardDef = {
   id: string;
