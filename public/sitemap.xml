@@ -289,13 +289,37 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://nyumbasearch.com/tenant/property/a1b2c3d4-e5f6-7890-abcd-ef1234567891</loc>
+    <loc>https://nyumbasearch.com/tenant/property/4d26a401-031a-4ce7-b6aa-a01ca7ecac9c</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://nyumbasearch.com/tenant/property/1fe10d8b-376c-4143-9acd-61095c48033c</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/c389c23a-c44f-449c-9c7e-abf2023864d5</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/dd55c349-c9e3-48db-85fc-c2294d4b432c</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/0f6b7d86-d6e4-4df6-87fc-74d5a3b287e4</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/a1b2c3d4-e5f6-7890-abcd-ef1234567891</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -314,12 +338,6 @@
   </url>
   <url>
     <loc>https://nyumbasearch.com/tenant/property/39583a65-ae51-4fae-939c-f358ba31feac</loc>
-    <lastmod>2026-07-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/0f6b7d86-d6e4-4df6-87fc-74d5a3b287e4</loc>
     <lastmod>2026-07-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -487,7 +505,43 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://nyumbasearch.com/tenant/property/5e3b44f0-78c5-4d27-a338-d267fcb29f90</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/f7595ded-69c8-4ac2-8360-ddf1f7c56565</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/99201d7c-f792-4fe5-b732-de0e68e6f8a0</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/0fdb3c13-af9a-4879-956a-15fa73cfb93d</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://nyumbasearch.com/tenant/property/92c2e698-dea5-4df2-a083-73fbca59b9ea</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/0ce675b2-a6a8-4afa-9dc7-592917743184</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://nyumbasearch.com/tenant/property/09b9b74f-a0ec-457e-b4fa-17e3d56e9982</loc>
     <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -506,42 +560,6 @@
   </url>
   <url>
     <loc>https://nyumbasearch.com/tenant/property/b3122bf1-90c5-4cd6-9c70-2b41ff5d4c77</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/5e3b44f0-78c5-4d27-a338-d267fcb29f90</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/0ce675b2-a6a8-4afa-9dc7-592917743184</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/0fdb3c13-af9a-4879-956a-15fa73cfb93d</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/f7595ded-69c8-4ac2-8360-ddf1f7c56565</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/99201d7c-f792-4fe5-b732-de0e68e6f8a0</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://nyumbasearch.com/tenant/property/09b9b74f-a0ec-457e-b4fa-17e3d56e9982</loc>
     <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>

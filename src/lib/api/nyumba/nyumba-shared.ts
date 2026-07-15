@@ -15,6 +15,7 @@ import {
   isNightlyRentType,
 } from "@/lib/property-types";
 import { normalizeCommercialRangeFields, validateCommercialRanges } from "@/lib/commercial-ranges";
+import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
 import { getSiteUrl } from "@/lib/site";
 import { normalizePropertyImages } from "@/lib/property-images";
 
@@ -102,8 +103,10 @@ export const propertyPayloadBaseSchema = z.object({
   pricing_mode: pricingModeSchema.optional(),
   price_period: pricePeriodSchema.nullable().optional(),
   minimum_rent_period_months: z.number().int().min(1).max(120).nullable().optional(),
-  /** Tenant-facing phone after unlock; falls back to owner profile phone when null. */
+  /** Primary tenant-facing phone after unlock; falls back to owner profile phone when null. */
   contact_phone: z.string().trim().min(9).max(30).nullable().optional(),
+  /** Additional unlockable listing phones (primary is also mirrored as contact_phone). */
+  contact_phones: z.array(z.string().trim().min(9).max(30)).max(5).optional(),
   /** Contact person display name (admin listings / unlock UI). */
   contact_name: z.string().trim().min(2).max(120).nullable().optional(),
   /** When true, Message opens WhatsApp to contact_phone. */
@@ -176,8 +179,13 @@ export function withPropertyPayloadRules<T extends z.ZodTypeAny>(schema: T) {
         pricing_mode,
         data.price_period ?? null,
       );
+      const contact = contactPhoneFields([
+        ...(data.contact_phones ?? []),
+        data.contact_phone ?? "",
+      ]);
       const normalized = normalizeCommercialRangeFields({
         ...data,
+        ...contact,
         pricing_mode,
         price_period,
         minimum_rent_period_months: normalizeMinimumRentPeriodMonths(
@@ -215,6 +223,7 @@ type PropertyRowInput = Omit<
   | "organization_id"
   | "owner_id"
   | "contact_phone"
+  | "contact_phones"
   | "contact_name"
   | "whatsapp_inquiries"
   | "duplicate_hash"
@@ -223,6 +232,7 @@ type PropertyRowInput = Omit<
   organization_id?: string | null;
   owner_id?: string | null;
   contact_phone?: string | null;
+  contact_phones?: string[] | null;
   contact_name?: string | null;
   whatsapp_inquiries?: boolean | null;
   duplicate_hash?: string | null;
@@ -262,6 +272,7 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     price_period: (row.price_period as PricePeriod | null) ?? null,
     minimum_rent_period_months: row.minimum_rent_period_months ?? null,
     contact_phone: row.contact_phone ?? null,
+    contact_phones: phonesFromProperty(row),
     contact_name: row.contact_name ?? null,
     whatsapp_inquiries: row.whatsapp_inquiries ?? false,
     views: row.views,

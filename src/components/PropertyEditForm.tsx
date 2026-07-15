@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FileText, Image as ImageIcon, Loader2, MapPin } from "lucide-react";
+import { ContactPhonesFields } from "@/components/ContactPhonesFields";
+import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -68,7 +70,7 @@ export function PropertyEditForm({
     property_type: "one_bedroom" as PropertyType,
     neighborhood: "",
     address: "",
-    contact_phone: "",
+    contact_phones: [""] as string[],
     contact_name: "",
     latitude: null as number | null,
     longitude: null as number | null,
@@ -93,7 +95,10 @@ export function PropertyEditForm({
       property_type: property.property_type,
       neighborhood: property.neighborhood,
       address: property.address ?? "",
-      contact_phone: property.contact_phone ?? "",
+      contact_phones: (() => {
+        const phones = phonesFromProperty(property);
+        return phones.length > 0 ? phones : [""];
+      })(),
       contact_name: property.contact_name ?? "",
       latitude: property.latitude,
       longitude: property.longitude,
@@ -149,7 +154,7 @@ export function PropertyEditForm({
           images: property?.images ?? [],
           video_url: property?.video_url ?? null,
           tour_url: property?.tour_url ?? null,
-          contact_phone: form.contact_phone.trim() || null,
+          ...contactPhoneFields(form.contact_phones),
           contact_name: form.contact_name.trim() || null,
           whatsapp_inquiries: property?.whatsapp_inquiries ?? false,
           minimum_rent_period_months:
@@ -372,15 +377,15 @@ export function PropertyEditForm({
               />
             </Field>
 
-            <Field label="Contact phone (shown after tenant unlock)" full>
-              <input
-                type="tel"
-                value={form.contact_phone}
-                onChange={(e) => update("contact_phone", e.target.value)}
-                placeholder="e.g. 0712 345 678 or +254712345678"
-                className={inputCls}
+            <div className="space-y-1.5">
+              <span className="block text-xs font-medium text-muted-foreground">
+                Contact phones (shown after tenant unlock)
+              </span>
+              <ContactPhonesFields
+                phones={form.contact_phones}
+                onChange={(phones) => update("contact_phones", phones)}
               />
-            </Field>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Bedrooms">

@@ -26,7 +26,8 @@ function CookiePolicyPage() {
             (always on)
           </li>
           <li>
-            <strong className="text-foreground">Analytics</strong> — usage patterns (opt-in)
+            <strong className="text-foreground">Analytics</strong> — usage patterns via FullStory
+            session replay (on by default; turn off via Essential only or Manage preferences)
           </li>
           <li>
             <strong className="text-foreground">Marketing</strong> — promotional emails (opt-in)

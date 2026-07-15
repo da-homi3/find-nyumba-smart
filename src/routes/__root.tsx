@@ -30,6 +30,7 @@ import { getOgImageUrl, HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site"
 import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CookieConsentBanner } from "@/components/CookieConsent";
+import { FullStoryBootstrap } from "@/components/FullStoryBootstrap";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -212,6 +213,7 @@ function RootComponent() {
         <TenantMobileNav />
         <Toaster />
         <CookieConsentBanner />
+        <FullStoryBootstrap />
       </AuthProvider>
     </QueryClientProvider>
   );

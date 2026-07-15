@@ -1498,6 +1498,7 @@ export type Database = {
           boost_package: string | null;
           contact_name: string | null;
           contact_phone: string | null;
+          contact_phones: string[];
           created_at: string;
           deposit_kes: number | null;
           description: string | null;
@@ -1541,6 +1542,7 @@ export type Database = {
           boost_package?: string | null;
           contact_name?: string | null;
           contact_phone?: string | null;
+          contact_phones?: string[];
           created_at?: string;
           deposit_kes?: number | null;
           description?: string | null;
@@ -1584,6 +1586,7 @@ export type Database = {
           boost_package?: string | null;
           contact_name?: string | null;
           contact_phone?: string | null;
+          contact_phones?: string[];
           created_at?: string;
           deposit_kes?: number | null;
           description?: string | null;

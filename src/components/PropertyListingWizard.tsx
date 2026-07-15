@@ -39,6 +39,7 @@ import { Loader2, FileText, MapPin, CheckCircle2, Image as ImageIcon } from "luc
 import { portalLabelForRole } from "@/lib/portal-labels";
 import { isWithinUploadLimit, uploadLimitLabel } from "@/lib/media/upload-limits";
 import { randomUuid } from "@/lib/random-uuid";
+import { contactPhoneFields } from "@/lib/contact-phones";
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -329,7 +330,7 @@ export type ListingFormState = {
   property_type: PropertyType;
   neighborhood: string;
   address: string;
-  contact_phone: string;
+  contact_phones: string[];
   contact_name: string;
   rent_kes: number;
   rent_kes_max: number | "";
@@ -354,8 +355,13 @@ function validateListingDetailsTab(form: ListingFormState, requireContactPhone: 
     toast.error("Title and neighborhood are required");
     return false;
   }
-  if (requireContactPhone && form.contact_phone.trim().length < 9) {
-    toast.error("Add a contact phone tenants can unlock (at least 9 digits)");
+  const phones = contactPhoneFields(form.contact_phones).contact_phones;
+  if (requireContactPhone && phones.length === 0) {
+    toast.error("Add at least one contact phone tenants can unlock");
+    return false;
+  }
+  if (form.contact_phones.some((p) => p.trim() && p.trim().length < 9)) {
+    toast.error("Each contact phone needs at least 9 digits");
     return false;
   }
   if (requireContactPhone && form.contact_name.trim().length < 2) {
@@ -455,7 +461,7 @@ function buildListingPayload(
     images: media.images,
     video_url: media.video_url,
     tour_url: media.tour_url,
-    contact_phone: form.contact_phone.trim() || null,
+    ...contactPhoneFields(form.contact_phones),
     contact_name: form.contact_name.trim() || null,
     minimum_rent_period_months:
       isCommercialType(form.property_type) && form.pricing_mode === "rent"
@@ -515,10 +521,11 @@ async function createListingFromWizard(
     return createPropertyOnBehalf({ data: { ...payload, ownerUserId: onBehalfOf.userId } });
   }
   if (adminOwned) {
+    const contact = contactPhoneFields(form.contact_phones);
     return createAdminProperty({
       data: {
         ...payload,
-        contact_phone: form.contact_phone.trim(),
+        contact_phones: contact.contact_phones,
         contact_name: form.contact_name.trim(),
       },
     });
@@ -762,7 +769,7 @@ export function PropertyListingWizard({
     property_type: "one_bedroom" as PropertyType,
     neighborhood: "",
     address: "",
-    contact_phone: "",
+    contact_phones: [""],
     contact_name: "",
     rent_kes: 0,
     rent_kes_max: "" as number | "",

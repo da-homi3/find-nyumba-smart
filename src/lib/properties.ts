@@ -38,6 +38,8 @@ export interface Property {
   price_period?: PricePeriod | null;
   /** Listing-level contact; omitted from public selects, present when managing a listing. */
   contact_phone?: string | null;
+  /** All unlockable listing phones (primary first). */
+  contact_phones?: string[];
   contact_name?: string | null;
   /** Admin listings: Message CTA opens WhatsApp instead of in-app inquiry. */
   whatsapp_inquiries?: boolean;

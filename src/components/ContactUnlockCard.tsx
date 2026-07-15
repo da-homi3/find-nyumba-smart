@@ -15,7 +15,7 @@ import type { Property } from "@/lib/properties";
 
 type Props = Readonly<{
   listing: Property;
-  onUnlocked?: (phone: string) => void;
+  onUnlocked?: (phone: string, phones?: string[]) => void;
 }>;
 
 function unlockPriceHint(
@@ -65,24 +65,28 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
   const trialActive = state?.trialActive ?? entitlements.trialActive;
   const freeUnlocksLeft = state?.trialUnlocksRemaining ?? entitlements.trialUnlocksRemaining ?? 0;
   const contactPhone = state?.contactPhone ?? null;
+  const contactPhones = state?.contactPhones ?? (contactPhone ? [contactPhone] : []);
+  const contactPhonesKey = contactPhones.join("|");
   const unlocked = state?.unlocked ?? false;
   const monthlySpend = state?.monthlyUnlockSpend ?? entitlements.monthlyUnlockSpend ?? 0;
 
   useEffect(() => {
-    if (contactPhone && onUnlocked) onUnlocked(contactPhone);
-  }, [contactPhone, onUnlocked]);
+    if (contactPhone && onUnlocked) onUnlocked(contactPhone, contactPhones);
+    // contactPhonesKey avoids unstable array identity re-firing the effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- phones via key
+  }, [contactPhone, contactPhonesKey, onUnlocked]);
 
-  async function applyUnlockedPhone(phone: string) {
+  async function applyUnlockedPhone(phone: string, phones?: string[]) {
     void qc.invalidateQueries({ queryKey: ["contact-unlock", listing.id] });
     void qc.invalidateQueries({ queryKey: ["entitlements"] });
-    onUnlocked?.(phone);
+    onUnlocked?.(phone, phones?.length ? phones : [phone]);
   }
 
   async function pollPayment(paymentId: string) {
     await pollPaymentUntilComplete(paymentId);
     const refreshed = await getListingUnlockState({ data: { listingId: listing.id } });
     if (refreshed.unlocked && refreshed.contactPhone) {
-      await applyUnlockedPhone(refreshed.contactPhone);
+      await applyUnlockedPhone(refreshed.contactPhone, refreshed.contactPhones);
       return;
     }
     throw new Error("Payment confirmed but contact unlock is still processing. Refresh the page.");
@@ -104,7 +108,10 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
       });
 
       if (res.unlocked && res.contactPhone) {
-        await applyUnlockedPhone(res.contactPhone);
+        await applyUnlockedPhone(
+          res.contactPhone,
+          "contactPhones" in res ? res.contactPhones : undefined,
+        );
         return;
       }
 
@@ -150,6 +157,7 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
     return (
       <ContactRevealAnimation
         phone={contactPhone}
+        phones={contactPhones}
         listingTitle={listing.title}
         neighborhood={listing.neighborhood}
       />

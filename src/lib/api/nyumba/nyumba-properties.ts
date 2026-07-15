@@ -29,6 +29,7 @@ import {
   throwIfListingDuplicateDbError,
 } from "@/lib/api/nyumba/listing-duplicate-errors";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
+import { phonesFromProperty } from "@/lib/contact-phones";
 
 type PropertyPayload = z.infer<typeof propertyPayloadSchema>;
 type ListingPortalRole = "landlord" | "agency" | "manager";
@@ -197,7 +198,8 @@ export const createPropertyOnBehalf = createServerFn({ method: "POST" })
 /** Admin publishes a listing owned by themselves (not on behalf of a portal account). */
 export const createAdminPropertySchema = withPropertyPayloadRules(
   propertyPayloadBaseSchema.extend({
-    contact_phone: z.string().trim().min(9).max(30),
+    contact_phone: z.string().trim().min(9).max(30).optional(),
+    contact_phones: z.array(z.string().trim().min(9).max(30)).min(1).max(5),
     contact_name: z.string().trim().min(2).max(120),
   }),
 );
@@ -230,6 +232,7 @@ export const createAdminProperty = createServerFn({ method: "POST" })
         title: data.title,
         neighborhood: data.neighborhood,
         contact_phone: data.contact_phone,
+        contact_phones: data.contact_phones,
         contact_name: data.contact_name,
       }),
     });
@@ -437,16 +440,29 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
     const admin = await adminClient();
     const { data: property, error: propertyError } = await admin
       .from("properties")
-      .select("owner_id, is_active, contact_phone, contact_name, whatsapp_inquiries")
+      .select("owner_id, is_active, contact_phone, contact_phones, contact_name, whatsapp_inquiries")
       .eq("id", data.propertyId)
       .maybeSingle();
     if (propertyError) throw propertyError;
     if (!property?.owner_id || !property.is_active) {
-      return { phone: null, fullName: null, unlocked: false, preferWhatsApp: false };
+      return {
+        phone: null,
+        phones: [] as string[],
+        fullName: null,
+        unlocked: false,
+        preferWhatsApp: false,
+      };
     }
 
     const preferWhatsApp = Boolean(property.whatsapp_inquiries);
     const listingContactName = property.contact_name?.trim() || null;
+
+    const resolvePhones = (profilePhone: string | null | undefined) => {
+      const listingPhones = phonesFromProperty(property);
+      if (listingPhones.length > 0) return listingPhones;
+      const fallback = profilePhone?.trim();
+      return fallback ? [fallback] : [];
+    };
 
     if (property.owner_id === userId) {
       const profile = (
@@ -456,9 +472,10 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
           .eq("id", property.owner_id)
           .maybeSingle()
       ).data;
-      const phone = property.contact_phone?.trim() || profile?.phone?.trim() || null;
+      const phones = resolvePhones(profile?.phone);
       return {
-        phone,
+        phone: phones[0] ?? null,
+        phones,
         fullName: listingContactName || profile?.full_name || null,
         unlocked: true,
         preferWhatsApp,
@@ -474,7 +491,13 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (plus.tenantPlan !== "plus" && !unlock) {
-      return { phone: null, fullName: listingContactName, unlocked: false, preferWhatsApp };
+      return {
+        phone: null,
+        phones: [] as string[],
+        fullName: listingContactName,
+        unlocked: false,
+        preferWhatsApp,
+      };
     }
 
     const { data: profile, error: profileError } = await admin
@@ -484,9 +507,10 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .maybeSingle();
     if (profileError) throw profileError;
 
-    const phone = property.contact_phone?.trim() || profile?.phone?.trim() || null;
+    const phones = resolvePhones(profile?.phone);
     return {
-      phone,
+      phone: phones[0] ?? null,
+      phones,
       fullName: listingContactName || profile?.full_name || null,
       unlocked: true,
       preferWhatsApp,

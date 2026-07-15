@@ -18,6 +18,8 @@ import { MAX_IMAGE_UPLOAD_MB, MAX_VIDEO_UPLOAD_MB } from "@/lib/media/upload-lim
 import { cn } from "@/lib/utils";
 import { Compass, Film, Image as ImageIcon, Link2, X } from "lucide-react";
 import type { ListingFormState, TabId } from "@/components/PropertyListingWizard";
+import { ContactPhonesFields } from "@/components/ContactPhonesFields";
+import { normalizeContactPhones } from "@/lib/contact-phones";
 
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -141,23 +143,18 @@ function ListingWizardDetailsTab({
           className={inputCls}
         />
       </Field>
-      <Field
-        label={
-          requireContactPhone
-            ? "Contact phone (required)"
-            : "Contact phone (optional — used for tenant unlocks)"
-        }
-        full
-      >
-        <input
-          type="tel"
+      <div className="col-span-full space-y-1.5">
+        <span className="block text-xs font-medium text-muted-foreground">
+          {requireContactPhone
+            ? "Contact phones (required — add one or more)"
+            : "Contact phones (optional — used for tenant unlocks)"}
+        </span>
+        <ContactPhonesFields
+          phones={form.contact_phones}
           required={requireContactPhone}
-          value={form.contact_phone}
-          onChange={(e) => update("contact_phone", e.target.value)}
-          placeholder="e.g. 0712 345 678 or +254712345678"
-          className={inputCls}
+          onChange={(phones) => update("contact_phones", phones)}
         />
-      </Field>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Bedrooms">
           <input
@@ -456,11 +453,16 @@ function ListingWizardReviewTab({
           <dt className="text-xs text-muted-foreground">Location</dt>
           <dd>{locationParts.join(" · ")}</dd>
         </div>
-        {form.contact_name.trim() || form.contact_phone.trim() ? (
+        {form.contact_name.trim() || normalizeContactPhones(form.contact_phones).length > 0 ? (
           <div>
             <dt className="text-xs text-muted-foreground">Contact</dt>
             <dd>
-              {[form.contact_name.trim(), form.contact_phone.trim()].filter(Boolean).join(" · ")}
+              {[
+                form.contact_name.trim(),
+                ...normalizeContactPhones(form.contact_phones),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </dd>
           </div>
         ) : null}

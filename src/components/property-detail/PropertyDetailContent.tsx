@@ -49,7 +49,7 @@ type PropertyDetailContentProps = Readonly<{
   onReportReasonChange: (value: string) => void;
   onReportDetailsChange: (value: string) => void;
   onReportSubmit: () => void;
-  onContactUnlocked?: (phone: string) => void;
+  onContactUnlocked?: (phone: string, phones?: string[]) => void;
 }>;
 
 function valuationGradeClass(grade: string) {

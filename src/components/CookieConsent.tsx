@@ -18,7 +18,7 @@ export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [prefs, setPrefs] = useState({
-    analytics: false,
+    analytics: true,
     marketing: false,
     preferences: false,
   });

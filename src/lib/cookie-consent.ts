@@ -28,7 +28,10 @@ export function getStoredConsent(): ConsentPrefs | null {
 }
 
 export function hasAnalyticsConsent(): boolean {
-  return getStoredConsent()?.analytics === true;
+  const stored = getStoredConsent();
+  // Default on until the visitor chooses Essential only (or unchecks Analytics).
+  if (!stored) return true;
+  return stored.analytics === true;
 }
 
 export async function persistConsentPrefs(prefs: ConsentPrefs): Promise<void> {
@@ -42,4 +45,7 @@ export async function persistConsentPrefs(prefs: ConsentPrefs): Promise<void> {
     // still store locally
   }
   localStorage.setItem(CONSENT_KEY, JSON.stringify(prefs));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("ns:consent-updated"));
+  }
 }
