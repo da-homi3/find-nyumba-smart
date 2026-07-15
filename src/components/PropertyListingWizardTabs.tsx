@@ -126,11 +126,7 @@ function ListingWizardDetailsTab({
         />
       </Field>
       <Field
-        label={
-          requireContactPhone
-            ? "Contact name (required)"
-            : "Contact name (optional)"
-        }
+        label={requireContactPhone ? "Contact name (required)" : "Contact name (optional)"}
         full
       >
         <input

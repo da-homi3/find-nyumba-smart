@@ -25,7 +25,8 @@ export const Route = createFileRoute("/admin/listings/new")({
   head: () =>
     buildPageHead({
       title: "Upload listing — Admin",
-      description: "Create a property listing as admin or on behalf of a landlord, agency, or manager.",
+      description:
+        "Create a property listing as admin or on behalf of a landlord, agency, or manager.",
       path: "/admin/listings/new",
       noIndex: true,
     }),

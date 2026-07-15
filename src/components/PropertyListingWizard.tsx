@@ -119,10 +119,7 @@ function buildMediaUploads(input: {
   if (videoFile) {
     const ext = videoFile.name.split(".").pop() ?? "mp4";
     const fileId = `video:${videoSourceId ?? fileUploadIdentity(videoFile)}`;
-    videoPath = resolvePath(
-      fileId,
-      () => `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`,
-    );
+    videoPath = resolvePath(fileId, () => `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`);
     uploads.push({ path: videoPath, file: videoFile });
   }
 
@@ -130,10 +127,7 @@ function buildMediaUploads(input: {
   if (tourFile) {
     const ext = tourFile.name.split(".").pop() ?? "jpg";
     const fileId = `tour:${tourSourceId ?? fileUploadIdentity(tourFile)}`;
-    tourPath = resolvePath(
-      fileId,
-      () => `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`,
-    );
+    tourPath = resolvePath(fileId, () => `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`);
     uploads.push({ path: tourPath, file: tourFile });
   }
 
@@ -482,10 +476,7 @@ function listingSuccessMessage(
   return `Property listed! Area stats: ${stats}`;
 }
 
-function wizardHeading(
-  onBehalfOf: ListingOnBehalfTarget | undefined,
-  adminOwned: boolean,
-): string {
+function wizardHeading(onBehalfOf: ListingOnBehalfTarget | undefined, adminOwned: boolean): string {
   if (onBehalfOf) return "List on behalf of account";
   if (adminOwned) return "Upload listing as admin";
   return "Add a property";
@@ -732,30 +723,22 @@ export function PropertyListingWizard({
   const [tourFile, setTourFile] = useState<File | null>(null);
   const propertyKeyRef = useRef<string | null>(null);
 
-  const onUploadSnapshot = useCallback(
-    (snapshot: {
-      phase: string;
-      progress: number | null;
-    }) => {
-      const busyPhase =
-        snapshot.phase === "enhancing" ||
-        snapshot.phase === "uploading" ||
-        snapshot.phase === "publishing";
-      setLoading(busyPhase);
-      setUploading(snapshot.phase === "enhancing" || snapshot.phase === "uploading");
-      setUploadProgress(
-        snapshot.phase === "uploading" || snapshot.phase === "enhancing"
-          ? snapshot.progress
-          : null,
-      );
-      if (snapshot.phase === "done" || snapshot.phase === "error" || snapshot.phase === "idle") {
-        setLoading(false);
-        setUploading(false);
-        setUploadProgress(null);
-      }
-    },
-    [],
-  );
+  const onUploadSnapshot = useCallback((snapshot: { phase: string; progress: number | null }) => {
+    const busyPhase =
+      snapshot.phase === "enhancing" ||
+      snapshot.phase === "uploading" ||
+      snapshot.phase === "publishing";
+    setLoading(busyPhase);
+    setUploading(snapshot.phase === "enhancing" || snapshot.phase === "uploading");
+    setUploadProgress(
+      snapshot.phase === "uploading" || snapshot.phase === "enhancing" ? snapshot.progress : null,
+    );
+    if (snapshot.phase === "done" || snapshot.phase === "error" || snapshot.phase === "idle") {
+      setLoading(false);
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  }, []);
   useKeepListingUploadAlive(onUploadSnapshot);
   const [form, setForm] = useState<ListingFormState>({
     title: "",
