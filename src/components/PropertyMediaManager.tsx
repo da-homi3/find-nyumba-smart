@@ -150,7 +150,9 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
   useBlocker({
     shouldBlockFn: () => {
       if (!busy) return false;
-      return !globalThis.confirm("Media is still uploading. Leave this page and cancel the upload?");
+      return !globalThis.confirm(
+        "Media is still uploading. Leave this page and cancel the upload?",
+      );
     },
     enableBeforeUnload: () => busy,
   });

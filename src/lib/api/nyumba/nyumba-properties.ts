@@ -440,7 +440,9 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
     const admin = await adminClient();
     const { data: property, error: propertyError } = await admin
       .from("properties")
-      .select("owner_id, is_active, contact_phone, contact_phones, contact_name, whatsapp_inquiries")
+      .select(
+        "owner_id, is_active, contact_phone, contact_phones, contact_name, whatsapp_inquiries",
+      )
       .eq("id", data.propertyId)
       .maybeSingle();
     if (propertyError) throw propertyError;
