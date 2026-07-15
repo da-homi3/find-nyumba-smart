@@ -1,5 +1,5 @@
 import listingPlaceholders from "@/data/listing-placeholders.json";
-import { isDemoListingId, mockListingsEnabled } from "@/data/mockListings";
+import { isDemoListingId } from "@/data/mockListings";
 import type { Property } from "@/lib/properties";
 
 const PLACEHOLDER_URLS = new Set(listingPlaceholders as string[]);
@@ -12,9 +12,8 @@ function usesOnlyPlaceholderImages(images: string[] | null | undefined): boolean
   return list.every((url) => PLACEHOLDER_URLS.has(url));
 }
 
-/** True for demo IDs and seeded listings that still use stock placeholder photos. */
+/** True for legacy demo IDs and seeded listings that still use stock placeholder photos. */
 export function isPreviewListing(property: ListingPreviewProbe): boolean {
-  if (mockListingsEnabled()) return true;
   if (isDemoListingId(property.id)) return true;
   return usesOnlyPlaceholderImages(property.images);
 }
@@ -29,22 +28,16 @@ export function partitionListings<T extends ListingPreviewProbe>(properties: T[]
   return { live, preview };
 }
 
-/**
- * Each live upload replaces one demo slot. Remaining demos stay visible but blurred.
- * Live listings are always shown first.
- */
+/** Live listings only — demo / placeholder cards are not shown. */
 export function mergeListingsForDisplay<T extends ListingPreviewProbe>(properties: T[]): T[] {
-  const { live, preview } = partitionListings(properties);
-  const previewSlots = Math.max(0, preview.length - live.length);
-  return [...live, ...preview.slice(0, previewSlots)];
+  return partitionListings(properties).live;
 }
 
 export function previewListingStats(properties: ListingPreviewProbe[]) {
   const { live, preview } = partitionListings(properties);
-  const visiblePreview = Math.max(0, preview.length - live.length);
   return {
     liveCount: live.length,
-    previewCount: visiblePreview,
-    hiddenPreviewCount: preview.length - visiblePreview,
+    previewCount: 0,
+    hiddenPreviewCount: preview.length,
   };
 }
