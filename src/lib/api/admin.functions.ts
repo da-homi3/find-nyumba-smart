@@ -823,10 +823,3 @@ export const getAdminPropertyMediaDownloads = createServerFn({ method: "POST" })
       })),
     };
   });
-
-    return {
-      userId: row.id,
-      listingLimit: restored,
-      adminListingLimitOverride: null as number | null,
-    };
-  });
