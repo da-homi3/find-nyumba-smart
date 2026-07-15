@@ -525,6 +525,7 @@ async function createListingFromWizard(
     return createAdminProperty({
       data: {
         ...payload,
+        contact_phone: contact.contact_phone,
         contact_phones: contact.contact_phones,
         contact_name: form.contact_name.trim(),
       },

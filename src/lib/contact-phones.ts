@@ -22,15 +22,30 @@ export function normalizeContactPhones(
 }
 
 /** Dual-write fields for properties insert/update. */
-export function contactPhoneFields(phones: string[]): {
+export function contactPhoneFields(
+  phones?: readonly (string | null | undefined)[] | null,
+  primary?: string | null,
+): {
   contact_phone: string | null;
   contact_phones: string[];
 } {
-  const normalized = normalizeContactPhones(phones);
+  const normalized = normalizeContactPhones(phones, primary);
   return {
     contact_phone: normalized[0] ?? null,
     contact_phones: normalized,
   };
+}
+
+/** Sync contact_phone ↔ contact_phones on raw API payloads before Zod parses. */
+export function syncContactPhonePayload<T extends Record<string, unknown>>(data: T): T & {
+  contact_phone: string | null;
+  contact_phones: string[];
+} {
+  const contact = contactPhoneFields(
+    Array.isArray(data.contact_phones) ? (data.contact_phones as string[]) : [],
+    typeof data.contact_phone === "string" ? data.contact_phone : null,
+  );
+  return { ...data, ...contact };
 }
 
 /** Load phones from a property row (array + legacy primary). */

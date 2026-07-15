@@ -15,7 +15,7 @@ import {
   isNightlyRentType,
 } from "@/lib/property-types";
 import { normalizeCommercialRangeFields, validateCommercialRanges } from "@/lib/commercial-ranges";
-import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
+import { contactPhoneFields, phonesFromProperty, syncContactPhonePayload } from "@/lib/contact-phones";
 import { getSiteUrl } from "@/lib/site";
 import { normalizePropertyImages } from "@/lib/property-images";
 
@@ -115,7 +115,10 @@ export const propertyPayloadBaseSchema = z.object({
 });
 
 export function withPropertyPayloadRules<T extends z.ZodTypeAny>(schema: T) {
-  return schema
+  return z.preprocess((raw) => {
+    if (!raw || typeof raw !== "object") return raw;
+    return syncContactPhonePayload(raw as Record<string, unknown>);
+  }, schema)
     .superRefine((data, ctx) => {
       const mode = normalizePricingMode(data.property_type, data.pricing_mode);
       const period = normalizePricePeriod(data.property_type, mode, data.price_period ?? null);
@@ -179,10 +182,7 @@ export function withPropertyPayloadRules<T extends z.ZodTypeAny>(schema: T) {
         pricing_mode,
         data.price_period ?? null,
       );
-      const contact = contactPhoneFields([
-        ...(data.contact_phones ?? []),
-        data.contact_phone ?? "",
-      ]);
+      const contact = contactPhoneFields(data.contact_phones, data.contact_phone);
       const normalized = normalizeCommercialRangeFields({
         ...data,
         ...contact,

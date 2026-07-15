@@ -29,7 +29,7 @@ import {
   throwIfListingDuplicateDbError,
 } from "@/lib/api/nyumba/listing-duplicate-errors";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
-import { phonesFromProperty } from "@/lib/contact-phones";
+import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
 
 type PropertyPayload = z.infer<typeof propertyPayloadSchema>;
 type ListingPortalRole = "landlord" | "agency" | "manager";
@@ -198,11 +198,20 @@ export const createPropertyOnBehalf = createServerFn({ method: "POST" })
 /** Admin publishes a listing owned by themselves (not on behalf of a portal account). */
 export const createAdminPropertySchema = withPropertyPayloadRules(
   propertyPayloadBaseSchema.extend({
-    contact_phone: z.string().trim().min(9).max(30).optional(),
-    contact_phones: z.array(z.string().trim().min(9).max(30)).min(1).max(5),
+    contact_phone: z.string().trim().min(9).max(30).nullable().optional(),
+    contact_phones: z.array(z.string().trim().min(9).max(30)).max(5).optional(),
     contact_name: z.string().trim().min(2).max(120),
   }),
-);
+).superRefine((data, ctx) => {
+  const phones = contactPhoneFields(data.contact_phones, data.contact_phone).contact_phones;
+  if (phones.length < 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["contact_phones"],
+      message: "Add at least one contact phone",
+    });
+  }
+});
 
 export const createAdminProperty = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
