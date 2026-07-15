@@ -66,7 +66,10 @@ async function main() {
 
   if (url && key) {
     const admin = createClient(url, key, { auth: { persistSession: false } });
-    const probe = await admin.from("properties").select("contact_name, whatsapp_inquiries").limit(1);
+    const probe = await admin
+      .from("properties")
+      .select("contact_name, whatsapp_inquiries")
+      .limit(1);
     if (probe.error) {
       console.warn("Probe after migration:", probe.error.message);
     } else {
