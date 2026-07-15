@@ -1,14 +1,14 @@
 import { Link } from "@tanstack/react-router";
-
-import { BadgeCheck, Loader2, Pencil, Plus, ShieldCheck, ShieldOff } from "lucide-react";
-
+import { BadgeCheck, Download, Loader2, Pencil, Plus, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
-
 import type { AdminProperty } from "@/components/admin/admin-types";
 import { AdminPropertyAuthenticityControls } from "@/components/admin/AdminPropertyAuthenticityControls";
 import { ReviewQueueItem } from "@/components/admin/ReviewQueueItem";
-import { useAuth } from "@/hooks/use-auth";
 import { reviewPrioritySort, resolveReviewPriority } from "@/lib/design/status";
+import { getAdminPropertyMediaDownloads } from "@/lib/api/admin.functions";
+import { toast } from "sonner";
+import { errorMessage } from "@/lib/utils";
+import { useState } from "react";
 
 type ToggleVerification = UseMutationResult<
   { id: string; title: string; is_verified: boolean; nyumba_verified_at: string | null },
@@ -24,14 +24,19 @@ type AdjustAuthenticityScore = UseMutationResult<
   unknown
 >;
 
+type SetActive = UseMutationResult<
+  { id: string; title: string; is_active: boolean },
+  Error,
+  { propertyId: string; isActive: boolean },
+  unknown
+>;
+
 type Props = Readonly<{
   properties: AdminProperty[];
-
   loading: boolean;
-
   toggleVerification: ToggleVerification;
-
   adjustAuthenticityScore: AdjustAuthenticityScore;
+  setPropertyActive: SetActive;
 }>;
 
 function verificationBadgeClass(isVerified: boolean) {
@@ -44,34 +49,64 @@ function statusBadgeClass(isActive: boolean) {
 
 function VerificationToggleIcon({
   pending,
-
   isVerified,
 }: Readonly<{ pending: boolean; isVerified: boolean }>) {
   if (pending) return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
-
   if (isVerified) return <ShieldOff className="h-3.5 w-3.5" />;
-
   return <ShieldCheck className="h-3.5 w-3.5" />;
+}
+
+async function downloadMediaBlob(url: string, filename: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Could not download ${filename}`);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 function AdminPropertyRow({
   property,
-
   toggleVerification,
-
   adjustAuthenticityScore,
-
-  currentUserId,
+  setPropertyActive,
 }: Readonly<{
   property: AdminProperty;
   toggleVerification: ToggleVerification;
   adjustAuthenticityScore: AdjustAuthenticityScore;
-  currentUserId: string | undefined;
+  setPropertyActive: SetActive;
 }>) {
-  const isOwnListing = Boolean(currentUserId && property.owner_id === currentUserId);
-
-  const pending =
+  const [downloading, setDownloading] = useState(false);
+  const pendingVerify =
     toggleVerification.isPending && toggleVerification.variables?.propertyId === property.id;
+  const pendingActive =
+    setPropertyActive.isPending && setPropertyActive.variables?.propertyId === property.id;
+
+  async function downloadMedia() {
+    setDownloading(true);
+    try {
+      const pack = await getAdminPropertyMediaDownloads({ data: { propertyId: property.id } });
+      if (pack.items.length === 0) {
+        toast.info("No photos or videos on this listing");
+        return;
+      }
+      toast.message(`Downloading ${pack.items.length} file(s)…`);
+      for (const item of pack.items) {
+        await downloadMediaBlob(item.url, item.filename);
+      }
+      toast.success("Media download started");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <tr>
@@ -79,32 +114,21 @@ function AdminPropertyRow({
         <Link to="/tenant/property/$id" params={{ id: property.id }} className="hover:underline">
           {property.title}
         </Link>
-
-        {isOwnListing ? (
-          <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-            Yours
-          </span>
-        ) : null}
       </td>
-
       <td className="px-4 py-3 text-muted-foreground">{property.neighborhood}</td>
-
       <td className="px-4 py-3">
         <div className="flex flex-col gap-1">
           <span
             className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs ${verificationBadgeClass(property.is_verified)}`}
           >
             {property.is_verified ? <BadgeCheck className="h-3 w-3" aria-hidden /> : null}
-
             {property.is_verified ? "Verified" : "Unverified"}
           </span>
-
           {property.nyumba_verified_at ? (
             <span className="text-[10px] text-muted-foreground">NyumbaSearch verified</span>
           ) : null}
         </div>
       </td>
-
       <td className="px-4 py-3">
         <AdminPropertyAuthenticityControls
           propertyId={property.id}
@@ -112,7 +136,6 @@ function AdminPropertyRow({
           adjustScore={adjustAuthenticityScore}
         />
       </td>
-
       <td className="px-4 py-3">
         <span
           className={`rounded-full px-2 py-0.5 text-xs ${statusBadgeClass(property.is_active)}`}
@@ -120,35 +143,65 @@ function AdminPropertyRow({
           {property.is_active ? "Active" : "Inactive"}
         </span>
       </td>
-
       <td className="px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            disabled={pending}
+            disabled={pendingVerify}
             onClick={() =>
               toggleVerification.mutate({
                 propertyId: property.id,
-
                 verified: !property.is_verified,
               })
             }
             className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
           >
-            <VerificationToggleIcon pending={pending} isVerified={property.is_verified} />
-
+            <VerificationToggleIcon pending={pendingVerify} isVerified={property.is_verified} />
             {property.is_verified ? "Unverify" : "Verify"}
           </button>
-          {isOwnListing ? (
-            <Link
-              to="/admin/listings/$id/edit"
-              params={{ id: property.id }}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Link>
-          ) : null}
+          <Link
+            to="/admin/listings/$id/edit"
+            params={{ id: property.id }}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Link>
+          <button
+            type="button"
+            disabled={downloading}
+            onClick={() => void downloadMedia()}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
+          >
+            {downloading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            Media
+          </button>
+          <button
+            type="button"
+            disabled={pendingActive}
+            onClick={() => {
+              const nextActive = !property.is_active;
+              if (
+                !nextActive &&
+                !globalThis.confirm(`Remove “${property.title}” from the market?`)
+              ) {
+                return;
+              }
+              setPropertyActive.mutate({ propertyId: property.id, isActive: nextActive });
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
+          >
+            {pendingActive ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            {property.is_active ? "Delete" : "Restore"}
+          </button>
         </div>
       </td>
     </tr>
@@ -160,9 +213,8 @@ export function AdminPropertiesTab({
   loading,
   toggleVerification,
   adjustAuthenticityScore,
+  setPropertyActive,
 }: Props) {
-  const { user } = useAuth();
-
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading listings...</div>;
   }
@@ -174,10 +226,8 @@ export function AdminPropertiesTab({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Upload listings yourself, review live inventory, or publish on behalf of a landlord,
-          agency, or manager.
+          Full admin access: edit, delete, download media, or publish independently / on behalf.
         </p>
-
         <div className="flex flex-wrap gap-2">
           <Link
             to="/admin/listings/new"
@@ -228,19 +278,13 @@ export function AdminPropertiesTab({
           <thead className="bg-secondary text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-4 py-3 text-left">Property</th>
-
               <th className="px-4 py-3 text-left">Location</th>
-
               <th className="px-4 py-3 text-left">Verification</th>
-
               <th className="px-4 py-3 text-left">Auth Score</th>
-
               <th className="px-4 py-3 text-left">Status</th>
-
               <th className="px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
-
           <tbody className="divide-y">
             {sorted.map((property) => (
               <AdminPropertyRow
@@ -248,7 +292,7 @@ export function AdminPropertiesTab({
                 property={property}
                 toggleVerification={toggleVerification}
                 adjustAuthenticityScore={adjustAuthenticityScore}
-                currentUserId={user?.id}
+                setPropertyActive={setPropertyActive}
               />
             ))}
           </tbody>

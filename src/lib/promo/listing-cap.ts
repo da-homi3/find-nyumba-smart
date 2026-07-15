@@ -54,6 +54,14 @@ export function resolveListingCap(input: {
 }
 
 export async function getListingCap(supabase: Db, userId: string): Promise<number> {
+  const { data: adminRole } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (adminRole) return 9999;
+
   const [plan, profile] = await Promise.all([
     getActiveLandlordPlan(supabase, userId),
     getListingCapProfile(supabase, userId),

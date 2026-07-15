@@ -80,6 +80,16 @@ export async function getTenantPlusStatus(
   supabase: Db,
   userId: string,
 ): Promise<{ tenantPlan: TenantPlan; plusExpiresAt: string | null }> {
+  const { data: adminRole } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (adminRole) {
+    return { tenantPlan: "plus", plusExpiresAt: null };
+  }
+
   const { data } = await supabase
     .from("subscriptions")
     .select("plan, status, next_billing_date")

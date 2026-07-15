@@ -4,7 +4,7 @@ import { DEFAULT_ENTITLEMENTS, isPlusMember } from "@/lib/revenue/entitlements";
 import { useAuth } from "@/hooks/use-auth";
 
 export function useEntitlements() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ["entitlements", user?.id],
     enabled: !!user,
@@ -12,7 +12,7 @@ export function useEntitlements() {
   });
 
   const entitlements = data ?? DEFAULT_ENTITLEMENTS;
-  const plus = isPlusMember(entitlements);
+  const plus = isPlusMember(entitlements) || isAdmin;
 
   return { entitlements, isPlus: plus, loading: !!user && isLoading };
 }

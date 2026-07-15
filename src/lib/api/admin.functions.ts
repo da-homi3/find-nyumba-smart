@@ -699,6 +699,132 @@ export const resetAdminListingLimit = createServerFn({ method: "POST" })
     });
 
     return {
+      userId: data.userId,
+      fullName: row.full_name,
+      listingLimit: restored,
+      adminListingLimitOverride: null,
+    };
+  });
+
+export const setAdminPropertyActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      propertyId: z.string().uuid(),
+      isActive: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: row, error } = await supabaseAdmin
+      .from("properties")
+      .update({
+        is_active: data.isActive,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.propertyId)
+      .select("id, title, is_active")
+      .single();
+    if (error) throw error;
+
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: data.isActive ? "PROPERTY_REACTIVATED" : "PROPERTY_SOFT_DELETED",
+      target_id: data.propertyId,
+      details: `${data.isActive ? "Reactivated" : "Soft-deleted"} listing: ${row.title}`,
+    });
+
+    try {
+      const { invalidateListingCaches } = await import("@/lib/cache/manager");
+      await invalidateListingCaches();
+    } catch {
+      // best-effort cache bust
+    }
+
+    return row;
+  });
+
+export const getAdminPropertyMediaDownloads = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ propertyId: z.string().uuid() }))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const {
+      propertyMediaPathFromUrl,
+      filenameFromMediaPath,
+    } = await import("@/lib/media/property-media-path");
+
+    const { data: property, error } = await supabaseAdmin
+      .from("properties")
+      .select("id, title, images, video_url, tour_url")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!property) throw new Error("Listing not found");
+
+    type MediaItem = {
+      kind: "image" | "video" | "tour";
+      url: string;
+      filename: string;
+      path: string | null;
+    };
+
+    const items: MediaItem[] = [];
+    const pathsToSign: string[] = [];
+
+    (property.images ?? []).forEach((imageUrl, index) => {
+      const path = propertyMediaPathFromUrl(imageUrl);
+      const filename = path
+        ? filenameFromMediaPath(path, `image-${index + 1}.jpg`)
+        : `image-${index + 1}.jpg`;
+      items.push({ kind: "image", url: imageUrl, filename, path });
+      if (path) pathsToSign.push(path);
+    });
+
+    for (const [kind, url] of [
+      ["video", property.video_url],
+      ["tour", property.tour_url],
+    ] as const) {
+      if (!url) continue;
+      const path = propertyMediaPathFromUrl(url);
+      const filename = path
+        ? filenameFromMediaPath(path, kind === "video" ? "video.mp4" : "tour.jpg")
+        : kind === "video"
+          ? "video.mp4"
+          : "tour.jpg";
+      items.push({ kind, url, filename, path });
+      if (path) pathsToSign.push(path);
+    }
+
+    const uniquePaths = [...new Set(pathsToSign)];
+    const signedByPath = new Map<string, string>();
+    if (uniquePaths.length > 0) {
+      const { data: signed, error: signError } = await supabaseAdmin.storage
+        .from("property-media")
+        .createSignedUrls(uniquePaths, 60 * 30);
+      if (signError) throw signError;
+      for (const row of signed ?? []) {
+        if (row.path && row.signedUrl) signedByPath.set(row.path, row.signedUrl);
+      }
+    }
+
+    return {
+      propertyId: property.id,
+      title: property.title,
+      items: items.map((item) => ({
+        kind: item.kind,
+        filename: item.filename,
+        url: (item.path && signedByPath.get(item.path)) || item.url,
+      })),
+    };
+  });
+
+    return {
       userId: row.id,
       listingLimit: restored,
       adminListingLimitOverride: null as number | null,

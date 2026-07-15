@@ -177,6 +177,7 @@ export const createPropertyOnBehalf = createServerFn({ method: "POST" })
       ownerUserId,
       organizationId,
       payload,
+      { skipListingCap: true },
     );
 
     await admin.from("admin_audit_logs").insert({
@@ -489,6 +490,13 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       };
     }
 
+    const { data: adminRole } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
     const plus = await getTenantPlusStatus(admin, userId);
     const { data: unlock } = await admin
       .from("contact_unlocks")
@@ -497,7 +505,7 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .eq("listing_id", data.propertyId)
       .maybeSingle();
 
-    if (plus.tenantPlan !== "plus" && !unlock) {
+    if (!adminRole && plus.tenantPlan !== "plus" && !unlock) {
       return {
         phone: null,
         phones: [] as string[],

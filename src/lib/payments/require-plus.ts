@@ -15,6 +15,14 @@ export class PlusRequiredError extends Error {
 }
 
 export async function requirePlus(db: Db, userId: string): Promise<void> {
+  const { data: adminRole } = await db
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (adminRole) return;
+
   const plus = await getTenantPlusStatus(db, userId);
   if (plus.tenantPlan !== "plus") {
     throw new PlusRequiredError();

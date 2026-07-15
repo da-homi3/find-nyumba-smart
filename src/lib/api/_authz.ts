@@ -45,6 +45,9 @@ export async function requireRole(
   const required = Array.isArray(roles) ? roles : [roles];
   const owned = await loadUserRoles(supabase, userId);
 
+  // Admins have unrestricted access across tenant and portal surfaces.
+  if (owned.has("admin")) return;
+
   if (required.length === 1 && required[0] === "tenant") {
     if (owned.has("tenant")) return;
     const hasPrivileged = [...owned].some((r) => PRIVILEGED_ROLES.has(r));
@@ -55,4 +58,13 @@ export async function requireRole(
   if (!required.some((r) => owned.has(r))) {
     throw new ForbiddenError(`Forbidden: requires role ${required.join(" or ")}`);
   }
+}
+
+/** True when the user has the admin role (uses the given client / RLS scope). */
+export async function userHasAdminRole(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<boolean> {
+  const owned = await loadUserRoles(supabase, userId);
+  return owned.has("admin");
 }

@@ -13,6 +13,7 @@ import {
   listAdminProperties,
   setAdminPropertyVerification,
   adjustAdminPropertyAuthenticityScore,
+  setAdminPropertyActive,
 } from "@/lib/api/admin.functions";
 import { listPendingApplications, reviewPortalApplication } from "@/lib/api/portal.functions";
 import {
@@ -213,6 +214,17 @@ function AdminDashboard() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const setPropertyActive = useMutation({
+    mutationFn: (payload: { propertyId: string; isActive: boolean }) =>
+      setAdminPropertyActive({ data: payload }),
+    onSuccess: (row) => {
+      toast.success(row.is_active ? "Listing restored" : "Listing removed from market");
+      qc.invalidateQueries({ queryKey: ["admin-properties"] });
+      qc.invalidateQueries({ queryKey: ["admin-audits"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const tabs = [
     {
       id: "verifications" as const,
@@ -344,6 +356,7 @@ function AdminDashboard() {
               loading={propLoading}
               toggleVerification={togglePropertyVerification}
               adjustAuthenticityScore={adjustAuthenticityScore}
+              setPropertyActive={setPropertyActive}
             />
           )}
           {activeTab === "audits" && <AdminAuditsTab audits={audits} loading={auditsLoading} />}

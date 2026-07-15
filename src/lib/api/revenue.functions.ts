@@ -34,11 +34,20 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
 
     const portalSubscriptionStatus: PortalSubscriptionStatus = portalSub?.status ?? "none";
     const leadPackBalance = profileRow.data?.lead_pack_balance ?? 0;
-    const canViewLeadContacts = canViewLeadContactDetails({
-      landlordPlan,
-      subscriptionStatus: portalSubscriptionStatus,
-      leadPackBalance,
-    });
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    const isAdmin = Boolean(adminRole);
+    const canViewLeadContacts =
+      isAdmin ||
+      canViewLeadContactDetails({
+        landlordPlan,
+        subscriptionStatus: portalSubscriptionStatus,
+        leadPackBalance,
+      });
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const { data: spendRows } = await supabaseAdmin
@@ -54,18 +63,18 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
     );
 
     return {
-      landlordPlan,
-      tenantPlan: plus.tenantPlan,
-      plusExpiresAt: plus.plusExpiresAt,
-      listingLimit,
+      landlordPlan: isAdmin ? "agency-enterprise" : landlordPlan,
+      tenantPlan: isAdmin ? "plus" : plus.tenantPlan,
+      plusExpiresAt: isAdmin ? null : plus.plusExpiresAt,
+      listingLimit: isAdmin ? 9999 : listingLimit,
       bonusListingSlots: bonusSlots,
       trialUnlocksRemaining: trial.trialUnlocksRemaining,
       trialEndsAt: trial.trialEndsAt,
       trialActive: trial.trialActive,
       monthlyUnlockSpend,
-      portalSubscriptionStatus,
+      portalSubscriptionStatus: isAdmin ? "active" : portalSubscriptionStatus,
       portalTrialEndsAt: portalSub?.trialEnd ?? portalSub?.nextBillingDate ?? null,
-      leadPackBalance,
+      leadPackBalance: isAdmin ? Math.max(leadPackBalance, 9999) : leadPackBalance,
       canViewLeadContacts,
     };
   });
