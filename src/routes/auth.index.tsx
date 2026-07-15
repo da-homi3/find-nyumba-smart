@@ -5,11 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
-import {
-  resolvePostLoginPath,
-  type AppRole,
-  type PortalId,
-} from "@/lib/portal-guard";
+import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
 import {
   type AccountRole,
   DASHBOARD_APPROVAL_ROLES,
