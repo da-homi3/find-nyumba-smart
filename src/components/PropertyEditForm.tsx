@@ -41,11 +41,7 @@ const inputCls =
 
 type PropertyEditFormProps = Readonly<{
   propertyId: string;
-  backTo:
-    | "/landlord/properties"
-    | "/agency/properties"
-    | "/manager/properties"
-    | "/admin";
+  backTo: "/landlord/properties" | "/agency/properties" | "/manager/properties" | "/admin";
   backSearch?: Record<string, unknown>;
   invalidateQueryKey?: string;
 }>;

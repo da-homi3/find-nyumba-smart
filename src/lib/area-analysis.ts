@@ -434,10 +434,7 @@ function dimensionScoresFromProfile(
     electricityScore,
     amenityBoost(amenities, /backup|generator|solar|inverter/i, 0.5),
   );
-  internetScore = capScore(
-    internetScore,
-    amenityBoost(amenities, /fibre|wifi|internet/i, 0.5),
-  );
+  internetScore = capScore(internetScore, amenityBoost(amenities, /fibre|wifi|internet/i, 0.5));
   cleanlinessScore = capScore(
     cleanlinessScore,
     amenityBoost(amenities, /cleaning|housekeep|furnished/i, 0.5),
@@ -456,10 +453,7 @@ function dimensionScoresFromProfile(
   };
 }
 
-function mediaCompletenessHealthBoost(
-  property: PropertyAnalysisInput,
-  images: string[],
-): number {
+function mediaCompletenessHealthBoost(property: PropertyAnalysisInput, images: string[]): number {
   let boost = 0;
   if (images.length >= 5) boost += 5;
   else if (images.length >= 3) boost += 3;
@@ -495,9 +489,7 @@ function rentFairnessFromComps(
   const sorted = [...rentPool].sort((a, b) => a - b);
   areaMedianRent = sorted[Math.floor(sorted.length / 2)] ?? null;
   if (areaMedianRent && areaMedianRent > 0) {
-    rentVsAreaMedianPct = Math.round(
-      ((property.rent_kes - areaMedianRent) / areaMedianRent) * 100,
-    );
+    rentVsAreaMedianPct = Math.round(((property.rent_kes - areaMedianRent) / areaMedianRent) * 100);
     if (rentVsAreaMedianPct <= -10) healthAdjust = 4;
     else if (rentVsAreaMedianPct >= 25) healthAdjust = -4;
   }

@@ -177,9 +177,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
 
-      const preferWhatsApp = Boolean(
-        landlordContact?.preferWhatsApp || p.whatsapp_inquiries,
-      );
+      const preferWhatsApp = Boolean(landlordContact?.preferWhatsApp || p.whatsapp_inquiries);
       if (preferWhatsApp) {
         const phone = unlockedPhone?.trim() || landlordContact?.phone?.trim() || null;
         if (!phone) {
