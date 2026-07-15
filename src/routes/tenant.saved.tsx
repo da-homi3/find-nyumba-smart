@@ -6,7 +6,6 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { isDemoListingId } from "@/data/mockListings";
 import { SiteNav } from "@/components/SiteNav";
 import { isPreviewListing, mergeListingsForDisplay } from "@/lib/listings-preview";
 import { buildPageHead } from "@/lib/seo/head";
@@ -150,10 +149,6 @@ function SavedListingsBody({
           plusMember={isPlus}
           onToggleSave={(e) => {
             e.preventDefault();
-            if (isDemoListingId(p.id)) {
-              toast.info("Demo listings cannot be saved.");
-              return;
-            }
             onToggleSave(p.id);
           }}
         />

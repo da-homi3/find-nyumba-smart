@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getMockProperty } from "@/data/mockListings";
 import { getAuthContext, profileFromMap } from "@/lib/api/server-context";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -46,11 +45,6 @@ export const bookViewing = createServerFn({ method: "POST" })
       .maybeSingle();
     if (propertyError) throw new Error(propertyError.message);
     if (!property?.is_active || !property.owner_id) {
-      if (getMockProperty(data.propertyId)) {
-        throw new Error(
-          "This is a demo listing for browsing only. Book viewings on live landlord listings.",
-        );
-      }
       throw new Error("This property is not available for viewings");
     }
 

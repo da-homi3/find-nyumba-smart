@@ -8,7 +8,6 @@ import {
   PUBLIC_PROPERTY_COLUMNS,
   PUBLIC_PROPERTY_COLUMNS_LEGACY,
 } from "@/lib/api/public-client";
-import { filterMockListings, mockListingsEnabled } from "@/data/mockListings";
 import { effectiveMaxRent } from "@/lib/tenant-filter-defaults";
 import { mapPropertyRows } from "@/lib/api/nyumba/nyumba-shared";
 import { normalizeNeighborhoodFilter, parseCountyWideFilter } from "@/lib/security/neighborhoods";
@@ -166,28 +165,7 @@ async function queryListingsDirect(
     if (aBoosted !== bBoosted) return bBoosted - aBoosted;
     return 0;
   });
-  let total = count ?? items.length;
-
-  if (mockListingsEnabled()) {
-    const mockResult = filterMockListings({
-      neighborhood: data?.neighborhood,
-      propertyType: data?.propertyType,
-      minRent: data?.minRent,
-      maxRent: effectiveMaxRent(data?.maxRent),
-      verifiedOnly: data?.verifiedOnly,
-      minBedrooms: data?.minBedrooms,
-      minAuthenticityScore: data?.minAuthenticityScore,
-      bounds: data?.bounds,
-      query: data?.query,
-      sortBy: data?.sortBy,
-      limit,
-      offset,
-    });
-    const liveIds = new Set(items.map((item) => item.id));
-    const extras = mockResult.items.filter((item) => !liveIds.has(item.id));
-    items = [...items, ...extras];
-    total = items.length;
-  }
+  const total = count ?? items.length;
 
   return { items, total, limit, offset };
 }

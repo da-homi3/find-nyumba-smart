@@ -10,7 +10,6 @@ import { assertPropertyAccess } from "@/lib/api/agency-scope";
 import { createPublicClient, PROPERTY_DETAIL_COLUMNS } from "@/lib/api/public-client";
 import { queryListings } from "@/lib/api/listings-core";
 import { checkRateLimit } from "@/lib/api/rate-limit";
-import { getMockProperty, mockListingsEnabled } from "@/data/mockListings";
 import {
   adminClient,
   assertCanManageProperty,
@@ -272,7 +271,6 @@ export const getProperty = createServerFn({ method: "POST" })
 
     if (error) throw error;
     if (!property?.is_active) {
-      if (mockListingsEnabled()) return getMockProperty(data.id);
       return null;
     }
 

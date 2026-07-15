@@ -12,7 +12,6 @@ import {
 } from "@/lib/api/nyumba.functions";
 import { recordTenantLead } from "@/lib/api/revenue.functions";
 import { reportScam } from "@/lib/api/trust.functions";
-import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
 import { currentRedirectPath } from "@/lib/navigation";
@@ -40,7 +39,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const { user } = useAuth();
   const { isPlus } = useEntitlements();
   const qc = useQueryClient();
-  const isDemo = isDemoListingId(id);
 
   const authSearch = useMemo(() => ({ redirect: currentRedirectPath(location) }), [location]);
 
@@ -71,12 +69,12 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   }, [id]);
 
   useEffect(() => {
-    if (!user || isDemo) return;
+    if (!user) return;
     const timer = globalThis.setTimeout(() => {
       void recordTenantLead({ data: { listingId: id, source: "view" } });
     }, 30_000);
     return () => globalThis.clearTimeout(timer);
-  }, [user, id, isDemo]);
+  }, [user, id]);
 
   const {
     data: p,
@@ -113,7 +111,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
 
   const { data: isSaved } = useQuery({
     queryKey: ["saved", id, user?.id],
-    enabled: !!user && !isDemo,
+    enabled: !!user,
     queryFn: async () => {
       const saved = await listSavedProperties();
       return saved.some((property) => property.id === id);
@@ -131,7 +129,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
 
   const { data: landlordContact } = useQuery({
     queryKey: ["landlord-contact", p?.owner_id, id, user?.id],
-    enabled: !!p?.owner_id && !!user && !isDemo,
+    enabled: !!p?.owner_id && !!user,
     queryFn: () => getPropertyOwnerContact({ data: { propertyId: id } }),
   });
 
@@ -143,16 +141,12 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
 
   const { data: valuation, isLoading: valLoading } = useQuery({
     queryKey: ["valuation", id],
-    enabled: !isDemo,
     queryFn: () => getAIValuation({ data: { propertyId: id } }),
   });
 
   const toggleSave = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to save properties");
-      if (isDemo) {
-        throw new Error("Demo listings cannot be saved. Browse live listings from landlords.");
-      }
       await toggleSavedProperty({ data: { propertyId: id, saved: !isSaved } });
     },
     onSuccess: () => {
@@ -169,9 +163,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const messageLandlord = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to message landlords");
-      if (isDemo) {
-        throw new Error("Demo listings cannot be messaged. Try a live landlord listing.");
-      }
       if (!isPlus) {
         throw new PlusRequiredError();
       }
@@ -233,10 +224,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       redirectToAuth();
       return;
     }
-    if (isDemo) {
-      toast.info("Demo listings are sample data — call is not available.");
-      return;
-    }
     if (!p?.owner_id) {
       toast.error("Landlord contact is unavailable for this listing");
       return;
@@ -283,10 +270,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       redirectToAuth();
       return;
     }
-    if (isDemo) {
-      toast.info("Demo listings are sample data — nothing to report.");
-      return;
-    }
     setReportOpen(true);
   };
 
@@ -322,10 +305,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     if (!user) {
       toast.error("Please sign in to book viewings");
       redirectToAuth();
-      return;
-    }
-    if (isDemo) {
-      toast.info("Demo listings cannot be booked. Find a live listing to schedule a viewing.");
       return;
     }
     if (!p?.owner_id) {
@@ -371,6 +350,5 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     submitReport,
     openBooking,
     redirectToAuth,
-    isDemo,
   };
 }

@@ -10,8 +10,6 @@ import { ReviewQueueItem } from "@/components/admin/ReviewQueueItem";
 import { useAuth } from "@/hooks/use-auth";
 import { reviewPrioritySort, resolveReviewPriority } from "@/lib/design/status";
 
-import { isDemoListingId } from "@/data/mockListings";
-
 type ToggleVerification = UseMutationResult<
   { id: string; title: string; is_verified: boolean; nyumba_verified_at: string | null },
   Error,
@@ -70,7 +68,6 @@ function AdminPropertyRow({
   adjustAuthenticityScore: AdjustAuthenticityScore;
   currentUserId: string | undefined;
 }>) {
-  const isDemo = isDemoListingId(property.id);
   const isOwnListing = Boolean(currentUserId && property.owner_id === currentUserId);
 
   const pending =
@@ -83,11 +80,6 @@ function AdminPropertyRow({
           {property.title}
         </Link>
 
-        {isDemo ? (
-          <span className="ml-2 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-            Demo
-          </span>
-        ) : null}
         {isOwnListing ? (
           <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
             Yours
@@ -117,7 +109,6 @@ function AdminPropertyRow({
         <AdminPropertyAuthenticityControls
           propertyId={property.id}
           score={property.authenticity_score ?? 70}
-          disabled={isDemo}
           adjustScore={adjustAuthenticityScore}
         />
       </td>
@@ -132,27 +123,23 @@ function AdminPropertyRow({
 
       <td className="px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
-          {isDemo ? (
-            <span className="text-xs text-muted-foreground">Live listing only</span>
-          ) : (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() =>
-                toggleVerification.mutate({
-                  propertyId: property.id,
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              toggleVerification.mutate({
+                propertyId: property.id,
 
-                  verified: !property.is_verified,
-                })
-              }
-              className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
-            >
-              <VerificationToggleIcon pending={pending} isVerified={property.is_verified} />
+                verified: !property.is_verified,
+              })
+            }
+            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60"
+          >
+            <VerificationToggleIcon pending={pending} isVerified={property.is_verified} />
 
-              {property.is_verified ? "Unverify" : "Verify"}
-            </button>
-          )}
-          {isOwnListing && !isDemo ? (
+            {property.is_verified ? "Unverify" : "Verify"}
+          </button>
+          {isOwnListing ? (
             <Link
               to="/admin/listings/$id/edit"
               params={{ id: property.id }}

@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ShieldCheck, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { setAdminPropertyVerification } from "@/lib/api/admin.functions";
-import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import type { Property } from "@/lib/properties";
 
@@ -31,7 +30,7 @@ export function AdminPropertyVerifyButton({ property }: Readonly<{ property: Pro
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (!isAdmin || isDemoListingId(property.id)) return null;
+  if (!isAdmin) return null;
 
   const pending = mutation.isPending;
 

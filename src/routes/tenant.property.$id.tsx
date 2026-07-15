@@ -69,13 +69,6 @@ function PropertyDetail() {
   return (
     <ListingsPreviewOverlay active={previewActive} className="min-h-screen">
       <div className="pb-32 bg-background min-h-screen">
-        {detail.isDemo && (
-          <div className="border-b border-amber-500/30 bg-amber-500/10 px-5 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
-            Demo listing — browse photos and AI tools here. Save, message, and book viewings on live
-            listings from verified landlords.
-          </div>
-        )}
-
         <PropertyDetailGallery
           property={p}
           gallery={gallery}
@@ -103,7 +96,6 @@ function PropertyDetail() {
           chatLoading={detail.chatLoading}
           onChatInputChange={detail.setChatInput}
           onChatSubmit={detail.handleSendChat}
-          isDemo={detail.isDemo}
           reportOpen={detail.reportOpen}
           reportReason={detail.reportReason}
           reportDetails={detail.reportDetails}

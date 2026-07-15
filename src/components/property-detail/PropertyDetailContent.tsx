@@ -39,7 +39,6 @@ type PropertyDetailContentProps = Readonly<{
   chatLoading: boolean;
   onChatInputChange: (value: string) => void;
   onChatSubmit: (e: SubmitEvent<HTMLFormElement>) => void;
-  isDemo: boolean;
   reportOpen: boolean;
   reportReason: string;
   reportDetails: string;
@@ -95,7 +94,6 @@ export function PropertyDetailContent({
   chatLoading,
   onChatInputChange,
   onChatSubmit,
-  isDemo,
   reportOpen,
   reportReason,
   reportDetails,
@@ -186,11 +184,9 @@ export function PropertyDetailContent({
             </p>
           </div>
         </div>
-        {!isDemo && (
-          <div id="contact-unlock" className="mt-4">
-            <ContactUnlockCard listing={p} onUnlocked={onContactUnlocked} />
-          </div>
-        )}
+        <div id="contact-unlock" className="mt-4">
+          <ContactUnlockCard listing={p} onUnlocked={onContactUnlocked} />
+        </div>
       </section>
 
       <section className="mt-6 rounded-2xl border bg-linear-to-r from-emerald-500/10 to-teal-500/10 p-4">
@@ -230,19 +226,17 @@ export function PropertyDetailContent({
       <PropertyRevenueBlocks property={p} isPlus={isPlus} />
       <PropertyReviewsSection propertyId={propertyId} userId={userId} isTenant={!!userId} />
 
-      {!isDemo && (
-        <PropertyReportSection
-          reportOpen={reportOpen}
-          reportReason={reportReason}
-          reportDetails={reportDetails}
-          reportSubmitting={reportSubmitting}
-          onOpen={onReportOpen}
-          onClose={onReportClose}
-          onReasonChange={onReportReasonChange}
-          onDetailsChange={onReportDetailsChange}
-          onSubmit={onReportSubmit}
-        />
-      )}
+      <PropertyReportSection
+        reportOpen={reportOpen}
+        reportReason={reportReason}
+        reportDetails={reportDetails}
+        reportSubmitting={reportSubmitting}
+        onOpen={onReportOpen}
+        onClose={onReportClose}
+        onReasonChange={onReportReasonChange}
+        onDetailsChange={onReportDetailsChange}
+        onSubmit={onReportSubmit}
+      />
 
       {similar.length > 0 && (
         <section className="mt-8">

@@ -41,7 +41,7 @@
     "db:migrate:dedupe-unique": "node scripts/apply-listing-duplicate-unique.mjs",
     "db:migrate:contact-name": "node scripts/apply-property-contact-name.mjs",
     "db:migrate:contact-phones": "node scripts/apply-property-contact-phones.mjs",
-    "db:deactivate-demo-listings": "node scripts/deactivate-demo-listings.mjs",
+    "db:delete-demo-listings": "node scripts/delete-demo-listings.mjs",
     "test:mpesa": "node scripts/test-mpesa.mjs",
     "db:seed:revenue": "node scripts/seed-revenue.mjs",
     "db:seed:providers": "node scripts/seed-service-providers.mjs",

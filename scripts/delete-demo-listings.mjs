@@ -1,6 +1,6 @@
 /**
- * Deactivate seeded demo / Unsplash-placeholder-only listings.
- * Usage: node scripts/deactivate-demo-listings.mjs [--dry-run]
+ * Permanently delete seeded demo / E2E / Unsplash-placeholder-only listings.
+ * Usage: node scripts/delete-demo-listings.mjs [--dry-run]
  */
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -16,6 +16,14 @@ const MOCK_IDS = [
   "a1000001-0001-4000-8000-000000000003",
   "a1000001-0001-4000-8000-000000000004",
 ];
+
+const KNOWN_DEMO_TITLES = new Set([
+  "Bright 2BR near Yaya Centre",
+  "Modern studio — Westlands Square",
+  "Affordable bedsitter — Kasarani Mwiki",
+  "Family 3BR — South B Mugoya",
+  "3BR family home — Lavington",
+]);
 
 function loadEnv() {
   const env = {};
@@ -37,7 +45,6 @@ function loadEnv() {
 
 function usesOnlyPlaceholders(images, placeholderUrls) {
   const list = images ?? [];
-  // Prefer explicit seed/demo signals; empty images alone may be incomplete real uploads.
   if (list.length === 0) return false;
   return list.every((url) => placeholderUrls.has(url));
 }
@@ -45,7 +52,41 @@ function usesOnlyPlaceholders(images, placeholderUrls) {
 function isDemoListing(p, placeholderUrls) {
   if (MOCK_IDS.includes(p.id)) return true;
   if (typeof p.title === "string" && p.title.startsWith("Dashboard E2E")) return true;
+  if (KNOWN_DEMO_TITLES.has(p.title)) return true;
   return usesOnlyPlaceholders(p.images, placeholderUrls);
+}
+
+async function deleteRelated(admin, ids) {
+  // Best-effort cleanup of common dependents before properties delete.
+  const tables = [
+    "contact_unlocks",
+    "inquiry_messages",
+    "inquiries",
+    "saved_properties",
+    "property_reports",
+    "property_reviews",
+    "viewings",
+    "payments",
+  ];
+  for (const table of tables) {
+    try {
+      const { error } = await admin.from(table).delete().in("listing_id", ids);
+      if (error && !/column|listing_id/i.test(error.message)) {
+        // retry with property_id for tables that use that name
+        const alt = await admin.from(table).delete().in("property_id", ids);
+        if (alt.error && !/column|does not exist|schema cache/i.test(alt.error.message)) {
+          console.warn(`  warn ${table}:`, alt.error.message);
+        }
+      } else if (error && /column|listing_id/i.test(error.message)) {
+        const alt = await admin.from(table).delete().in("property_id", ids);
+        if (alt.error && !/column|does not exist|schema cache/i.test(alt.error.message)) {
+          console.warn(`  warn ${table}:`, alt.error.message);
+        }
+      }
+    } catch (e) {
+      console.warn(`  warn ${table}:`, e.message ?? e);
+    }
+  }
 }
 
 async function main() {
@@ -64,31 +105,29 @@ async function main() {
   const { data, error } = await admin
     .from("properties")
     .select("id, title, images, is_active")
-    .eq("is_active", true)
-    .limit(2000);
+    .limit(5000);
   if (error) throw error;
 
   const targets = (data ?? []).filter((p) => isDemoListing(p, placeholders));
 
-  console.log(`Active listings: ${(data ?? []).length}`);
-  console.log(`Demo / placeholder-only to deactivate: ${targets.length}`);
-  for (const p of targets.slice(0, 50)) {
-    console.log(` - ${p.id}  ${p.title}`);
+  console.log(`Total properties scanned: ${(data ?? []).length}`);
+  console.log(`Demo / E2E / placeholder listings to DELETE: ${targets.length}`);
+  for (const p of targets) {
+    console.log(` - [${p.is_active ? "active" : "inactive"}] ${p.id}  ${p.title}`);
   }
-  if (targets.length > 50) console.log(` ... and ${targets.length - 50} more`);
 
   if (dryRun || targets.length === 0) {
-    console.log(dryRun ? "Dry run — no changes." : "Nothing to deactivate.");
+    console.log(dryRun ? "Dry run — no changes." : "Nothing to delete.");
     return;
   }
 
   const ids = targets.map((p) => p.id);
-  const { error: updateError } = await admin
-    .from("properties")
-    .update({ is_active: false })
-    .in("id", ids);
-  if (updateError) throw updateError;
-  console.log(`✓ Deactivated ${ids.length} demo / placeholder listings.`);
+  console.log("Cleaning related rows…");
+  await deleteRelated(admin, ids);
+
+  const { error: deleteError } = await admin.from("properties").delete().in("id", ids);
+  if (deleteError) throw deleteError;
+  console.log(`✓ Permanently deleted ${ids.length} demo listings.`);
 }
 
 try {

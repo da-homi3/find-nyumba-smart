@@ -1,5 +1,4 @@
 import listingPlaceholders from "@/data/listing-placeholders.json";
-import { isDemoListingId } from "@/data/mockListings";
 import type { Property } from "@/lib/properties";
 
 const PLACEHOLDER_URLS = new Set(listingPlaceholders as string[]);
@@ -12,9 +11,8 @@ function usesOnlyPlaceholderImages(images: string[] | null | undefined): boolean
   return list.every((url) => PLACEHOLDER_URLS.has(url));
 }
 
-/** True for legacy demo IDs and seeded listings that still use stock placeholder photos. */
+/** True for listings that still use stock placeholder photos (blur overlay). */
 export function isPreviewListing(property: ListingPreviewProbe): boolean {
-  if (isDemoListingId(property.id)) return true;
   return usesOnlyPlaceholderImages(property.images);
 }
 
@@ -28,7 +26,7 @@ export function partitionListings<T extends ListingPreviewProbe>(properties: T[]
   return { live, preview };
 }
 
-/** Live listings only — demo / placeholder cards are not shown. */
+/** Live listings only — placeholder cards are not shown. */
 export function mergeListingsForDisplay<T extends ListingPreviewProbe>(properties: T[]): T[] {
   return partitionListings(properties).live;
 }

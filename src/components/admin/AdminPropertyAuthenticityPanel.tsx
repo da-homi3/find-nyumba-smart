@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adjustAdminPropertyAuthenticityScore } from "@/lib/api/admin.functions";
-import { isDemoListingId } from "@/data/mockListings";
 import { useAuth } from "@/hooks/use-auth";
 import type { Property } from "@/lib/properties";
 import { AdminPropertyAuthenticityControls } from "@/components/admin/AdminPropertyAuthenticityControls";
@@ -32,7 +31,7 @@ export function AdminPropertyAuthenticityPanel({ property }: Readonly<{ property
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (!isAdmin || isDemoListingId(property.id)) return null;
+  if (!isAdmin) return null;
 
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
