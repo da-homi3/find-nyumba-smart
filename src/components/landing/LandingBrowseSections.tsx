@@ -54,7 +54,7 @@ export function TrustStrip({
     >
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-10 sm:grid-cols-4 sm:px-6">
         <AnimatedStat value={s.verifiedHomes} suffix="+" label="Verified homes" ready />
-        <AnimatedStat value={s.noAgentFeesPct} suffix="%" label="No agent fees" ready />
+        <AnimatedStat value={s.noAgentFeesPct} suffix="%" label="Verified property owners" ready />
         <AnimatedStat value={s.avgResponseHours} suffix="h" label="Avg response" ready />
         <AnimatedStat
           value={s.tenantRating}

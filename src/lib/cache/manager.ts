@@ -7,7 +7,8 @@ export interface CacheConfig {
 
 export const CACHE_CONFIGS: Record<string, CacheConfig> = {
   platform_stats: { kvTtl: 120, staleWhileRevalidate: 300 },
-  listings_search: { kvTtl: 60, staleWhileRevalidate: 120 },
+  /** Short TTL — listings must appear quickly after upload. */
+  listings_search: { kvTtl: 15, staleWhileRevalidate: 0 },
   testimonials: { kvTtl: 3600, staleWhileRevalidate: 7200 },
   intelligence_stats: { kvTtl: 300, staleWhileRevalidate: 900 },
   agency_featured: { kvTtl: 600, staleWhileRevalidate: 1800 },
@@ -22,6 +23,8 @@ type CacheEnvelope<T> = {
   cachedAt: string;
 };
 
+const LISTINGS_EPOCH_KEY = "listings_cache_epoch";
+
 const memoryFallback = new Map<string, string>();
 
 async function kvGet(key: string): Promise<string | null> {
@@ -33,7 +36,7 @@ async function kvGet(key: string): Promise<string | null> {
 async function kvPut(key: string, value: string, ttl: number): Promise<void> {
   const kv = getCacheKv();
   if (kv) {
-    await kv.put(`cache:${key}`, value, { expirationTtl: ttl });
+    await kv.put(`cache:${key}`, value, { expirationTtl: Math.max(60, ttl) });
     return;
   }
   memoryFallback.set(key, value);
@@ -47,6 +50,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     const envelope = JSON.parse(raw) as CacheEnvelope<T>;
     const now = Date.now();
     if (now < envelope.expiresAt) return envelope.value;
+    // Stale-while-revalidate only returns fresh window; expired entries miss so we refetch.
     if (envelope.staleUntil && now < envelope.staleUntil) return envelope.value;
     return null;
   } catch {
@@ -65,7 +69,7 @@ export async function cacheSet<T>(key: string, value: T, config: CacheConfig): P
     cachedAt: new Date().toISOString(),
   };
   const ttl = config.kvTtl + (config.staleWhileRevalidate ?? 0);
-  await kvPut(key, JSON.stringify(envelope), ttl);
+  await kvPut(key, JSON.stringify(envelope), Math.max(60, ttl));
 }
 
 export async function withCache<T>(
@@ -90,12 +94,50 @@ export async function cacheDelete(key: string): Promise<void> {
   memoryFallback.delete(key);
 }
 
+/** Monotonic epoch included in listings cache keys so invalidation is immediate. */
+export async function getListingsCacheEpoch(): Promise<number> {
+  const raw = await kvGet(LISTINGS_EPOCH_KEY);
+  if (!raw) return 0;
+  try {
+    const parsed = JSON.parse(raw) as CacheEnvelope<number> | number;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) return parsed;
+    if (parsed && typeof parsed === "object" && typeof parsed.value === "number") {
+      return parsed.value;
+    }
+  } catch {
+    const asInt = Number.parseInt(raw, 10);
+    if (Number.isFinite(asInt)) return asInt;
+  }
+  return 0;
+}
+
+function clearListingKeysFromMemory() {
+  for (const key of memoryFallback.keys()) {
+    if (key === LISTINGS_EPOCH_KEY) continue;
+    // Listing keys look like `e12|l50|o0|newest|...` or legacy `l50|o0|...`
+    if (key.startsWith("e") || key.startsWith("l") || key.includes("|")) {
+      memoryFallback.delete(key);
+    }
+  }
+}
+
+/**
+ * Bust all listing search caches so newly uploaded / activated listings
+ * appear on the tenant app immediately.
+ */
 export async function invalidateListingCaches(): Promise<void> {
+  const epoch = await getListingsCacheEpoch();
+  const next = epoch + 1;
+  // Store bare number for fast reads (also works with envelope readers).
+  await kvPut(LISTINGS_EPOCH_KEY, JSON.stringify(next), 60 * 60 * 24 * 365);
+  clearListingKeysFromMemory();
+
   await Promise.all([
     cacheDelete("platform_stats"),
-    cacheDelete("listings_search:default"),
     cacheDelete("intelligence_stats"),
     cacheDelete("agency_featured"),
     cacheDelete("sitemap_xml"),
+    // Legacy key (never matched real listings keys, but safe to clear).
+    cacheDelete("listings_search:default"),
   ]);
 }

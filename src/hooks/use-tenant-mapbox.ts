@@ -367,6 +367,10 @@ export function useTenantMapbox(properties: Property[]) {
   const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
+  const [searchProximity, setSearchProximity] = useState<{ lat: number; lng: number }>({
+    lat: -1.286389,
+    lng: 36.817223,
+  });
   const [mapStyle, setMapStyle] = useState<(typeof MAP_STYLES)[keyof typeof MAP_STYLES]>(
     MAP_STYLES.streets,
   );
@@ -435,11 +439,22 @@ export function useTenantMapbox(properties: Property[]) {
 
     let cancelled = false;
 
+    const syncSearchViewport = (map: MapboxMap) => {
+      const center = map.getCenter();
+      setSearchProximity({ lat: center.lat, lng: center.lng });
+    };
+
+    const onMoveEnd = () => {
+      const current = mapInstance.current;
+      if (current) syncSearchViewport(current);
+    };
+
     const onZoomEnd = () => {
       const map = mapInstance.current;
       if (!map) return;
       syncMapbox3DForZoom(map);
       syncHeatmapForZoom(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
+      syncSearchViewport(map);
     };
 
     const onListingClick = (event: MapMouseEvent) =>
@@ -486,6 +501,7 @@ export function useTenantMapbox(properties: Property[]) {
       flyToNairobiMetro(map, 1200);
       syncMapbox3DForZoom(map);
       syncHeatmapForZoom(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
+      syncSearchViewport(map);
     };
     const onStyleLoad = () => {
       const map = mapInstance.current;
@@ -529,6 +545,7 @@ export function useTenantMapbox(properties: Property[]) {
         setError(null);
       });
       map.on("zoomend", onZoomEnd);
+      map.on("moveend", onMoveEnd);
       map.on("click", "unclustered-point-bg", onListingClick);
       map.on("click", "clusters", onClusterClick);
       map.on("mouseenter", "unclustered-point-bg", onPinEnter);
@@ -553,6 +570,7 @@ export function useTenantMapbox(properties: Property[]) {
         map.off("style.load", onStyleLoad);
         map.off("error", onMapError);
         map.off("zoomend", onZoomEnd);
+        map.off("moveend", onMoveEnd);
         map.off("click", "unclustered-point-bg", onListingClick);
         map.off("click", "clusters", onClusterClick);
         map.off("mouseenter", "unclustered-point-bg", onPinEnter);
@@ -686,6 +704,7 @@ export function useTenantMapbox(properties: Property[]) {
     isOnline,
     filteredProperties,
     visibleCount,
+    searchProximity,
     recenter,
     locateMe,
     cycleMapStyle,

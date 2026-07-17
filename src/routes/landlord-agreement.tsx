@@ -19,7 +19,7 @@ function LandlordAgreementPage() {
           <li>Update status promptly when a unit is rented</li>
           <li>Supply a working contact number for verified unlocks</li>
           <li>Not duplicate the same property across multiple accounts</li>
-          <li>Not charge agent fees to tenants who found you via NyumbaSearch</li>
+          <li>Deal with tenants as a verified property owner (no intermediary markups) when they found you via NyumbaSearch</li>
           <li>Cooperate with listing verification when requested</li>
         </ul>
       </LegalSection>

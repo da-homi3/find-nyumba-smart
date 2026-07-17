@@ -11,7 +11,7 @@ import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
 import heroImg from "@/assets/hero-nairobi.jpg";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
 import { EmptyState } from "@/components/EmptyState";
-import { defaultTenantFilters, effectiveMaxRent } from "@/lib/tenant-filter-defaults";
+import { defaultTenantFilters, effectiveMaxRent, TENANT_MAX_RENT } from "@/lib/tenant-filter-defaults";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -62,11 +62,16 @@ export const Route = createFileRoute("/tenant/")({
 const PAGE_SIZE = TENANT_LISTINGS_PAGE_SIZE;
 
 function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFilters {
+  const types = search.type ? [search.type as PropertyType] : [];
+  const typeFilterActive = types.length > 0;
   return {
     ...defaultTenantFilters,
-    maxRent: search.maxPrice ?? defaultTenantFilters.maxRent,
+    minRent: typeFilterActive ? 0 : defaultTenantFilters.minRent,
+    maxRent: typeFilterActive
+      ? TENANT_MAX_RENT
+      : (search.maxPrice ?? defaultTenantFilters.maxRent),
     neighborhood: search.neighborhood ?? "All",
-    types: search.type ? [search.type as PropertyType] : [],
+    types,
   };
 }
 
@@ -130,18 +135,28 @@ function TenantHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync individual URL search params only
   }, [search.q, search.maxPrice, search.neighborhood, search.type]);
 
-  const listingFilters = useMemo(
-    () => ({
+  const listingFilters = useMemo(() => {
+    const typeFilterActive = filters.types.length > 0;
+    return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
-      maxRent: effectiveMaxRent(filters.maxRent),
-      minRent: filters.minRent,
+      // Property-type chips show every matching listing across the full price range.
+      maxRent: typeFilterActive ? undefined : effectiveMaxRent(filters.maxRent),
+      minRent: typeFilterActive ? undefined : filters.minRent,
+      propertyType: filters.types.length === 1 ? filters.types[0] : undefined,
       sortBy: filters.sort,
-      limit: PAGE_SIZE * page,
+      limit: typeFilterActive ? Math.max(PAGE_SIZE * page, 500) : PAGE_SIZE * page,
       offset: 0,
-    }),
-    [debouncedQ, filters.neighborhood, filters.maxRent, filters.minRent, filters.sort, page],
-  );
+    };
+  }, [
+    debouncedQ,
+    filters.neighborhood,
+    filters.maxRent,
+    filters.minRent,
+    filters.sort,
+    filters.types,
+    page,
+  ]);
 
   const {
     data: searchResult,
@@ -216,7 +231,15 @@ function TenantHome() {
   );
 
   const patchFilters = (patch: Partial<TenantFilters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
+    setFilters((f) => {
+      const next = { ...f, ...patch };
+      // Selecting a property type expands budget so high- and low-priced homes both appear.
+      if (patch.types && patch.types.length > 0) {
+        next.minRent = 0;
+        next.maxRent = TENANT_MAX_RENT;
+      }
+      return next;
+    });
     setPage(1);
   };
 
@@ -338,7 +361,7 @@ function TenantHome() {
           <div>
             <h3 className="font-display font-semibold">Ask NyumbaAI</h3>
             <p className="text-xs text-muted-foreground">
-              Tap the chat bubble — no agents, no scams, just honest neighbourhood advice.
+              Tap the chat bubble — verified property owners, no scams, just honest neighbourhood advice.
             </p>
           </div>
         </div>

@@ -33,6 +33,7 @@ type TenantMapChromeProps = Readonly<{
   onSelect: (property: Property) => void;
   onClearSelected: () => void;
   mapProvider?: "mapbox" | "google";
+  searchProximity?: { lat: number; lng: number };
 }>;
 
 export function TenantMapChrome({
@@ -58,6 +59,7 @@ export function TenantMapChrome({
   selected,
   onSelect,
   onClearSelected,
+  searchProximity,
 }: TenantMapChromeProps) {
   const listingStats = previewListingStats(filteredProperties);
   let countLabel = `${visibleCount} listing${visibleCount === 1 ? "" : "s"}`;
@@ -93,6 +95,7 @@ export function TenantMapChrome({
             onClear={onClearPlace}
             placeholder="Search Kilimani, Yaya Centre, Ngong Rd…"
             showNearbyAfterSelect
+            proximity={searchProximity}
           />
           <button
             type="button"

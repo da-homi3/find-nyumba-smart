@@ -1,9 +1,11 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Loader2, MapPin, Search, X } from "lucide-react";
 import { resolveMapboxToken } from "@/hooks/use-tenant-mapbox";
 import {
+  formatDistanceKm,
   nearbyKenyaLocations,
   placeKindLabel,
+  resolveBestLocation,
   searchLocations,
   type LocationSearchResult,
 } from "@/lib/geo/location-search";
@@ -21,6 +23,8 @@ type PlaceSearchFieldProps = Readonly<{
   showNearbyAfterSelect?: boolean;
   compact?: boolean;
   proximity?: { lat: number; lng: number };
+  /** Soft map viewport bias (minLng, minLat, maxLng, maxLat). */
+  bbox?: [number, number, number, number];
 }>;
 
 export function PlaceSearchField({
@@ -34,15 +38,20 @@ export function PlaceSearchField({
   showNearbyAfterSelect = true,
   compact = false,
   proximity,
+  bbox,
 }: PlaceSearchFieldProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const tokenRef = useRef<string | null>(null);
+  const resultsRef = useRef<LocationSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<LocationSearchResult[]>([]);
   const [nearby, setNearby] = useState<LocationSearchResult[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [resolvingEnter, setResolvingEnter] = useState(false);
+
+  resultsRef.current = results;
 
   useEffect(() => {
     let cancelled = false;
@@ -73,19 +82,20 @@ export function PlaceSearchField({
           proximity?.lat != null && proximity.lng != null
             ? { lat: proximity.lat, lng: proximity.lng }
             : undefined,
+        bbox,
       }).then((next) => {
         if (cancelled) return;
         setResults(next);
         setLoading(false);
         setActiveIndex(next.length > 0 ? 0 : -1);
       });
-    }, 220);
+    }, 180);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [value, proximity?.lat, proximity?.lng]);
+  }, [value, proximity?.lat, proximity?.lng, bbox?.[0], bbox?.[1], bbox?.[2], bbox?.[3]]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -112,6 +122,56 @@ export function PlaceSearchField({
     }
   }
 
+  async function commitBestMatch() {
+    const existing = resultsRef.current;
+    if (existing.length > 0) {
+      const pick =
+        activeIndex >= 0 && existing[activeIndex] ? existing[activeIndex]! : existing[0]!;
+      selectPlace(pick);
+      return;
+    }
+
+    const query = value.trim();
+    if (query.length < 2) return;
+
+    setResolvingEnter(true);
+    try {
+      if (!tokenRef.current) tokenRef.current = await resolveMapboxToken();
+      const best = await resolveBestLocation(query, {
+        mapboxToken: tokenRef.current,
+        proximity:
+          proximity?.lat != null && proximity.lng != null
+            ? { lat: proximity.lat, lng: proximity.lng }
+            : undefined,
+        bbox,
+      });
+      if (best) selectPlace(best);
+    } finally {
+      setResolvingEnter(false);
+    }
+  }
+
+  function onSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (e.key === "ArrowDown" && results.length > 0) {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % results.length);
+      return;
+    }
+    if (e.key === "ArrowUp" && results.length > 0) {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void commitBestMatch();
+    }
+  }
+
   function clearAll() {
     onValueChange("");
     setResults([]);
@@ -121,7 +181,11 @@ export function PlaceSearchField({
   }
 
   const showDropdown =
-    open && (loading || results.length > 0 || (value.trim().length >= 2 && !loading));
+    open &&
+    (loading ||
+      resolvingEnter ||
+      results.length > 0 ||
+      (value.trim().length >= 2 && !loading));
 
   return (
     <div ref={rootRef} className={cn("relative min-w-0 flex-1", className)}>
@@ -141,24 +205,7 @@ export function PlaceSearchField({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          onKeyDown={(e) => {
-            if (!showDropdown || results.length === 0) {
-              if (e.key === "Escape") setOpen(false);
-              return;
-            }
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setActiveIndex((i) => (i + 1) % results.length);
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
-            } else if (e.key === "Enter" && activeIndex >= 0 && results[activeIndex]) {
-              e.preventDefault();
-              selectPlace(results[activeIndex]!);
-            } else if (e.key === "Escape") {
-              setOpen(false);
-            }
-          }}
+          onKeyDown={onSearchKeyDown}
           placeholder={placeholder}
           autoComplete="off"
           className={cn(
@@ -184,19 +231,26 @@ export function PlaceSearchField({
           role="listbox"
           className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-30 max-h-72 overflow-y-auto rounded-xl border bg-card shadow-elegant"
         >
-          {loading ? (
+          {loading || resolvingEnter ? (
             <div className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Searching areas & landmarks…
+              {resolvingEnter ? "Going to best match…" : "Searching places near the map…"}
             </div>
-          ) : results.length === 0 ? (
+          ) : null}
+          {!loading && !resolvingEnter && results.length === 0 ? (
             <p className="px-3 py-3 text-xs text-muted-foreground">
               No places found. Try a landmark, road, or neighbourhood name.
             </p>
-          ) : (
+          ) : null}
+          {!loading && !resolvingEnter && results.length > 0 ? (
             <ul className="py-1">
-              {results.map((result, index) => (
-                <li key={result.id} role="presentation">
+              {results.map((result, index) => {
+                const distanceHint =
+                  result.distanceKm != null && result.distanceKm < 80
+                    ? ` · ${formatDistanceKm(result.distanceKm)}`
+                    : "";
+                return (
+                <li key={result.id}>
                   <button
                     type="button"
                     id={`${listId}-opt-${index}`}
@@ -220,14 +274,16 @@ export function PlaceSearchField({
                       {result.subtitle ? (
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                           {result.subtitle}
+                          {distanceHint}
                         </span>
                       ) : null}
                     </span>
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
-          )}
+          ) : null}
         </div>
       ) : null}
 

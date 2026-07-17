@@ -203,6 +203,7 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
           setSelected(null);
         },
         isOnline: true,
+        searchProximity: { lat: -1.286389, lng: 36.817223 },
       }}
       propertiesLoading={propertiesLoading}
       provider="google"
@@ -337,6 +338,7 @@ function TenantMapShell({
         onSelect={map.setSelected}
         onClearSelected={() => map.setSelected(null)}
         mapProvider={provider}
+        searchProximity={map.searchProximity}
       />
     </div>
   );

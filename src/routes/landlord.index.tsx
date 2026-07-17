@@ -13,7 +13,7 @@ export const Route = createFileRoute("/landlord/")({
     buildPageHead({
       title: "Landlord Portal — NyumbaSearch",
       description:
-        "List properties, reach verified tenants directly, and manage leads from one dashboard. No agents, no hidden fees.",
+        "List properties, reach verified tenants directly, and manage leads from one dashboard. Verified property owners, no hidden fees.",
       path: "/landlord",
     }),
   component: LandlordEntry,

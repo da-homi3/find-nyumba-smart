@@ -129,6 +129,9 @@ export const reportScam = createServerFn({ method: "POST" })
     if (isAutoFlagged) {
       const admin = await adminClient();
       await admin.from("properties").update({ is_active: false }).eq("id", data.propertyId);
+      void import("@/lib/cache/manager")
+        .then(({ invalidateListingCaches }) => invalidateListingCaches())
+        .catch(() => undefined);
     }
 
     return { report: row, autoFlagged: isAutoFlagged };

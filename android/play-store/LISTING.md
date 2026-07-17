@@ -15,19 +15,19 @@ NyumbaSearch
 ## Short description (max 80 characters)
 
 ```
-Find verified rentals in Nairobi — bedsitters to townhouses. No agents, no scams.
+Find verified rentals in Nairobi from verified property owners.
 ```
 
-**Character count:** 79
+**Character count:** 61
 
 ### Alternate options
 
 ```
-Verified vacant homes in Nairobi. Search, map, message landlords — no agents.
+Verified vacant homes in Nairobi. Search, map, message verified property owners.
 ```
 
 ```
-Kenya's trusted rental search — verified listings, M-Pesa-ready, no agent fees.
+Kenya's trusted rental search — verified property owners, M-Pesa-ready.
 ```
 
 ---
@@ -35,7 +35,7 @@ Kenya's trusted rental search — verified listings, M-Pesa-ready, no agent fees
 ## Full description (max 4,000 characters)
 
 ```
-NyumbaSearch helps you find verified vacant homes across Nairobi — from bedsitters in Kasarani to townhouses in Karen — without agent fees or scam listings.
+NyumbaSearch helps you find vacant homes across Nairobi — from bedsitters in Kasarani to townhouses in Karen — from verified property owners.
 
 Whether you're a tenant hunting your next place or a landlord listing property directly, NyumbaSearch connects you with real, available homes.
 
@@ -59,7 +59,7 @@ BUILT FOR KENYA
 TRUST & SAFETY
 
 • Verification pipeline for listings
-• No middleman agent markup on tenant search
+• Listings from verified property owners
 • Privacy policy and data deletion available in-app
 • HTTPS-only; payments handled by licensed providers (Safaricom M-Pesa, Flutterwave)
 
@@ -122,7 +122,7 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 **Text:**
 
 - Headline: **Verified homes in Nairobi**
-- Subline: **No agents. No scams.**
+- Subline: **Verified property owners.**
 - Small: NyumbaSearch logo (N lettermark)
 
 **Screenshot captions** (overlay on phone mockups if you design in Canva/Figma):

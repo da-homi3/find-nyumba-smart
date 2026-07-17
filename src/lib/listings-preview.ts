@@ -26,16 +26,19 @@ export function partitionListings<T extends ListingPreviewProbe>(properties: T[]
   return { live, preview };
 }
 
-/** Live listings only — placeholder cards are not shown. */
+/**
+ * Show every active listing returned by the API.
+ * Placeholder-image rows still render (with preview overlay) so uploads are never hidden.
+ */
 export function mergeListingsForDisplay<T extends ListingPreviewProbe>(properties: T[]): T[] {
-  return partitionListings(properties).live;
+  return properties;
 }
 
 export function previewListingStats(properties: ListingPreviewProbe[]) {
   const { live, preview } = partitionListings(properties);
   return {
     liveCount: live.length,
-    previewCount: 0,
-    hiddenPreviewCount: preview.length,
+    previewCount: preview.length,
+    hiddenPreviewCount: 0,
   };
 }

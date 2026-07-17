@@ -149,6 +149,10 @@ export const markPropertyRented = createServerFn({ method: "POST" })
       .eq("id", data.propertyId)
       .eq("owner_id", userId);
 
+    void import("@/lib/cache/manager")
+      .then(({ invalidateListingCaches }) => invalidateListingCaches())
+      .catch(() => undefined);
+
     await supabaseAdmin.from("rental_transactions").insert({
       listing_id: data.propertyId,
       landlord_id: userId,

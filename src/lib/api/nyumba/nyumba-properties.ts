@@ -129,6 +129,12 @@ async function insertPropertyListing(
     throw error;
   }
 
+  const bustListingCaches = () => {
+    void import("@/lib/cache/manager")
+      .then(({ invalidateListingCaches }) => invalidateListingCaches())
+      .catch((err) => console.warn("[insertPropertyListing] cache invalidate failed:", err));
+  };
+
   try {
     const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
     await applyPropertyAreaAnalysis(admin, property.id);
@@ -142,6 +148,7 @@ async function insertPropertyListing(
       void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
         notifyMatchingSearchAlerts(mapped),
       );
+      bustListingCaches();
       return mapped;
     }
   } catch (err) {
@@ -152,6 +159,7 @@ async function insertPropertyListing(
   void import("@/lib/api/search-alert-notify").then(({ notifyMatchingSearchAlerts }) =>
     notifyMatchingSearchAlerts(mapped),
   );
+  bustListingCaches();
   return mapped;
 }
 
@@ -647,6 +655,12 @@ export const updateProperty = createServerFn({ method: "POST" })
       throw error;
     }
 
+    const bustListingCaches = () => {
+      void import("@/lib/cache/manager")
+        .then(({ invalidateListingCaches }) => invalidateListingCaches())
+        .catch((err) => console.warn("[updateProperty] cache invalidate failed:", err));
+    };
+
     try {
       const { applyPropertyAreaAnalysis } = await import("@/lib/api/apply-area-analysis");
       await applyPropertyAreaAnalysis(admin, propertyId);
@@ -655,11 +669,15 @@ export const updateProperty = createServerFn({ method: "POST" })
         .select("*")
         .eq("id", propertyId)
         .single();
-      if (refreshed) return mapPropertyRow(refreshed);
+      if (refreshed) {
+        bustListingCaches();
+        return mapPropertyRow(refreshed);
+      }
     } catch (err) {
       console.error("[updateProperty] area analysis failed:", err);
     }
 
+    bustListingCaches();
     return mapPropertyRow(updated);
   });
 

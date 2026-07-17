@@ -21,7 +21,7 @@ Refactor `src/routes/index.tsx` into composed sections:
 - Premium hero (keep existing image, add smarter search bar with type/location/budget that deep-links to `/tenant?...`)
 - Featured verified listings carousel (live from `properties` where `is_verified=true`)
 - Popular neighborhoods grid (counts from `properties`)
-- "Why Nyumba Search" (verification, no agent fees, map-first, AI)
+- "Why Nyumba Search" (verification, verified property owners, map-first, AI)
 - Testimonials (static seed; table comes in Phase 2)
 - App CTA band
 - SEO: per-section semantic HTML, JSON-LD `RealEstateAgent`, og tags

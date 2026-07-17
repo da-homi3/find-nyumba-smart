@@ -44,7 +44,7 @@ export const TOUR_DEFINITIONS: Record<TourId, TourDefinition> = {
     steps: [
       {
         title: "Welcome to NyumbaSearch",
-        body: "Browse verified homes with no agent fees. This short tour shows how to search and save listings.",
+        body: "Browse homes from verified property owners. This short tour shows how to search and save listings.",
       },
       {
         target: '[data-tour="tenant-search"]',

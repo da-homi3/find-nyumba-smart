@@ -28,3 +28,19 @@ export function getWorkersAi(): WorkersAiBinding | undefined {
   const env = (globalThis as EnvHolder).__env__;
   return resolveAiBinding(env?.AI);
 }
+
+type PresenceNamespace = {
+  idFromName: (name: string) => unknown;
+  get: (id: unknown) => { fetch: (request: Request) => Promise<Response> };
+};
+
+export function getPresenceNamespace(): PresenceNamespace | undefined {
+  const env = (globalThis as EnvHolder).__env__;
+  const ns = env?.PRESENCE;
+  if (!ns || typeof ns !== "object") return undefined;
+  const candidate = ns as PresenceNamespace;
+  if (typeof candidate.idFromName !== "function" || typeof candidate.get !== "function") {
+    return undefined;
+  }
+  return candidate;
+}

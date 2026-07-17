@@ -93,7 +93,7 @@ function PricingPage() {
       <main className="mx-auto max-w-6xl px-5 py-16">
         <h1 className="font-display text-4xl font-semibold">Simple, transparent pricing</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Pay with M-Pesa (recommended) or card. No agent fees for tenants. Landlords only pay when
+          Pay with M-Pesa (recommended) or card. Deal with verified property owners. Landlords only pay when
           they want more visibility or capacity.
         </p>
 

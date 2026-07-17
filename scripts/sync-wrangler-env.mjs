@@ -110,7 +110,7 @@ function serializeEnvFile(env, originalText) {
     }
   }
 
-  return out.join("\n").replace(/\n*$/, "\n");
+  return `${out.join("\n").trimEnd()}\n`;
 }
 
 function applyUrlDefaults(next) {
@@ -249,6 +249,10 @@ function patchWranglerVars(env) {
       id: "c0ce09d3f3344b028c5dfec6beaf7253",
     },
   ];
+  cfg.durable_objects = {
+    bindings: [{ name: "PRESENCE", class_name: "PresenceDurableObject" }],
+  };
+  cfg.migrations = [{ tag: "v1-presence", new_sqlite_classes: ["PresenceDurableObject"] }];
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
   console.log("Patched wrangler.json vars:", VAR_KEYS.filter((k) => env[k]).join(", "));
 }

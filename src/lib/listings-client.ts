@@ -32,6 +32,7 @@ export async function fetchListingsApi(filters?: PropertySearchFilters): Promise
       method: "GET",
       headers: { Accept: "application/json" },
       signal: controller.signal,
+      cache: "no-store",
     });
 
     if (!res.ok) {

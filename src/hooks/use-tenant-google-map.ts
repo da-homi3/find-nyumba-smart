@@ -49,6 +49,10 @@ export function useTenantGoogleMap(properties: Property[]) {
   const [panelOpen, setPanelOpen] = useState(true);
   const [query, setQueryState] = useState("");
   const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
+  const [searchProximity, setSearchProximity] = useState<{ lat: number; lng: number }>({
+    lat: NAIROBI_CENTER.lat,
+    lng: NAIROBI_CENTER.lng,
+  });
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
 
@@ -139,6 +143,11 @@ export function useTenantGoogleMap(properties: Property[]) {
           styles: MAP_STYLE,
           gestureHandling: "greedy",
         });
+        const map = mapInstance.current;
+        map.addListener("idle", () => {
+          const center = map.getCenter();
+          if (center) setSearchProximity({ lat: center.lat(), lng: center.lng() });
+        });
         setReady(true);
       })
       .catch((e) => {
@@ -176,7 +185,7 @@ export function useTenantGoogleMap(properties: Property[]) {
       markers.current = [];
       setMarkerCount(0);
 
-      const newMarkers = createListingMarkers(g.maps, map, properties, query, setSelected);
+      const newMarkers = createListingMarkers(g.maps, map, filteredProperties, setSelected);
       markers.current = newMarkers;
       setMarkerCount(newMarkers.length);
 
@@ -191,11 +200,11 @@ export function useTenantGoogleMap(properties: Property[]) {
       });
 
       allHeatCircles.current.forEach((c) => c.setMap(null));
-      allHeatCircles.current = buildRentHeatCircles(g.maps, properties, query);
+      allHeatCircles.current = buildRentHeatCircles(g.maps, filteredProperties);
       heatmap.current = [];
       if (showHeat) cullHeatmap();
     }
-  }, [ready, properties, query, showHeat]);
+  }, [ready, filteredProperties, showHeat]);
 
   useEffect(() => {
     if (!ready || !mapInstance.current) return;
@@ -301,6 +310,7 @@ export function useTenantGoogleMap(properties: Property[]) {
     isOnline,
     filteredProperties,
     visibleCount,
+    searchProximity,
     recenter,
     locateMe,
   };

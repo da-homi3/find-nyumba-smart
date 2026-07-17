@@ -13,6 +13,7 @@ export type AdminTab =
   | "property_checks"
   | "scams"
   | "properties"
+  | "analytics"
   | "audits"
   | "applications"
   | "providers"

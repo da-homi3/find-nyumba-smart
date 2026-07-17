@@ -192,7 +192,7 @@ export function BookingModal({
           Book a viewing
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          {stepLabel} — no viewing fees, no agents.
+          {stepLabel} — no viewing fees, verified property owners.
         </p>
 
         {step === 1 && (

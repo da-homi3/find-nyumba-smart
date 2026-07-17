@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createAdminProperty,
   createProperty,
@@ -606,6 +607,7 @@ type PublishListingInput = {
   setUploading: (value: boolean) => void;
   setUploadProgress: (value: number | null) => void;
   propertyKeyRef: { current: string | null };
+  onPublished?: () => void;
 };
 
 function canAdvanceToTab(
@@ -651,6 +653,7 @@ async function publishListing(input: PublishListingInput) {
     setUploading,
     setUploadProgress,
     propertyKeyRef,
+    onPublished,
   } = input;
 
   setLoading(true);
@@ -687,6 +690,7 @@ async function publishListing(input: PublishListingInput) {
 
       const payload = buildListingPayload(form, media);
       const created = await createListingFromWizard(form, payload, onBehalfOf, adminOwned);
+      onPublished?.();
 
       toast.success(listingSuccessMessage(onBehalfOf, adminOwned, created));
       try {
@@ -730,6 +734,7 @@ export function PropertyListingWizard({
   redirectSearch?: Record<string, unknown>;
 }>) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, isAgency, isManager } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("details");
   const [loading, setLoading] = useState(false);
@@ -849,6 +854,9 @@ export function PropertyListingWizard({
       setUploading,
       setUploadProgress,
       propertyKeyRef,
+      onPublished: () => {
+        void queryClient.invalidateQueries({ queryKey: ["listings"] });
+      },
     });
   }
 

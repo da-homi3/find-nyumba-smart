@@ -146,7 +146,7 @@ export function PropertyIntelligencePanel({ intel }: Readonly<{ intel: ListingIn
     >
       <h2 className="font-display text-lg font-semibold">Property intelligence</h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        Community-reported signals — no agent spin.
+        Community-reported signals from verified property owners.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {items.map((item, index) => (

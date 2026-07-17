@@ -13,7 +13,7 @@ const ROLES = [
   {
     id: "landlord" as const,
     title: "List my property",
-    desc: "Reach real tenants, no agent needed",
+    desc: "Reach real tenants as a verified property owner",
     icon: Home,
   },
   {

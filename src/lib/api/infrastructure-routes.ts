@@ -146,7 +146,8 @@ async function handleListingsApi(req: Request): Promise<Response> {
   return new Response(JSON.stringify(result), {
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      // Short CDN cache — uploads invalidate KV epoch; keep edge fresh enough to notice new listings.
+      "Cache-Control": "public, max-age=10, stale-while-revalidate=30",
     },
   });
 }
@@ -635,6 +636,13 @@ const ROUTES: RouteDef[] = [
     run: async () => {
       const { handlePromoStatusApi } = await import("@/lib/api/promo.functions");
       return handlePromoStatusApi();
+    },
+  },
+  {
+    match: (url, method) => url.pathname === "/api/presence/ws" && method === "GET",
+    run: async (req) => {
+      const { forwardPresenceWebSocket } = await import("@/lib/presence/server");
+      return forwardPresenceWebSocket(req);
     },
   },
   {

@@ -1,7 +1,7 @@
 {
   "name": "NyumbaSearch",
   "short_name": "NyumbaSearch",
-  "description": "Verified vacant homes across Nairobi — no agents, no scams.",
+  "description": "Verified vacant homes across Nairobi from verified property owners.",
   "start_url": "/tenant",
   "scope": "/",
   "display": "standalone",

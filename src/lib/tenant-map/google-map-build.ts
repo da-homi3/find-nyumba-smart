@@ -3,7 +3,6 @@ import type { Property } from "@/lib/properties";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
 import {
   compactKes,
-  filterMappableProperties,
   priceTagSvg,
 } from "@/components/tenant-map/map-constants";
 
@@ -61,11 +60,9 @@ export function createListingMarkers(
   g: MapsLibrary,
   map: google.maps.Map,
   properties: Property[],
-  query: string,
   onSelect: (property: Property) => void,
 ): PropertyMarker[] {
-  const filtered = filterMappableProperties(properties, query);
-  return filtered.map((property) => {
+  return properties.map((property) => {
     const coords = resolvePropertyMapCoords(property);
     const marker = legacyMarker(g, {
       position: { lat: coords.lat, lng: coords.lng },
@@ -136,16 +133,14 @@ function addHeatCellCircles(
 export function buildRentHeatCircles(
   g: MapsLibrary,
   properties: Property[],
-  query: string,
 ): google.maps.Circle[] {
-  const filtered = filterMappableProperties(properties, query);
-  if (filtered.length === 0) return [];
+  if (properties.length === 0) return [];
 
-  const maxRent = Math.max(...filtered.map((p) => p.rent_kes));
+  const maxRent = Math.max(...properties.map((p) => p.rent_kes));
   const cellSize = 0.004;
   const grid = new Map<string, { lat: number; lng: number; w: number; n: number }>();
 
-  for (const property of filtered) {
+  for (const property of properties) {
     const coords = resolvePropertyMapCoords(property);
     const gx = Math.round(coords.lat / cellSize);
     const gy = Math.round(coords.lng / cellSize);

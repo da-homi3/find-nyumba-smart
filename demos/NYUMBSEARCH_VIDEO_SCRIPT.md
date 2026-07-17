@@ -9,7 +9,7 @@ Use this script for a narrated Loom, Mainframe, or HeyGen presenter video (~12â€
 
 ## 1. Landing (`/`)
 
-NyumbaSearch is a Nairobi rental platform built for tenants who want verified homes without agent fees.
+NyumbaSearch is a Nairobi rental platform built for tenants who want homes from verified property owners.
 
 - Hero search: budget, property type, bedroom count
 - Popular neighborhoods quick links

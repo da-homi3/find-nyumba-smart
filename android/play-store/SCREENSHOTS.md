@@ -38,7 +38,7 @@ Capture these flows in order:
 
 | Screen             | Route                             | Caption                             |
 | ------------------ | --------------------------------- | ----------------------------------- |
-| Landlord dashboard | Sign in as landlord → `/landlord` | _List property directly — no agent_ |
+| Landlord dashboard | Sign in as landlord → `/landlord` | _List as a verified property owner_ |
 | Messages           | `/tenant/messages`                | _Message landlords in-app_          |
 | Auth               | `/auth`                           | _Create a free account_             |
 

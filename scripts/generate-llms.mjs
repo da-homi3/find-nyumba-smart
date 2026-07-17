@@ -43,7 +43,7 @@ ${disallowLines.join("\n")}
 
 # ── CORE OFFERINGS ───────────────────────────
 # - Map-first tenant search with neighbourhood intelligence (water, security, commute)
-# - Direct landlord listings — no agent fees for renters
+# - Direct listings from verified property owners
 # - Home services directory (21 categories, 140+ verified providers)
 # - Landlord, agency, and property manager portals with M-Pesa billing
 

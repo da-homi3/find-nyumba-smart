@@ -1,4 +1,5 @@
 import { getProperty, listProperties } from "@/lib/api/nyumba.functions";
+import { getAnonymousSessionId } from "@/lib/anonymous-session";
 import { fetchListingsApi } from "@/lib/listings-client";
 import type { PropertyType, PricingMode, PricePeriod } from "@/lib/property-types";
 
@@ -115,14 +116,3 @@ export async function fetchProperty(id: string): Promise<Property | null> {
   });
 }
 
-function getAnonymousSessionId() {
-  if (globalThis.window === undefined) return undefined;
-
-  const key = "nyumba_session_id";
-  const existing = globalThis.window.localStorage.getItem(key);
-  if (existing) return existing;
-
-  const next = crypto.randomUUID();
-  globalThis.window.localStorage.setItem(key, next);
-  return next;
-}

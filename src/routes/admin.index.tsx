@@ -14,6 +14,7 @@ import {
   setAdminPropertyVerification,
   adjustAdminPropertyAuthenticityScore,
   setAdminPropertyActive,
+  getAdminPlatformAnalytics,
 } from "@/lib/api/admin.functions";
 import { listPendingApplications, reviewPortalApplication } from "@/lib/api/portal.functions";
 import {
@@ -34,6 +35,7 @@ import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab"
 import { AdminAdvertiseTab } from "@/components/admin/AdminAdvertiseTab";
 import { AdminFoundingPromoTab } from "@/components/admin/AdminFoundingPromoTab";
 import { AdminListingAccountsTab } from "@/components/admin/AdminListingAccountsTab";
+import { AdminAnalyticsTab } from "@/components/admin/AdminAnalyticsTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -66,6 +68,7 @@ function AdminDashboard() {
     if (tabFromUrl === "providers") return "providers";
     if (tabFromUrl === "property_checks") return "property_checks";
     if (tabFromUrl === "properties") return "properties";
+    if (tabFromUrl === "analytics") return "analytics";
     return "verifications";
   });
   const qc = useQueryClient();
@@ -75,6 +78,7 @@ function AdminDashboard() {
     if (tabFromUrl === "providers") setActiveTab("providers");
     if (tabFromUrl === "property_checks") setActiveTab("property_checks");
     if (tabFromUrl === "properties") setActiveTab("properties");
+    if (tabFromUrl === "analytics") setActiveTab("analytics");
   }, [tabFromUrl]);
 
   const { data: verifications = [], isLoading: verLoading } = useQuery({
@@ -99,6 +103,13 @@ function AdminDashboard() {
     queryKey: ["admin-properties"],
     queryFn: () => listAdminProperties(),
     enabled: isAdmin && !authLoading,
+  });
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["admin-analytics"],
+    queryFn: () => getAdminPlatformAnalytics(),
+    enabled: isAdmin && !authLoading && activeTab === "analytics",
+    refetchInterval: activeTab === "analytics" ? 15_000 : false,
   });
 
   const { data: audits = [], isLoading: auditsLoading } = useQuery({
@@ -237,6 +248,7 @@ function AdminDashboard() {
       count: propertyChecks.filter((r) => r.status === "pending" || r.status === "in_progress")
         .length,
     },
+    { id: "analytics" as const, label: "Analytics", count: 0 },
     {
       id: "scams" as const,
       label: "Scam Reports",
@@ -358,6 +370,9 @@ function AdminDashboard() {
               adjustAuthenticityScore={adjustAuthenticityScore}
               setPropertyActive={setPropertyActive}
             />
+          )}
+          {activeTab === "analytics" && (
+            <AdminAnalyticsTab analytics={analytics} loading={analyticsLoading} />
           )}
           {activeTab === "audits" && <AdminAuditsTab audits={audits} loading={auditsLoading} />}
           {activeTab === "applications" && (

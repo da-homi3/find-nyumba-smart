@@ -31,6 +31,7 @@ import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CookieConsentBanner } from "@/components/CookieConsent";
 import { FullStoryBootstrap } from "@/components/FullStoryBootstrap";
+import { PresenceBootstrap } from "@/components/PresenceBootstrap";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -214,6 +215,7 @@ function RootComponent() {
         <Toaster />
         <CookieConsentBanner />
         <FullStoryBootstrap />
+        <PresenceBootstrap />
       </AuthProvider>
     </QueryClientProvider>
   );

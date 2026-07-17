@@ -22,6 +22,12 @@
     },
   ],
 
+  "durable_objects": {
+    "bindings": [{ "name": "PRESENCE", "class_name": "PresenceDurableObject" }],
+  },
+
+  "migrations": [{ "tag": "v1-presence", "new_sqlite_classes": ["PresenceDurableObject"] }],
+
   "vars": {
     "SUPABASE_URL": "https://fnycwcbxorhreidhbers.supabase.co",
 

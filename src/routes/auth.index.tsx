@@ -229,7 +229,7 @@ function TenantAuth() {
 
             <p className="mt-2 text-sm text-muted-foreground">
               {mode === "signin"
-                ? "Sign in to save homes and contact landlords — no agents."
+                ? "Sign in to save homes and contact verified property owners."
                 : signupSubtitle(role)}
             </p>
 

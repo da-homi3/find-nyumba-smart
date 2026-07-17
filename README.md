@@ -22,7 +22,7 @@
 
 <img src="demos/screenshots/01-landing.png" alt="NyumbaSearch landing page — verified Nairobi rentals" width="900" />
 
-_Map-first search across verified homes — no agents, no scams._
+_Map-first search across homes from verified property owners._
 
 </div>
 
@@ -51,7 +51,7 @@ _Map-first search across verified homes — no agents, no scams._
 
 ## Overview
 
-NyumbaSearch helps renters find verified vacant homes without agent fees or scams. Landlords, agencies, and property managers list directly, verify in stages, and message tenants in-platform. The product is tailored for the Kenyan market: M-Pesa and card payments, WhatsApp-style messaging, county-aware service directories, and neighbourhood signals (water, security, internet, commute) on every listing.
+NyumbaSearch helps renters find vacant homes from verified property owners. Landlords, agencies, and property managers list directly, verify in stages, and message tenants in-platform. The product is tailored for the Kenyan market: M-Pesa and card payments, WhatsApp-style messaging, county-aware service directories, and neighbourhood signals (water, security, internet, commute) on every listing.
 
 ---
 

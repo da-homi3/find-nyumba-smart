@@ -12,7 +12,7 @@ import { effectiveMaxRent } from "@/lib/tenant-filter-defaults";
 import { mapPropertyRows } from "@/lib/api/nyumba/nyumba-shared";
 import { normalizeNeighborhoodFilter, parseCountyWideFilter } from "@/lib/security/neighborhoods";
 import { areasForCounty, neighborhoodStorageValue } from "@/data/kenya-locations";
-import { withCache } from "@/lib/cache/manager";
+import { withCache, getListingsCacheEpoch } from "@/lib/cache/manager";
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
   const f = data ?? {};
@@ -174,7 +174,8 @@ export async function queryListings(
   data?: PropertySearchFilters,
   supabase: Db = createPublicClient(),
 ): Promise<ListingsResult> {
-  const key = listingsCacheKey(data);
+  const epoch = await getListingsCacheEpoch();
+  const key = `e${epoch}|${listingsCacheKey(data)}`;
   const { data: result } = await withCache(key, "listings_search", () =>
     queryListingsDirect(data, supabase),
   );
