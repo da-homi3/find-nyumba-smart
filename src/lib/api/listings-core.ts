@@ -11,7 +11,7 @@ import {
 import { effectiveMaxRent } from "@/lib/tenant-filter-defaults";
 import { mapPropertyRows } from "@/lib/api/nyumba/nyumba-shared";
 import { normalizeNeighborhoodFilter, parseCountyWideFilter } from "@/lib/security/neighborhoods";
-import { areasForCounty, neighborhoodStorageValue } from "@/data/kenya-locations";
+import { areasForCounty, matchLocation, neighborhoodStorageValue } from "@/data/kenya-locations";
 import { withCache, getListingsCacheEpoch } from "@/lib/cache/manager";
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
@@ -57,9 +57,32 @@ function applyNeighborhoodFilter(query: PropertyQuery, neighborhood: string | un
 
   const county = parseCountyWideFilter(normalized);
   if (county) {
-    const values = areasForCounty(county).map((loc) => neighborhoodStorageValue(loc));
+    const values = [
+      ...new Set(
+        areasForCounty(county).flatMap((loc) => [
+          neighborhoodStorageValue(loc),
+          loc.name,
+          `${loc.name}, ${loc.county}`,
+        ]),
+      ),
+    ];
     return values.length > 0 ? query.in("neighborhood", values) : query;
   }
+
+  // Match both storage forms so every listing in the area is returned.
+  const matched = matchLocation(normalized);
+  if (matched) {
+    const values = [
+      ...new Set([
+        normalized,
+        neighborhoodStorageValue(matched),
+        matched.name,
+        `${matched.name}, ${matched.county}`,
+      ]),
+    ];
+    return query.in("neighborhood", values);
+  }
+
   return query.eq("neighborhood", normalized);
 }
 

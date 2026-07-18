@@ -63,14 +63,15 @@ const PAGE_SIZE = TENANT_LISTINGS_PAGE_SIZE;
 
 function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFilters {
   const types = search.type ? [search.type as PropertyType] : [];
-  const typeFilterActive = types.length > 0;
+  const neighborhood = search.neighborhood ?? "All";
+  const scopeFilterActive = types.length > 0 || neighborhood !== "All";
   return {
     ...defaultTenantFilters,
-    minRent: typeFilterActive ? 0 : defaultTenantFilters.minRent,
-    maxRent: typeFilterActive
+    minRent: scopeFilterActive ? 0 : defaultTenantFilters.minRent,
+    maxRent: scopeFilterActive
       ? TENANT_MAX_RENT
       : (search.maxPrice ?? defaultTenantFilters.maxRent),
-    neighborhood: search.neighborhood ?? "All",
+    neighborhood,
     types,
   };
 }
@@ -137,15 +138,17 @@ function TenantHome() {
 
   const listingFilters = useMemo(() => {
     const typeFilterActive = filters.types.length > 0;
+    const areaFilterActive = filters.neighborhood !== "All";
+    const browseAllInScope = typeFilterActive || areaFilterActive;
     return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
-      // Property-type chips show every matching listing across the full price range.
-      maxRent: typeFilterActive ? undefined : effectiveMaxRent(filters.maxRent),
-      minRent: typeFilterActive ? undefined : filters.minRent,
+      // Type/area chips show every matching listing across the full price range.
+      maxRent: browseAllInScope ? undefined : effectiveMaxRent(filters.maxRent),
+      minRent: browseAllInScope ? undefined : filters.minRent,
       propertyType: filters.types.length === 1 ? filters.types[0] : undefined,
       sortBy: filters.sort,
-      limit: typeFilterActive ? Math.max(PAGE_SIZE * page, 500) : PAGE_SIZE * page,
+      limit: browseAllInScope ? Math.max(PAGE_SIZE * page, 500) : PAGE_SIZE * page,
       offset: 0,
     };
   }, [
@@ -233,8 +236,8 @@ function TenantHome() {
   const patchFilters = (patch: Partial<TenantFilters>) => {
     setFilters((f) => {
       const next = { ...f, ...patch };
-      // Selecting a property type expands budget so high- and low-priced homes both appear.
-      if (patch.types && patch.types.length > 0) {
+      // Selecting a property type or area expands budget so high- and low-priced homes both appear.
+      if ((patch.types && patch.types.length > 0) || (patch.neighborhood && patch.neighborhood !== "All")) {
         next.minRent = 0;
         next.maxRent = TENANT_MAX_RENT;
       }
