@@ -1,5 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Home, Map, Heart, MessageCircle, Search } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { prefetchTenantSection } from "@/lib/tenant-section-prefetch";
 
 const items: Array<{ to: string; label: string; icon: typeof Home; exact?: boolean }> = [
   { to: "/", label: "Home", icon: Home, exact: true },
@@ -10,6 +13,13 @@ const items: Array<{ to: string; label: string; icon: typeof Home; exact?: boole
 ];
 
 export function TenantBottomNav() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  const warm = (to: string) => {
+    prefetchTenantSection(queryClient, to, user?.id);
+  };
+
   return (
     <nav
       data-tour="tenant-bottom-nav"
@@ -20,7 +30,11 @@ export function TenantBottomNav() {
           <Link
             key={i.to}
             to={i.to}
+            preload="intent"
             activeOptions={{ exact: i.exact ?? false }}
+            onMouseEnter={() => warm(i.to)}
+            onTouchStart={() => warm(i.to)}
+            onFocus={() => warm(i.to)}
             className="group flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-[11px] font-medium text-muted-foreground"
             activeProps={{ className: "text-primary font-semibold" }}
           >

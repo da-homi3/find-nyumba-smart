@@ -178,8 +178,17 @@ function RootShell({ children }: Readonly<{ children: ReactNode }>) {
 
 function AnimatedOutlet() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // Mapbox GL breaks when any ancestor has a CSS transform (PageTransition uses y).
-  if (pathname.startsWith("/tenant/map")) {
+  // Skip exit-wait transitions on tenant sections — they feel like lag between tabs.
+  const skipTransition =
+    pathname === "/" ||
+    pathname.startsWith("/tenant/map") ||
+    pathname === "/tenant" ||
+    pathname.startsWith("/tenant/") ||
+    pathname.startsWith("/landlord") ||
+    pathname.startsWith("/agency") ||
+    pathname.startsWith("/manager");
+
+  if (skipTransition) {
     return <Outlet />;
   }
   return (

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import type { PropertySearchFilters } from "@/lib/properties";
 import { fetchListingsApi } from "@/lib/listings-client";
 
@@ -21,9 +21,10 @@ export function useListingsSearch(filters: PropertySearchFilters) {
   return useQuery({
     queryKey: listingsQueryKey(filters),
     queryFn: () => fetchListingsApi(filters),
-    staleTime: 15_000,
-    gcTime: 10 * 60_000,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60_000,
+    gcTime: 24 * 60 * 60_000,
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
     retry: 2,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });

@@ -136,6 +136,40 @@ function TenantHome() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync individual URL search params only
   }, [search.q, search.maxPrice, search.neighborhood, search.type]);
 
+  // Remember browse scroll so returning from Map/Saved feels continuous.
+  useEffect(() => {
+    const key = "nyumba-browse-scroll";
+    try {
+      const saved = sessionStorage.getItem(key);
+      if (saved) {
+        const y = Number(saved);
+        if (Number.isFinite(y) && y > 0) {
+          requestAnimationFrame(() => window.scrollTo(0, y));
+        }
+      }
+    } catch {
+      // ignore
+    }
+    const onScroll = () => {
+      try {
+        sessionStorage.setItem(key, String(window.scrollY));
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if ((search.q ?? "") === debouncedQ) return;
+    void navigate({
+      to: "/tenant",
+      search: (prev) => ({ ...prev, q: debouncedQ.trim() || undefined }),
+      replace: true,
+    });
+  }, [debouncedQ, navigate, search.q]);
+
   const listingFilters = useMemo(() => {
     const typeFilterActive = filters.types.length > 0;
     const areaFilterActive = filters.neighborhood !== "All";
@@ -241,6 +275,17 @@ function TenantHome() {
         next.minRent = 0;
         next.maxRent = TENANT_MAX_RENT;
       }
+      void navigate({
+        to: "/tenant",
+        search: (prev) => ({
+          ...prev,
+          neighborhood: next.neighborhood !== "All" ? next.neighborhood : undefined,
+          maxPrice: next.maxRent < TENANT_MAX_RENT ? next.maxRent : undefined,
+          type: next.types[0] || undefined,
+          q: q.trim() || undefined,
+        }),
+        replace: true,
+      });
       return next;
     });
     setPage(1);

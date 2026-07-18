@@ -112,6 +112,7 @@ export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
             <Link
               key={n.to}
               to={n.to}
+              preload="intent"
               data-tour={portalNavTourAttr(n.to)}
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10 hover:text-background"
               activeProps={{ className: "bg-background/10 text-background font-semibold" }}

@@ -36,6 +36,7 @@ export function PortalMobileHeader({ portalLabel, nav }: PortalMobileHeaderProps
           <Link
             key={item.to}
             to={item.to}
+            preload="intent"
             data-tour={portalNavTourAttr(item.to)}
             className="shrink-0 rounded-full px-3 py-1.5 font-medium text-background/75 hover:bg-background/10 hover:text-background"
             activeProps={{

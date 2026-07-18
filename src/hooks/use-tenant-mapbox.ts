@@ -23,6 +23,7 @@ import {
   getMapboxInitOptions,
   selectedPropertyFlyToPitch,
 } from "@/lib/mapbox/map-device";
+import { readStoredMapViewport, writeStoredMapViewport } from "@/lib/mapbox/map-viewport-memory";
 
 const BUILD_TIME_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 
@@ -450,7 +451,14 @@ export function useTenantMapbox(properties: Property[]) {
 
     const onMoveEnd = () => {
       const current = mapInstance.current;
-      if (current) syncSearchViewport(current);
+      if (!current) return;
+      syncSearchViewport(current);
+      const center = current.getCenter();
+      writeStoredMapViewport({
+        lng: center.lng,
+        lat: center.lat,
+        zoom: current.getZoom(),
+      });
     };
 
     const onZoomEnd = () => {
@@ -502,7 +510,17 @@ export function useTenantMapbox(properties: Property[]) {
       setError(null);
       setReady(true);
       setMarkerCount(filteredRef.current.length);
-      flyToNairobiMetro(map, 1200);
+      const remembered = readStoredMapViewport();
+      if (remembered) {
+        map.jumpTo({
+          center: [remembered.lng, remembered.lat],
+          zoom: remembered.zoom,
+          pitch: 0,
+          bearing: 0,
+        });
+      } else {
+        flyToNairobiMetro(map, 1200);
+      }
       syncMapbox3DForZoom(map);
       syncHeatmapForZoom(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
       syncSearchViewport(map);
