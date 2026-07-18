@@ -1,7 +1,9 @@
 import { createFileRoute, Outlet, useMatchRoute, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AiAssistant } from "@/components/AiAssistant";
 import { TenantMapApp } from "@/components/tenant-map/TenantMapApp";
+import { prefetchTenantSection } from "@/lib/tenant-section-prefetch";
 import { cn } from "@/lib/utils";
 
 const MAP_ARMED_KEY = "nyumba-map-armed";
@@ -22,9 +24,15 @@ function readMapArmed(): boolean {
 function TenantLayout() {
   const matchRoute = useMatchRoute();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const queryClient = useQueryClient();
   const isMessageThread = Boolean(matchRoute({ to: "/tenant/messages/$id", fuzzy: false }));
   const onMap = pathname.startsWith("/tenant/map");
   const [mapArmed, setMapArmed] = useState(readMapArmed);
+
+  useEffect(() => {
+    prefetchTenantSection(queryClient, "/tenant");
+    prefetchTenantSection(queryClient, "/tenant/map");
+  }, [queryClient]);
 
   useEffect(() => {
     if (!onMap) return;
