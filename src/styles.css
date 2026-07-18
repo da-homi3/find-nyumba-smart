@@ -250,10 +250,13 @@
   }
   img,
   video,
-  canvas,
   svg {
     max-width: 100%;
     height: auto;
+  }
+  /* Do not apply height:auto to canvases — breaks Mapbox/Google map tiles. */
+  canvas:not(.mapboxgl-canvas) {
+    max-width: 100%;
   }
   html.dark body,
   html:not(.light-mode) body {

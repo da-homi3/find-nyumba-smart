@@ -43,7 +43,7 @@ export function useTenantGoogleMap(properties: Property[]) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Property | null>(null);
-  const [showHeat, setShowHeat] = useState(true);
+  const [showHeat, setShowHeat] = useState(false);
   const [showWater, setShowWater] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -192,7 +192,7 @@ export function useTenantGoogleMap(properties: Property[]) {
       clusterer.current = new MarkerClusterer({
         map,
         markers: newMarkers,
-        algorithm: new SuperClusterAlgorithm({ radius: 70, maxZoom: 15 }),
+        algorithm: new SuperClusterAlgorithm({ radius: 80, maxZoom: 16 }),
         renderer: {
           render: ({ count, position }: { count: number; position: google.maps.LatLng }) =>
             createClusterMarker(g.maps, count, position),

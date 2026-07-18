@@ -161,7 +161,7 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
   const [selected, setSelected] = useState<Property | null>(null);
   const [query, setQuery] = useState("");
   const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
-  const [showHeat, setShowHeat] = useState(true);
+  const [showHeat, setShowHeat] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const filtered = placeFocus
     ? filterPropertiesNearPlace(properties, placeFocus.lat, placeFocus.lng, placeFocus.radiusKm)
@@ -213,6 +213,22 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
 }
 
 function TenantMapboxView({ properties, propertiesLoading }: TenantMapViewProps) {
+  const [mapEpoch, setMapEpoch] = useState(0);
+  return (
+    <TenantMapboxViewInner
+      key={mapEpoch}
+      properties={properties}
+      propertiesLoading={propertiesLoading}
+      onHardRetry={() => setMapEpoch((n) => n + 1)}
+    />
+  );
+}
+
+function TenantMapboxViewInner({
+  properties,
+  propertiesLoading,
+  onHardRetry,
+}: TenantMapViewProps & { onHardRetry: () => void }) {
   const map = useTenantMapbox(properties);
   return (
     <TenantMapShell
@@ -220,13 +236,37 @@ function TenantMapboxView({ properties, propertiesLoading }: TenantMapViewProps)
       propertiesLoading={propertiesLoading}
       onCycleStyle={map.cycleMapStyle}
       provider="mapbox"
+      onHardRetry={onHardRetry}
     />
   );
 }
 
 function TenantGoogleMapView({ properties, propertiesLoading }: TenantMapViewProps) {
+  const [mapEpoch, setMapEpoch] = useState(0);
+  return (
+    <TenantGoogleMapViewInner
+      key={mapEpoch}
+      properties={properties}
+      propertiesLoading={propertiesLoading}
+      onHardRetry={() => setMapEpoch((n) => n + 1)}
+    />
+  );
+}
+
+function TenantGoogleMapViewInner({
+  properties,
+  propertiesLoading,
+  onHardRetry,
+}: TenantMapViewProps & { onHardRetry: () => void }) {
   const map = useTenantGoogleMap(properties);
-  return <TenantMapShell map={map} propertiesLoading={propertiesLoading} provider="google" />;
+  return (
+    <TenantMapShell
+      map={map}
+      propertiesLoading={propertiesLoading}
+      provider="google"
+      onHardRetry={onHardRetry}
+    />
+  );
 }
 
 function TenantMapShell({
@@ -235,46 +275,80 @@ function TenantMapShell({
   onCycleStyle,
   provider,
   startInFallback = false,
+  onHardRetry,
 }: Readonly<{
   map: MapHookResult & { cycleMapStyle?: () => void };
   propertiesLoading: boolean;
   onCycleStyle?: () => void;
   provider: "mapbox" | "google";
   startInFallback?: boolean;
+  onHardRetry?: () => void;
 }>) {
-  const [forceFallback, setForceFallback] = useState(startInFallback);
+  const [timedOut, setTimedOut] = useState(false);
+
+  // Real map finished — never keep the simplified overlay stuck on top.
+  useEffect(() => {
+    if (map.ready) setTimedOut(false);
+  }, [map.ready]);
 
   useEffect(() => {
     if (startInFallback || map.ready || map.error) return;
-    const timer = globalThis.setTimeout(() => setForceFallback(true), mapLoadTimeoutMs());
+    const timer = globalThis.setTimeout(() => setTimedOut(true), mapLoadTimeoutMs());
     return () => globalThis.clearTimeout(timer);
   }, [startInFallback, map.ready, map.error]);
 
-  const useFallback = startInFallback || Boolean(map.error) || forceFallback;
+  const showSimplifiedOverlay =
+    startInFallback || Boolean(map.error) || (timedOut && !map.ready);
   const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading map…";
-  const mapVisible = startInFallback || map.ready || map.error || forceFallback;
+  const showBootLoader = !startInFallback && !map.ready && !showSimplifiedOverlay;
+  const overlayMessage = (() => {
+    if (map.error) return map.error;
+    if (timedOut && !map.ready) {
+      return "Map is taking longer than usual — keeping pins available while streets load";
+    }
+    return "Simplified map — streets unavailable on this device";
+  })();
+
+  // When the overlay clears after a slow load, force a canvas resize.
+  useEffect(() => {
+    if (showSimplifiedOverlay || !map.ready) return;
+    requestAnimationFrame(() => {
+      globalThis.dispatchEvent(new Event("resize"));
+    });
+  }, [showSimplifiedOverlay, map.ready]);
 
   return (
     <div className="tenant-map-viewport relative overflow-hidden bg-(--color-obsidian)">
       <motion.div
         className="absolute inset-0"
         initial={SSR_SAFE_MOTION_INITIAL}
-        animate={{ opacity: mapVisible ? 1 : 0 }}
-        transition={{ duration: 0.4 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.35 }}
       >
-        {useFallback ? (
-          <FallbackMap
-            properties={map.filteredProperties}
-            selected={map.selected}
-            showHeat={map.showHeat}
-            onSelect={map.setSelected}
-          />
-        ) : (
-          <MapCanvas mapRef={map.mapRef} />
-        )}
+        {/* Keep the live map mounted under any overlay so a slow load can still succeed. */}
+        {startInFallback ? null : <MapCanvas mapRef={map.mapRef} />}
+        {showSimplifiedOverlay ? (
+          <div className="absolute inset-0 z-5">
+            <FallbackMap
+              properties={map.filteredProperties}
+              selected={map.selected}
+              showHeat={map.showHeat}
+              onSelect={map.setSelected}
+              statusMessage={overlayMessage}
+              onRetry={
+                onHardRetry
+                  ? () => {
+                      setTimedOut(false);
+                      onHardRetry();
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        ) : null}
       </motion.div>
 
-      {mapVisible ? null : (
+      {showBootLoader ? (
         <MapOverlay>
           <div className="relative h-48 w-full max-w-md overflow-hidden rounded-2xl">
             <LazyRadar
@@ -299,9 +373,9 @@ function TenantMapShell({
             </div>
           </div>
         </MapOverlay>
-      )}
+      ) : null}
 
-      {onCycleStyle && map.ready && !useFallback ? (
+      {onCycleStyle && map.ready && !showSimplifiedOverlay ? (
         <motion.button
           type="button"
           initial={{ opacity: 0, x: 20 }}
@@ -330,7 +404,7 @@ function TenantMapShell({
         onLocateMe={map.locateMe}
         onRecenter={map.recenter}
         isOnline={map.isOnline}
-        error={map.error}
+        error={showSimplifiedOverlay ? null : map.error}
         filteredProperties={map.filteredProperties}
         panelOpen={map.panelOpen}
         onTogglePanel={() => map.setPanelOpen((v) => !v)}

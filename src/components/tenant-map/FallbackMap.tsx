@@ -17,11 +17,15 @@ export function FallbackMap({
   selected,
   showHeat,
   onSelect,
+  statusMessage = "Simplified map — streets load when the connection recovers",
+  onRetry,
 }: Readonly<{
   properties: Property[];
   selected: Property | null;
   showHeat: boolean;
   onSelect: (property: Property) => void;
+  statusMessage?: string;
+  onRetry?: () => void;
 }>) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#0e1a14]">
@@ -29,6 +33,21 @@ export function FallbackMap({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_35%,rgba(13,79,60,0.85),transparent_32%),radial-gradient(circle_at_68%_58%,rgba(201,168,76,0.28),transparent_26%),radial-gradient(circle_at_52%_78%,rgba(255,107,53,0.18),transparent_24%)]" />
       <div className="absolute left-[16%] top-[34%] h-28 w-[68%] rotate-[-14deg] rounded-full border-y border-gold/25" />
       <div className="absolute left-[8%] top-[55%] h-20 w-[86%] rotate-10 rounded-full border-y border-primary/35" />
+
+      <div className="absolute inset-x-4 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-30 flex justify-center">
+        <div className="flex max-w-md items-center gap-2 rounded-2xl border border-white/15 bg-black/70 px-3 py-2 text-[11px] text-white/85 shadow-lg backdrop-blur">
+          <span className="min-w-0 flex-1">{statusMessage}</span>
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="shrink-0 rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
+            >
+              Retry map
+            </button>
+          ) : null}
+        </div>
+      </div>
 
       {["Westlands", "Kilimani", "Lavington", "Karen", "Kasarani"].map((hood, i) => (
         <span

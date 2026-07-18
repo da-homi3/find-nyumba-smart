@@ -19,8 +19,9 @@ export function canUseWebGl(): boolean {
   }
 }
 
+/** Soft timeout before showing a simplified overlay — map keeps loading underneath. */
 export function mapLoadTimeoutMs(): number {
-  return isMobileMapDevice() ? 8_000 : 12_000;
+  return isMobileMapDevice() ? 18_000 : 22_000;
 }
 
 export function getMapboxInitOptions() {

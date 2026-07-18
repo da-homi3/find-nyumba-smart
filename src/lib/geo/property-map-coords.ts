@@ -29,9 +29,15 @@ function stableJitter(id: string): { lat: number; lng: number } {
   for (let i = 0; i < id.length; i++) {
     hash = Math.trunc(hash * 31 + (id.codePointAt(i) ?? 0));
   }
-  const latOff = ((hash & 0xff) / 255 - 0.5) * 0.012;
-  const lngOff = (((hash >> 8) & 0xff) / 255 - 0.5) * 0.012;
-  return { lat: latOff, lng: lngOff };
+  // Spiral-ish offset so many listings sharing a neighbourhood centroid don't stack.
+  const slot = Math.abs(hash) % 48;
+  const ring = Math.floor(slot / 8) + 1;
+  const angle = ((slot % 8) / 8) * Math.PI * 2 + (hash & 0xff) / 255;
+  const radius = 0.004 + ring * 0.0035;
+  return {
+    lat: Math.sin(angle) * radius,
+    lng: Math.cos(angle) * radius * 1.15,
+  };
 }
 
 function resolveNeighborhoodKey(neighborhood: string): string {

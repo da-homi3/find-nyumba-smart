@@ -13,23 +13,25 @@ export const NAIROBI_BOUNDS = {
 export const BROWSER_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 export const TRACKING_ID = import.meta.env.VITE_GOOGLE_MAPS_TRACKING_ID;
 
+/** Readable dark Google basemap — roads stay visible (not near-black). */
 export const MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#0e1a14" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#7a8c84" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0e1a14" }] },
+  { elementType: "geometry", stylers: [{ color: "#1a2420" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#a8b8b0" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a2420" }] },
   {
     featureType: "administrative.locality",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#c9a84c" }],
+    stylers: [{ color: "#d4c08a" }],
   },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#16261f" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#5f7a6f" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#1f3a2e" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#c9a84c" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#2e3f37" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#24332c" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8aa396" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3d5a4a" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#d4c08a" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#06120d" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3a6b58" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f1c18" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4a7a66" }] },
 ];
 
 export function compactKes(n: number) {

@@ -114,8 +114,8 @@ function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
       type: "geojson",
       data,
       cluster: true,
-      clusterMaxZoom: 13,
-      clusterRadius: 50,
+      clusterMaxZoom: 16,
+      clusterRadius: 62,
       promoteId: "id",
     });
   }
@@ -177,6 +177,10 @@ function addListingLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
         "text-field": "{priceLabel}",
         "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
         "text-size": 12,
+        "text-allow-overlap": false,
+        "text-ignore-placement": false,
+        "text-optional": true,
+        "text-padding": 4,
       },
       paint: { "text-color": "#ffffff" },
     });
@@ -208,7 +212,7 @@ function addHeatLayers(map: MapboxMap, data: GeoJSON.FeatureCollection) {
         "heatmap-radius": 36,
         "heatmap-opacity": 0.55,
       },
-      layout: { visibility: "visible" },
+      layout: { visibility: "none" },
     });
   }
 
@@ -359,7 +363,7 @@ export function useTenantMapbox(properties: Property[]) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Property | null>(null);
-  const [showHeat, setShowHeat] = useState(true);
+  const [showHeat, setShowHeat] = useState(false);
   const [showWater, setShowWater] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -510,11 +514,16 @@ export function useTenantMapbox(properties: Property[]) {
       applyHeatVisibility(map, layerStateRef.current.showHeat, layerStateRef.current.showSecurity);
       applyMarkerColors(map, layerStateRef.current.activeLayer);
     };
-    const onMapError = (event: { error?: Error }) => {
+    const onMapError = (event: { error?: Error; status?: number }) => {
       const message = event.error?.message ?? "";
+      const status = event.status ?? 0;
       console.error("Mapbox error:", event);
-      if (/token|401|403|unauthorized|Forbidden/i.test(message)) {
-        setError(message || "Mapbox token rejected.");
+      if (/token|401|403|unauthorized|Forbidden|InvalidToken/i.test(message) || status === 401 || status === 403) {
+        setError(message || "Mapbox token rejected. Check MAPBOX_PUBLIC_TOKEN.");
+        return;
+      }
+      if (/Failed to fetch|NetworkError|offline|ERR_NETWORK|Style/i.test(message) || status >= 500) {
+        setError(message || "Map tiles failed to load. Check your connection and retry.");
       }
     };
 
