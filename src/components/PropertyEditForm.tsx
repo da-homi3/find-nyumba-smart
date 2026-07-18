@@ -26,6 +26,7 @@ import { errorMessage, cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { FileText, Image as ImageIcon, Loader2, MapPin } from "lucide-react";
 import { ContactPhonesFields } from "@/components/ContactPhonesFields";
+import { ListingDescriptionAmenitiesFields } from "@/components/ListingDescriptionAmenitiesFields";
 import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
 
 const TABS = [
@@ -442,23 +443,22 @@ export function PropertyEditForm({
               </Field>
             )}
 
-            <Field label="Description" full>
-              <textarea
-                rows={5}
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-
-            <Field label="Amenities (comma separated)" full>
-              <input
-                value={form.amenities}
-                onChange={(e) => update("amenities", e.target.value)}
-                placeholder="WiFi, Parking, Gym"
-                className={inputCls}
-              />
-            </Field>
+            <ListingDescriptionAmenitiesFields
+              description={form.description}
+              amenities={form.amenities}
+              onDescriptionChange={(value) => update("description", value)}
+              onAmenitiesChange={(value) => update("amenities", value)}
+              draft={{
+                title: form.title,
+                property_type: form.property_type,
+                bedrooms: Number(form.bedrooms) || 0,
+                bathrooms: Number(form.bathrooms) || 0,
+                neighborhood: form.neighborhood,
+                latitude: form.latitude,
+                longitude: form.longitude,
+                rent_kes: Number(form.rent_kes) || 0,
+              }}
+            />
 
             <PropertyPricingFields
               form={form}

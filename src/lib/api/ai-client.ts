@@ -134,6 +134,85 @@ export async function callGeminiChat(
   return callWorkersAi(systemPrompt, userPrompt);
 }
 
+export type GeminiInlineImage = {
+  mimeType: string;
+  base64: string;
+};
+
+async function callGeminiNativeMultimodal(
+  systemPrompt: string,
+  userPrompt: string,
+  images: GeminiInlineImage[],
+  key: string,
+  model: string,
+): Promise<string | null> {
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
+    { text: userPrompt },
+  ];
+  for (const img of images.slice(0, 3)) {
+    const data = img.base64.replace(/^data:[^;]+;base64,/, "");
+    if (!data) continue;
+    parts.push({
+      inlineData: {
+        mimeType: img.mimeType || "image/jpeg",
+        data,
+      },
+    });
+  }
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts }],
+      }),
+    },
+  );
+  if (!res.ok) {
+    console.error("Gemini multimodal error:", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const json = (await res.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+}
+
+/**
+ * Gemini multimodal (text + up to 3 inline images). Falls back to text-only
+ * chat (Gemini → Workers AI) when vision fails or no Gemini key is set.
+ */
+export async function callGeminiMultimodal(
+  systemPrompt: string,
+  userPrompt: string,
+  images: GeminiInlineImage[],
+): Promise<string | null> {
+  const key = getGeminiApiKey();
+  const usable = images.filter((img) => img.base64?.trim()).slice(0, 3);
+
+  if (key && usable.length > 0) {
+    try {
+      for (const model of geminiModelsToTry()) {
+        const reply = await callGeminiNativeMultimodal(
+          systemPrompt,
+          userPrompt,
+          usable,
+          key,
+          model,
+        );
+        if (reply) return reply;
+      }
+    } catch (error) {
+      console.error("Gemini multimodal request failed:", error);
+    }
+  }
+
+  return callGeminiChat(systemPrompt, userPrompt);
+}
+
 export function isAiConfigured(): boolean {
   return Boolean(getWorkersAi() || getGeminiApiKey());
 }

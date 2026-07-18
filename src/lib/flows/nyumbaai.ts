@@ -1,8 +1,16 @@
-import { callGeminiChat } from "@/lib/api/ai-client";
+import { callGeminiChat, callGeminiMultimodal, type GeminiInlineImage } from "@/lib/api/ai-client";
 import {
   buildNyumbaAiProfileContext,
   type UserAssistantProfile,
 } from "@/lib/whatsapp/user-profile";
+import {
+  clampAmenities,
+  extractAmenitiesHeuristic,
+  formatAmenityString,
+  mergeAmenities,
+  parseAmenityString,
+} from "@/lib/listings/amenities";
+import { firstRegexMatch, JSON_ARRAY_RE } from "@/lib/api/server-context";
 
 const NYUMBAAI_BASE = `You are NyumbaAI, the personal property assistant for NyumbaSearch — Kenya's verified home search platform at nyumbasearch.com.
 
@@ -31,6 +39,7 @@ function draftField(value: unknown, fallback = ""): string {
 
 function formatBedroomLabel(bedrooms: unknown): string {
   const count = typeof bedrooms === "number" ? bedrooms : Number(bedrooms);
+  if (Number.isNaN(count)) return "bedroom count unknown";
   if (count === 0) return "bedsitter";
   return `${count}BR`;
 }
@@ -58,17 +67,118 @@ export async function callNyumbaAI(
   return reply ?? "I'm having trouble connecting right now. Please try again in a moment.";
 }
 
-export async function enhanceListingDescription(
-  rawDesc: string,
-  draft: Record<string, unknown>,
-): Promise<string> {
-  const system =
-    "Clean and improve Nairobi rental property descriptions. Fix grammar, improve clarity, keep honest. Return only the improved description.";
+export type ListingCopyDraft = {
+  title?: unknown;
+  property_type?: unknown;
+  bedrooms?: unknown;
+  bathrooms?: unknown;
+  neighborhood?: unknown;
+  lat?: unknown;
+  lng?: unknown;
+  latitude?: unknown;
+  longitude?: unknown;
+  price?: unknown;
+  rent_kes?: unknown;
+  amenities?: unknown;
+  description?: unknown;
+};
+
+function buildListingContextBlock(draft: ListingCopyDraft, rawDesc: string): string {
   const propertyType = draftField(draft.property_type);
   const neighborhood = draftField(draft.neighborhood);
-  const price = draftField(draft.price);
+  const price = draftField(draft.price ?? draft.rent_kes);
   const bedroomLabel = formatBedroomLabel(draft.bedrooms);
-  const user = `Property: ${propertyType}, ${bedroomLabel}, ${neighborhood}, KES ${price}/mo\n\nRaw: ${rawDesc}`;
-  const reply = await callGeminiChat(system, user);
-  return reply ?? rawDesc;
+  const baths = draftField(draft.bathrooms);
+  const title = draftField(draft.title);
+  const lat = draftField(draft.lat ?? draft.latitude);
+  const lng = draftField(draft.lng ?? draft.longitude);
+  const amenities = formatAmenityString(
+    Array.isArray(draft.amenities)
+      ? (draft.amenities as string[])
+      : draftField(draft.amenities),
+  );
+  const bathsLabel = baths ? `${baths} bath(s)` : "baths n/a";
+  const propertyLine = `Property: ${propertyType || "unknown"}, ${bedroomLabel}, ${bathsLabel}`;
+  const coords =
+    lat && lng ? `Coordinates: ${lat}, ${lng}` : "Coordinates: not set";
+
+  return [
+    title ? `Title: ${title}` : null,
+    propertyLine,
+    `Neighborhood: ${neighborhood || "Nairobi"}`,
+    price ? `Rent: KES ${price}/mo` : null,
+    amenities ? `Amenities: ${amenities}` : null,
+    coords,
+    "",
+    `Raw description:\n${rawDesc}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+}
+
+const ENHANCE_SYSTEM = `You write professional Nairobi/Kenya rental listing descriptions for NyumbaSearch.
+Rules:
+- Improve grammar, clarity, and structure; keep the landlord's facts honest
+- Do NOT invent amenities, finishes, views, or nearby landmarks not supported by the draft or photos
+- Prefer English unless the raw description is clearly in Swahili — then write in Swahili
+- 2–4 short paragraphs max; no markdown headings; no bullet lists unless the original used them
+- Mention water, security, parking, or internet only if present in the draft/amenities/photos
+- Return ONLY the improved description text`;
+
+export async function enhanceListingDescription(
+  rawDesc: string,
+  draft: ListingCopyDraft,
+): Promise<string> {
+  const user = buildListingContextBlock(draft, rawDesc);
+  const reply = await callGeminiChat(ENHANCE_SYSTEM, user);
+  return reply?.trim() || rawDesc;
+}
+
+export async function enhanceListingCopyWithImages(
+  rawDesc: string,
+  draft: ListingCopyDraft,
+  images: GeminiInlineImage[] = [],
+): Promise<string> {
+  const user = `${buildListingContextBlock(draft, rawDesc)}\n\nUse the attached photos only to describe visible finishes honestly. Do not invent rooms or amenities you cannot see.`;
+  if (images.length > 0) {
+    const reply = await callGeminiMultimodal(ENHANCE_SYSTEM, user, images);
+    if (reply?.trim()) return reply.trim();
+  }
+  return enhanceListingDescription(rawDesc, draft);
+}
+
+function parseAmenityJsonArray(aiRes: string | null): string[] {
+  if (!aiRes) return [];
+  try {
+    const jsonText = firstRegexMatch(aiRes, JSON_ARRAY_RE);
+    if (!jsonText) return [];
+    const parsed = JSON.parse(jsonText) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is string => typeof item === "string")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/** Extract amenities via Gemini + keyword heuristics; merge with any existing list. */
+export async function extractAmenitiesFromText(
+  description: string,
+  existingAmenities?: string[] | string | null,
+): Promise<string[]> {
+  const heuristic = extractAmenitiesHeuristic(description);
+  const existing = Array.isArray(existingAmenities)
+    ? existingAmenities
+    : parseAmenityString(existingAmenities ?? "");
+
+  const system =
+    'Extract rental amenities mentioned in a Kenyan property description. Reply ONLY with a JSON string array of short amenity labels (e.g. ["WiFi","Borehole","Parking"]). Use common Kenya rental terms. Do not invent amenities not implied by the text. Max 15 items.';
+  const user = `Description:\n${description}\n\nKnown amenities already selected: ${formatAmenityString(existing) || "(none)"}`;
+
+  const aiRes = await callGeminiChat(system, user);
+  const fromAi = parseAmenityJsonArray(aiRes);
+
+  return clampAmenities(mergeAmenities(existing, heuristic, fromAi));
 }

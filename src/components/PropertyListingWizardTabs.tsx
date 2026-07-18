@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Compass, Film, Image as ImageIcon, Link2, X } from "lucide-react";
 import type { ListingFormState, TabId } from "@/components/PropertyListingWizard";
 import { ContactPhonesFields } from "@/components/ContactPhonesFields";
+import { ListingDescriptionAmenitiesFields } from "@/components/ListingDescriptionAmenitiesFields";
 import { normalizeContactPhones } from "@/lib/contact-phones";
 
 const inputCls =
@@ -62,10 +63,14 @@ function ListingWizardDetailsTab({
   form,
   update,
   requireContactPhone,
+  imageFiles = [],
+  busy = false,
 }: Readonly<{
   form: ListingFormState;
   update: ListingFormUpdater;
   requireContactPhone?: boolean;
+  imageFiles?: File[];
+  busy?: boolean;
 }>) {
   return (
     <div className="space-y-5">
@@ -208,23 +213,24 @@ function ListingWizardDetailsTab({
           />
         </Field>
       )}
-      <Field label="Description" full>
-        <textarea
-          rows={5}
-          value={form.description}
-          onChange={(e) => update("description", e.target.value)}
-          placeholder="Describe the unit, building amenities, nearby landmarks, and viewing instructions…"
-          className={inputCls}
-        />
-      </Field>
-      <Field label="Amenities (comma separated)" full>
-        <input
-          value={form.amenities}
-          onChange={(e) => update("amenities", e.target.value)}
-          placeholder="WiFi, Borehole, Parking, Gym"
-          className={inputCls}
-        />
-      </Field>
+      <ListingDescriptionAmenitiesFields
+        description={form.description}
+        amenities={form.amenities}
+        onDescriptionChange={(value) => update("description", value)}
+        onAmenitiesChange={(value) => update("amenities", value)}
+        draft={{
+          title: form.title,
+          property_type: form.property_type,
+          bedrooms: form.bedrooms,
+          bathrooms: form.bathrooms,
+          neighborhood: form.neighborhood,
+          latitude: form.latitude,
+          longitude: form.longitude,
+          rent_kes: form.rent_kes,
+        }}
+        imageFiles={imageFiles}
+        disabled={busy}
+      />
       <PropertyPricingFields
         form={form}
         update={
@@ -480,6 +486,12 @@ function ListingWizardReviewTab({
             <dd className="line-clamp-3 text-muted-foreground">{form.description}</dd>
           </div>
         ) : null}
+        {form.amenities.trim() ? (
+          <div>
+            <dt className="text-xs text-muted-foreground">Amenities</dt>
+            <dd>{form.amenities}</dd>
+          </div>
+        ) : null}
       </dl>
       <p className="text-xs text-muted-foreground">
         After publishing, NyumbaSearch scores water reliability and trust for this neighborhood.
@@ -530,6 +542,8 @@ export function ListingWizardTabContent({
           form={form}
           update={update}
           requireContactPhone={requireContactPhone}
+          imageFiles={imageFiles}
+          busy={busy}
         />
       );
     case "media":

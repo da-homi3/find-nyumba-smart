@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { enhanceListingDescription } from "@/lib/flows/nyumbaai";
+import { enhanceListingDescription, extractAmenitiesFromText } from "@/lib/flows/nyumbaai";
+import { parseAmenityString } from "@/lib/listings/amenities";
 import { sendAccountStatus } from "@/lib/flows/assistant";
 import {
   handleAccountLinkEmail,
@@ -210,8 +211,9 @@ async function handleListingDescriptionStep(
     price: draft.price,
     neighborhood: draft.neighborhood,
   });
+  const amenities = await extractAmenitiesFromText(cleaned);
   await updateState(admin, waPhone, "listing_photos", {
-    draft: { ...draft, description: cleaned },
+    draft: { ...draft, description: cleaned, amenities },
   });
   await sendText(waPhone, "Step 6/8 — Send photos (up to 10). Type *DONE* when finished.", admin);
 }
@@ -301,6 +303,10 @@ async function submitListingDraft(
   const title = draftString(d.title, "Untitled listing");
 
   try {
+    const amenitiesList = Array.isArray(d.amenities)
+      ? (d.amenities as string[])
+      : parseAmenityString(typeof d.amenities === "string" ? d.amenities : "");
+
     await admin.from("properties").insert({
       id: propertyId,
       title,
@@ -312,6 +318,7 @@ async function submitListingDraft(
       latitude: d.lat as number | null,
       longitude: d.lng as number | null,
       description: draftString(d.description),
+      amenities: amenitiesList,
       contact_phone: draftString(d.contact_phone, waPhone),
       images: (d.photos as string[]) ?? [],
       is_active: false,
