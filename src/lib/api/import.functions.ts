@@ -107,21 +107,9 @@ export const executeListingImport = createServerFn({ method: "POST" })
     const propertyIds: string[] = [];
     let imported = 0;
     let failed = 0;
-    let duplicates = 0;
     const rowErrors: RowValidationError[] = [];
 
     for (const [idx, row] of data.rows.entries()) {
-      const { data: dupe } = await supabaseAdmin
-        .from("properties")
-        .select("id")
-        .eq("duplicate_hash", row.duplicate_hash)
-        .maybeSingle();
-
-      if (dupe) {
-        duplicates += 1;
-        continue;
-      }
-
       const { data: property, error } = await supabaseAdmin
         .from("properties")
         .insert({
@@ -163,7 +151,7 @@ export const executeListingImport = createServerFn({ method: "POST" })
       .update({
         imported_rows: imported,
         failed_rows: failed,
-        duplicate_rows: duplicates,
+        duplicate_rows: 0,
         status: "complete",
         error_report: rowErrors,
         property_ids: propertyIds,
@@ -175,7 +163,7 @@ export const executeListingImport = createServerFn({ method: "POST" })
     if (email) {
       const body = `
         <h1>Import complete</h1>
-        <p><strong>${data.filename}</strong>: ${imported} imported, ${failed} failed, ${duplicates} duplicates skipped.</p>
+        <p><strong>${data.filename}</strong>: ${imported} imported, ${failed} failed.</p>
         <p><a class="btn" href="${getSiteUrl()}/landlord/properties">Review listings</a></p>
       `;
       await sendEmail({
@@ -187,7 +175,7 @@ export const executeListingImport = createServerFn({ method: "POST" })
       });
     }
 
-    return { batchId: batch.id, imported, failed, duplicates };
+    return { batchId: batch.id, imported, failed, duplicates: 0 };
   });
 
 export const rollbackListingImport = createServerFn({ method: "POST" })

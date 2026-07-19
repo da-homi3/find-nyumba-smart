@@ -174,8 +174,8 @@ export async function extractAmenitiesFromText(
     : parseAmenityString(existingAmenities ?? "");
 
   const system =
-    'Extract rental amenities mentioned in a Kenyan property description. Reply ONLY with a JSON string array of short amenity labels (e.g. ["WiFi","Borehole","Parking"]). Use common Kenya rental terms. Do not invent amenities not implied by the text. Max 15 items.';
-  const user = `Description:\n${description}\n\nKnown amenities already selected: ${formatAmenityString(existing) || "(none)"}`;
+    "Extract EVERY rental amenity, feature, and facility explicitly mentioned or clearly implied in this Kenyan property description. Reply ONLY with a JSON string array of short amenity labels (e.g. [\"WiFi\",\"Borehole\",\"Parking\",\"En-suite\",\"Balcony\"]). Use common Kenya rental terms. Include water, power, security, parking, finishes, appliances, and building facilities when stated. Do not invent amenities that are not supported by the text. Prefer completeness over brevity — list all distinct amenities found, not a short sample.";
+  const user = `Description:\n${description}\n\nKnown amenities already selected: ${formatAmenityString(existing) || "(none)"}\n\nReturn a JSON array with every amenity from the description (merged with known ones is fine; duplicates will be removed).`;
 
   const aiRes = await callGeminiChat(system, user);
   const fromAi = parseAmenityJsonArray(aiRes);

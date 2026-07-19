@@ -23,10 +23,6 @@ import {
   propertyPayloadSchema,
   withPropertyPayloadRules,
 } from "@/lib/api/nyumba/nyumba-shared";
-import {
-  duplicateListingMessage,
-  throwIfListingDuplicateDbError,
-} from "@/lib/api/nyumba/listing-duplicate-errors";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
 import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
 
@@ -81,23 +77,15 @@ async function insertPropertyListing(
     }
   }
 
-  const { computeListingFingerprint, findDuplicateActiveListing } =
-    await import("@/lib/api/nyumba/listing-fingerprint");
-  const fingerprintInput = {
+  // Fingerprint is stored for analytics only — same-named / similar units may all stay active.
+  const { computeListingFingerprint } = await import("@/lib/api/nyumba/listing-fingerprint");
+  const duplicateHash = await computeListingFingerprint({
     title: data.title,
     neighborhood: data.neighborhood,
     property_type: data.property_type,
     bedrooms: data.bedrooms,
     address: data.address ?? null,
-  };
-  const duplicate = await findDuplicateActiveListing(admin, fingerprintInput);
-  if (duplicate) {
-    const ownedBySameAccount =
-      duplicate.ownerId === ownerUserId ||
-      (organizationId != null && duplicate.organizationId === organizationId);
-    throw new ForbiddenError(duplicateListingMessage(ownedBySameAccount));
-  }
-  const duplicateHash = await computeListingFingerprint(fingerprintInput);
+  });
 
   const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
   let latitude = data.latitude ?? null;
@@ -124,10 +112,7 @@ async function insertPropertyListing(
     .select("*")
     .single();
 
-  if (error) {
-    throwIfListingDuplicateDbError(error);
-    throw error;
-  }
+  if (error) throw error;
 
   const bustListingCaches = () => {
     void import("@/lib/cache/manager")
@@ -609,22 +594,14 @@ export const updateProperty = createServerFn({ method: "POST" })
     await assertCanManageProperty(supabase, userId, propertyId);
     const admin = await adminClient();
 
-    const { computeListingFingerprint, findDuplicateActiveListing } =
-      await import("@/lib/api/nyumba/listing-fingerprint");
-    const fingerprintInput = {
+    const { computeListingFingerprint } = await import("@/lib/api/nyumba/listing-fingerprint");
+    const duplicateHash = await computeListingFingerprint({
       title: payload.title,
       neighborhood: payload.neighborhood,
       property_type: payload.property_type,
       bedrooms: payload.bedrooms,
       address: payload.address ?? null,
-    };
-    const duplicate = await findDuplicateActiveListing(admin, fingerprintInput, propertyId);
-    if (duplicate) {
-      throw new ForbiddenError(
-        "Another active listing already matches this property. To keep listings credible and unique, each property can only be listed once.",
-      );
-    }
-    const duplicateHash = await computeListingFingerprint(fingerprintInput);
+    });
 
     const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
     let latitude = payload.latitude ?? null;
@@ -650,10 +627,7 @@ export const updateProperty = createServerFn({ method: "POST" })
       .eq("id", propertyId)
       .select("*")
       .single();
-    if (error) {
-      throwIfListingDuplicateDbError(error);
-      throw error;
-    }
+    if (error) throw error;
 
     const bustListingCaches = () => {
       void import("@/lib/cache/manager")

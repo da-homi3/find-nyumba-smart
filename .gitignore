@@ -48,3 +48,8 @@ android/app/build/
 
 # Playwright / local test output
 test-results/
+
+.oauth-client.local.json
+oauth-*.png
+oauth-download/
+

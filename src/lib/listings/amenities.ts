@@ -32,11 +32,21 @@ export const CANONICAL_AMENITIES = [
   "Rooftop",
   "Prepaid electricity",
   "DSTV",
+  "Air conditioning",
+  "Fridge",
+  "Washing machine",
+  "Microwave",
+  "Kitchen cabinets",
+  "Tiled floors",
+  "Pet friendly",
+  "Water included",
+  "Service charge inclusive",
 ] as const;
 
 export type CanonicalAmenity = (typeof CANONICAL_AMENITIES)[number];
 
-const MAX_AMENITIES = 20;
+/** Soft cap — high enough to capture every amenity mentioned in a long listing. */
+const MAX_AMENITIES = 60;
 
 /** Keyword → canonical label. Longer / more specific patterns first. */
 const AMENITY_PATTERNS: Array<{ re: RegExp; label: string }> = [
@@ -45,6 +55,7 @@ const AMENITY_PATTERNS: Array<{ re: RegExp; label: string }> = [
   { re: /\bborehole\b/i, label: "Borehole" },
   { re: /\b(backup\s*water|water\s*backup|reliable\s*water)\b/i, label: "Backup water" },
   { re: /\b(water\s*tank|tank\s*water|overhead\s*tank)\b/i, label: "Water tank" },
+  { re: /\b(water\s*(is\s*)?(included|inclusive)|inclusive\s*of\s*water)\b/i, label: "Water included" },
   { re: /\b(covered\s*parking|basement\s*parking|parking\s*bay)\b/i, label: "Covered parking" },
   { re: /\b(visitor\s*parking|guest\s*parking)\b/i, label: "Visitor parking" },
   { re: /\b(parking|car\s*park)\b/i, label: "Parking" },
@@ -72,6 +83,14 @@ const AMENITY_PATTERNS: Array<{ re: RegExp; label: string }> = [
   { re: /\b(rooftop|roof\s*terrace)\b/i, label: "Rooftop" },
   { re: /\b(prepaid\s*(electricity|tokens?)|token\s*electricity|kenya\s*power\s*token)\b/i, label: "Prepaid electricity" },
   { re: /\b(dstv|gotv|satellite\s*tv)\b/i, label: "DSTV" },
+  { re: /\b(air\s*conditioning|a\/c\b|\bac\b|aircon)\b/i, label: "Air conditioning" },
+  { re: /\b(fridge|refrigerator)\b/i, label: "Fridge" },
+  { re: /\b(washing\s*machine|washer)\b/i, label: "Washing machine" },
+  { re: /\bmicrowave\b/i, label: "Microwave" },
+  { re: /\b(kitchen\s*cabinets?|fitted\s*kitchen)\b/i, label: "Kitchen cabinets" },
+  { re: /\b(tiled\s*floors?|tiles?\s*throughout)\b/i, label: "Tiled floors" },
+  { re: /\b(pet[\s-]*friendly|pets?\s*allowed)\b/i, label: "Pet friendly" },
+  { re: /\b(service\s*charge\s*(included|inclusive)|inclusive\s*of\s*service\s*charge)\b/i, label: "Service charge inclusive" },
 ];
 
 function titleCaseAmenity(raw: string): string {

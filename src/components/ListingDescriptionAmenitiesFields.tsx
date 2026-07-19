@@ -115,15 +115,18 @@ export function ListingDescriptionAmenitiesFields({
         },
       });
       const next = result.description.trim();
+      // Extract from original + enhanced so amenities dropped during rewrite are still captured.
+      const extractSource =
+        next && next !== trimmed ? `${trimmed}\n\n${next}` : trimmed;
       if (next && next !== trimmed) {
         setUndoDescription(trimmed);
         onDescriptionChange(next);
         lastEnhancedFor.current = next;
-        await runExtract(next, { toastOnFill: true });
       } else {
         lastEnhancedFor.current = trimmed;
-        await runExtract(trimmed, { toastOnFill: true });
       }
+      lastExtractedFor.current = "";
+      await runExtract(extractSource, { toastOnFill: true });
     } catch (err) {
       toast.error("Could not enhance description", { description: errorMessage(err) });
     } finally {
