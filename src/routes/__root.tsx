@@ -33,6 +33,7 @@ import { CookieConsentBanner } from "@/components/CookieConsent";
 import { FullStoryBootstrap } from "@/components/FullStoryBootstrap";
 import { PresenceBootstrap } from "@/components/PresenceBootstrap";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
+import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/motion/PageTransition";
@@ -223,6 +224,7 @@ function RootComponent() {
         <TenantMobileNav />
         <Toaster />
         <CookieConsentBanner />
+        <AuthGateModal />
         <FullStoryBootstrap />
         <PresenceBootstrap />
       </AuthProvider>

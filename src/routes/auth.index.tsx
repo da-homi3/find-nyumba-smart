@@ -29,10 +29,12 @@ import {
 import { registerAccountSignup } from "@/lib/api/auth.functions";
 import { PromoBadge } from "@/components/auth/PromoBadge";
 import { RoleSelector } from "@/components/auth/RoleSelector";
+import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
 import { buildPageHead } from "@/lib/seo/head";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
+import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -145,6 +147,11 @@ function TenantAuth() {
 
     markSignupTourPending("tenant");
     toast.success("Welcome to NyumbaSearch!");
+    try {
+      await ensureTenantAccount();
+    } catch (err) {
+      console.warn("[auth] ensureTenantAccount after signup:", err);
+    }
     globalThis.location.href = "/tenant";
   }
 
@@ -247,6 +254,21 @@ function TenantAuth() {
                 </button>
               ))}
             </div>
+
+            {(mode === "signin" || (mode === "signup" && role === "tenant")) && (
+              <div className="mt-4 space-y-3">
+                <GoogleAuthButton
+                  nextPath={redirect?.startsWith("/") ? redirect : "/tenant"}
+                  label={mode === "signup" ? "Sign up with Google" : "Sign in with Google"}
+                  disabled={loading}
+                />
+                <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  or email
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+              </div>
+            )}
 
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
               {mode === "signup" && (

@@ -9,229 +9,115 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WhatsappRouteImport } from './routes/whatsapp'
-import { Route as VerifyRouteImport } from './routes/verify'
-import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
-import { Route as TenantRouteImport } from './routes/tenant'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ServicesRouteImport } from './routes/services'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as ManagerRouteImport } from './routes/manager'
-import { Route as LandlordAgreementRouteImport } from './routes/landlord-agreement'
-import { Route as LandlordRouteImport } from './routes/landlord'
-import { Route as InsuranceRouteImport } from './routes/insurance'
-import { Route as FinanceRouteImport } from './routes/finance'
-import { Route as DataDeletionRouteImport } from './routes/data-deletion'
-import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as CaretakerRouteImport } from './routes/caretaker'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AgencyRouteImport } from './routes/agency'
-import { Route as AdvertiseRouteImport } from './routes/advertise'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AcceptableUsePolicyRouteImport } from './routes/acceptable-use-policy'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as VerifyIndexRouteImport } from './routes/verify.index'
-import { Route as TenantIndexRouteImport } from './routes/tenant.index'
-import { Route as ServicesIndexRouteImport } from './routes/services.index'
-import { Route as ManagerIndexRouteImport } from './routes/manager.index'
-import { Route as LandlordIndexRouteImport } from './routes/landlord.index'
-import { Route as CaretakerIndexRouteImport } from './routes/caretaker.index'
-import { Route as AuthIndexRouteImport } from './routes/auth.index'
-import { Route as AgencyIndexRouteImport } from './routes/agency.index'
-import { Route as AdvertiseIndexRouteImport } from './routes/advertise.index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AcceptableUsePolicyRouteImport } from './routes/acceptable-use-policy'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdvertiseRouteImport } from './routes/advertise'
+import { Route as AgencyRouteImport } from './routes/agency'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CaretakerRouteImport } from './routes/caretaker'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
+import { Route as DataDeletionRouteImport } from './routes/data-deletion'
+import { Route as FinanceRouteImport } from './routes/finance'
+import { Route as InsuranceRouteImport } from './routes/insurance'
+import { Route as LandlordRouteImport } from './routes/landlord'
+import { Route as LandlordAgreementRouteImport } from './routes/landlord-agreement'
+import { Route as ManagerRouteImport } from './routes/manager'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ServicesRouteImport } from './routes/services'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TenantRouteImport } from './routes/tenant'
+import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
+import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as VerifyRequestRouteImport } from './routes/verify.request'
-import { Route as TenantSavedRouteImport } from './routes/tenant.saved'
-import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
-import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
-import { Route as TenantMapRouteImport } from './routes/tenant.map'
-import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
-import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
-import { Route as ServicesRegisterRouteImport } from './routes/services.register'
-import { Route as ServicesCategoryRouteImport } from './routes/services.$category'
-import { Route as ManagerTeamRouteImport } from './routes/manager.team'
-import { Route as ManagerPropertiesRouteImport } from './routes/manager.properties'
-import { Route as ManagerLeadsRouteImport } from './routes/manager.leads'
-import { Route as ManagerIntegrationsRouteImport } from './routes/manager.integrations'
-import { Route as ManagerImportRouteImport } from './routes/manager.import'
-import { Route as ManagerDashboardRouteImport } from './routes/manager.dashboard'
-import { Route as ManagerCheckoutRouteImport } from './routes/manager.checkout'
-import { Route as ManagerCaretakersRouteImport } from './routes/manager.caretakers'
-import { Route as ManagerAnalyticsRouteImport } from './routes/manager.analytics'
-import { Route as LandlordPropertiesRouteImport } from './routes/landlord.properties'
-import { Route as LandlordLeadsRouteImport } from './routes/landlord.leads'
-import { Route as LandlordIntegrationsRouteImport } from './routes/landlord.integrations'
-import { Route as LandlordImportRouteImport } from './routes/landlord.import'
-import { Route as LandlordDashboardRouteImport } from './routes/landlord.dashboard'
-import { Route as LandlordCheckoutRouteImport } from './routes/landlord.checkout'
-import { Route as LandlordCaretakersRouteImport } from './routes/landlord.caretakers'
-import { Route as LandlordBoostRouteImport } from './routes/landlord.boost'
-import { Route as LandlordAnalyticsRouteImport } from './routes/landlord.analytics'
-import { Route as CaretakerDashboardRouteImport } from './routes/caretaker.dashboard'
-import { Route as AuthResetRouteImport } from './routes/auth.reset'
-import { Route as AuthPendingRouteImport } from './routes/auth.pending'
-import { Route as AgencyTeamRouteImport } from './routes/agency.team'
-import { Route as AgencyPropertiesRouteImport } from './routes/agency.properties'
-import { Route as AgencyLeadsRouteImport } from './routes/agency.leads'
-import { Route as AgencyIntegrationsRouteImport } from './routes/agency.integrations'
-import { Route as AgencyImportRouteImport } from './routes/agency.import'
-import { Route as AgencyDashboardRouteImport } from './routes/agency.dashboard'
-import { Route as AgencyCheckoutRouteImport } from './routes/agency.checkout'
-import { Route as AgencyCaretakersRouteImport } from './routes/agency.caretakers'
-import { Route as AgencyAnalyticsRouteImport } from './routes/agency.analytics'
-import { Route as AdvertisePayRouteImport } from './routes/advertise.pay'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
-import { Route as TenantMessagesIndexRouteImport } from './routes/tenant.messages.index'
-import { Route as ManagerPropertiesIndexRouteImport } from './routes/manager.properties.index'
-import { Route as ManagerDashboardIndexRouteImport } from './routes/manager.dashboard.index'
-import { Route as LandlordPropertiesIndexRouteImport } from './routes/landlord.properties.index'
-import { Route as LandlordDashboardIndexRouteImport } from './routes/landlord.dashboard.index'
-import { Route as AgencyPropertiesIndexRouteImport } from './routes/agency.properties.index'
-import { Route as AgencyDashboardIndexRouteImport } from './routes/agency.dashboard.index'
-import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.status.$requestId'
-import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
-import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
-import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
-import { Route as ServicesProviderDashboardRouteImport } from './routes/services.provider.dashboard'
-import { Route as ServicesProviderIdRouteImport } from './routes/services.provider.$id'
-import { Route as ManagerPropertiesNewRouteImport } from './routes/manager.properties.new'
-import { Route as ManagerDashboardPlanRouteImport } from './routes/manager.dashboard.plan'
-import { Route as ManagerDashboardBillingRouteImport } from './routes/manager.dashboard.billing'
-import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
-import { Route as LandlordDashboardPlanRouteImport } from './routes/landlord.dashboard.plan'
-import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.dashboard.billing'
-import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
-import { Route as AgencyDashboardPlanRouteImport } from './routes/agency.dashboard.plan'
-import { Route as AgencyDashboardBillingRouteImport } from './routes/agency.dashboard.billing'
+import { Route as AdvertiseIndexRouteImport } from './routes/advertise.index'
+import { Route as AdvertisePayRouteImport } from './routes/advertise.pay'
+import { Route as AgencyIndexRouteImport } from './routes/agency.index'
+import { Route as AgencyAnalyticsRouteImport } from './routes/agency.analytics'
+import { Route as AgencyCaretakersRouteImport } from './routes/agency.caretakers'
+import { Route as AgencyCheckoutRouteImport } from './routes/agency.checkout'
+import { Route as AgencyDashboardRouteImport } from './routes/agency.dashboard'
+import { Route as AgencyImportRouteImport } from './routes/agency.import'
+import { Route as AgencyIntegrationsRouteImport } from './routes/agency.integrations'
+import { Route as AgencyLeadsRouteImport } from './routes/agency.leads'
+import { Route as AgencyPropertiesRouteImport } from './routes/agency.properties'
+import { Route as AgencyTeamRouteImport } from './routes/agency.team'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthPendingRouteImport } from './routes/auth.pending'
+import { Route as AuthResetRouteImport } from './routes/auth.reset'
+import { Route as CaretakerIndexRouteImport } from './routes/caretaker.index'
+import { Route as CaretakerDashboardRouteImport } from './routes/caretaker.dashboard'
+import { Route as LandlordIndexRouteImport } from './routes/landlord.index'
+import { Route as LandlordAnalyticsRouteImport } from './routes/landlord.analytics'
+import { Route as LandlordBoostRouteImport } from './routes/landlord.boost'
+import { Route as LandlordCaretakersRouteImport } from './routes/landlord.caretakers'
+import { Route as LandlordCheckoutRouteImport } from './routes/landlord.checkout'
+import { Route as LandlordDashboardRouteImport } from './routes/landlord.dashboard'
+import { Route as LandlordImportRouteImport } from './routes/landlord.import'
+import { Route as LandlordIntegrationsRouteImport } from './routes/landlord.integrations'
+import { Route as LandlordLeadsRouteImport } from './routes/landlord.leads'
+import { Route as LandlordPropertiesRouteImport } from './routes/landlord.properties'
+import { Route as ManagerIndexRouteImport } from './routes/manager.index'
+import { Route as ManagerAnalyticsRouteImport } from './routes/manager.analytics'
+import { Route as ManagerCaretakersRouteImport } from './routes/manager.caretakers'
+import { Route as ManagerCheckoutRouteImport } from './routes/manager.checkout'
+import { Route as ManagerDashboardRouteImport } from './routes/manager.dashboard'
+import { Route as ManagerImportRouteImport } from './routes/manager.import'
+import { Route as ManagerIntegrationsRouteImport } from './routes/manager.integrations'
+import { Route as ManagerLeadsRouteImport } from './routes/manager.leads'
+import { Route as ManagerPropertiesRouteImport } from './routes/manager.properties'
+import { Route as ManagerTeamRouteImport } from './routes/manager.team'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
+import { Route as ServicesCategoryRouteImport } from './routes/services.$category'
+import { Route as ServicesRegisterRouteImport } from './routes/services.register'
+import { Route as TenantIndexRouteImport } from './routes/tenant.index'
+import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
+import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
+import { Route as TenantMapRouteImport } from './routes/tenant.map'
+import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
+import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
+import { Route as TenantSavedRouteImport } from './routes/tenant.saved'
+import { Route as VerifyIndexRouteImport } from './routes/verify.index'
+import { Route as VerifyRequestRouteImport } from './routes/verify.request'
 import { Route as AdminListingsNewRouteImport } from './routes/admin.listings.new'
-import { Route as ManagerPropertiesIdEditRouteImport } from './routes/manager.properties.$id.edit'
-import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
-import { Route as AgencyPropertiesIdEditRouteImport } from './routes/agency.properties.$id.edit'
+import { Route as AgencyDashboardIndexRouteImport } from './routes/agency.dashboard.index'
+import { Route as AgencyDashboardBillingRouteImport } from './routes/agency.dashboard.billing'
+import { Route as AgencyDashboardPlanRouteImport } from './routes/agency.dashboard.plan'
+import { Route as AgencyPropertiesIndexRouteImport } from './routes/agency.properties.index'
+import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
+import { Route as LandlordDashboardIndexRouteImport } from './routes/landlord.dashboard.index'
+import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.dashboard.billing'
+import { Route as LandlordDashboardPlanRouteImport } from './routes/landlord.dashboard.plan'
+import { Route as LandlordPropertiesIndexRouteImport } from './routes/landlord.properties.index'
+import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
+import { Route as ManagerDashboardIndexRouteImport } from './routes/manager.dashboard.index'
+import { Route as ManagerDashboardBillingRouteImport } from './routes/manager.dashboard.billing'
+import { Route as ManagerDashboardPlanRouteImport } from './routes/manager.dashboard.plan'
+import { Route as ManagerPropertiesIndexRouteImport } from './routes/manager.properties.index'
+import { Route as ManagerPropertiesNewRouteImport } from './routes/manager.properties.new'
+import { Route as ServicesProviderIdRouteImport } from './routes/services.provider.$id'
+import { Route as ServicesProviderDashboardRouteImport } from './routes/services.provider.dashboard'
+import { Route as TenantMessagesIndexRouteImport } from './routes/tenant.messages.index'
+import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
+import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
+import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
+import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.status.$requestId'
 import { Route as AdminListingsIdEditRouteImport } from './routes/admin.listings.$id.edit'
+import { Route as AgencyPropertiesIdEditRouteImport } from './routes/agency.properties.$id.edit'
+import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
+import { Route as ManagerPropertiesIdEditRouteImport } from './routes/manager.properties.$id.edit'
 
-const WhatsappRoute = WhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VerifyRoute = VerifyRouteImport.update({
-  id: '/verify',
-  path: '/verify',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
-  id: '/terms-of-service',
-  path: '/terms-of-service',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TenantRoute = TenantRouteImport.update({
-  id: '/tenant',
-  path: '/tenant',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServicesRoute = ServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RefundPolicyRoute = RefundPolicyRouteImport.update({
-  id: '/refund-policy',
-  path: '/refund-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManagerRoute = ManagerRouteImport.update({
-  id: '/manager',
-  path: '/manager',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LandlordAgreementRoute = LandlordAgreementRouteImport.update({
-  id: '/landlord-agreement',
-  path: '/landlord-agreement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LandlordRoute = LandlordRouteImport.update({
-  id: '/landlord',
-  path: '/landlord',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InsuranceRoute = InsuranceRouteImport.update({
-  id: '/insurance',
-  path: '/insurance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FinanceRoute = FinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DataDeletionRoute = DataDeletionRouteImport.update({
-  id: '/data-deletion',
-  path: '/data-deletion',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CookiePolicyRoute = CookiePolicyRouteImport.update({
-  id: '/cookie-policy',
-  path: '/cookie-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CaretakerRoute = CaretakerRouteImport.update({
-  id: '/caretaker',
-  path: '/caretaker',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgencyRoute = AgencyRouteImport.update({
-  id: '/agency',
-  path: '/agency',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdvertiseRoute = AdvertiseRouteImport.update({
-  id: '/advertise',
-  path: '/advertise',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AcceptableUsePolicyRoute = AcceptableUsePolicyRouteImport.update({
-  id: '/acceptable-use-policy',
-  path: '/acceptable-use-policy',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -239,249 +125,149 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AcceptableUsePolicyRoute = AcceptableUsePolicyRouteImport.update({
+  id: '/acceptable-use-policy',
+  path: '/acceptable-use-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VerifyIndexRoute = VerifyIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => VerifyRoute,
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const TenantIndexRoute = TenantIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TenantRoute,
+const AdvertiseRoute = AdvertiseRouteImport.update({
+  id: '/advertise',
+  path: '/advertise',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ServicesIndexRoute = ServicesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ServicesRoute,
+const AgencyRoute = AgencyRouteImport.update({
+  id: '/agency',
+  path: '/agency',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ManagerIndexRoute = ManagerIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ManagerRoute,
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const LandlordIndexRoute = LandlordIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LandlordRoute,
+const CaretakerRoute = CaretakerRouteImport.update({
+  id: '/caretaker',
+  path: '/caretaker',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const CaretakerIndexRoute = CaretakerIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CaretakerRoute,
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthIndexRoute = AuthIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthRoute,
+const CookiePolicyRoute = CookiePolicyRouteImport.update({
+  id: '/cookie-policy',
+  path: '/cookie-policy',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AgencyIndexRoute = AgencyIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AgencyRoute,
+const DataDeletionRoute = DataDeletionRouteImport.update({
+  id: '/data-deletion',
+  path: '/data-deletion',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdvertiseIndexRoute = AdvertiseIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdvertiseRoute,
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsuranceRoute = InsuranceRouteImport.update({
+  id: '/insurance',
+  path: '/insurance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandlordRoute = LandlordRouteImport.update({
+  id: '/landlord',
+  path: '/landlord',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandlordAgreementRoute = LandlordAgreementRouteImport.update({
+  id: '/landlord-agreement',
+  path: '/landlord-agreement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManagerRoute = ManagerRouteImport.update({
+  id: '/manager',
+  path: '/manager',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantRoute = TenantRouteImport.update({
+  id: '/tenant',
+  path: '/tenant',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
+  id: '/terms-of-service',
+  path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhatsappRoute = WhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const VerifyRequestRoute = VerifyRequestRouteImport.update({
-  id: '/request',
-  path: '/request',
-  getParentRoute: () => VerifyRoute,
+const AdminRevenueRoute = AdminRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AdminRoute,
 } as any)
-const TenantSavedRoute = TenantSavedRouteImport.update({
-  id: '/saved',
-  path: '/saved',
-  getParentRoute: () => TenantRoute,
+const AdvertiseIndexRoute = AdvertiseIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdvertiseRoute,
 } as any)
-const TenantProfileRoute = TenantProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => TenantRoute,
+const AdvertisePayRoute = AdvertisePayRouteImport.update({
+  id: '/pay',
+  path: '/pay',
+  getParentRoute: () => AdvertiseRoute,
 } as any)
-const TenantMessagesRoute = TenantMessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => TenantRoute,
-} as any)
-const TenantMapRoute = TenantMapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => TenantRoute,
-} as any)
-const TenantCompareRoute = TenantCompareRouteImport.update({
-  id: '/compare',
-  path: '/compare',
-  getParentRoute: () => TenantRoute,
-} as any)
-const TenantCheckoutRoute = TenantCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => TenantRoute,
-} as any)
-const ServicesRegisterRoute = ServicesRegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => ServicesRoute,
-} as any)
-const ServicesCategoryRoute = ServicesCategoryRouteImport.update({
-  id: '/$category',
-  path: '/$category',
-  getParentRoute: () => ServicesRoute,
-} as any)
-const ManagerTeamRoute = ManagerTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerPropertiesRoute = ManagerPropertiesRouteImport.update({
-  id: '/properties',
-  path: '/properties',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerLeadsRoute = ManagerLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerIntegrationsRoute = ManagerIntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerImportRoute = ManagerImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerDashboardRoute = ManagerDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerCheckoutRoute = ManagerCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerCaretakersRoute = ManagerCaretakersRouteImport.update({
-  id: '/caretakers',
-  path: '/caretakers',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const ManagerAnalyticsRoute = ManagerAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => ManagerRoute,
-} as any)
-const LandlordPropertiesRoute = LandlordPropertiesRouteImport.update({
-  id: '/properties',
-  path: '/properties',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordLeadsRoute = LandlordLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordIntegrationsRoute = LandlordIntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordImportRoute = LandlordImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordDashboardRoute = LandlordDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordCheckoutRoute = LandlordCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordCaretakersRoute = LandlordCaretakersRouteImport.update({
-  id: '/caretakers',
-  path: '/caretakers',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordBoostRoute = LandlordBoostRouteImport.update({
-  id: '/boost',
-  path: '/boost',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const LandlordAnalyticsRoute = LandlordAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => LandlordRoute,
-} as any)
-const CaretakerDashboardRoute = CaretakerDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => CaretakerRoute,
-} as any)
-const AuthResetRoute = AuthResetRouteImport.update({
-  id: '/reset',
-  path: '/reset',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthPendingRoute = AuthPendingRouteImport.update({
-  id: '/pending',
-  path: '/pending',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AgencyTeamRoute = AgencyTeamRouteImport.update({
-  id: '/team',
-  path: '/team',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyPropertiesRoute = AgencyPropertiesRouteImport.update({
-  id: '/properties',
-  path: '/properties',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyLeadsRoute = AgencyLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyIntegrationsRoute = AgencyIntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyImportRoute = AgencyImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyDashboardRoute = AgencyDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyCheckoutRoute = AgencyCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => AgencyRoute,
-} as any)
-const AgencyCaretakersRoute = AgencyCaretakersRouteImport.update({
-  id: '/caretakers',
-  path: '/caretakers',
+const AgencyIndexRoute = AgencyIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AgencyRoute,
 } as any)
 const AgencyAnalyticsRoute = AgencyAnalyticsRouteImport.update({
@@ -489,105 +275,269 @@ const AgencyAnalyticsRoute = AgencyAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AgencyRoute,
 } as any)
-const AdvertisePayRoute = AdvertisePayRouteImport.update({
-  id: '/pay',
-  path: '/pay',
-  getParentRoute: () => AdvertiseRoute,
+const AgencyCaretakersRoute = AgencyCaretakersRouteImport.update({
+  id: '/caretakers',
+  path: '/caretakers',
+  getParentRoute: () => AgencyRoute,
 } as any)
-const AdminRevenueRoute = AdminRevenueRouteImport.update({
-  id: '/revenue',
-  path: '/revenue',
+const AgencyCheckoutRoute = AgencyCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyDashboardRoute = AgencyDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyImportRoute = AgencyImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyIntegrationsRoute = AgencyIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyLeadsRoute = AgencyLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyPropertiesRoute = AgencyPropertiesRouteImport.update({
+  id: '/properties',
+  path: '/properties',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AgencyTeamRoute = AgencyTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AgencyRoute,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthPendingRoute = AuthPendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthResetRoute = AuthResetRouteImport.update({
+  id: '/reset',
+  path: '/reset',
+  getParentRoute: () => AuthRoute,
+} as any)
+const CaretakerIndexRoute = CaretakerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CaretakerRoute,
+} as any)
+const CaretakerDashboardRoute = CaretakerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => CaretakerRoute,
+} as any)
+const LandlordIndexRoute = LandlordIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordAnalyticsRoute = LandlordAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordBoostRoute = LandlordBoostRouteImport.update({
+  id: '/boost',
+  path: '/boost',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordCaretakersRoute = LandlordCaretakersRouteImport.update({
+  id: '/caretakers',
+  path: '/caretakers',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordCheckoutRoute = LandlordCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordDashboardRoute = LandlordDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordImportRoute = LandlordImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordIntegrationsRoute = LandlordIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordLeadsRoute = LandlordLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordPropertiesRoute = LandlordPropertiesRouteImport.update({
+  id: '/properties',
+  path: '/properties',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const ManagerIndexRoute = ManagerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerAnalyticsRoute = ManagerAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerCaretakersRoute = ManagerCaretakersRouteImport.update({
+  id: '/caretakers',
+  path: '/caretakers',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerCheckoutRoute = ManagerCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerDashboardRoute = ManagerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerImportRoute = ManagerImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerIntegrationsRoute = ManagerIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerLeadsRoute = ManagerLeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerPropertiesRoute = ManagerPropertiesRouteImport.update({
+  id: '/properties',
+  path: '/properties',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerTeamRoute = ManagerTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServicesRoute,
+} as any)
+const ServicesCategoryRoute = ServicesCategoryRouteImport.update({
+  id: '/$category',
+  path: '/$category',
+  getParentRoute: () => ServicesRoute,
+} as any)
+const ServicesRegisterRoute = ServicesRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => ServicesRoute,
+} as any)
+const TenantIndexRoute = TenantIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantCheckoutRoute = TenantCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantCompareRoute = TenantCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantMapRoute = TenantMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantMessagesRoute = TenantMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantProfileRoute = TenantProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantSavedRoute = TenantSavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => TenantRoute,
+} as any)
+const VerifyIndexRoute = VerifyIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => VerifyRoute,
+} as any)
+const VerifyRequestRoute = VerifyRequestRouteImport.update({
+  id: '/request',
+  path: '/request',
+  getParentRoute: () => VerifyRoute,
+} as any)
+const AdminListingsNewRoute = AdminListingsNewRouteImport.update({
+  id: '/listings/new',
+  path: '/listings/new',
   getParentRoute: () => AdminRoute,
-} as any)
-const TenantMessagesIndexRoute = TenantMessagesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => TenantMessagesRoute,
-} as any)
-const ManagerPropertiesIndexRoute = ManagerPropertiesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ManagerPropertiesRoute,
-} as any)
-const ManagerDashboardIndexRoute = ManagerDashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ManagerDashboardRoute,
-} as any)
-const LandlordPropertiesIndexRoute = LandlordPropertiesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LandlordPropertiesRoute,
-} as any)
-const LandlordDashboardIndexRoute = LandlordDashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LandlordDashboardRoute,
-} as any)
-const AgencyPropertiesIndexRoute = AgencyPropertiesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AgencyPropertiesRoute,
 } as any)
 const AgencyDashboardIndexRoute = AgencyDashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AgencyDashboardRoute,
 } as any)
-const VerifyStatusRequestIdRoute = VerifyStatusRequestIdRouteImport.update({
-  id: '/status/$requestId',
-  path: '/status/$requestId',
-  getParentRoute: () => VerifyRoute,
-} as any)
-const TenantReviewPropertyIdRoute = TenantReviewPropertyIdRouteImport.update({
-  id: '/review/$propertyId',
-  path: '/review/$propertyId',
-  getParentRoute: () => TenantRoute,
-} as any)
-const TenantPropertyIdRoute = TenantPropertyIdRouteImport.update({
-  id: '/property/$id',
-  path: '/property/$id',
-  getParentRoute: () => TenantRoute,
-} as any)
-const TenantMessagesIdRoute = TenantMessagesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => TenantMessagesRoute,
-} as any)
-const ServicesProviderDashboardRoute =
-  ServicesProviderDashboardRouteImport.update({
-    id: '/provider/dashboard',
-    path: '/provider/dashboard',
-    getParentRoute: () => ServicesRoute,
-  } as any)
-const ServicesProviderIdRoute = ServicesProviderIdRouteImport.update({
-  id: '/provider/$id',
-  path: '/provider/$id',
-  getParentRoute: () => ServicesRoute,
-} as any)
-const ManagerPropertiesNewRoute = ManagerPropertiesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ManagerPropertiesRoute,
-} as any)
-const ManagerDashboardPlanRoute = ManagerDashboardPlanRouteImport.update({
-  id: '/plan',
-  path: '/plan',
-  getParentRoute: () => ManagerDashboardRoute,
-} as any)
-const ManagerDashboardBillingRoute = ManagerDashboardBillingRouteImport.update({
+const AgencyDashboardBillingRoute = AgencyDashboardBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
-  getParentRoute: () => ManagerDashboardRoute,
+  getParentRoute: () => AgencyDashboardRoute,
 } as any)
-const LandlordPropertiesNewRoute = LandlordPropertiesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => LandlordPropertiesRoute,
-} as any)
-const LandlordDashboardPlanRoute = LandlordDashboardPlanRouteImport.update({
+const AgencyDashboardPlanRoute = AgencyDashboardPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
+  getParentRoute: () => AgencyDashboardRoute,
+} as any)
+const AgencyPropertiesIndexRoute = AgencyPropertiesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgencyPropertiesRoute,
+} as any)
+const AgencyPropertiesNewRoute = AgencyPropertiesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AgencyPropertiesRoute,
+} as any)
+const LandlordDashboardIndexRoute = LandlordDashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => LandlordDashboardRoute,
 } as any)
 const LandlordDashboardBillingRoute =
@@ -596,30 +546,91 @@ const LandlordDashboardBillingRoute =
     path: '/billing',
     getParentRoute: () => LandlordDashboardRoute,
   } as any)
-const AgencyPropertiesNewRoute = AgencyPropertiesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AgencyPropertiesRoute,
-} as any)
-const AgencyDashboardPlanRoute = AgencyDashboardPlanRouteImport.update({
+const LandlordDashboardPlanRoute = LandlordDashboardPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
-  getParentRoute: () => AgencyDashboardRoute,
+  getParentRoute: () => LandlordDashboardRoute,
 } as any)
-const AgencyDashboardBillingRoute = AgencyDashboardBillingRouteImport.update({
+const LandlordPropertiesIndexRoute = LandlordPropertiesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LandlordPropertiesRoute,
+} as any)
+const LandlordPropertiesNewRoute = LandlordPropertiesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => LandlordPropertiesRoute,
+} as any)
+const ManagerDashboardIndexRoute = ManagerDashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManagerDashboardRoute,
+} as any)
+const ManagerDashboardBillingRoute = ManagerDashboardBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
-  getParentRoute: () => AgencyDashboardRoute,
+  getParentRoute: () => ManagerDashboardRoute,
 } as any)
-const AdminListingsNewRoute = AdminListingsNewRouteImport.update({
-  id: '/listings/new',
-  path: '/listings/new',
+const ManagerDashboardPlanRoute = ManagerDashboardPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => ManagerDashboardRoute,
+} as any)
+const ManagerPropertiesIndexRoute = ManagerPropertiesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManagerPropertiesRoute,
+} as any)
+const ManagerPropertiesNewRoute = ManagerPropertiesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ManagerPropertiesRoute,
+} as any)
+const ServicesProviderIdRoute = ServicesProviderIdRouteImport.update({
+  id: '/provider/$id',
+  path: '/provider/$id',
+  getParentRoute: () => ServicesRoute,
+} as any)
+const ServicesProviderDashboardRoute =
+  ServicesProviderDashboardRouteImport.update({
+    id: '/provider/dashboard',
+    path: '/provider/dashboard',
+    getParentRoute: () => ServicesRoute,
+  } as any)
+const TenantMessagesIndexRoute = TenantMessagesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TenantMessagesRoute,
+} as any)
+const TenantMessagesIdRoute = TenantMessagesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => TenantMessagesRoute,
+} as any)
+const TenantPropertyIdRoute = TenantPropertyIdRouteImport.update({
+  id: '/property/$id',
+  path: '/property/$id',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantReviewPropertyIdRoute = TenantReviewPropertyIdRouteImport.update({
+  id: '/review/$propertyId',
+  path: '/review/$propertyId',
+  getParentRoute: () => TenantRoute,
+} as any)
+const VerifyStatusRequestIdRoute = VerifyStatusRequestIdRouteImport.update({
+  id: '/status/$requestId',
+  path: '/status/$requestId',
+  getParentRoute: () => VerifyRoute,
+} as any)
+const AdminListingsIdEditRoute = AdminListingsIdEditRouteImport.update({
+  id: '/listings/$id/edit',
+  path: '/listings/$id/edit',
   getParentRoute: () => AdminRoute,
 } as any)
-const ManagerPropertiesIdEditRoute = ManagerPropertiesIdEditRouteImport.update({
+const AgencyPropertiesIdEditRoute = AgencyPropertiesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
-  getParentRoute: () => ManagerPropertiesRoute,
+  getParentRoute: () => AgencyPropertiesRoute,
 } as any)
 const LandlordPropertiesIdEditRoute =
   LandlordPropertiesIdEditRouteImport.update({
@@ -627,15 +638,10 @@ const LandlordPropertiesIdEditRoute =
     path: '/$id/edit',
     getParentRoute: () => LandlordPropertiesRoute,
   } as any)
-const AgencyPropertiesIdEditRoute = AgencyPropertiesIdEditRouteImport.update({
+const ManagerPropertiesIdEditRoute = ManagerPropertiesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
-  getParentRoute: () => AgencyPropertiesRoute,
-} as any)
-const AdminListingsIdEditRoute = AdminListingsIdEditRouteImport.update({
-  id: '/listings/$id/edit',
-  path: '/listings/$id/edit',
-  getParentRoute: () => AdminRoute,
+  getParentRoute: () => ManagerPropertiesRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -676,6 +682,7 @@ export interface FileRoutesByFullPath {
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
   '/agency/team': typeof AgencyTeamRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/pending': typeof AuthPendingRoute
   '/auth/reset': typeof AuthResetRoute
   '/caretaker/dashboard': typeof CaretakerDashboardRoute
@@ -770,6 +777,7 @@ export interface FileRoutesByTo {
   '/agency/integrations': typeof AgencyIntegrationsRoute
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/team': typeof AgencyTeamRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/pending': typeof AuthPendingRoute
   '/auth/reset': typeof AuthResetRoute
   '/caretaker/dashboard': typeof CaretakerDashboardRoute
@@ -872,6 +880,7 @@ export interface FileRoutesById {
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
   '/agency/team': typeof AgencyTeamRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/auth/pending': typeof AuthPendingRoute
   '/auth/reset': typeof AuthResetRoute
   '/caretaker/dashboard': typeof CaretakerDashboardRoute
@@ -980,6 +989,7 @@ export interface FileRouteTypes {
     | '/agency/leads'
     | '/agency/properties'
     | '/agency/team'
+    | '/auth/callback'
     | '/auth/pending'
     | '/auth/reset'
     | '/caretaker/dashboard'
@@ -1074,6 +1084,7 @@ export interface FileRouteTypes {
     | '/agency/integrations'
     | '/agency/leads'
     | '/agency/team'
+    | '/auth/callback'
     | '/auth/pending'
     | '/auth/reset'
     | '/caretaker/dashboard'
@@ -1175,6 +1186,7 @@ export interface FileRouteTypes {
     | '/agency/leads'
     | '/agency/properties'
     | '/agency/team'
+    | '/auth/callback'
     | '/auth/pending'
     | '/auth/reset'
     | '/caretaker/dashboard'
@@ -1275,172 +1287,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/whatsapp': {
-      id: '/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/whatsapp'
-      preLoaderRoute: typeof WhatsappRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/verify': {
-      id: '/verify'
-      path: '/verify'
-      fullPath: '/verify'
-      preLoaderRoute: typeof VerifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms-of-service': {
-      id: '/terms-of-service'
-      path: '/terms-of-service'
-      fullPath: '/terms-of-service'
-      preLoaderRoute: typeof TermsOfServiceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tenant': {
-      id: '/tenant'
-      path: '/tenant'
-      fullPath: '/tenant'
-      preLoaderRoute: typeof TenantRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/services': {
-      id: '/services'
-      path: '/services'
-      fullPath: '/services'
-      preLoaderRoute: typeof ServicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/refund-policy': {
-      id: '/refund-policy'
-      path: '/refund-policy'
-      fullPath: '/refund-policy'
-      preLoaderRoute: typeof RefundPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/manager': {
-      id: '/manager'
-      path: '/manager'
-      fullPath: '/manager'
-      preLoaderRoute: typeof ManagerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landlord-agreement': {
-      id: '/landlord-agreement'
-      path: '/landlord-agreement'
-      fullPath: '/landlord-agreement'
-      preLoaderRoute: typeof LandlordAgreementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/landlord': {
-      id: '/landlord'
-      path: '/landlord'
-      fullPath: '/landlord'
-      preLoaderRoute: typeof LandlordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/insurance': {
-      id: '/insurance'
-      path: '/insurance'
-      fullPath: '/insurance'
-      preLoaderRoute: typeof InsuranceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/finance': {
-      id: '/finance'
-      path: '/finance'
-      fullPath: '/finance'
-      preLoaderRoute: typeof FinanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/data-deletion': {
-      id: '/data-deletion'
-      path: '/data-deletion'
-      fullPath: '/data-deletion'
-      preLoaderRoute: typeof DataDeletionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cookie-policy': {
-      id: '/cookie-policy'
-      path: '/cookie-policy'
-      fullPath: '/cookie-policy'
-      preLoaderRoute: typeof CookiePolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/caretaker': {
-      id: '/caretaker'
-      path: '/caretaker'
-      fullPath: '/caretaker'
-      preLoaderRoute: typeof CaretakerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agency': {
-      id: '/agency'
-      path: '/agency'
-      fullPath: '/agency'
-      preLoaderRoute: typeof AgencyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/advertise': {
-      id: '/advertise'
-      path: '/advertise'
-      fullPath: '/advertise'
-      preLoaderRoute: typeof AdvertiseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/acceptable-use-policy': {
-      id: '/acceptable-use-policy'
-      path: '/acceptable-use-policy'
-      fullPath: '/acceptable-use-policy'
-      preLoaderRoute: typeof AcceptableUsePolicyRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -1450,75 +1301,173 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/acceptable-use-policy': {
+      id: '/acceptable-use-policy'
+      path: '/acceptable-use-policy'
+      fullPath: '/acceptable-use-policy'
+      preLoaderRoute: typeof AcceptableUsePolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/verify/': {
-      id: '/verify/'
-      path: '/'
-      fullPath: '/verify/'
-      preLoaderRoute: typeof VerifyIndexRouteImport
-      parentRoute: typeof VerifyRoute
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/tenant/': {
-      id: '/tenant/'
-      path: '/'
-      fullPath: '/tenant/'
-      preLoaderRoute: typeof TenantIndexRouteImport
-      parentRoute: typeof TenantRoute
+    '/advertise': {
+      id: '/advertise'
+      path: '/advertise'
+      fullPath: '/advertise'
+      preLoaderRoute: typeof AdvertiseRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/services/': {
-      id: '/services/'
-      path: '/'
-      fullPath: '/services/'
-      preLoaderRoute: typeof ServicesIndexRouteImport
-      parentRoute: typeof ServicesRoute
+    '/agency': {
+      id: '/agency'
+      path: '/agency'
+      fullPath: '/agency'
+      preLoaderRoute: typeof AgencyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/manager/': {
-      id: '/manager/'
-      path: '/'
-      fullPath: '/manager/'
-      preLoaderRoute: typeof ManagerIndexRouteImport
-      parentRoute: typeof ManagerRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/landlord/': {
-      id: '/landlord/'
-      path: '/'
-      fullPath: '/landlord/'
-      preLoaderRoute: typeof LandlordIndexRouteImport
-      parentRoute: typeof LandlordRoute
+    '/caretaker': {
+      id: '/caretaker'
+      path: '/caretaker'
+      fullPath: '/caretaker'
+      preLoaderRoute: typeof CaretakerRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/caretaker/': {
-      id: '/caretaker/'
-      path: '/'
-      fullPath: '/caretaker/'
-      preLoaderRoute: typeof CaretakerIndexRouteImport
-      parentRoute: typeof CaretakerRoute
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/auth/': {
-      id: '/auth/'
-      path: '/'
-      fullPath: '/auth/'
-      preLoaderRoute: typeof AuthIndexRouteImport
-      parentRoute: typeof AuthRoute
+    '/cookie-policy': {
+      id: '/cookie-policy'
+      path: '/cookie-policy'
+      fullPath: '/cookie-policy'
+      preLoaderRoute: typeof CookiePolicyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/agency/': {
-      id: '/agency/'
-      path: '/'
-      fullPath: '/agency/'
-      preLoaderRoute: typeof AgencyIndexRouteImport
-      parentRoute: typeof AgencyRoute
+    '/data-deletion': {
+      id: '/data-deletion'
+      path: '/data-deletion'
+      fullPath: '/data-deletion'
+      preLoaderRoute: typeof DataDeletionRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/advertise/': {
-      id: '/advertise/'
-      path: '/'
-      fullPath: '/advertise/'
-      preLoaderRoute: typeof AdvertiseIndexRouteImport
-      parentRoute: typeof AdvertiseRoute
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insurance': {
+      id: '/insurance'
+      path: '/insurance'
+      fullPath: '/insurance'
+      preLoaderRoute: typeof InsuranceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landlord': {
+      id: '/landlord'
+      path: '/landlord'
+      fullPath: '/landlord'
+      preLoaderRoute: typeof LandlordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landlord-agreement': {
+      id: '/landlord-agreement'
+      path: '/landlord-agreement'
+      fullPath: '/landlord-agreement'
+      preLoaderRoute: typeof LandlordAgreementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/manager': {
+      id: '/manager'
+      path: '/manager'
+      fullPath: '/manager'
+      preLoaderRoute: typeof ManagerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tenant': {
+      id: '/tenant'
+      path: '/tenant'
+      fullPath: '/tenant'
+      preLoaderRoute: typeof TenantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms-of-service': {
+      id: '/terms-of-service'
+      path: '/terms-of-service'
+      fullPath: '/terms-of-service'
+      preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/whatsapp': {
+      id: '/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
@@ -1527,270 +1476,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/verify/request': {
-      id: '/verify/request'
-      path: '/request'
-      fullPath: '/verify/request'
-      preLoaderRoute: typeof VerifyRequestRouteImport
-      parentRoute: typeof VerifyRoute
+    '/admin/revenue': {
+      id: '/admin/revenue'
+      path: '/revenue'
+      fullPath: '/admin/revenue'
+      preLoaderRoute: typeof AdminRevenueRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/tenant/saved': {
-      id: '/tenant/saved'
-      path: '/saved'
-      fullPath: '/tenant/saved'
-      preLoaderRoute: typeof TenantSavedRouteImport
-      parentRoute: typeof TenantRoute
+    '/advertise/': {
+      id: '/advertise/'
+      path: '/'
+      fullPath: '/advertise/'
+      preLoaderRoute: typeof AdvertiseIndexRouteImport
+      parentRoute: typeof AdvertiseRoute
     }
-    '/tenant/profile': {
-      id: '/tenant/profile'
-      path: '/profile'
-      fullPath: '/tenant/profile'
-      preLoaderRoute: typeof TenantProfileRouteImport
-      parentRoute: typeof TenantRoute
+    '/advertise/pay': {
+      id: '/advertise/pay'
+      path: '/pay'
+      fullPath: '/advertise/pay'
+      preLoaderRoute: typeof AdvertisePayRouteImport
+      parentRoute: typeof AdvertiseRoute
     }
-    '/tenant/messages': {
-      id: '/tenant/messages'
-      path: '/messages'
-      fullPath: '/tenant/messages'
-      preLoaderRoute: typeof TenantMessagesRouteImport
-      parentRoute: typeof TenantRoute
-    }
-    '/tenant/map': {
-      id: '/tenant/map'
-      path: '/map'
-      fullPath: '/tenant/map'
-      preLoaderRoute: typeof TenantMapRouteImport
-      parentRoute: typeof TenantRoute
-    }
-    '/tenant/compare': {
-      id: '/tenant/compare'
-      path: '/compare'
-      fullPath: '/tenant/compare'
-      preLoaderRoute: typeof TenantCompareRouteImport
-      parentRoute: typeof TenantRoute
-    }
-    '/tenant/checkout': {
-      id: '/tenant/checkout'
-      path: '/checkout'
-      fullPath: '/tenant/checkout'
-      preLoaderRoute: typeof TenantCheckoutRouteImport
-      parentRoute: typeof TenantRoute
-    }
-    '/services/register': {
-      id: '/services/register'
-      path: '/register'
-      fullPath: '/services/register'
-      preLoaderRoute: typeof ServicesRegisterRouteImport
-      parentRoute: typeof ServicesRoute
-    }
-    '/services/$category': {
-      id: '/services/$category'
-      path: '/$category'
-      fullPath: '/services/$category'
-      preLoaderRoute: typeof ServicesCategoryRouteImport
-      parentRoute: typeof ServicesRoute
-    }
-    '/manager/team': {
-      id: '/manager/team'
-      path: '/team'
-      fullPath: '/manager/team'
-      preLoaderRoute: typeof ManagerTeamRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/properties': {
-      id: '/manager/properties'
-      path: '/properties'
-      fullPath: '/manager/properties'
-      preLoaderRoute: typeof ManagerPropertiesRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/leads': {
-      id: '/manager/leads'
-      path: '/leads'
-      fullPath: '/manager/leads'
-      preLoaderRoute: typeof ManagerLeadsRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/integrations': {
-      id: '/manager/integrations'
-      path: '/integrations'
-      fullPath: '/manager/integrations'
-      preLoaderRoute: typeof ManagerIntegrationsRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/import': {
-      id: '/manager/import'
-      path: '/import'
-      fullPath: '/manager/import'
-      preLoaderRoute: typeof ManagerImportRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/dashboard': {
-      id: '/manager/dashboard'
-      path: '/dashboard'
-      fullPath: '/manager/dashboard'
-      preLoaderRoute: typeof ManagerDashboardRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/checkout': {
-      id: '/manager/checkout'
-      path: '/checkout'
-      fullPath: '/manager/checkout'
-      preLoaderRoute: typeof ManagerCheckoutRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/caretakers': {
-      id: '/manager/caretakers'
-      path: '/caretakers'
-      fullPath: '/manager/caretakers'
-      preLoaderRoute: typeof ManagerCaretakersRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/manager/analytics': {
-      id: '/manager/analytics'
-      path: '/analytics'
-      fullPath: '/manager/analytics'
-      preLoaderRoute: typeof ManagerAnalyticsRouteImport
-      parentRoute: typeof ManagerRoute
-    }
-    '/landlord/properties': {
-      id: '/landlord/properties'
-      path: '/properties'
-      fullPath: '/landlord/properties'
-      preLoaderRoute: typeof LandlordPropertiesRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/leads': {
-      id: '/landlord/leads'
-      path: '/leads'
-      fullPath: '/landlord/leads'
-      preLoaderRoute: typeof LandlordLeadsRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/integrations': {
-      id: '/landlord/integrations'
-      path: '/integrations'
-      fullPath: '/landlord/integrations'
-      preLoaderRoute: typeof LandlordIntegrationsRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/import': {
-      id: '/landlord/import'
-      path: '/import'
-      fullPath: '/landlord/import'
-      preLoaderRoute: typeof LandlordImportRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/dashboard': {
-      id: '/landlord/dashboard'
-      path: '/dashboard'
-      fullPath: '/landlord/dashboard'
-      preLoaderRoute: typeof LandlordDashboardRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/checkout': {
-      id: '/landlord/checkout'
-      path: '/checkout'
-      fullPath: '/landlord/checkout'
-      preLoaderRoute: typeof LandlordCheckoutRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/caretakers': {
-      id: '/landlord/caretakers'
-      path: '/caretakers'
-      fullPath: '/landlord/caretakers'
-      preLoaderRoute: typeof LandlordCaretakersRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/boost': {
-      id: '/landlord/boost'
-      path: '/boost'
-      fullPath: '/landlord/boost'
-      preLoaderRoute: typeof LandlordBoostRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/landlord/analytics': {
-      id: '/landlord/analytics'
-      path: '/analytics'
-      fullPath: '/landlord/analytics'
-      preLoaderRoute: typeof LandlordAnalyticsRouteImport
-      parentRoute: typeof LandlordRoute
-    }
-    '/caretaker/dashboard': {
-      id: '/caretaker/dashboard'
-      path: '/dashboard'
-      fullPath: '/caretaker/dashboard'
-      preLoaderRoute: typeof CaretakerDashboardRouteImport
-      parentRoute: typeof CaretakerRoute
-    }
-    '/auth/reset': {
-      id: '/auth/reset'
-      path: '/reset'
-      fullPath: '/auth/reset'
-      preLoaderRoute: typeof AuthResetRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/pending': {
-      id: '/auth/pending'
-      path: '/pending'
-      fullPath: '/auth/pending'
-      preLoaderRoute: typeof AuthPendingRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/agency/team': {
-      id: '/agency/team'
-      path: '/team'
-      fullPath: '/agency/team'
-      preLoaderRoute: typeof AgencyTeamRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/properties': {
-      id: '/agency/properties'
-      path: '/properties'
-      fullPath: '/agency/properties'
-      preLoaderRoute: typeof AgencyPropertiesRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/leads': {
-      id: '/agency/leads'
-      path: '/leads'
-      fullPath: '/agency/leads'
-      preLoaderRoute: typeof AgencyLeadsRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/integrations': {
-      id: '/agency/integrations'
-      path: '/integrations'
-      fullPath: '/agency/integrations'
-      preLoaderRoute: typeof AgencyIntegrationsRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/import': {
-      id: '/agency/import'
-      path: '/import'
-      fullPath: '/agency/import'
-      preLoaderRoute: typeof AgencyImportRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/dashboard': {
-      id: '/agency/dashboard'
-      path: '/dashboard'
-      fullPath: '/agency/dashboard'
-      preLoaderRoute: typeof AgencyDashboardRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/checkout': {
-      id: '/agency/checkout'
-      path: '/checkout'
-      fullPath: '/agency/checkout'
-      preLoaderRoute: typeof AgencyCheckoutRouteImport
-      parentRoute: typeof AgencyRoute
-    }
-    '/agency/caretakers': {
-      id: '/agency/caretakers'
-      path: '/caretakers'
-      fullPath: '/agency/caretakers'
-      preLoaderRoute: typeof AgencyCaretakersRouteImport
+    '/agency/': {
+      id: '/agency/'
+      path: '/'
+      fullPath: '/agency/'
+      preLoaderRoute: typeof AgencyIndexRouteImport
       parentRoute: typeof AgencyRoute
     }
     '/agency/analytics': {
@@ -1800,165 +1511,340 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyAnalyticsRouteImport
       parentRoute: typeof AgencyRoute
     }
-    '/advertise/pay': {
-      id: '/advertise/pay'
-      path: '/pay'
-      fullPath: '/advertise/pay'
-      preLoaderRoute: typeof AdvertisePayRouteImport
-      parentRoute: typeof AdvertiseRoute
+    '/agency/caretakers': {
+      id: '/agency/caretakers'
+      path: '/caretakers'
+      fullPath: '/agency/caretakers'
+      preLoaderRoute: typeof AgencyCaretakersRouteImport
+      parentRoute: typeof AgencyRoute
     }
-    '/admin/revenue': {
-      id: '/admin/revenue'
-      path: '/revenue'
-      fullPath: '/admin/revenue'
-      preLoaderRoute: typeof AdminRevenueRouteImport
+    '/agency/checkout': {
+      id: '/agency/checkout'
+      path: '/checkout'
+      fullPath: '/agency/checkout'
+      preLoaderRoute: typeof AgencyCheckoutRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/dashboard': {
+      id: '/agency/dashboard'
+      path: '/dashboard'
+      fullPath: '/agency/dashboard'
+      preLoaderRoute: typeof AgencyDashboardRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/import': {
+      id: '/agency/import'
+      path: '/import'
+      fullPath: '/agency/import'
+      preLoaderRoute: typeof AgencyImportRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/integrations': {
+      id: '/agency/integrations'
+      path: '/integrations'
+      fullPath: '/agency/integrations'
+      preLoaderRoute: typeof AgencyIntegrationsRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/leads': {
+      id: '/agency/leads'
+      path: '/leads'
+      fullPath: '/agency/leads'
+      preLoaderRoute: typeof AgencyLeadsRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/properties': {
+      id: '/agency/properties'
+      path: '/properties'
+      fullPath: '/agency/properties'
+      preLoaderRoute: typeof AgencyPropertiesRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/agency/team': {
+      id: '/agency/team'
+      path: '/team'
+      fullPath: '/agency/team'
+      preLoaderRoute: typeof AgencyTeamRouteImport
+      parentRoute: typeof AgencyRoute
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/pending': {
+      id: '/auth/pending'
+      path: '/pending'
+      fullPath: '/auth/pending'
+      preLoaderRoute: typeof AuthPendingRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/reset': {
+      id: '/auth/reset'
+      path: '/reset'
+      fullPath: '/auth/reset'
+      preLoaderRoute: typeof AuthResetRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/caretaker/': {
+      id: '/caretaker/'
+      path: '/'
+      fullPath: '/caretaker/'
+      preLoaderRoute: typeof CaretakerIndexRouteImport
+      parentRoute: typeof CaretakerRoute
+    }
+    '/caretaker/dashboard': {
+      id: '/caretaker/dashboard'
+      path: '/dashboard'
+      fullPath: '/caretaker/dashboard'
+      preLoaderRoute: typeof CaretakerDashboardRouteImport
+      parentRoute: typeof CaretakerRoute
+    }
+    '/landlord/': {
+      id: '/landlord/'
+      path: '/'
+      fullPath: '/landlord/'
+      preLoaderRoute: typeof LandlordIndexRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/analytics': {
+      id: '/landlord/analytics'
+      path: '/analytics'
+      fullPath: '/landlord/analytics'
+      preLoaderRoute: typeof LandlordAnalyticsRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/boost': {
+      id: '/landlord/boost'
+      path: '/boost'
+      fullPath: '/landlord/boost'
+      preLoaderRoute: typeof LandlordBoostRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/caretakers': {
+      id: '/landlord/caretakers'
+      path: '/caretakers'
+      fullPath: '/landlord/caretakers'
+      preLoaderRoute: typeof LandlordCaretakersRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/checkout': {
+      id: '/landlord/checkout'
+      path: '/checkout'
+      fullPath: '/landlord/checkout'
+      preLoaderRoute: typeof LandlordCheckoutRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/dashboard': {
+      id: '/landlord/dashboard'
+      path: '/dashboard'
+      fullPath: '/landlord/dashboard'
+      preLoaderRoute: typeof LandlordDashboardRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/import': {
+      id: '/landlord/import'
+      path: '/import'
+      fullPath: '/landlord/import'
+      preLoaderRoute: typeof LandlordImportRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/integrations': {
+      id: '/landlord/integrations'
+      path: '/integrations'
+      fullPath: '/landlord/integrations'
+      preLoaderRoute: typeof LandlordIntegrationsRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/leads': {
+      id: '/landlord/leads'
+      path: '/leads'
+      fullPath: '/landlord/leads'
+      preLoaderRoute: typeof LandlordLeadsRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/properties': {
+      id: '/landlord/properties'
+      path: '/properties'
+      fullPath: '/landlord/properties'
+      preLoaderRoute: typeof LandlordPropertiesRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/manager/': {
+      id: '/manager/'
+      path: '/'
+      fullPath: '/manager/'
+      preLoaderRoute: typeof ManagerIndexRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/analytics': {
+      id: '/manager/analytics'
+      path: '/analytics'
+      fullPath: '/manager/analytics'
+      preLoaderRoute: typeof ManagerAnalyticsRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/caretakers': {
+      id: '/manager/caretakers'
+      path: '/caretakers'
+      fullPath: '/manager/caretakers'
+      preLoaderRoute: typeof ManagerCaretakersRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/checkout': {
+      id: '/manager/checkout'
+      path: '/checkout'
+      fullPath: '/manager/checkout'
+      preLoaderRoute: typeof ManagerCheckoutRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/dashboard': {
+      id: '/manager/dashboard'
+      path: '/dashboard'
+      fullPath: '/manager/dashboard'
+      preLoaderRoute: typeof ManagerDashboardRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/import': {
+      id: '/manager/import'
+      path: '/import'
+      fullPath: '/manager/import'
+      preLoaderRoute: typeof ManagerImportRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/integrations': {
+      id: '/manager/integrations'
+      path: '/integrations'
+      fullPath: '/manager/integrations'
+      preLoaderRoute: typeof ManagerIntegrationsRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/leads': {
+      id: '/manager/leads'
+      path: '/leads'
+      fullPath: '/manager/leads'
+      preLoaderRoute: typeof ManagerLeadsRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/properties': {
+      id: '/manager/properties'
+      path: '/properties'
+      fullPath: '/manager/properties'
+      preLoaderRoute: typeof ManagerPropertiesRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/team': {
+      id: '/manager/team'
+      path: '/team'
+      fullPath: '/manager/team'
+      preLoaderRoute: typeof ManagerTeamRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/services/': {
+      id: '/services/'
+      path: '/'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/services/$category': {
+      id: '/services/$category'
+      path: '/$category'
+      fullPath: '/services/$category'
+      preLoaderRoute: typeof ServicesCategoryRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/services/register': {
+      id: '/services/register'
+      path: '/register'
+      fullPath: '/services/register'
+      preLoaderRoute: typeof ServicesRegisterRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/tenant/': {
+      id: '/tenant/'
+      path: '/'
+      fullPath: '/tenant/'
+      preLoaderRoute: typeof TenantIndexRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/checkout': {
+      id: '/tenant/checkout'
+      path: '/checkout'
+      fullPath: '/tenant/checkout'
+      preLoaderRoute: typeof TenantCheckoutRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/compare': {
+      id: '/tenant/compare'
+      path: '/compare'
+      fullPath: '/tenant/compare'
+      preLoaderRoute: typeof TenantCompareRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/map': {
+      id: '/tenant/map'
+      path: '/map'
+      fullPath: '/tenant/map'
+      preLoaderRoute: typeof TenantMapRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/messages': {
+      id: '/tenant/messages'
+      path: '/messages'
+      fullPath: '/tenant/messages'
+      preLoaderRoute: typeof TenantMessagesRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/profile': {
+      id: '/tenant/profile'
+      path: '/profile'
+      fullPath: '/tenant/profile'
+      preLoaderRoute: typeof TenantProfileRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/saved': {
+      id: '/tenant/saved'
+      path: '/saved'
+      fullPath: '/tenant/saved'
+      preLoaderRoute: typeof TenantSavedRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/verify/': {
+      id: '/verify/'
+      path: '/'
+      fullPath: '/verify/'
+      preLoaderRoute: typeof VerifyIndexRouteImport
+      parentRoute: typeof VerifyRoute
+    }
+    '/verify/request': {
+      id: '/verify/request'
+      path: '/request'
+      fullPath: '/verify/request'
+      preLoaderRoute: typeof VerifyRequestRouteImport
+      parentRoute: typeof VerifyRoute
+    }
+    '/admin/listings/new': {
+      id: '/admin/listings/new'
+      path: '/listings/new'
+      fullPath: '/admin/listings/new'
+      preLoaderRoute: typeof AdminListingsNewRouteImport
       parentRoute: typeof AdminRoute
-    }
-    '/tenant/messages/': {
-      id: '/tenant/messages/'
-      path: '/'
-      fullPath: '/tenant/messages/'
-      preLoaderRoute: typeof TenantMessagesIndexRouteImport
-      parentRoute: typeof TenantMessagesRoute
-    }
-    '/manager/properties/': {
-      id: '/manager/properties/'
-      path: '/'
-      fullPath: '/manager/properties/'
-      preLoaderRoute: typeof ManagerPropertiesIndexRouteImport
-      parentRoute: typeof ManagerPropertiesRoute
-    }
-    '/manager/dashboard/': {
-      id: '/manager/dashboard/'
-      path: '/'
-      fullPath: '/manager/dashboard/'
-      preLoaderRoute: typeof ManagerDashboardIndexRouteImport
-      parentRoute: typeof ManagerDashboardRoute
-    }
-    '/landlord/properties/': {
-      id: '/landlord/properties/'
-      path: '/'
-      fullPath: '/landlord/properties/'
-      preLoaderRoute: typeof LandlordPropertiesIndexRouteImport
-      parentRoute: typeof LandlordPropertiesRoute
-    }
-    '/landlord/dashboard/': {
-      id: '/landlord/dashboard/'
-      path: '/'
-      fullPath: '/landlord/dashboard/'
-      preLoaderRoute: typeof LandlordDashboardIndexRouteImport
-      parentRoute: typeof LandlordDashboardRoute
-    }
-    '/agency/properties/': {
-      id: '/agency/properties/'
-      path: '/'
-      fullPath: '/agency/properties/'
-      preLoaderRoute: typeof AgencyPropertiesIndexRouteImport
-      parentRoute: typeof AgencyPropertiesRoute
     }
     '/agency/dashboard/': {
       id: '/agency/dashboard/'
       path: '/'
       fullPath: '/agency/dashboard/'
       preLoaderRoute: typeof AgencyDashboardIndexRouteImport
-      parentRoute: typeof AgencyDashboardRoute
-    }
-    '/verify/status/$requestId': {
-      id: '/verify/status/$requestId'
-      path: '/status/$requestId'
-      fullPath: '/verify/status/$requestId'
-      preLoaderRoute: typeof VerifyStatusRequestIdRouteImport
-      parentRoute: typeof VerifyRoute
-    }
-    '/tenant/review/$propertyId': {
-      id: '/tenant/review/$propertyId'
-      path: '/review/$propertyId'
-      fullPath: '/tenant/review/$propertyId'
-      preLoaderRoute: typeof TenantReviewPropertyIdRouteImport
-      parentRoute: typeof TenantRoute
-    }
-    '/tenant/property/$id': {
-      id: '/tenant/property/$id'
-      path: '/property/$id'
-      fullPath: '/tenant/property/$id'
-      preLoaderRoute: typeof TenantPropertyIdRouteImport
-      parentRoute: typeof TenantRoute
-    }
-    '/tenant/messages/$id': {
-      id: '/tenant/messages/$id'
-      path: '/$id'
-      fullPath: '/tenant/messages/$id'
-      preLoaderRoute: typeof TenantMessagesIdRouteImport
-      parentRoute: typeof TenantMessagesRoute
-    }
-    '/services/provider/dashboard': {
-      id: '/services/provider/dashboard'
-      path: '/provider/dashboard'
-      fullPath: '/services/provider/dashboard'
-      preLoaderRoute: typeof ServicesProviderDashboardRouteImport
-      parentRoute: typeof ServicesRoute
-    }
-    '/services/provider/$id': {
-      id: '/services/provider/$id'
-      path: '/provider/$id'
-      fullPath: '/services/provider/$id'
-      preLoaderRoute: typeof ServicesProviderIdRouteImport
-      parentRoute: typeof ServicesRoute
-    }
-    '/manager/properties/new': {
-      id: '/manager/properties/new'
-      path: '/new'
-      fullPath: '/manager/properties/new'
-      preLoaderRoute: typeof ManagerPropertiesNewRouteImport
-      parentRoute: typeof ManagerPropertiesRoute
-    }
-    '/manager/dashboard/plan': {
-      id: '/manager/dashboard/plan'
-      path: '/plan'
-      fullPath: '/manager/dashboard/plan'
-      preLoaderRoute: typeof ManagerDashboardPlanRouteImport
-      parentRoute: typeof ManagerDashboardRoute
-    }
-    '/manager/dashboard/billing': {
-      id: '/manager/dashboard/billing'
-      path: '/billing'
-      fullPath: '/manager/dashboard/billing'
-      preLoaderRoute: typeof ManagerDashboardBillingRouteImport
-      parentRoute: typeof ManagerDashboardRoute
-    }
-    '/landlord/properties/new': {
-      id: '/landlord/properties/new'
-      path: '/new'
-      fullPath: '/landlord/properties/new'
-      preLoaderRoute: typeof LandlordPropertiesNewRouteImport
-      parentRoute: typeof LandlordPropertiesRoute
-    }
-    '/landlord/dashboard/plan': {
-      id: '/landlord/dashboard/plan'
-      path: '/plan'
-      fullPath: '/landlord/dashboard/plan'
-      preLoaderRoute: typeof LandlordDashboardPlanRouteImport
-      parentRoute: typeof LandlordDashboardRoute
-    }
-    '/landlord/dashboard/billing': {
-      id: '/landlord/dashboard/billing'
-      path: '/billing'
-      fullPath: '/landlord/dashboard/billing'
-      preLoaderRoute: typeof LandlordDashboardBillingRouteImport
-      parentRoute: typeof LandlordDashboardRoute
-    }
-    '/agency/properties/new': {
-      id: '/agency/properties/new'
-      path: '/new'
-      fullPath: '/agency/properties/new'
-      preLoaderRoute: typeof AgencyPropertiesNewRouteImport
-      parentRoute: typeof AgencyPropertiesRoute
-    }
-    '/agency/dashboard/plan': {
-      id: '/agency/dashboard/plan'
-      path: '/plan'
-      fullPath: '/agency/dashboard/plan'
-      preLoaderRoute: typeof AgencyDashboardPlanRouteImport
       parentRoute: typeof AgencyDashboardRoute
     }
     '/agency/dashboard/billing': {
@@ -1968,26 +1854,152 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyDashboardBillingRouteImport
       parentRoute: typeof AgencyDashboardRoute
     }
-    '/admin/listings/new': {
-      id: '/admin/listings/new'
-      path: '/listings/new'
-      fullPath: '/admin/listings/new'
-      preLoaderRoute: typeof AdminListingsNewRouteImport
-      parentRoute: typeof AdminRoute
+    '/agency/dashboard/plan': {
+      id: '/agency/dashboard/plan'
+      path: '/plan'
+      fullPath: '/agency/dashboard/plan'
+      preLoaderRoute: typeof AgencyDashboardPlanRouteImport
+      parentRoute: typeof AgencyDashboardRoute
     }
-    '/manager/properties/$id/edit': {
-      id: '/manager/properties/$id/edit'
-      path: '/$id/edit'
-      fullPath: '/manager/properties/$id/edit'
-      preLoaderRoute: typeof ManagerPropertiesIdEditRouteImport
+    '/agency/properties/': {
+      id: '/agency/properties/'
+      path: '/'
+      fullPath: '/agency/properties/'
+      preLoaderRoute: typeof AgencyPropertiesIndexRouteImport
+      parentRoute: typeof AgencyPropertiesRoute
+    }
+    '/agency/properties/new': {
+      id: '/agency/properties/new'
+      path: '/new'
+      fullPath: '/agency/properties/new'
+      preLoaderRoute: typeof AgencyPropertiesNewRouteImport
+      parentRoute: typeof AgencyPropertiesRoute
+    }
+    '/landlord/dashboard/': {
+      id: '/landlord/dashboard/'
+      path: '/'
+      fullPath: '/landlord/dashboard/'
+      preLoaderRoute: typeof LandlordDashboardIndexRouteImport
+      parentRoute: typeof LandlordDashboardRoute
+    }
+    '/landlord/dashboard/billing': {
+      id: '/landlord/dashboard/billing'
+      path: '/billing'
+      fullPath: '/landlord/dashboard/billing'
+      preLoaderRoute: typeof LandlordDashboardBillingRouteImport
+      parentRoute: typeof LandlordDashboardRoute
+    }
+    '/landlord/dashboard/plan': {
+      id: '/landlord/dashboard/plan'
+      path: '/plan'
+      fullPath: '/landlord/dashboard/plan'
+      preLoaderRoute: typeof LandlordDashboardPlanRouteImport
+      parentRoute: typeof LandlordDashboardRoute
+    }
+    '/landlord/properties/': {
+      id: '/landlord/properties/'
+      path: '/'
+      fullPath: '/landlord/properties/'
+      preLoaderRoute: typeof LandlordPropertiesIndexRouteImport
+      parentRoute: typeof LandlordPropertiesRoute
+    }
+    '/landlord/properties/new': {
+      id: '/landlord/properties/new'
+      path: '/new'
+      fullPath: '/landlord/properties/new'
+      preLoaderRoute: typeof LandlordPropertiesNewRouteImport
+      parentRoute: typeof LandlordPropertiesRoute
+    }
+    '/manager/dashboard/': {
+      id: '/manager/dashboard/'
+      path: '/'
+      fullPath: '/manager/dashboard/'
+      preLoaderRoute: typeof ManagerDashboardIndexRouteImport
+      parentRoute: typeof ManagerDashboardRoute
+    }
+    '/manager/dashboard/billing': {
+      id: '/manager/dashboard/billing'
+      path: '/billing'
+      fullPath: '/manager/dashboard/billing'
+      preLoaderRoute: typeof ManagerDashboardBillingRouteImport
+      parentRoute: typeof ManagerDashboardRoute
+    }
+    '/manager/dashboard/plan': {
+      id: '/manager/dashboard/plan'
+      path: '/plan'
+      fullPath: '/manager/dashboard/plan'
+      preLoaderRoute: typeof ManagerDashboardPlanRouteImport
+      parentRoute: typeof ManagerDashboardRoute
+    }
+    '/manager/properties/': {
+      id: '/manager/properties/'
+      path: '/'
+      fullPath: '/manager/properties/'
+      preLoaderRoute: typeof ManagerPropertiesIndexRouteImport
       parentRoute: typeof ManagerPropertiesRoute
     }
-    '/landlord/properties/$id/edit': {
-      id: '/landlord/properties/$id/edit'
-      path: '/$id/edit'
-      fullPath: '/landlord/properties/$id/edit'
-      preLoaderRoute: typeof LandlordPropertiesIdEditRouteImport
-      parentRoute: typeof LandlordPropertiesRoute
+    '/manager/properties/new': {
+      id: '/manager/properties/new'
+      path: '/new'
+      fullPath: '/manager/properties/new'
+      preLoaderRoute: typeof ManagerPropertiesNewRouteImport
+      parentRoute: typeof ManagerPropertiesRoute
+    }
+    '/services/provider/$id': {
+      id: '/services/provider/$id'
+      path: '/provider/$id'
+      fullPath: '/services/provider/$id'
+      preLoaderRoute: typeof ServicesProviderIdRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/services/provider/dashboard': {
+      id: '/services/provider/dashboard'
+      path: '/provider/dashboard'
+      fullPath: '/services/provider/dashboard'
+      preLoaderRoute: typeof ServicesProviderDashboardRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/tenant/messages/': {
+      id: '/tenant/messages/'
+      path: '/'
+      fullPath: '/tenant/messages/'
+      preLoaderRoute: typeof TenantMessagesIndexRouteImport
+      parentRoute: typeof TenantMessagesRoute
+    }
+    '/tenant/messages/$id': {
+      id: '/tenant/messages/$id'
+      path: '/$id'
+      fullPath: '/tenant/messages/$id'
+      preLoaderRoute: typeof TenantMessagesIdRouteImport
+      parentRoute: typeof TenantMessagesRoute
+    }
+    '/tenant/property/$id': {
+      id: '/tenant/property/$id'
+      path: '/property/$id'
+      fullPath: '/tenant/property/$id'
+      preLoaderRoute: typeof TenantPropertyIdRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/review/$propertyId': {
+      id: '/tenant/review/$propertyId'
+      path: '/review/$propertyId'
+      fullPath: '/tenant/review/$propertyId'
+      preLoaderRoute: typeof TenantReviewPropertyIdRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/verify/status/$requestId': {
+      id: '/verify/status/$requestId'
+      path: '/status/$requestId'
+      fullPath: '/verify/status/$requestId'
+      preLoaderRoute: typeof VerifyStatusRequestIdRouteImport
+      parentRoute: typeof VerifyRoute
+    }
+    '/admin/listings/$id/edit': {
+      id: '/admin/listings/$id/edit'
+      path: '/listings/$id/edit'
+      fullPath: '/admin/listings/$id/edit'
+      preLoaderRoute: typeof AdminListingsIdEditRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/agency/properties/$id/edit': {
       id: '/agency/properties/$id/edit'
@@ -1996,12 +2008,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyPropertiesIdEditRouteImport
       parentRoute: typeof AgencyPropertiesRoute
     }
-    '/admin/listings/$id/edit': {
-      id: '/admin/listings/$id/edit'
-      path: '/listings/$id/edit'
-      fullPath: '/admin/listings/$id/edit'
-      preLoaderRoute: typeof AdminListingsIdEditRouteImport
-      parentRoute: typeof AdminRoute
+    '/landlord/properties/$id/edit': {
+      id: '/landlord/properties/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/landlord/properties/$id/edit'
+      preLoaderRoute: typeof LandlordPropertiesIdEditRouteImport
+      parentRoute: typeof LandlordPropertiesRoute
+    }
+    '/manager/properties/$id/edit': {
+      id: '/manager/properties/$id/edit'
+      path: '/$id/edit'
+      fullPath: '/manager/properties/$id/edit'
+      preLoaderRoute: typeof ManagerPropertiesIdEditRouteImport
+      parentRoute: typeof ManagerPropertiesRoute
     }
   }
 }
@@ -2097,12 +2116,14 @@ const AgencyRouteWithChildren =
   AgencyRoute._addFileChildren(AgencyRouteChildren)
 
 interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
   AuthPendingRoute: typeof AuthPendingRoute
   AuthResetRoute: typeof AuthResetRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
   AuthPendingRoute: AuthPendingRoute,
   AuthResetRoute: AuthResetRoute,
   AuthIndexRoute: AuthIndexRoute,
@@ -2350,13 +2371,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -18,6 +18,7 @@ import {
   type PortalApplication,
 } from "@/lib/api/portal.functions";
 import { clearCaretakerToken } from "@/lib/caretaker-session";
+import { clearAuthGateDismiss } from "@/lib/auth/auth-gate";
 import type { PortalId } from "@/lib/portal-guard";
 
 export type AppRole = "tenant" | "landlord" | "manager" | "agency" | "caretaker" | "admin";
@@ -170,6 +171,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const signOut = useCallback(async () => {
     clearCaretakerToken();
+    clearAuthGateDismiss();
     await supabase.auth.signOut();
     globalThis.location.href = "/tenant";
   }, []);
