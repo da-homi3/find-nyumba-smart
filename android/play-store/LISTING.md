@@ -134,7 +134,7 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 ---
 
-## What's new (version 1.0.1)
+## What's new (version 1.0.2)
 
 ```
 Card payments and a smoother browse experience
