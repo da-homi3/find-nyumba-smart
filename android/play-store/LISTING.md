@@ -15,15 +15,15 @@ NyumbaSearch
 ## Short description (max 80 characters)
 
 ```
-Find verified rentals in Nairobi from verified property owners.
+Kenya-wide verified rentals, map search, and home service providers.
 ```
 
-**Character count:** 61
+**Character count:** 68
 
 ### Alternate options
 
 ```
-Verified vacant homes in Nairobi. Search, map, message verified property owners.
+Find verified rentals in Nairobi from verified property owners.
 ```
 
 ```
@@ -35,41 +35,75 @@ Kenya's trusted rental search — verified property owners, M-Pesa-ready.
 ## Full description (max 4,000 characters)
 
 ```
-NyumbaSearch helps you find vacant homes across Nairobi — from bedsitters in Kasarani to townhouses in Karen — from verified property owners.
+NyumbaSearch is Kenya's all-in-one home platform - find verified rentals nationwide, connect with landlords and agencies, and hire trusted local service providers for moving, repairs, cleaning, and more.
 
-Whether you're a tenant hunting your next place or a landlord listing property directly, NyumbaSearch connects you with real, available homes.
+Whether you are searching for a bedsitter in Nairobi, a family home in Mombasa, a flat in Kisumu, or a house in Nakuru, Eldoret, Thika, Ruiru, Kiambu, Machakos, or beyond, NyumbaSearch helps you discover real vacant homes from verified property owners across Kenya.
 
-WHAT YOU CAN DO
+FIND HOMES ACROSS KENYA
 
-• Search by neighbourhood, budget, and property type
-• Browse verified listings with photos, amenities, and pricing
-• View properties on an interactive map
-• Message landlords and agencies in-app
-• Save favourites and set search alerts
-• List and manage properties (landlord, manager, and agency portals)
-• Pay for plans and boosts via M-Pesa and card (secure checkout in your browser)
+• Search by county, neighbourhood, budget, bedrooms, and property type
+• Browse verified listings with photos, amenities, pricing, and clear details
+• Explore properties on an interactive map built for mobile
+• Message landlords, caretakers, managers, and agencies in-app
+• Save favourites and set search alerts so you never miss a vacant home
+• List and manage properties through landlord, manager, and agency portals
+• Pay for contact unlocks, plans, and boosts via M-Pesa and card (Pesapal)
+
+HOME SERVICE PROVIDERS
+
+Need help settling in or maintaining your home? NyumbaSearch also connects you with verified home service providers across Kenya. Browse by category, compare providers, request quotes, and contact businesses serving your county.
+
+Service categories include:
+
+• Electricians and solar installation
+• Plumbers and water / borehole services
+• Painters and interior design
+• Movers and relocation (packing and moving help)
+• Cleaning services, laundry, and mama fua / domestic help
+• Internet installation and security systems
+• Pest control and fumigation
+• Carpentry, furniture makers, and roofing
+• Appliance repair, AC and refrigeration
+• Gardening and landscaping
+• Generators and backup power
+• Locksmiths
+• Gas and LPG delivery
+• Courier and delivery services
+• Nanny and related home support services
+
+Providers can register, list their coverage areas and counties, and reach tenants and landlords who need work done - from Nairobi and Mombasa to towns and counties nationwide.
+
+WHO IT IS FOR
+
+• Tenants looking for the next rental anywhere in Kenya
+• Landlords listing vacant homes directly
+• Property managers and agencies managing portfolios
+• Home service providers growing their local and county-wide business
 
 BUILT FOR KENYA
 
-• Optimised for slower mobile networks — loads fast on 3G
-• Works on everyday Android phones (Android 7.0 and up)
-• Kenyan neighbourhoods: Kilimani, Westlands, Kasarani, Ruaka, Rongai, and more
+• Optimised for slower mobile networks - loads fast on everyday 3G and 4G
+• Works on Android 7.0 and up
+• Kenyan payments: Safaricom M-Pesa and card checkout via Pesapal
 • Customer care: nyumbasearch101@gmail.com | 0714 725 598
+• Coverage focus: Nairobi Metropolitan Area plus counties and towns across Kenya
 
-TRUST & SAFETY
+TRUST AND SAFETY
 
-• Verification pipeline for listings
+• Verification pipeline for listings and provider onboarding
 • Listings from verified property owners
-• Privacy policy and data deletion available in-app
-• HTTPS-only; payments handled by licensed providers (Safaricom M-Pesa, Flutterwave)
+• Privacy policy and account / data deletion available online and in-app
+• HTTPS-only browsing; payments handled by licensed providers
 
-WHO IT'S FOR
+WHY NYUMBASEARCH
 
-• Tenants looking for their next rental
-• Landlords listing directly
-• Property managers and agencies managing portfolios
+Stop scrolling endless unverified posts. Search homes on the map, contact owners with confidence, unlock contacts when you are ready, and hire the plumber, mover, electrician, or cleaner you need - all in one Kenya-wide app.
 
-Download NyumbaSearch and find your next home — nyumba safi, hakuna broker.
+NyumbaSearch - nyumba safi, hakuna broker. Find your next home and the services that make it liveable, anywhere in Kenya.
+
+Download NyumbaSearch today and start with Browse, Map, or Services. Landlords and agencies can list properties; service providers can register and get discovered by people who need them. Questions? Email nyumbasearch101@gmail.com or WhatsApp 0714 725 598. We are building Kenya's trusted home marketplace for tenants, landlords, and local service pros - verified rentals, clearer contacts, and practical help from movers to plumbers, electricians, cleaners, solar installers, and more. Search Kenya-wide, pay with M-Pesa, and manage everything on your phone.
+
+Popular search areas include Kilimani, Westlands, Kasarani, Ruaka, Rongai, Syokimau, Kitengela, Juja, Ngong, Karen, South B, South C, Parklands, Lavington, and expanding coverage in Mombasa, Kisumu, Nakuru, Eldoret, and more Kenyan counties every month.
 ```
 
 ---
@@ -77,7 +111,7 @@ Download NyumbaSearch and find your next home — nyumba safi, hakuna broker.
 ## Promotional text (optional, max 170 characters)
 
 ```
-New: NyumbaSearch for Android. Verified Nairobi rentals, map search, and direct landlord contact — fast on 3G.
+New: NyumbaSearch for Android. Kenya-wide verified rentals, map search, and home service providers — fast on 3G.
 ```
 
 ---
@@ -91,7 +125,7 @@ New: NyumbaSearch for Android. Verified Nairobi rentals, map search, and direct 
 ## Tags / keywords (for your ASO notes — not a Play Console field)
 
 ```
-Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental app Kenya, nyumba, landlord Kenya, property search Nairobi, Kasarani rent, Westlands apartment
+Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental app Kenya, nyumba, landlord Kenya, property search Nairobi, Kasarani rent, Westlands apartment, movers Kenya, plumber Nairobi, electrician Kenya
 ```
 
 ---
@@ -134,13 +168,13 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 ---
 
-## What's new (version 1.0.2)
+## What's new (version 1.0.3)
 
 ```
-Card payments and a smoother browse experience
+Faster app browsing and Kenya-wide services
 
-• Card checkout (Pesapal) stays in the app — no broken redirects
-• Faster, more reliable listing search and map browse
-• Improved contact unlock and M-Pesa payment reliability
-• NyumbaSearch AI answers more consistently on listing pages
+• Much faster map and browse load times
+• Kenya-wide rentals plus home service providers
+• Card checkout (Pesapal) stays in the app
+• Improved contact unlock and M-Pesa reliability
 ```
