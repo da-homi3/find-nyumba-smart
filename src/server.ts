@@ -5,6 +5,7 @@ import type { ServeMode } from "./lib/app-client";
 import { getAppServeContext, withAppClientHeaders } from "./lib/app-client";
 import { addSecurityHeaders } from "./lib/security/headers";
 import { tryInfrastructureRoute } from "./lib/api/infrastructure-routes";
+import { matchPublicHtmlCache, storePublicHtmlCache } from "./lib/cache/html-edge-cache";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -75,12 +76,17 @@ async function injectServeModeIntoHtml(
   });
 }
 
-async function finalizeResponse(response: Response, request: Request): Promise<Response> {
+async function finalizeResponse(
+  response: Response,
+  request: Request,
+  ctx?: ExecutionContext,
+): Promise<Response> {
   const appContext = getAppServeContext(request);
   const secured = addSecurityHeaders(response);
   const withHeaders = withAppClientHeaders(secured, appContext);
 
   const host = new URL(request.url).hostname.toLowerCase();
+  let outgoing: Response;
   if (host.endsWith(".workers.dev")) {
     const headers = new Headers(withHeaders.headers);
     headers.set("X-Robots-Tag", "noindex, nofollow");
@@ -90,10 +96,12 @@ async function finalizeResponse(response: Response, request: Request): Promise<R
       statusText: withHeaders.statusText,
       headers,
     });
-    return injectServeModeIntoHtml(tagged, appContext.serveMode);
+    outgoing = await injectServeModeIntoHtml(tagged, appContext.serveMode);
+  } else {
+    outgoing = await injectServeModeIntoHtml(withHeaders, appContext.serveMode);
   }
 
-  return injectServeModeIntoHtml(withHeaders, appContext.serveMode);
+  return storePublicHtmlCache(request, outgoing, ctx);
 }
 
 /** Keep brand equity on the apex domain for search. */
@@ -113,15 +121,18 @@ export default {
       const hostRedirect = maybeCanonicalHostRedirect(request);
       if (hostRedirect) return hostRedirect;
 
+      const cachedHtml = await matchPublicHtmlCache(request);
+      if (cachedHtml) return cachedHtml;
+
       const infraResponse = await tryInfrastructureRoute(request, ctx);
       if (infraResponse) {
-        return finalizeResponse(infraResponse, request);
+        return finalizeResponse(infraResponse, request, ctx);
       }
 
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response);
-      return finalizeResponse(normalized, request);
+      return finalizeResponse(normalized, request, ctx);
     } catch (error) {
       console.error(error);
       return addSecurityHeaders(

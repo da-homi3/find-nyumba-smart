@@ -12,6 +12,7 @@ export const CACHE_CONFIGS: Record<string, CacheConfig> = {
    * Epoch invalidation still busts keys immediately after uploads.
    */
   listings_search: { kvTtl: 45, staleWhileRevalidate: 180 },
+  provider_category_counts: { kvTtl: 120, staleWhileRevalidate: 300 },
   testimonials: { kvTtl: 3600, staleWhileRevalidate: 7200 },
   intelligence_stats: { kvTtl: 300, staleWhileRevalidate: 900 },
   agency_featured: { kvTtl: 600, staleWhileRevalidate: 1800 },

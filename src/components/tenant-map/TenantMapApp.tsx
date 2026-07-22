@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { type Property } from "@/lib/properties";
 import { useListingsSearch } from "@/hooks/use-listings-search";
+import { MAP_LISTINGS_FILTERS } from "@/lib/tenant-section-prefetch";
 import { FallbackMap } from "@/components/tenant-map/FallbackMap";
 import {
   filterMappableProperties,
@@ -73,7 +74,7 @@ export function TenantMapApp() {
     isError,
     error,
     refetch,
-  } = useListingsSearch({ limit: 300, sortBy: "newest" });
+  } = useListingsSearch(MAP_LISTINGS_FILTERS);
   const properties = useMemo(
     () => mergeListingsForDisplay(searchResult?.items ?? []),
     [searchResult?.items],

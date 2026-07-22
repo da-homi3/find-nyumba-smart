@@ -54,8 +54,14 @@ export type ListingsResult = {
 
 type Db = SupabaseClient<Database>;
 
-function buildPropertySelect(supabase: Db, columns: string) {
-  return supabase.from("properties").select(columns, { count: "exact" });
+function buildPropertySelect(
+  supabase: Db,
+  columns: string,
+  options?: { countMode?: "exact" | "estimated" },
+) {
+  return supabase.from("properties").select(columns, {
+    count: options?.countMode ?? "exact",
+  });
 }
 
 type PropertyQuery = ReturnType<typeof buildPropertySelect>;
@@ -162,8 +168,8 @@ function isCurrentlyBoosted(featuredUntil: string | null | undefined, now: numbe
 
 /** Hard cap for any public listings request — protects Worker CPU + payload size. */
 export const MAX_LISTINGS_LIMIT = 300;
-/** Pool size for nearby sort before distance slicing (matches hard cap). */
-const NEARBY_POOL_LIMIT = MAX_LISTINGS_LIMIT;
+/** Nearby/map pool before distance slice — keep below hard cap for faster responses. */
+const NEARBY_POOL_LIMIT = 150;
 
 async function runListingsSelect(
   supabase: Db,
@@ -183,10 +189,11 @@ async function runListingsSelect(
       ? Math.min(Math.max(requestedLimit, NEARBY_POOL_LIMIT), NEARBY_POOL_LIMIT)
       : requestedLimit;
   const fetchOffset = data?.sortBy === "nearby" ? 0 : offset;
-  const query = applyListingFilters(buildPropertySelect(supabase, columns), data).range(
-    fetchOffset,
-    fetchOffset + fetchLimit - 1,
-  );
+  const countMode = fetchLimit >= 100 ? ("estimated" as const) : ("exact" as const);
+  const query = applyListingFilters(
+    buildPropertySelect(supabase, columns, { countMode }),
+    data,
+  ).range(fetchOffset, fetchOffset + fetchLimit - 1);
 
   const { data: rows, error, count } = await query;
   return { rows, error, count, limit: requestedLimit, offset };

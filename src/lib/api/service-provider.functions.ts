@@ -536,26 +536,30 @@ export const listProviderCounties = createServerFn({ method: "GET" }).handler(as
 });
 
 export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: rows, error } = await supabaseAdmin
-    .from("service_providers")
-    .select("categories")
-    .eq("status", "active");
+  const { withCache } = await import("@/lib/cache/manager");
+  const { data } = await withCache("provider_category_counts_v1", "provider_category_counts", async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("service_providers")
+      .select("categories")
+      .eq("status", "active");
 
-  if (error) throw error;
+    if (error) throw error;
 
-  const counts = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
-    (typeof categories)[number],
-    number
-  >;
+    const counts = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
+      (typeof categories)[number],
+      number
+    >;
 
-  for (const row of rows ?? []) {
-    for (const cat of normalizeProviderCategories(row.categories)) {
-      if (cat in counts) counts[cat as (typeof categories)[number]]++;
+    for (const row of rows ?? []) {
+      for (const cat of normalizeProviderCategories(row.categories)) {
+        if (cat in counts) counts[cat as (typeof categories)[number]]++;
+      }
     }
-  }
 
-  return counts;
+    return counts;
+  });
+  return data;
 });
 
 export const listActiveProvidersByCategory = createServerFn({ method: "GET" })
