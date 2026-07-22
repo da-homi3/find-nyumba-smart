@@ -189,6 +189,7 @@ async function handleListingsPost(
       title,
       neighborhood,
       rent_kes: rentKes,
+      rent_kes_max: null,
       bedrooms: Number(body.bedrooms ?? 1),
       bathrooms: Number(body.bathrooms ?? 1),
       property_type: propertyType,

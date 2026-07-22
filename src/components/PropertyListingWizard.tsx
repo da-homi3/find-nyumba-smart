@@ -22,7 +22,7 @@ import {
   isNightlyRentType,
   listingPriceAmountLabel,
 } from "@/lib/property-types";
-import { validateCommercialRanges } from "@/lib/commercial-ranges";
+import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
 import { enhanceImageForUpload, enhanceVideoForUpload } from "@/lib/media/enhance-upload";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -394,12 +394,12 @@ function validateListingDetailsTab(form: ListingFormState, requireContactPhone: 
     toast.error("Select a booking period");
     return false;
   }
-  if (!isCommercialType(form.property_type)) return true;
 
   let rangeError: string | null = null;
   validateCommercialRanges(
     {
       property_type: form.property_type,
+      pricing_mode: form.pricing_mode,
       rent_kes: form.rent_kes,
       rent_kes_max: form.rent_kes_max ? Number(form.rent_kes_max) : null,
       area_sqm: form.area_sqm || null,
@@ -447,7 +447,12 @@ function buildListingPayload(
     longitude: form.longitude,
     rent_kes: Number(form.rent_kes),
     rent_kes_max:
-      isCommercialType(form.property_type) && form.rent_kes_max ? Number(form.rent_kes_max) : null,
+      supportsListingPriceRange({
+        property_type: form.property_type,
+        pricing_mode: form.pricing_mode,
+      }) && form.rent_kes_max
+        ? Number(form.rent_kes_max)
+        : null,
     deposit_kes: Number(form.deposit_kes) || null,
     bedrooms: Number(form.bedrooms),
     bathrooms: Number(form.bathrooms),

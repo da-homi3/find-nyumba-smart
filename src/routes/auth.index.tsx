@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
+import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
+import { withTimeout } from "@/lib/auth/with-timeout";
 import {
   resolvePostLoginPath,
   type AppRole,
@@ -22,11 +24,9 @@ import { isKenyanPhone } from "@/lib/phone";
 import { validatePasswordPair } from "@/lib/validate-password";
 import { authSubmitLabel, errorMessage } from "@/lib/utils";
 import {
-  getMyProfilePortal,
-  listMyPortalApplications,
-  submitPortalApplication,
-} from "@/lib/api/portal.functions";
-import { registerAccountSignup } from "@/lib/api/auth.functions";
+  registerAccountSignup,
+} from "@/lib/api/auth.functions";
+import { submitPortalApplication } from "@/lib/api/portal.functions";
 import { PromoBadge } from "@/components/auth/PromoBadge";
 import { RoleSelector } from "@/components/auth/RoleSelector";
 import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
@@ -34,7 +34,6 @@ import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
 import { buildPageHead } from "@/lib/seo/head";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
-import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -58,6 +57,25 @@ export const Route = createFileRoute("/auth/")({
 async function resolveRoles(user: User): Promise<string[]> {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
   return (data ?? []).map((r) => r.role as string);
+}
+
+type PortalAppRow = { requested_role: string; status: string; created_at: string };
+
+async function loadPortalApplications(userId: string): Promise<PortalAppRow[]> {
+  const { data } = await supabase
+    .from("portal_applications")
+    .select("requested_role, status, created_at")
+    .eq("user_id", userId);
+  return (data ?? []) as PortalAppRow[];
+}
+
+async function loadActivePortal(userId: string): Promise<PortalId> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("active_portal")
+    .eq("id", userId)
+    .maybeSingle();
+  return (data?.active_portal as PortalId) ?? "tenant";
 }
 
 function signupSubtitle(role: AccountRole): string {
@@ -127,7 +145,7 @@ function TenantAuth() {
     if (isPrivilegedAccountRole(role)) {
       const privilegedRole = role as "landlord" | "manager" | "agency";
 
-      if (!signupResult.linked) {
+      if (!("linked" in signupResult && signupResult.linked)) {
         const portalPayload = {
           requestedRole: privilegedRole,
           organizationName: organizationName.trim() || undefined,
@@ -137,7 +155,7 @@ function TenantAuth() {
       }
 
       toast.success(
-        signupResult.linked
+        "linked" in signupResult && signupResult.linked
           ? "Application submitted for your existing account — we’ll email you once approved."
           : "Application submitted — NyumbaSearch ops will review and email you when approved.",
       );
@@ -147,11 +165,9 @@ function TenantAuth() {
 
     markSignupTourPending("tenant");
     toast.success("Welcome to NyumbaSearch!");
-    try {
-      await ensureTenantAccount();
-    } catch (err) {
+    void ensureTenantAccount().catch((err) => {
       console.warn("[auth] ensureTenantAccount after signup:", err);
-    }
+    });
     globalThis.location.href = "/tenant";
   }
 
@@ -160,8 +176,9 @@ function TenantAuth() {
     if (error) throw error;
     if (!data.user) throw new Error("Sign in failed");
 
-    const roles = await resolveRoles(data.user);
-    const apps = await listMyPortalApplications();
+    // Client queries with timeouts — avoid hanging on server-fn / getSession contention.
+    const roles = await withTimeout(resolveRoles(data.user), 4000, [] as string[]);
+    const apps = await withTimeout(loadPortalApplications(data.user.id), 4000, [] as PortalAppRow[]);
     const hasPendingOnly =
       apps.some((a) => a.status === "pending") &&
       !roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
@@ -171,13 +188,11 @@ function TenantAuth() {
       return;
     }
 
-    let activePortal: PortalId = "tenant";
-    try {
-      const profile = await getMyProfilePortal();
-      activePortal = (profile?.active_portal as PortalId) ?? "tenant";
-    } catch (err) {
-      console.debug("[auth] Profile portal not ready after login:", err);
-    }
+    const activePortal = await withTimeout(loadActivePortal(data.user.id), 3000, "tenant" as PortalId);
+
+    void ensureTenantAccount().catch((err) => {
+      console.warn("[auth] ensureTenantAccount after signin:", err);
+    });
 
     globalThis.location.href = resolvePostLoginPath(
       roles as AppRole[],
@@ -198,9 +213,16 @@ function TenantAuth() {
   function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    const hardStop = globalThis.setTimeout(() => {
+      setLoading(false);
+      toast.error("Sign-in is taking too long. Check your connection and try again.");
+    }, 12_000);
     submitForm()
       .catch((err) => toast.error(errorMessage(err)))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        globalThis.clearTimeout(hardStop);
+        setLoading(false);
+      });
   }
 
   const submitLabel = authSubmitLabel(loading, mode === "reset" ? "signin" : mode);
@@ -263,9 +285,9 @@ function TenantAuth() {
                   disabled={loading}
                 />
                 <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <span className="h-px flex-1 bg-border" />
-                  or email
-                  <span className="h-px flex-1 bg-border" />
+                  <span className="h-px flex-1 bg-border" aria-hidden />
+                  <span>or email</span>
+                  <span className="h-px flex-1 bg-border" aria-hidden />
                 </div>
               </div>
             )}
@@ -312,7 +334,8 @@ function TenantAuth() {
                   {isPrivilegedAccountRole(role) && (
                     <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
                       Landlord, property manager, and agency accounts require NyumbaSearch admin
-                      approval before dashboard access. After approval you get a 30-day free trial.
+                      approval before dashboard access. After your first paid month, you get one
+                      bonus month free.
                     </p>
                   )}
                 </>

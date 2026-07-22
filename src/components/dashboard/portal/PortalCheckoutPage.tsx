@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfilePhone } from "@/hooks/use-profile-phone";
 import {
   LEAD_PACKS,
   PORTAL_PLANS,
@@ -10,7 +11,6 @@ import {
 } from "@/lib/revenue/plans";
 import { PORTAL_PATHS, type ListingPortal } from "@/lib/portal-paths";
 import { useEffect } from "react";
-import type { User } from "@supabase/supabase-js";
 
 export type PortalCheckoutSearch = {
   plan?: string;
@@ -19,20 +19,13 @@ export type PortalCheckoutSearch = {
   reportType?: string;
 };
 
-function profilePhone(user: User): string {
-  const meta = user.user_metadata;
-  if (meta && typeof meta === "object" && "phone" in meta && typeof meta.phone === "string") {
-    return meta.phone;
-  }
-  return user.phone ?? "";
-}
-
 export function PortalCheckoutPage({
   portal,
   search,
 }: Readonly<{ portal: ListingPortal; search: PortalCheckoutSearch }>) {
   const paths = PORTAL_PATHS[portal];
   const { user, loading } = useAuth();
+  const { phone: profilePhone } = useProfilePhone();
   const navigate = useNavigate();
   const { plan, product, qty, reportType } = search;
 
@@ -60,7 +53,7 @@ export function PortalCheckoutPage({
   }
   if (!user) return null;
 
-  const defaultPhone = profilePhone(user);
+  const defaultPhone = profilePhone ?? "";
 
   if (product === "report") {
     const report =

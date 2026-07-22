@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { LandlordPlan } from "@/lib/revenue/types";
-import { LISTING_LIMITS } from "@/lib/revenue/plans";
+import { LISTING_LIMITS } from "@/lib/revenue/listing-limits";
 import { getActiveLandlordPlan } from "@/lib/revenue/subscription-store";
 
 type Db = SupabaseClient<Database>;

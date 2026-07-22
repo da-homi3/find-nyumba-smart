@@ -79,15 +79,41 @@ async function finalizeResponse(response: Response, request: Request): Promise<R
   const appContext = getAppServeContext(request);
   const secured = addSecurityHeaders(response);
   const withHeaders = withAppClientHeaders(secured, appContext);
+
+  const host = new URL(request.url).hostname.toLowerCase();
+  if (host.endsWith(".workers.dev")) {
+    const headers = new Headers(withHeaders.headers);
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+    const noIndexBody = withHeaders.body;
+    const tagged = new Response(noIndexBody, {
+      status: withHeaders.status,
+      statusText: withHeaders.statusText,
+      headers,
+    });
+    return injectServeModeIntoHtml(tagged, appContext.serveMode);
+  }
+
   return injectServeModeIntoHtml(withHeaders, appContext.serveMode);
 }
 
+/** Keep brand equity on the apex domain for search. */
+function maybeCanonicalHostRedirect(request: Request): Response | null {
+  const url = new URL(request.url);
+  const host = url.hostname.toLowerCase();
+  if (host !== "www.nyumbasearch.com") return null;
+  url.hostname = "nyumbasearch.com";
+  return Response.redirect(url.toString(), 301);
+}
+
 export default {
-  async fetch(request: Request, env: unknown, ctx: unknown) {
+  async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
     try {
       attachRuntimeEnv(env);
 
-      const infraResponse = await tryInfrastructureRoute(request);
+      const hostRedirect = maybeCanonicalHostRedirect(request);
+      if (hostRedirect) return hostRedirect;
+
+      const infraResponse = await tryInfrastructureRoute(request, ctx);
       if (infraResponse) {
         return finalizeResponse(infraResponse, request);
       }

@@ -1,6 +1,6 @@
 # NyumbaSearch Android App
 
-Production WebView-native hybrid for Kenya's low-bandwidth market. Package: `com.nyumbasearch.app`.
+Production WebView-native hybrid for Kenya's low-bandwidth market. Package: `ke.co.nyumbasearch.app`.
 
 ## Requirements
 

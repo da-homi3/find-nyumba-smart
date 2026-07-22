@@ -1,4 +1,5 @@
 import { getWorkersAi } from "@/lib/worker-bindings";
+import { getServerEnv } from "@/lib/server-env";
 
 const GEMINI_OPENAI_BASE =
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
@@ -15,7 +16,7 @@ type ChatCompletionResponse = {
 };
 
 function getGeminiApiKey(): string | undefined {
-  return process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY;
+  return getServerEnv("GEMINI_API_KEY") ?? getServerEnv("GOOGLE_AI_API_KEY");
 }
 
 function extractWorkersAiText(result: { response?: string } | string): string | null {
@@ -99,20 +100,37 @@ async function callGeminiOpenAI(
 }
 
 function geminiModelsToTry(): string[] {
-  const preferred = process.env.GEMINI_MODEL?.trim();
+  const preferred = getServerEnv("GEMINI_MODEL")?.trim();
   const models = preferred ? [preferred, ...GEMINI_MODEL_FALLBACKS] : GEMINI_MODEL_FALLBACKS;
   return [...new Set(models)];
+}
+
+/** Prefer the fastest model first for chat widgets (avoid cascading timeouts). */
+function geminiModelsFastFirst(): string[] {
+  const preferred = getServerEnv("GEMINI_MODEL")?.trim() || "gemini-2.5-flash-lite";
+  const rest = GEMINI_MODEL_FALLBACKS.filter((m) => m !== preferred);
+  return [preferred, ...rest];
 }
 
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string | null> {
   const key = getGeminiApiKey();
   if (!key) return null;
 
-  for (const model of geminiModelsToTry()) {
-    const native = await callGeminiNative(systemPrompt, userPrompt, key, model);
-    if (native) return native;
-    const openai = await callGeminiOpenAI(systemPrompt, userPrompt, key, model);
-    if (openai) return openai;
+  // Cap cascade — long prompts + many model retries blow Worker CPU/subrequest budget.
+  const models = geminiModelsFastFirst().slice(0, 2);
+  for (const model of models) {
+    try {
+      const native = await callGeminiNative(systemPrompt, userPrompt, key, model);
+      if (native) return native;
+    } catch (error) {
+      console.error("Gemini native throw:", model, error);
+    }
+    try {
+      const openai = await callGeminiOpenAI(systemPrompt, userPrompt, key, model);
+      if (openai) return openai;
+    } catch (error) {
+      console.error("Gemini OpenAI throw:", model, error);
+    }
   }
   return null;
 }
@@ -122,6 +140,10 @@ export async function callGeminiChat(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string | null> {
+  // Try Workers AI first for short-latency chat (binding is local to the colo).
+  const workersFirst = await callWorkersAi(systemPrompt, userPrompt);
+  if (workersFirst) return workersFirst;
+
   if (getGeminiApiKey()) {
     try {
       const gemini = await callGemini(systemPrompt, userPrompt);
@@ -131,7 +153,7 @@ export async function callGeminiChat(
     }
   }
 
-  return callWorkersAi(systemPrompt, userPrompt);
+  return null;
 }
 
 export type GeminiInlineImage = {

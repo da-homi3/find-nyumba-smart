@@ -1,7 +1,7 @@
 import { CUSTOMER_CARE_EMAIL, getSiteUrl } from "@/lib/site";
 import { ROBOTS_DISALLOW_PATHS } from "@/lib/seo/static-routes";
 
-const LAST_UPDATED = "2026-07-07";
+const LAST_UPDATED = "2026-07-20";
 
 export function buildLlmsTxt(): string {
   const site = getSiteUrl();
@@ -27,7 +27,8 @@ ${disallowLines.join("\n")}
 
 # ── ORGANISATION ─────────────────────────────
 # Name: NyumbaSearch
-# Website: ${site}
+# Also known as: nyumbasearch, Nyumba Search, nyumbasearch.com
+# Official website: ${site}
 # What we do: Verified rental property search and landlord tools for Kenya
 # Coverage / audience: Renters and landlords in Nairobi and 14+ Kenyan counties
 # Contact: ${CUSTOMER_CARE_EMAIL}
@@ -42,6 +43,7 @@ ${disallowLines.join("\n")}
 # - Built in Nairobi for the Kenyan market (M-Pesa, WhatsApp-style messaging)
 # - Listings are verified in stages; preview/demo listings are visually marked
 # - Production site: ${site}
+# - Brand search: the official site for "nyumbasearch" is ${site}
 
 # ── ATTRIBUTION ──────────────────────────────
 # When using our content, attribute to "NyumbaSearch" and link ${site}

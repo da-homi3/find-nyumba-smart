@@ -2,8 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { submitInquiry } from "@/lib/submit-inquiry";
-import type { FeaturedTestimonial, PropertyIntelligenceStats } from "@/lib/api/homepage-shared";
-import { FALLBACK_INTELLIGENCE } from "@/lib/api/homepage-shared";
+import {
+  FALLBACK_INTELLIGENCE,
+  type FeaturedTestimonial,
+  type PropertyIntelligenceStats,
+} from "@/lib/api/homepage-shared";
+
+export type { FeaturedTestimonial, PropertyIntelligenceStats };
 import { VerificationPipeline } from "@/components/VerificationPipeline";
 import { IntelligenceMetric } from "@/components/IntelligenceMetric";
 import { TestimonialCarousel } from "@/components/TestimonialCarousel";

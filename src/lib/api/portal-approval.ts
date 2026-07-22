@@ -92,7 +92,8 @@ export async function grantPortalListerAccess(
     startTrial?: boolean;
   },
 ): Promise<{ organizationId: string | null; trialStarted: boolean; trialEnd?: string }> {
-  const startTrial = input.startTrial !== false;
+  // Free portal month is granted only after the first paid subscription month.
+  const startTrial = input.startTrial === true;
 
   await supabaseAdmin
     .from("user_roles")

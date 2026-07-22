@@ -17,7 +17,7 @@ import { formatListingPrice } from "@/lib/commercial-ranges";
 import { listingPricingNote } from "@/lib/property-types";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyImage } from "@/components/PropertyImage";
-import { formatVerifiedAgo, getListingIntel, verificationLevel } from "@/lib/listing-intel";
+import { getListingIntel, propertyVerifiedLabel, verificationLevel } from "@/lib/listing-intel";
 import { isListingEarlyAccess } from "@/lib/revenue/entitlements";
 import { SaveButton } from "@/components/motion/SaveButton";
 import { ShareListingButton } from "@/components/ShareListingButton";
@@ -79,12 +79,14 @@ function PropertyScamRiskBadge({
 
 function PropertyCardBadges({
   property,
+  verifiedLabel,
   level,
   score,
   plusMember,
   earlyAccess,
 }: Readonly<{
   property: Property;
+  verifiedLabel: string | null;
   level: number;
   score: number;
   plusMember: boolean;
@@ -99,10 +101,10 @@ function PropertyCardBadges({
           Featured
         </span>
       ) : null}
-      {property.nyumba_verified_at ? (
+      {verifiedLabel ? (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
           <BadgeCheck className="h-3 w-3" aria-hidden />
-          NyumbaSearch Verified
+          {verifiedLabel}
         </span>
       ) : null}
       {level > 0 ? <VerificationBadge level={level} variant="glass" /> : null}
@@ -119,6 +121,7 @@ function PropertyCardBadges({
 function PropertyCardImage({
   property,
   coverImage,
+  verifiedLabel,
   level,
   score,
   plusMember,
@@ -132,6 +135,7 @@ function PropertyCardImage({
 }: Readonly<{
   property: Property;
   coverImage: string | undefined;
+  verifiedLabel: string | null;
   level: number;
   score: number;
   plusMember: boolean;
@@ -169,6 +173,7 @@ function PropertyCardImage({
       />
       <PropertyCardBadges
         property={property}
+        verifiedLabel={verifiedLabel}
         level={level}
         score={score}
         plusMember={plusMember}
@@ -196,11 +201,11 @@ function PropertyCardImage({
 function PropertyCardDetails({
   property,
   intel,
-  verifiedNote,
+  detailNote,
 }: Readonly<{
   property: Property;
   intel: ReturnType<typeof getListingIntel>;
-  verifiedNote: string;
+  detailNote: string;
 }>) {
   return (
     <div className="p-4">
@@ -213,7 +218,9 @@ function PropertyCardDetails({
           {property.neighborhood} · {intel.subArea}
         </span>
       </div>
-      <p className="mt-1 text-[10px] text-muted-foreground">{verifiedNote}</p>
+      {detailNote ? (
+        <p className="mt-1 text-[10px] text-muted-foreground">{detailNote}</p>
+      ) : null}
 
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium">
         <span className={`inline-flex items-center gap-0.5 ${intelColor(intel.water)}`}>
@@ -299,7 +306,10 @@ export const PropertyCard = memo(function PropertyCard({
   const isFeatured = p.featured_until && new Date(p.featured_until) > new Date();
   const earlyAccess = isListingEarlyAccess(p.created_at, plusMember);
   const coverImage = p.images[0];
-  const verifiedNote = `${formatVerifiedAgo(intel.verifiedDaysAgo)}${leaseNote(p)}`;
+  const verifiedLabel = propertyVerifiedLabel(p);
+  const detailNote = [verifiedLabel, leaseNote(p).replace(/^ · /, "")]
+    .filter(Boolean)
+    .join(" · ");
   const interactive = isHovered && !lightMotion;
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -349,6 +359,7 @@ export const PropertyCard = memo(function PropertyCard({
           <PropertyCardImage
             property={p}
             coverImage={coverImage}
+            verifiedLabel={verifiedLabel}
             level={level}
             score={score}
             plusMember={plusMember}
@@ -360,7 +371,7 @@ export const PropertyCard = memo(function PropertyCard({
             lightMotion={lightMotion}
             mousePos={mousePos}
           />
-          <PropertyCardDetails property={p} intel={intel} verifiedNote={verifiedNote} />
+          <PropertyCardDetails property={p} intel={intel} detailNote={detailNote} />
         </div>
 
         <PropertyCardHoverGlow

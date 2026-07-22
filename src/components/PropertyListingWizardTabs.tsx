@@ -94,7 +94,7 @@ function ListingWizardDetailsTab({
               update("pricing_mode", defaults.pricing_mode);
               update("price_period", defaults.price_period);
               update("minimum_rent_period_months", defaults.minimum_rent_period_months);
-              update("rent_kes_max", defaults.rent_kes_max);
+              update("rent_kes_max", defaults.rent_kes_max as number | "");
               if (!isCommercialType(nextType)) update("area_sqm_max", "");
               if (isCommercialType(nextType) && form.bathrooms < 1) update("bathrooms", 0);
               if (!isCommercialType(nextType) && form.bathrooms < 1) update("bathrooms", 1);

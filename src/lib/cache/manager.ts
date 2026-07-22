@@ -7,8 +7,11 @@ export interface CacheConfig {
 
 export const CACHE_CONFIGS: Record<string, CacheConfig> = {
   platform_stats: { kvTtl: 120, staleWhileRevalidate: 300 },
-  /** Short TTL — listings must appear quickly after upload. */
-  listings_search: { kvTtl: 15, staleWhileRevalidate: 0 },
+  /**
+   * Fresh for 30s; serve stale up to 2 more minutes while one refresh runs.
+   * Epoch invalidation still busts keys immediately after uploads.
+   */
+  listings_search: { kvTtl: 45, staleWhileRevalidate: 180 },
   testimonials: { kvTtl: 3600, staleWhileRevalidate: 7200 },
   intelligence_stats: { kvTtl: 300, staleWhileRevalidate: 900 },
   agency_featured: { kvTtl: 600, staleWhileRevalidate: 1800 },
@@ -23,39 +26,64 @@ type CacheEnvelope<T> = {
   cachedAt: string;
 };
 
+type CacheLookup<T> = {
+  value: T;
+  fresh: boolean;
+};
+
 const LISTINGS_EPOCH_KEY = "listings_cache_epoch";
 
 const memoryFallback = new Map<string, string>();
 
+/** Isolate-local singleflight — collapses concurrent misses for the same key. */
+const inflight = new Map<string, Promise<unknown>>();
+
 async function kvGet(key: string): Promise<string | null> {
   const kv = getCacheKv();
-  if (kv) return kv.get(`cache:${key}`);
+  if (kv) {
+    try {
+      return await kv.get(`cache:${key}`);
+    } catch (err) {
+      console.error("[cache] kv get failed", err);
+    }
+  }
   return memoryFallback.get(key) ?? null;
 }
 
 async function kvPut(key: string, value: string, ttl: number): Promise<void> {
   const kv = getCacheKv();
   if (kv) {
-    await kv.put(`cache:${key}`, value, { expirationTtl: Math.max(60, ttl) });
-    return;
+    try {
+      await kv.put(`cache:${key}`, value, { expirationTtl: Math.max(60, ttl) });
+      return;
+    } catch (err) {
+      console.error("[cache] kv put failed", err);
+      // Fall through to memory so the request still succeeds.
+    }
   }
   memoryFallback.set(key, value);
   setTimeout(() => memoryFallback.delete(key), ttl * 1000).unref?.();
 }
 
-export async function cacheGet<T>(key: string): Promise<T | null> {
+async function cacheLookup<T>(key: string): Promise<CacheLookup<T> | null> {
   const raw = await kvGet(key);
   if (!raw) return null;
   try {
     const envelope = JSON.parse(raw) as CacheEnvelope<T>;
     const now = Date.now();
-    if (now < envelope.expiresAt) return envelope.value;
-    // Stale-while-revalidate only returns fresh window; expired entries miss so we refetch.
-    if (envelope.staleUntil && now < envelope.staleUntil) return envelope.value;
+    if (now < envelope.expiresAt) return { value: envelope.value, fresh: true };
+    if (envelope.staleUntil && now < envelope.staleUntil) {
+      return { value: envelope.value, fresh: false };
+    }
     return null;
   } catch {
     return null;
   }
+}
+
+export async function cacheGet<T>(key: string): Promise<T | null> {
+  const hit = await cacheLookup<T>(key);
+  return hit?.value ?? null;
 }
 
 export async function cacheSet<T>(key: string, value: T, config: CacheConfig): Promise<void> {
@@ -72,19 +100,50 @@ export async function cacheSet<T>(key: string, value: T, config: CacheConfig): P
   await kvPut(key, JSON.stringify(envelope), Math.max(60, ttl));
 }
 
+async function refreshCoalesced<T>(
+  key: string,
+  configName: keyof typeof CACHE_CONFIGS,
+  fetcher: () => Promise<T>,
+): Promise<T> {
+  const existing = inflight.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const pending = (async () => {
+    try {
+      const data = await fetcher();
+      try {
+        await cacheSet(key, data, CACHE_CONFIGS[configName]);
+      } catch (err) {
+        // Never fail the user-facing response because cache write failed.
+        console.error("[cache] set failed after fetch", err);
+      }
+      return data;
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+
+  inflight.set(key, pending);
+  return pending;
+}
+
 export async function withCache<T>(
   key: string,
   configName: keyof typeof CACHE_CONFIGS,
   fetcher: () => Promise<T>,
   options?: { forceRefresh?: boolean },
 ): Promise<{ data: T; cacheHit: boolean }> {
-  const config = CACHE_CONFIGS[configName];
   if (!options?.forceRefresh) {
-    const cached = await cacheGet<T>(key);
-    if (cached !== null) return { data: cached, cacheHit: true };
+    const cached = await cacheLookup<T>(key);
+    if (cached?.fresh) return { data: cached.value, cacheHit: true };
+    if (cached && !cached.fresh) {
+      // Stale-while-revalidate: serve immediately, refresh once in the background.
+      void refreshCoalesced(key, configName, fetcher).catch(() => undefined);
+      return { data: cached.value, cacheHit: true };
+    }
   }
-  const data = await fetcher();
-  await cacheSet(key, data, config);
+
+  const data = await refreshCoalesced(key, configName, fetcher);
   return { data, cacheHit: false };
 }
 
@@ -117,6 +176,11 @@ function clearListingKeysFromMemory() {
     // Listing keys look like `e12|l50|o0|newest|...` or legacy `l50|o0|...`
     if (key.startsWith("e") || key.startsWith("l") || key.includes("|")) {
       memoryFallback.delete(key);
+    }
+  }
+  for (const key of inflight.keys()) {
+    if (key.startsWith("e") || key.startsWith("l") || key.includes("|")) {
+      inflight.delete(key);
     }
   }
 }

@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { ArrowLeft, BadgeCheck, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import type { Property } from "@/lib/properties";
+import { propertyVerifiedLabel } from "@/lib/listing-intel";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyImage } from "@/components/PropertyImage";
 import { SaveButton } from "@/components/motion/SaveButton";
@@ -68,6 +69,7 @@ export function PropertyDetailGallery({
   }, [goTo, hasMultiple, safeIndex]);
 
   const currentSrc = slideCount > 0 ? gallery[safeIndex] : undefined;
+  const verifiedLabel = propertyVerifiedLabel(property);
 
   return (
     <div className="relative overflow-hidden rounded-b-3xl bg-(--color-obsidian)">
@@ -120,6 +122,12 @@ export function PropertyDetailGallery({
         </Link>
 
         <div className="absolute top-16 left-4 z-20 flex max-w-[calc(100%-6rem)] flex-col gap-2">
+          {verifiedLabel ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-primary/90 px-3 py-1 text-xs font-bold text-primary-foreground backdrop-blur-md">
+              <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+              {verifiedLabel}
+            </span>
+          ) : null}
           {verificationLevel > 0 ? <VerificationBadge level={verificationLevel} /> : null}
           <span className="inline-flex w-fit items-center gap-1 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
             <Flame className="h-3.5 w-3.5 text-orange-400" aria-hidden />

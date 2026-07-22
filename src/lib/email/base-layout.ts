@@ -16,7 +16,7 @@ export function baseLayout(params: {
 <style>
   body { margin:0; padding:0; background:#f1f5f2; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; }
   .wrapper { max-width:600px; margin:32px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
-  .header { background:#0A5C47; padding:24px 40px; }
+  .header { background:#4A2713; padding:24px 40px; }
   .logo-img { display:block; height:48px; width:48px; object-fit:contain; }
   .body { padding:36px 40px; }
   .footer { background:#f8faf9; padding:24px 40px; font-size:12px; color:#8ab5a0; border-top:1px solid #e2ece8; }

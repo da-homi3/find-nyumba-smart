@@ -8,6 +8,7 @@ export const defaultTenantFilters: TenantFilters = {
   minRent: TENANT_MIN_RENT,
   maxRent: TENANT_MAX_RENT,
   types: [],
+  listingPurpose: "all",
   neighborhood: "All",
   waterGoodOnly: false,
   verifiedLevel2Plus: false,

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { formatKes } from "@/lib/properties";
 import { CheckoutShell } from "@/components/checkout/CheckoutShell";
 import { MpesaWaitingState } from "@/components/checkout/MpesaWaitingState";
+import { MpesaPhonePicker } from "@/components/checkout/MpesaPhonePicker";
 import { initiatePayment, verifyPaymentStatus } from "@/lib/api/payment.functions";
 import {
   pollPaymentUntilComplete,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/payments/poll-payment-client";
 import { transactionReference } from "@/lib/revenue/plans";
 import { isPesapalCheckoutEnabled } from "@/lib/pesapal-client";
+import { isKenyanPhone } from "@/lib/phone";
 import { errorMessage } from "@/lib/utils";
 import { randomUuid } from "@/lib/random-uuid";
 import type { InitiatePaymentInput } from "@/lib/payments/initiate-payment-core";
@@ -93,15 +95,20 @@ export function CheckoutFlow({
   verifyFn,
 }: Readonly<Props>) {
   const cardEnabled = isPesapalCheckoutEnabled();
+  const linkedPhone = defaultPhone && isKenyanPhone(defaultPhone) ? defaultPhone.trim() : "";
   const [step, setStep] = useState(1);
   const [cycle, setCycle] = useState<"monthly" | "quarterly">("monthly");
   const [showCard, setShowCard] = useState(false);
-  const [phone, setPhone] = useState(defaultPhone);
+  const [phone, setPhone] = useState(linkedPhone || defaultPhone);
   const [email, setEmail] = useState(defaultEmail);
   const [phase, setPhase] = useState<PaymentPhase>("idle");
   const [ref, setRef] = useState("");
   const [receipt, setReceipt] = useState<string | undefined>();
   const idempotencyRef = useRef(randomUuid());
+
+  useEffect(() => {
+    if (linkedPhone && !phone.trim()) setPhone(linkedPhone);
+  }, [linkedPhone, phone]);
 
   const waiting = phase !== "idle";
   const amountKes =
@@ -110,6 +117,7 @@ export function CheckoutFlow({
       : lineItem.amountKes;
 
   const billingCycle = cycle === "quarterly" ? "quarterly" : "monthly";
+  const payerPhone = phone.trim() || linkedPhone || defaultPhone;
 
   useEffect(() => {
     const params = new URLSearchParams(globalThis.location.search);
@@ -148,8 +156,8 @@ export function CheckoutFlow({
   }, [checkoutPath, onSuccess, verifyFn]);
 
   async function completePayment(method: "mpesa" | "card") {
-    if (method === "mpesa" && !phone.trim()) {
-      toast.error("Enter your M-Pesa phone number");
+    if (method === "mpesa" && !isKenyanPhone(payerPhone)) {
+      toast.error("Enter a valid M-Pesa phone number");
       return;
     }
     const payerEmail = (email || defaultEmail || metadata.requesterEmail || "").trim();
@@ -164,7 +172,7 @@ export function CheckoutFlow({
       const payload: InitiatePaymentInput = {
         amountKes,
         paymentType: metadata.paymentType,
-        phoneNumber: phone || defaultPhone,
+        phoneNumber: payerPhone,
         propertyId: metadata.propertyId,
         plan: metadata.plan,
         boostPackage: metadata.boostPackage,
@@ -179,7 +187,7 @@ export function CheckoutFlow({
         propertyAddress: metadata.propertyAddress,
         listingUrl: metadata.listingUrl,
         requesterName: metadata.requesterName,
-        requesterPhone: metadata.requesterPhone ?? (phone || defaultPhone),
+        requesterPhone: metadata.requesterPhone ?? payerPhone,
         requesterEmail: payerEmail || metadata.requesterEmail,
         advertisePackage: metadata.advertisePackage,
         inquiryId: metadata.inquiryId,
@@ -191,13 +199,6 @@ export function CheckoutFlow({
       };
 
       const res = initiateFn ? await initiateFn(payload) : await initiatePayment({ data: payload });
-
-      if (res.status === "trial_started") {
-        setRef("TRIAL");
-        setStep(3);
-        onSuccess("trial_started");
-        return;
-      }
 
       const redirect = cardRedirectUrl(res);
       if (redirect) {
@@ -243,7 +244,7 @@ export function CheckoutFlow({
         {!isTrial && <p className="mt-1 text-lg font-semibold">{formatKes(amountKes)}</p>}
         {isTrial && (
           <p className="mt-2 text-sm text-emerald-600">
-            Your first month is free — no payment collected today.
+            After your first paid month, your next month is free.
           </p>
         )}
         {receipt && (
@@ -317,20 +318,16 @@ export function CheckoutFlow({
             </div>
           </div>
 
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold">M-Pesa number</span>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={waiting}
-              placeholder="0712345678"
-              className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none disabled:opacity-60"
-            />
-          </label>
+          <MpesaPhonePicker
+            linkedPhone={linkedPhone || null}
+            value={phone}
+            onChange={setPhone}
+            disabled={waiting}
+          />
 
           {waiting ? (
             <MpesaWaitingState
-              phone={phone || defaultPhone}
+              phone={payerPhone}
               amount={amountKes}
               phase={phase === "confirming" ? "confirming" : "awaiting_pin"}
               onResend={() => void completePayment("mpesa")}

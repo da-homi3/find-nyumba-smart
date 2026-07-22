@@ -24,6 +24,13 @@ export type AuthContext = {
   userId: string;
 };
 
+export class ForbiddenError extends Error {
+  constructor(message = "Forbidden") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
 export type InquiryRecord = Database["public"]["Tables"]["inquiries"]["Row"];
 export type ProfileRecord = Database["public"]["Tables"]["profiles"]["Row"];
 export type InquiryMessageRecord = Database["public"]["Tables"]["inquiry_messages"]["Row"];
@@ -46,6 +53,7 @@ export const listPropertiesSchema = z
     query: z.string().trim().optional(),
     neighborhood: z.string().trim().optional(),
     propertyType: propertyTypeSchema.optional(),
+    pricingMode: z.enum(["rent", "sale"]).optional(),
     minRent: z.number().int().positive().optional(),
     maxRent: z.number().int().positive().optional(),
     verifiedOnly: z.boolean().optional(),
@@ -64,7 +72,9 @@ export const listPropertiesSchema = z
       .optional(),
     limit: z.number().int().min(1).max(500).default(50),
     offset: z.number().int().min(0).default(0),
-    sortBy: z.enum(["newest", "price_asc", "price_desc", "score"]).default("newest"),
+    sortBy: z.enum(["nearby", "newest", "price_asc", "price_desc", "score"]).default("newest"),
+    originLat: z.number().min(-90).max(90).optional(),
+    originLng: z.number().min(-180).max(180).optional(),
   })
   .optional();
 
@@ -240,11 +250,12 @@ type PropertyRowInput = Omit<
 };
 
 export function mapPropertyRow(row: PropertyRowInput): Property {
+  const parsedType = propertyTypeSchema.safeParse(row.property_type);
   return {
     id: row.id,
     owner_id: row.owner_id ?? null,
     title: row.title,
-    property_type: propertyTypeSchema.parse(row.property_type),
+    property_type: parsedType.success ? parsedType.data : ("bedsitter" as Property["property_type"]),
     neighborhood: row.neighborhood,
     address: row.address,
     latitude: row.latitude,
@@ -256,11 +267,11 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     bathrooms: row.bathrooms,
     area_sqm: row.area_sqm,
     area_sqm_max: row.area_sqm_max ?? null,
-    description: row.description,
+    description: row.description ?? null,
     amenities: row.amenities ?? [],
     images: normalizePropertyImages(row.images, row.id),
-    video_url: row.video_url,
-    tour_url: row.tour_url,
+    video_url: row.video_url ?? null,
+    tour_url: row.tour_url ?? null,
     is_verified: row.is_verified,
     is_active: row.is_active,
     is_vacant: row.is_vacant ?? undefined,
@@ -285,7 +296,15 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
 }
 
 export function mapPropertyRows(rows: PropertyRowInput[]): Property[] {
-  return rows.map(mapPropertyRow);
+  const out: Property[] = [];
+  for (const row of rows) {
+    try {
+      out.push(mapPropertyRow(row));
+    } catch (err) {
+      console.error("[listings] skip bad property row", row?.id, err);
+    }
+  }
+  return out;
 }
 
 type InquiryPropertyJoin = Pick<

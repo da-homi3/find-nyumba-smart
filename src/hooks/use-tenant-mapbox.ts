@@ -368,7 +368,7 @@ export function useTenantMapbox(properties: Property[]) {
   const [showWater, setShowWater] = useState(false);
   const [showSecurity, setShowSecurity] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [query, setQueryState] = useState("");
+  const [query, setQuery] = useState("");
   const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
   const [markerCount, setMarkerCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
@@ -564,7 +564,7 @@ export function useTenantMapbox(properties: Property[]) {
       map.on("style.load", onStyleLoad);
       map.on("error", onMapError);
       map.on("webglcontextlost", (event) => {
-        event.preventDefault();
+        event.originalEvent?.preventDefault?.();
         setError("Map rendering failed on this device. Showing fallback map.");
       });
       map.on("webglcontextrestored", () => {
@@ -683,7 +683,7 @@ export function useTenantMapbox(properties: Property[]) {
   const focusPlace = (place: LocationSearchResult) => {
     const focus = createPlaceFocus(place);
     setPlaceFocus(focus);
-    setQueryState(place.neighborhood ?? place.label);
+    setQuery(place.neighborhood ?? place.label);
     setSelected(null);
     const map = mapInstance.current;
     if (!map) return;
@@ -699,11 +699,11 @@ export function useTenantMapbox(properties: Property[]) {
 
   const clearPlaceFocus = () => {
     setPlaceFocus(null);
-    setQueryState("");
+    setQuery("");
   };
 
-  const setQuery = (value: string) => {
-    setQueryState(value);
+  const updateQuery = (value: string) => {
+    setQuery(value);
     if (placeFocus) setPlaceFocus(null);
   };
 
@@ -724,7 +724,7 @@ export function useTenantMapbox(properties: Property[]) {
     panelOpen,
     setPanelOpen,
     query,
-    setQuery,
+    setQuery: updateQuery,
     placeFocus,
     focusPlace,
     clearPlaceFocus,

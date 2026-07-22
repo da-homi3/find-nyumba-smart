@@ -20,7 +20,7 @@ import {
   type PricePeriod,
   type PricingMode,
 } from "@/lib/property-types";
-import { validateCommercialRanges } from "@/lib/commercial-ranges";
+import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
 import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -76,10 +76,10 @@ export function PropertyEditForm({
     latitude: null as number | null,
     longitude: null as number | null,
     rent_kes: "",
-    rent_kes_max: "" as number | "",
+    rent_kes_max: "",
     deposit_kes: "",
-    area_sqm: "" as number | "",
-    area_sqm_max: "" as number | "",
+    area_sqm: "",
+    area_sqm_max: "",
     bedrooms: "1",
     bathrooms: "1",
     description: "",
@@ -136,7 +136,10 @@ export function PropertyEditForm({
           longitude: form.longitude,
           rent_kes: Number.parseInt(form.rent_kes, 10),
           rent_kes_max:
-            isCommercialType(form.property_type) && form.rent_kes_max
+            supportsListingPriceRange({
+              property_type: form.property_type,
+              pricing_mode: form.pricing_mode,
+            }) && form.rent_kes_max
               ? Number.parseInt(String(form.rent_kes_max), 10)
               : null,
           deposit_kes: form.deposit_kes ? Number.parseInt(form.deposit_kes, 10) : null,
@@ -220,6 +223,7 @@ export function PropertyEditForm({
     validateCommercialRanges(
       {
         property_type: form.property_type,
+        pricing_mode: form.pricing_mode,
         rent_kes: Number.parseInt(form.rent_kes, 10),
         rent_kes_max: form.rent_kes_max ? Number(form.rent_kes_max) : null,
         area_sqm: form.area_sqm ? Number(form.area_sqm) : null,
@@ -328,7 +332,7 @@ export function PropertyEditForm({
                     update("pricing_mode", defaults.pricing_mode);
                     update("price_period", defaults.price_period);
                     update("minimum_rent_period_months", defaults.minimum_rent_period_months);
-                    update("rent_kes_max", defaults.rent_kes_max);
+                    update("rent_kes_max", String(defaults.rent_kes_max ?? ""));
                     if (!isCommercialType(nextType)) update("area_sqm_max", "");
                     if (isCommercialType(nextType) && Number(form.bathrooms) < 1)
                       update("bathrooms", "0");

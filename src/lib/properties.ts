@@ -75,11 +75,11 @@ export async function fetchProperties(filters?: PropertySearchFilters): Promise<
   return result.items;
 }
 
-/** Map view — up to 500 active listings with optional bounds filter. */
+/** Map view — active listings with optional bounds filter (capped for scale). */
 export async function fetchMapProperties(filters?: PropertySearchFilters) {
   return searchProperties({
     ...filters,
-    limit: filters?.limit ?? 500,
+    limit: Math.min(filters?.limit ?? 300, 300),
     offset: filters?.offset ?? 0,
   });
 }
@@ -88,6 +88,8 @@ export type PropertySearchFilters = {
   query?: string;
   neighborhood?: string;
   propertyType?: PropertyType;
+  /** Filter listings by purpose: rent or sale (booking only appears when unset). */
+  pricingMode?: "rent" | "sale";
   minRent?: number;
   maxRent?: number;
   verifiedOnly?: boolean;
@@ -96,7 +98,10 @@ export type PropertySearchFilters = {
   bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   limit?: number;
   offset?: number;
-  sortBy?: "newest" | "price_asc" | "price_desc" | "score";
+  sortBy?: "nearby" | "newest" | "price_asc" | "price_desc" | "score";
+  /** Browse center for nearby sort (WGS84). */
+  originLat?: number;
+  originLng?: number;
 };
 
 export async function searchProperties(filters?: PropertySearchFilters) {

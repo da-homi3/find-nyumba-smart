@@ -15,18 +15,26 @@ import {
 import { formatRentBudget } from "@/lib/format-rent-budget";
 import { TENANT_MAX_RENT, TENANT_MIN_RENT, TENANT_RENT_STEP } from "@/lib/tenant-filter-defaults";
 
-export type TenantSort = "newest" | "price_asc" | "price_desc" | "score";
+export type TenantSort = "nearby" | "newest" | "price_asc" | "price_desc" | "score";
+export type ListingPurposeFilter = "all" | "rent" | "sale";
 
 export type TenantFilters = {
   minRent: number;
   maxRent: number;
   types: PropertyType[];
+  listingPurpose: ListingPurposeFilter;
   neighborhood: string;
   waterGoodOnly: boolean;
   verifiedLevel2Plus: boolean;
   bedrooms: number | null;
   sort: TenantSort;
 };
+
+const PURPOSE_OPTIONS: { id: ListingPurposeFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "rent", label: "For rent" },
+  { id: "sale", label: "For sale" },
+];
 
 const ALL_TYPES = PROPERTY_TYPE_OPTIONS;
 
@@ -189,7 +197,9 @@ export function TenantFiltersBar({
           </div>
 
           <label className="w-full min-w-0 flex-1 text-xs sm:min-w-[120px] sm:w-auto">
-            <span className="mb-1 block font-medium text-muted-foreground">Budget (KES/mo)</span>
+            <span className="mb-1 block font-medium text-muted-foreground">
+              {filters.listingPurpose === "sale" ? "Budget (KES)" : "Budget (KES/mo)"}
+            </span>
             <div className="flex items-center gap-2">
               <input
                 type="range"
@@ -199,10 +209,29 @@ export function TenantFiltersBar({
                 value={filters.maxRent}
                 onChange={(e) => onChange({ maxRent: Number(e.target.value) })}
                 className="w-full min-w-0 accent-primary"
-                aria-label="Maximum monthly rent"
+                aria-label={
+                  filters.listingPurpose === "sale" ? "Maximum price" : "Maximum monthly rent"
+                }
               />
               <span className="shrink-0 tabular-nums">{formatRentBudget(filters.maxRent)}</span>
             </div>
+          </label>
+
+          <label className="w-[calc(50%-0.375rem)] text-xs sm:w-auto">
+            <span className="mb-1 block font-medium text-muted-foreground">Purpose</span>
+            <select
+              value={filters.listingPurpose}
+              onChange={(e) =>
+                onChange({ listingPurpose: e.target.value as ListingPurposeFilter })
+              }
+              className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
+            >
+              {PURPOSE_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="w-[calc(50%-0.375rem)] text-xs sm:w-auto">
@@ -279,6 +308,7 @@ export function TenantFiltersBar({
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
             >
               <option value="newest">Newest</option>
+              <option value="nearby">Nearest first</option>
               <option value="price_asc">Price: low → high</option>
               <option value="price_desc">Price: high → low</option>
               <option value="score">Highest trust</option>
@@ -320,6 +350,34 @@ export function TenantFiltersBar({
             )}
           </motion.span>
         </div>
+      </div>
+
+      <div className="mx-auto mt-2 flex max-w-2xl gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+        {PURPOSE_OPTIONS.map((option) => {
+          const active = filters.listingPurpose === option.id;
+          return (
+            <motion.button
+              key={option.id}
+              type="button"
+              onClick={() => onChange({ listingPurpose: option.id })}
+              animate={{
+                scale: active ? 1.05 : 1,
+                background: active
+                  ? "linear-gradient(135deg, #0a5c47, #1eb88a)"
+                  : "rgba(255,255,255,0.05)",
+                borderColor: active ? "#1eb88a" : "rgba(255,255,255,0.1)",
+                color: active ? "#fff" : undefined,
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold"
+              style={{
+                boxShadow: active ? "0 4px 16px rgba(30,184,138,0.3)" : "none",
+              }}
+            >
+              {option.label}
+            </motion.button>
+          );
+        })}
       </div>
 
       <div className="mx-auto mt-2 flex max-w-2xl gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">

@@ -20,6 +20,10 @@ export type PaymentMetadata = {
   title?: string;
   renewalSubscriptionId?: string;
   fulfilledAt?: string;
+  /** Pesapal order tracking id — used to poll card status without waiting for IPN. */
+  orderTrackingId?: string;
+  /** Pesapal hosted checkout URL — reused on idempotent retries. */
+  cardRedirectUrl?: string;
 };
 
 const STRING_METADATA_KEYS = [
@@ -43,6 +47,8 @@ const STRING_METADATA_KEYS = [
   "title",
   "renewalSubscriptionId",
   "fulfilledAt",
+  "orderTrackingId",
+  "cardRedirectUrl",
 ] as const satisfies ReadonlyArray<keyof PaymentMetadata>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {

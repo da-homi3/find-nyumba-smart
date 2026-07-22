@@ -42,9 +42,12 @@ export function PropertyImage({ src, alt, className, seed, loading = "lazy" }: P
     <img
       src={current}
       alt={alt}
-      className={photoClass(loaded, className)}
+      width={720}
+      height={480}
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
       loading={loading}
       decoding="async"
+      className={photoClass(loaded, className)}
       onLoad={() => setLoaded(true)}
       onError={() => {
         setLoaded(true);

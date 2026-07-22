@@ -3,8 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
 import {
-  enhanceListingCopyWithImages,
   extractAmenitiesFromText,
+  polishListingDescriptionAndAmenities,
 } from "@/lib/flows/nyumbaai";
 import { formatAmenityString } from "@/lib/listings/amenities";
 
@@ -13,16 +13,32 @@ const imagePartSchema = z.object({
   base64: z.string().min(32).max(1_500_000),
 });
 
+/** HTML number inputs often arrive as strings — coerce safely for AI enhance. */
+function optionalCoercedNumber(schema: z.ZodNumber) {
+  return z.preprocess((v) => {
+    if (v === "" || v === null || v === undefined) return undefined;
+    return v;
+  }, schema.optional());
+}
+
+function optionalNullableCoercedNumber() {
+  return z.preprocess((v) => {
+    if (v === "" || v === undefined) return undefined;
+    if (v === null) return null;
+    return v;
+  }, z.coerce.number().nullable().optional());
+}
+
 const listingDraftSchema = z.object({
   title: z.string().max(200).optional(),
   property_type: z.string().max(64).optional(),
-  bedrooms: z.number().int().min(0).max(20).optional(),
-  bathrooms: z.number().min(0).max(20).optional(),
+  bedrooms: optionalCoercedNumber(z.coerce.number().int().min(0).max(20)),
+  bathrooms: optionalCoercedNumber(z.coerce.number().min(0).max(20)),
   neighborhood: z.string().max(120).optional(),
-  latitude: z.number().nullable().optional(),
-  longitude: z.number().nullable().optional(),
-  rent_kes: z.number().min(0).optional(),
-  amenities: z.union([z.string().max(1000), z.array(z.string().max(80)).max(30)]).optional(),
+  latitude: optionalNullableCoercedNumber(),
+  longitude: optionalNullableCoercedNumber(),
+  rent_kes: optionalCoercedNumber(z.coerce.number().min(0)),
+  amenities: z.union([z.string().max(1000), z.array(z.string().max(80)).max(60)]).optional(),
 });
 
 async function rateLimitAi(userId: string, action: string) {
@@ -36,7 +52,7 @@ export const extractListingAmenities = createServerFn({ method: "POST" })
     z.object({
       description: z.string().trim().min(8).max(8000),
       existingAmenities: z
-        .union([z.string().max(1000), z.array(z.string().max(80)).max(30)])
+        .union([z.string().max(1000), z.array(z.string().max(80)).max(60)])
         .optional(),
     }),
   )
@@ -51,6 +67,7 @@ export const extractListingAmenities = createServerFn({ method: "POST" })
     };
   });
 
+/** Polish description + extract every amenity in one server call. */
 export const enhanceListingCopy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -58,6 +75,9 @@ export const enhanceListingCopy = createServerFn({ method: "POST" })
       description: z.string().trim().min(20).max(8000),
       draft: listingDraftSchema.optional(),
       imageDataUrls: z.array(imagePartSchema).max(3).optional(),
+      existingAmenities: z
+        .union([z.string().max(1000), z.array(z.string().max(80)).max(60)])
+        .optional(),
     }),
   )
   .handler(async ({ context, data }) => {
@@ -65,12 +85,22 @@ export const enhanceListingCopy = createServerFn({ method: "POST" })
     await rateLimitAi(userId, "enhance");
 
     const draft = data.draft ?? {};
+    const existing =
+      data.existingAmenities ??
+      (typeof draft.amenities === "string" || Array.isArray(draft.amenities)
+        ? draft.amenities
+        : undefined);
 
-    const enhanced = await enhanceListingCopyWithImages(
+    const polished = await polishListingDescriptionAndAmenities(
       data.description,
       draft,
       data.imageDataUrls ?? [],
+      existing,
     );
 
-    return { description: enhanced };
+    return {
+      description: polished.description,
+      amenities: polished.amenities,
+      amenitiesCsv: formatAmenityString(polished.amenities),
+    };
   });

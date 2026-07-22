@@ -8,7 +8,7 @@
     </style>
 
     <style name="Theme.NyumbaSearch.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/forest_green</item>
+        <item name="windowSplashScreenBackground">@color/brand_cocoa</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="windowSplashScreenAnimationDuration">400</item>
         <item name="postSplashScreenTheme">@style/Theme.NyumbaSearch</item>

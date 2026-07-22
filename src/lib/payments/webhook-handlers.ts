@@ -2,8 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { parseStkCallback } from "@/lib/api/mpesa";
 import type { StkCallbackBody } from "@/lib/api/mpesa";
-import { buildIpnResponse, getTransactionStatus } from "@/lib/api/pesapal";
-import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
+import { buildIpnResponse } from "@/lib/api/pesapal";
+import { completePesapalPayment } from "@/lib/payments/complete-pesapal-payment";
 import { parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 import { completeMpesaFromCallback } from "@/lib/payments/complete-mpesa-payment";
 
@@ -16,13 +16,17 @@ async function logWebhook(
   signatureValid: boolean,
   paymentId?: string,
 ) {
-  await supabaseAdmin.from("payment_webhook_log").insert({
-    provider,
-    payment_id: paymentId ?? null,
-    raw_payload: payload as Json,
-    signature_valid: signatureValid,
-    processed: false,
-  });
+  try {
+    await supabaseAdmin.from("payment_webhook_log").insert({
+      provider,
+      payment_id: paymentId ?? null,
+      raw_payload: payload as Json,
+      signature_valid: signatureValid,
+      processed: false,
+    });
+  } catch (err) {
+    console.warn("[payments] webhook log insert failed:", err);
+  }
 }
 
 function parsePesapalIpn(
@@ -106,8 +110,8 @@ export async function handlePesapalWebhook(request: Request): Promise<Response> 
   );
 
   if (!ipn) {
-    return new Response(buildIpnResponse("", "", false), {
-      status: 500,
+    return new Response(JSON.stringify({ error: "Missing OrderTrackingId or OrderMerchantReference" }), {
+      status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -124,50 +128,6 @@ export async function handlePesapalWebhook(request: Request): Promise<Response> 
       headers: { "Content-Type": "application/json" },
     });
   }
-}
-
-async function completePesapalPayment(
-  supabaseAdmin: Admin,
-  merchantReference: string,
-  orderTrackingId: string,
-) {
-  const { data: payment } = await supabaseAdmin
-    .from("payments")
-    .select("*")
-    .eq("mpesa_checkout_id", merchantReference)
-    .maybeSingle();
-
-  if (!payment || payment.status === "completed") return;
-
-  const verified = await getTransactionStatus(orderTrackingId);
-  if (verified.status !== "success" || verified.amountKes < payment.amount_kes) {
-    if (verified.status === "failed") {
-      await supabaseAdmin
-        .from("payments")
-        .update({ status: "failed" })
-        .eq("id", payment.id)
-        .eq("status", "pending");
-    }
-    return;
-  }
-
-  const { data: completed } = await supabaseAdmin
-    .from("payments")
-    .update({
-      status: "completed",
-      mpesa_receipt: verified.confirmationCode ?? orderTrackingId,
-    })
-    .eq("id", payment.id)
-    .eq("status", "pending")
-    .select("*")
-    .maybeSingle();
-
-  if (!completed) return;
-
-  await fulfillPaymentRow(supabaseAdmin, completed);
-
-  const { queuePaymentEmails } = await import("@/lib/payments/payment-email-hook");
-  queuePaymentEmails(supabaseAdmin, completed);
 }
 
 export async function handlePesapalRedirect(request: Request): Promise<Response> {
@@ -188,8 +148,16 @@ export async function handlePesapalRedirect(request: Request): Promise<Response>
     .maybeSingle();
 
   const meta = parsePaymentMetadata(payment?.metadata);
-  const successPath = meta.successPath ?? "/tenant/checkout?card=success";
-  const failPath = meta.cancelPath ?? `${successPath.split("?")[0]}?card=failed`;
+  const successPathRaw = meta.successPath ?? "/tenant/checkout?card=success";
+  const failPathRaw = meta.cancelPath ?? `${successPathRaw.split("?")[0]}?card=failed`;
+  const site = getSiteUrl().replace(/\/$/, "");
+  const toAbsolute = (path: string) => {
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    return `${site}${normalized}`;
+  };
+  const successPath = toAbsolute(successPathRaw);
+  const failPath = toAbsolute(failPathRaw);
 
   if (!payment) {
     return Response.redirect(failPath, 302);

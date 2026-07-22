@@ -18,11 +18,11 @@ export function customerCareTelHref(): string {
 }
 
 /** Shared homepage title — keep `<title>`, `og:title`, and `twitter:title` identical. */
-export const HOMEPAGE_TITLE = "NyumbaSearch — Your next home in Nairobi";
+export const HOMEPAGE_TITLE = "NyumbaSearch — Your next home in Nairobi | nyumbasearch.com";
 
 /** Matches the homepage hero subtitle — used for meta description and social link previews. */
 export const HOMEPAGE_DESCRIPTION =
-  "Map-first search across Nairobi. Real reviews. AI that warns about red flags before you visit.";
+  "NyumbaSearch (nyumbasearch.com): map-first verified home search across Nairobi. Real reviews. AI that warns about red flags before you visit.";
 
 /** Canonical public site URL (SSR + client). */
 export function getSiteUrl(): string {
@@ -35,7 +35,7 @@ export function getSiteUrl(): string {
 }
 
 export function getOgImageUrl(): string {
-  return `${getSiteUrl()}/og-image.jpg`;
+  return `${getSiteUrl()}/og-image.jpg?v=4`;
 }
 
 export function getBrandLogoUrl(): string {

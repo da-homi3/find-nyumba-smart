@@ -93,10 +93,10 @@ export function FeaturedListings({
       <ScrollReveal className="flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-            {isBoosted ? "Featured listings" : "Featured"}
+            {isBoosted ? "Featured listings" : "Newest listings"}
           </p>
           <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
-            {isBoosted ? "Boosted homes, top of search" : "Verified homes, ready to view"}
+            {isBoosted ? "Boosted homes, top of search" : "Fresh homes, newest first"}
           </h2>
         </div>
         <Link

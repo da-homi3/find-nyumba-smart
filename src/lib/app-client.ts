@@ -56,15 +56,24 @@ export function isLiteServeMode(): boolean {
   return document.cookie.split(";").some((c) => c.trim() === "nyumba_serve_mode=lite");
 }
 
-/** Smaller listing images for Android low-bandwidth mode. */
+/** Resize listing images for faster cards. Lite mode uses smaller variants. */
 export function optimizeImageUrlForServeMode(url: string): string {
-  if (!isLiteServeMode()) return url;
   const trimmed = url.trim();
-  if (!trimmed || trimmed.startsWith("data:")) return trimmed;
+  if (!trimmed || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
   try {
     const parsed = new URL(trimmed, "https://nyumbasearch.com");
-    if (!parsed.searchParams.has("w")) parsed.searchParams.set("w", "400");
-    if (!parsed.searchParams.has("q")) parsed.searchParams.set("q", "60");
+    const host = parsed.hostname;
+    const supportsResize =
+      host.includes("supabase.co") ||
+      host.includes("unsplash.com") ||
+      host.includes("images.unsplash.com");
+    if (!supportsResize) return trimmed;
+
+    const lite = isLiteServeMode();
+    const w = lite ? "400" : "720";
+    const q = lite ? "60" : "72";
+    if (!parsed.searchParams.has("w")) parsed.searchParams.set("w", w);
+    if (!parsed.searchParams.has("q")) parsed.searchParams.set("q", q);
     return parsed.toString();
   } catch {
     return trimmed;

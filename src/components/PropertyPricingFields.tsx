@@ -72,6 +72,7 @@ export function PropertyPricingFields({
     (isNightlyRentType(form.property_type) || form.pricing_mode === "booking");
   const showMinLease = isCommercial && form.pricing_mode === "rent";
   const showDeposit = form.pricing_mode !== "sale";
+  const showPriceRange = isCommercial || form.pricing_mode === "sale";
   const amountLabel = listingPriceAmountLabel({
     property_type: form.property_type,
     pricing_mode: form.pricing_mode,
@@ -95,9 +96,11 @@ export function PropertyPricingFields({
               } else if (nextMode === "rent") {
                 update("price_period", "month");
                 update("minimum_rent_period_months", "");
+                if (!isCommercial) update("rent_kes_max", "");
               } else {
                 update("price_period", "night");
                 update("minimum_rent_period_months", "");
+                if (!isCommercial) update("rent_kes_max", "");
               }
             }}
             className={inputCls}
@@ -128,7 +131,7 @@ export function PropertyPricingFields({
         </Field>
       ) : null}
 
-      {isCommercial ? (
+      {showPriceRange ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={`${amountLabel} (from)`}>
             <input
@@ -146,7 +149,7 @@ export function PropertyPricingFields({
               min={1}
               value={form.rent_kes_max}
               onChange={(e) => update("rent_kes_max", e.target.value)}
-              placeholder="Same as from if one price"
+              placeholder="Leave blank for a fixed price"
               className={inputCls}
             />
           </Field>
@@ -177,7 +180,7 @@ export function PropertyPricingFields({
         </div>
       )}
 
-      {isCommercial && showDeposit ? (
+      {showPriceRange && showDeposit ? (
         <Field label="Deposit (KES)">
           <input
             type="number"

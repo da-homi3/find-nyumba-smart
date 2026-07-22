@@ -17,6 +17,7 @@ import { formFieldValue } from "@/lib/utils";
 import { trackProviderAnalytics } from "@/lib/provider-analytics";
 import { useState } from "react";
 import { KENYA_LOCATION_LABELS, matchLocation } from "@/data/kenya-locations";
+import { buildPageHead } from "@/lib/seo/head";
 
 const VALID_CATEGORIES = new Set<string>(SERVICE_CATEGORIES.map((c) => c.id));
 

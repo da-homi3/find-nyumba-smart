@@ -14,7 +14,7 @@ describe("map-device", () => {
     });
     vi.stubGlobal("matchMedia", () => ({ matches: false }));
     expect(isMobileMapDevice()).toBe(true);
-    expect(mapLoadTimeoutMs()).toBe(8000);
+    expect(mapLoadTimeoutMs()).toBe(18_000);
     expect(selectedPropertyFlyToPitch()).toBe(0);
     vi.unstubAllGlobals();
   });

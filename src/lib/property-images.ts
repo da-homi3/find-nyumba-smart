@@ -1,4 +1,4 @@
-import heroNairobi from "@/assets/hero-nairobi.jpg";
+import listingPlaceholder from "@/assets/listing-placeholder.jpg";
 import listingPlaceholders from "@/data/listing-placeholders.json";
 
 /** Fabricated or dead Unsplash IDs from early seed data. */
@@ -9,11 +9,16 @@ const BROKEN_UNSPLASH_PATTERNS = [
 
 const PLACEHOLDERS = listingPlaceholders as string[];
 
-export const LOCAL_PROPERTY_PLACEHOLDER = heroNairobi;
+/** Tiny local fallback — never pull the full hero JPG for missing listing photos. */
+export const LOCAL_PROPERTY_PLACEHOLDER = listingPlaceholder;
 
 function hashSeed(seed: string): number {
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  for (let i = 0; i < seed.length; ) {
+    const cp = seed.codePointAt(i) ?? 0;
+    h = Math.trunc(h * 31 + cp);
+    i += cp > 0xffff ? 2 : 1;
+  }
   return Math.abs(h);
 }
 

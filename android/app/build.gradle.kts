@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.nyumbasearch.app"
+    namespace = "ke.co.nyumbasearch.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.nyumbasearch.app"
+        applicationId = "ke.co.nyumbasearch.app"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

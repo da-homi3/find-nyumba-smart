@@ -1,3 +1,4 @@
+import { differenceInCalendarDays, startOfDay } from "date-fns";
 import type { Property } from "@/lib/properties";
 import { getAreaProfile, type ReliabilityLabel } from "@/lib/area-analysis";
 
@@ -19,6 +20,22 @@ export type ListingIntel = {
   guard: boolean;
 };
 
+function verificationTimestamp(p: Property): string | null {
+  if (p.nyumba_verified_at) return p.nyumba_verified_at;
+  if (p.is_verified) return p.updated_at;
+  return null;
+}
+
+/** Tenant-facing verified badge text (no relative timing). */
+export function formatVerifiedAt(_iso?: string | Date, _now = new Date()): string {
+  return "Verified";
+}
+
+export function propertyVerifiedLabel(p: Property): string | null {
+  if (!verificationTimestamp(p)) return null;
+  return "Verified";
+}
+
 /**
  * Tenant-facing area intel derived from neighborhood profiles + listing amenities.
  * Prefer stored health_score / authenticity_score on the property for badges.
@@ -31,9 +48,10 @@ export function getListingIntel(p: Property): ListingIntel {
   const gated = amenities.some((a) => /gated|security/i.test(a)) || p.is_verified;
   const guard = amenities.some((a) => /guard|cctv|security/i.test(a));
 
-  const daysSince = Math.floor(
-    (Date.now() - new Date(p.updated_at).getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const verifiedAt = verificationTimestamp(p);
+  const daysSinceVerified = verifiedAt
+    ? differenceInCalendarDays(startOfDay(new Date()), startOfDay(new Date(verifiedAt)))
+    : 0;
 
   // Slight amenity upgrades on top of area baseline (deterministic, no random hash)
   let water = profile.water;
@@ -53,18 +71,16 @@ export function getListingIntel(p: Property): ListingIntel {
     noise: profile.noise,
     matatuRoute: profile.matatuRoute,
     commuteCbdMins: profile.commuteCbdMins,
-    verifiedDaysAgo: Math.max(1, daysSince || 1),
+    verifiedDaysAgo: Math.max(0, daysSinceVerified),
     borehole,
     gated,
     guard,
   };
 }
 
-export function formatVerifiedAgo(days: number) {
-  if (days <= 1) return "Verified today";
-  if (days < 7) return `Verified ${days} days ago`;
-  if (days < 30) return `Verified ${Math.floor(days / 7)} wk ago`;
-  return `Verified ${Math.floor(days / 30)} mo ago`;
+/** @deprecated Prefer `formatVerifiedAt` or `propertyVerifiedLabel`. */
+export function formatVerifiedAgo(_days: number) {
+  return "Verified";
 }
 
 export function verificationLevel(p: Property) {

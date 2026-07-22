@@ -35,16 +35,25 @@ export const verifyPaymentStatus = createServerFn({ method: "POST" })
     if (error) throw error;
 
     const ageMs = Date.now() - new Date(row.created_at).getTime();
-    const shouldSyncMpesa =
-      row.status === "pending" && row.payment_method === "mpesa" && ageMs > 6_000;
-
-    const synced = shouldSyncMpesa
-      ? await (
+    let synced = row;
+    if (row.status === "pending" && ageMs > 6_000) {
+      if (row.payment_method === "mpesa") {
+        synced = await (
           await import("@/lib/payments/complete-mpesa-payment")
-        ).syncMpesaPaymentStatus(supabaseAdmin, row)
-      : row;
+        ).syncMpesaPaymentStatus(supabaseAdmin, row);
+      } else if (row.payment_method === "card") {
+        synced = await (
+          await import("@/lib/payments/complete-pesapal-payment")
+        ).syncPesapalPaymentStatus(supabaseAdmin, row);
+      }
+    }
 
-    let message = "Waiting for M-Pesa confirmation";
+    let message = "Waiting for payment confirmation";
+    if (synced.payment_method === "mpesa" && synced.status === "pending") {
+      message = "Waiting for M-Pesa confirmation";
+    } else if (synced.payment_method === "card" && synced.status === "pending") {
+      message = "Waiting for card payment confirmation";
+    }
     if (synced.status === "completed") message = "Payment confirmed";
     else if (synced.status === "failed") message = "Payment failed or was cancelled";
 
@@ -280,16 +289,25 @@ export const verifyAdvertisePayment = createServerFn({ method: "POST" })
     }
 
     const ageMs = Date.now() - new Date(row.created_at).getTime();
-    const shouldSyncMpesa =
-      row.status === "pending" && row.payment_method === "mpesa" && ageMs > 6_000;
-
-    const synced = shouldSyncMpesa
-      ? await (
+    let synced = row;
+    if (row.status === "pending" && ageMs > 6_000) {
+      if (row.payment_method === "mpesa") {
+        synced = await (
           await import("@/lib/payments/complete-mpesa-payment")
-        ).syncMpesaPaymentStatus(supabaseAdmin, row)
-      : row;
+        ).syncMpesaPaymentStatus(supabaseAdmin, row);
+      } else if (row.payment_method === "card") {
+        synced = await (
+          await import("@/lib/payments/complete-pesapal-payment")
+        ).syncPesapalPaymentStatus(supabaseAdmin, row);
+      }
+    }
 
-    let message = "Waiting for M-Pesa confirmation";
+    let message = "Waiting for payment confirmation";
+    if (synced.payment_method === "mpesa" && synced.status === "pending") {
+      message = "Waiting for M-Pesa confirmation";
+    } else if (synced.payment_method === "card" && synced.status === "pending") {
+      message = "Waiting for card payment confirmation";
+    }
     if (synced.status === "completed") message = "Payment confirmed";
     else if (synced.status === "failed") message = "Payment failed or was cancelled";
 

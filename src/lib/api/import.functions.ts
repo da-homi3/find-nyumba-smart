@@ -116,6 +116,7 @@ export const executeListingImport = createServerFn({ method: "POST" })
           title: row.title,
           neighborhood: row.neighborhood,
           rent_kes: row.rent_kes,
+          rent_kes_max: null,
           bedrooms: row.bedrooms,
           bathrooms: row.bathrooms,
           property_type: row.property_type as never,

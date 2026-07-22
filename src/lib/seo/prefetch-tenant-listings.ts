@@ -1,18 +1,22 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { listProperties } from "@/lib/api/nyumba.functions";
 import { listingsQueryKey } from "@/hooks/use-listings-search";
-import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
+import { defaultTenantFilters, effectiveMaxRent } from "@/lib/tenant-filter-defaults";
 
 export const TENANT_LISTINGS_PAGE_SIZE = 12;
 
+/**
+ * SSR/SEO prefetch: small newest page so TTFB stays low.
+ * Must match client `listingFilters` normalization (effectiveMaxRent → undefined at ceiling).
+ */
 export function defaultTenantListingFilters() {
   return {
-    maxRent: defaultTenantFilters.maxRent,
+    maxRent: effectiveMaxRent(defaultTenantFilters.maxRent),
     minRent: defaultTenantFilters.minRent,
-    sortBy: defaultTenantFilters.sort,
+    sortBy: "newest" as const,
     limit: TENANT_LISTINGS_PAGE_SIZE,
     offset: 0,
-  } as const;
+  };
 }
 
 /** Prefetch browse listings during SSR for search-engine readable vacancy cards. */

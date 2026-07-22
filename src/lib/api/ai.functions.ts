@@ -317,6 +317,88 @@ export const getAssistantReply = createServerFn({ method: "POST" })
     };
   });
 
+type PropertyChatRow = {
+  title: string;
+  neighborhood: string;
+  rent_kes: number;
+  bedrooms: number;
+  bathrooms: number;
+  description: string | null;
+  amenities: string[] | null;
+  is_verified: boolean | null;
+  authenticity_score: number | null;
+};
+
+async function loadPropertyChatContext(propertyId: string): Promise<{
+  summary: string;
+  row: PropertyChatRow | null;
+}> {
+  const { createPublicClient } = await import("@/lib/api/public-client");
+  const supabase = createPublicClient();
+  const { data: property } = await supabase
+    .from("properties")
+    .select(
+      "title, neighborhood, rent_kes, bedrooms, bathrooms, description, amenities, is_verified, authenticity_score",
+    )
+    .eq("id", propertyId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!property) return { summary: "", row: null };
+
+  const amenities = Array.isArray(property.amenities)
+    ? property.amenities.slice(0, 12).join(", ")
+    : "";
+  const description = property.description
+    ? `Description: ${property.description.slice(0, 400)}`
+    : "";
+  const summary = [
+    `Listing: ${property.title}`,
+    `Area: ${property.neighborhood}`,
+    `Rent: KES ${property.rent_kes.toLocaleString()}/mo`,
+    `Beds/baths: ${property.bedrooms}/${property.bathrooms}`,
+    property.is_verified ? "Verified on NyumbaSearch" : "Not yet verified",
+    `Trust score: ${property.authenticity_score ?? "n/a"}%`,
+    amenities ? `Amenities: ${amenities}` : "",
+    description,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return { summary, row: property };
+}
+
+function buildPropertyChatSystemPrompt(propertySummary: string): string {
+  const listingBlock = propertySummary ? `CURRENT LISTING\n${propertySummary}` : "";
+  return [
+    NYUMBAAI_SYSTEM_PROMPT,
+    "",
+    "Answer about the listing below when relevant. Be concise (under 120 words). If asked about safety, be honest about trade-offs and remind the user to verify in person.",
+    "",
+    listingBlock,
+  ]
+    .filter((line) => line !== undefined)
+    .join("\n");
+}
+
+export async function answerPropertyAiChat(input: {
+  message: string;
+  propertyId?: string;
+}): Promise<string> {
+  const { checkRateLimit, RATE_LIMITS } = await import("@/lib/api/rate-limit");
+  checkRateLimit(`ai-chat:${input.propertyId ?? "general"}`, RATE_LIMITS.ai);
+
+  const context = input.propertyId
+    ? await loadPropertyChatContext(input.propertyId)
+    : { summary: "", row: null };
+
+  const systemPrompt = buildPropertyChatSystemPrompt(context.summary);
+  const response = await callGeminiChat(systemPrompt, input.message);
+  if (response) return response;
+
+  return propertyChatFallback(input.message, context.row);
+}
+
 export const getAIChatResponse = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -324,33 +406,29 @@ export const getAIChatResponse = createServerFn({ method: "POST" })
       propertyId: z.string().uuid().optional(),
     }),
   )
-  .handler(async ({ data }) => {
-    const { checkRateLimit } = await import("@/lib/api/rate-limit");
-    checkRateLimit(`ai-chat:${data.propertyId ?? "general"}`);
+  .handler(async ({ data }) => answerPropertyAiChat(data));
 
-    const { createPublicClient } = await import("@/lib/api/public-client");
-    const supabase = createPublicClient();
-
-    let propertyDetails = "";
-    if (data.propertyId) {
-      const { data: property } = await supabase
-        .from("properties")
-        .select("title, neighborhood, rent_kes, bedrooms, bathrooms, description, amenities")
-        .eq("id", data.propertyId)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (property) {
-        propertyDetails = `You are chatting about this property:\n${JSON.stringify(property)}\n\n`;
-      }
-    }
-
-    const prompt = `${propertyDetails}User: ${data.message}`;
-    const systemPrompt = NYUMBAAI_SYSTEM_PROMPT;
-
-    const response = await callGeminiChat(systemPrompt, prompt);
-    return (
-      response ??
-      "I'm currently unable to access my AI engine, but you can contact the landlord directly using the buttons below!"
-    );
-  });
+function propertyChatFallback(
+  message: string,
+  property: Pick<
+    PropertyChatRow,
+    "title" | "neighborhood" | "is_verified" | "authenticity_score"
+  > | null,
+): string {
+  const lower = message.toLowerCase();
+  const wantsSafety = /safe|security|secure|crime|danger|risk|scam|fraud/.test(lower);
+  if (property && wantsSafety) {
+    const verified = property.is_verified
+      ? "This listing is marked verified on NyumbaSearch."
+      : "This listing is not yet marked verified — treat contact and deposits carefully.";
+    const score =
+      property.authenticity_score != null
+        ? ` Trust score: ${property.authenticity_score}%.`
+        : "";
+    return `${verified}${score} For ${property.neighborhood}, visit in daylight, never pay a deposit before viewing, and use Call/WhatsApp below once unlocked. I can share more once the AI engine reconnects.`;
+  }
+  if (property) {
+    return `I couldn't reach the AI engine just now. You're looking at **${property.title}** in ${property.neighborhood}. Try again in a moment, or contact the landlord with Call / WhatsApp below.`;
+  }
+  return "I'm currently unable to access my AI engine. Please try again shortly, or contact the landlord using the buttons below.";
+}

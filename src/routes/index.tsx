@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { SiteNav, SiteFooter } from "@/components/SiteNav";
 import { LandingHero } from "@/components/landing/LandingHero";
 import {
@@ -10,23 +10,7 @@ import {
   ServiceTeaserRow,
   TrustStrip,
 } from "@/components/landing/LandingBrowseSections";
-import {
-  DownloadApp,
-  LandlordBand,
-  PropertyIntelSection,
-  Testimonials,
-  VerifiedSection,
-  WhyNyumba,
-} from "@/components/landing/LandingMarketingSections";
-import {
-  getBrandLogoUrl,
-  getSiteUrl,
-  HOMEPAGE_TITLE,
-  HOMEPAGE_DESCRIPTION,
-  CUSTOMER_CARE_EMAIL,
-  CUSTOMER_CARE_PHONE_E164,
-} from "@/lib/site";
-import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
+import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
@@ -37,6 +21,13 @@ import {
 } from "@/lib/homepage-client";
 import { prefetchHomepageQueries, HOMEPAGE_LISTINGS_LIMIT } from "@/lib/seo/prefetch-homepage";
 import { buildPageHead } from "@/lib/seo/head";
+import { buildHomepageJsonLd } from "@/lib/seo/brand-entity";
+
+const LandingMarketingBelowFold = lazy(() =>
+  import("@/components/landing/LandingMarketingBelowFold").then((m) => ({
+    default: m.LandingMarketingBelowFold,
+  })),
+);
 
 async function fetchPublicStatsApi(): Promise<PublicStats> {
   const res = await fetch("/api/stats/public", { headers: { Accept: "application/json" } });
@@ -46,8 +37,7 @@ async function fetchPublicStatsApi(): Promise<PublicStats> {
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => {
-    await prefetchHomepageQueries(context.queryClient);
-    const providerCounts = await getProviderCategoryCounts();
+    const { providerCounts } = await prefetchHomepageQueries(context.queryClient);
     return { providerCounts };
   },
   head: () => {
@@ -56,44 +46,7 @@ export const Route = createFileRoute("/")({
       title: HOMEPAGE_TITLE,
       description,
       path: "",
-      jsonLd: {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "WebSite",
-            name: "NyumbaSearch",
-            url: getSiteUrl(),
-            potentialAction: {
-              "@type": "SearchAction",
-              target: {
-                "@type": "EntryPoint",
-                urlTemplate: `${getSiteUrl()}/tenant?q={search_term_string}`,
-              },
-              "query-input": "required name=search_term_string",
-            },
-          },
-          {
-            "@type": "Organization",
-            name: "NyumbaSearch",
-            url: getSiteUrl(),
-            logo: getBrandLogoUrl(),
-            contactPoint: {
-              "@type": "ContactPoint",
-              contactType: "customer service",
-              email: CUSTOMER_CARE_EMAIL,
-              telephone: CUSTOMER_CARE_PHONE_E164,
-              areaServed: "KE",
-            },
-          },
-          {
-            "@type": "RealEstateAgent",
-            name: "NyumbaSearch",
-            areaServed: "Nairobi, Kenya",
-            url: getSiteUrl(),
-            description,
-          },
-        ],
-      },
+      jsonLd: buildHomepageJsonLd(),
     });
   },
   component: Landing,
@@ -103,7 +56,8 @@ function Landing() {
   const { providerCounts } = Route.useLoaderData();
   const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties", "homepage-featured"],
-    queryFn: () => fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT }),
+    queryFn: () =>
+      fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT, sortBy: "newest" }),
     staleTime: 60_000,
   });
 
@@ -132,12 +86,10 @@ function Landing() {
   });
 
   const featured = useMemo(() => {
-    const now = Date.now();
-    const boosted = properties.filter(
-      (p) => p.featured_until && new Date(p.featured_until).getTime() > now,
+    const newest = [...properties].sort(
+      (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
     );
-    const pool = boosted.length > 0 ? boosted : properties.filter((p) => p.is_verified);
-    return { items: pool.slice(0, 8), isBoosted: boosted.length > 0 };
+    return { items: newest.slice(0, 8), isBoosted: false };
   }, [properties]);
 
   const popularNeighborhoods = useMemo(() => {
@@ -199,12 +151,14 @@ function Landing() {
       />
       <ServiceTeaserRow counts={providerCounts} />
       <AgencyLogosSection agencies={featuredAgencies} loading={agenciesLoading} />
-      <VerifiedSection />
-      <PropertyIntelSection stats={intelligenceStats} loading={intelligenceLoading} />
-      <WhyNyumba />
-      <Testimonials items={testimonials ?? FALLBACK_TESTIMONIALS} loading={testimonialsLoading} />
-      <DownloadApp />
-      <LandlordBand />
+      <Suspense fallback={null}>
+        <LandingMarketingBelowFold
+          intelligenceStats={intelligenceStats}
+          intelligenceLoading={intelligenceLoading}
+          testimonials={testimonials ?? FALLBACK_TESTIMONIALS}
+          testimonialsLoading={testimonialsLoading}
+        />
+      </Suspense>
       <SiteFooter />
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfilePhone } from "@/hooks/use-profile-phone";
 import { PLUS_PLAN } from "@/lib/revenue/plans";
 
 const searchSchema = z.object({
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/tenant/checkout")({
 
 function TenantCheckoutPage() {
   const { user, loading } = useAuth();
+  const { phone: profilePhone } = useProfilePhone();
   const navigate = useNavigate();
   const [cycle, setCycle] = useState<"monthly" | "quarterly">("monthly");
 
@@ -44,7 +46,7 @@ function TenantCheckoutPage() {
   if (!user) return null;
 
   const amountKes = cycle === "quarterly" ? PLUS_PLAN.quarterlyKes : PLUS_PLAN.monthlyKes;
-  const defaultPhone = (user.user_metadata?.phone as string | undefined) ?? user.phone ?? "";
+  const defaultPhone = profilePhone ?? "";
 
   return (
     <div className="mx-auto max-w-lg px-5 pb-24 pt-10">

@@ -54,8 +54,8 @@ function LandlordEntry() {
               Reach verified tenants <span className="text-gold">directly</span>.
             </h1>
             <p className="mt-5 max-w-md text-background/75">
-              List, track, and rent your properties from one premium dashboard. Sign up to start
-              your 30-day free trial with full access — no payment required upfront.
+              List, track, and rent your properties from one premium dashboard. Sign up, get
+              approved, then pay your first month — your second month is free.
             </p>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">

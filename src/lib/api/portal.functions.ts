@@ -343,7 +343,7 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
         userId: app.user_id,
         requestedRole: app.requested_role as PortalListerRole,
         organizationName: app.organization_name,
-        startTrial: true,
+        startTrial: false,
       },
     );
 

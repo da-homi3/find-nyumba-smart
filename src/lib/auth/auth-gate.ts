@@ -23,11 +23,8 @@ export function rememberOAuthIntent(role: "tenant" = "tenant", nextPath = "/tena
 }
 
 export function consumeOAuthIntent(): { role: "tenant"; next: string } {
-  let role: "tenant" = "tenant";
   let next = "/tenant";
   try {
-    const storedRole = sessionStorage.getItem(OAUTH_ROLE_KEY);
-    if (storedRole === "tenant") role = "tenant";
     const storedNext = sessionStorage.getItem(OAUTH_NEXT_KEY);
     if (storedNext?.startsWith("/")) next = storedNext;
     sessionStorage.removeItem(OAUTH_ROLE_KEY);
@@ -35,7 +32,7 @@ export function consumeOAuthIntent(): { role: "tenant"; next: string } {
   } catch {
     // ignore
   }
-  return { role, next };
+  return { role: "tenant" as const, next };
 }
 
 export function isAuthGateDismissedThisSession(): boolean {
@@ -75,5 +72,13 @@ export function shouldSkipAuthGate(pathname: string): boolean {
   ) {
     return true;
   }
+  return false;
+}
+
+/** Paths where the mandatory phone modal can be skipped (user is already editing profile). */
+export function shouldSkipPhoneGate(pathname: string): boolean {
+  if (shouldSkipAuthGate(pathname)) return true;
+  if (pathname.startsWith("/settings")) return true;
+  if (pathname.startsWith("/tenant/profile")) return true;
   return false;
 }

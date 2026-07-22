@@ -1,35 +1,37 @@
 import { getSiteUrl } from "@/lib/site";
+import { getServerEnv } from "@/lib/server-env";
 
 type TokenCache = { token: string; expiresAt: number };
 let tokenCache: TokenCache | null = null;
 
 export function isPesapalConfigured(): boolean {
   return Boolean(
-    process.env.PESAPAL_CONSUMER_KEY?.trim() &&
-    process.env.PESAPAL_CONSUMER_SECRET?.trim() &&
-    process.env.PESAPAL_NOTIFICATION_ID?.trim(),
+    getServerEnv("PESAPAL_CONSUMER_KEY")?.trim() &&
+      getServerEnv("PESAPAL_CONSUMER_SECRET")?.trim() &&
+      getServerEnv("PESAPAL_NOTIFICATION_ID")?.trim(),
   );
 }
 
 function apiBase(): string {
-  return process.env.PESAPAL_ENV === "live"
+  return getServerEnv("PESAPAL_ENV") === "live"
     ? "https://pay.pesapal.com/v3/api"
     : "https://cybqa.pesapal.com/pesapalv3/api";
 }
 
 export function pesapalCallbackUrl(): string {
-  if (process.env.PESAPAL_CALLBACK_URL) return process.env.PESAPAL_CALLBACK_URL;
+  const configured = getServerEnv("PESAPAL_CALLBACK_URL");
+  if (configured) return configured;
   return `${getSiteUrl()}/api/payments/callback/card`;
 }
 
 function consumerKey(): string {
-  const key = process.env.PESAPAL_CONSUMER_KEY;
+  const key = getServerEnv("PESAPAL_CONSUMER_KEY");
   if (!key) throw new Error("Pesapal is not configured");
   return key;
 }
 
 function consumerSecret(): string {
-  const secret = process.env.PESAPAL_CONSUMER_SECRET;
+  const secret = getServerEnv("PESAPAL_CONSUMER_SECRET");
   if (!secret) throw new Error("Pesapal is not configured");
   return secret;
 }
@@ -112,7 +114,7 @@ function parseRegisterIpnResponse(json: unknown): {
 }
 
 function notificationId(): string {
-  const id = process.env.PESAPAL_NOTIFICATION_ID;
+  const id = getServerEnv("PESAPAL_NOTIFICATION_ID");
   if (!id)
     throw new Error("PESAPAL_NOTIFICATION_ID is required — register your IPN URL with Pesapal");
   return id;
@@ -143,6 +145,13 @@ async function getAuthToken(): Promise<string> {
 
   tokenCache = { token: data.token, expiresAt };
   return data.token;
+}
+
+/** Lightweight auth check for health / ops — does not create a payment. */
+export async function probePesapalAuth(): Promise<boolean> {
+  if (!isPesapalConfigured()) return false;
+  const token = await getAuthToken();
+  return Boolean(token);
 }
 
 export type PesapalInitResult = {

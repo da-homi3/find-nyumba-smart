@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.nyumbasearch.app",
+      "package_name": "ke.co.nyumbasearch.app",
       "sha256_cert_fingerprints": [
         "9C:B0:AD:13:B0:AC:FF:F9:F9:7E:54:72:A6:8B:9C:7F:54:4D:24:25:37:A5:CC:97:A2:82:DF:C2:FD:35:81:58"
       ]

@@ -1,10 +1,15 @@
 import { createFileRoute, Outlet, useMatchRoute, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { AiAssistant } from "@/components/AiAssistant";
-import { TenantMapApp } from "@/components/tenant-map/TenantMapApp";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { prefetchTenantSection } from "@/lib/tenant-section-prefetch";
 import { cn } from "@/lib/utils";
+
+const TenantMapApp = lazy(() =>
+  import("@/components/tenant-map/TenantMapApp").then((m) => ({ default: m.TenantMapApp })),
+);
+const AiAssistant = lazy(() =>
+  import("@/components/AiAssistant").then((m) => ({ default: m.AiAssistant })),
+);
 
 const MAP_ARMED_KEY = "nyumba-map-armed";
 
@@ -30,8 +35,8 @@ function TenantLayout() {
   const [mapArmed, setMapArmed] = useState(readMapArmed);
 
   useEffect(() => {
+    // Warm browse only — map's 500-listing fetch waits for Map tab intent.
     prefetchTenantSection(queryClient, "/tenant");
-    prefetchTenantSection(queryClient, "/tenant/map");
   }, [queryClient]);
 
   useEffect(() => {
@@ -61,7 +66,9 @@ function TenantLayout() {
           )}
           aria-hidden={!onMap}
         >
-          <TenantMapApp />
+          <Suspense fallback={null}>
+            <TenantMapApp />
+          </Suspense>
         </div>
       ) : null}
 
@@ -69,7 +76,11 @@ function TenantLayout() {
         <Outlet />
       </div>
 
-      {!isMessageThread && !onMap ? <AiAssistant /> : null}
+      {!isMessageThread && !onMap ? (
+        <Suspense fallback={null}>
+          <AiAssistant />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="forest_green">#0A5C47</color>
+    <color name="brand_cocoa">#4A2713</color>
     <color name="mint">#1EB88A</color>
     <color name="gold">#F6AD55</color>
     <color name="off_white">#F8FAF9</color>

@@ -16,18 +16,19 @@ import { cn, errorMessage } from "@/lib/utils";
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
 
-const MIN_ENHANCE_CHARS = 40;
+/** Auto-polish + amenity extract once the landlord has a usable draft. */
+const MIN_ENHANCE_CHARS = 20;
 const SHORT_DESC_FOR_CHIPS = 20;
 
 export type ListingAiDraftContext = {
   title: string;
   property_type: string;
-  bedrooms: number;
-  bathrooms: number;
+  bedrooms: number | string;
+  bathrooms: number | string;
   neighborhood: string;
-  latitude: number | null;
-  longitude: number | null;
-  rent_kes: number;
+  latitude: number | string | null;
+  longitude: number | string | null;
+  rent_kes: number | string;
 };
 
 type ListingDescriptionAmenitiesFieldsProps = Readonly<{
@@ -54,8 +55,21 @@ export function ListingDescriptionAmenitiesFields({
   const [undoDescription, setUndoDescription] = useState<string | null>(null);
   const lastEnhancedFor = useRef<string>("");
   const lastExtractedFor = useRef<string>("");
+  const amenitiesRef = useRef(amenities);
+  amenitiesRef.current = amenities;
 
   const showChips = description.trim().length < SHORT_DESC_FOR_CHIPS;
+
+  function applyAmenities(nextList: string[], { toastOnFill }: { toastOnFill: boolean }) {
+    const current = amenitiesRef.current;
+    const next = formatAmenityString(mergeAmenities(parseAmenityString(current), nextList));
+    if (next !== current) {
+      onAmenitiesChange(next);
+      if (toastOnFill && nextList.length > 0) {
+        toast.success("Amenities filled from description — edit anytime");
+      }
+    }
+  }
 
   async function runExtract(source: string, { toastOnFill }: { toastOnFill: boolean }) {
     const trimmed = source.trim();
@@ -66,19 +80,11 @@ export function ListingDescriptionAmenitiesFields({
       const result = await extractListingAmenities({
         data: {
           description: trimmed,
-          existingAmenities: amenities,
+          existingAmenities: amenitiesRef.current,
         },
       });
       lastExtractedFor.current = trimmed;
-      const next = formatAmenityString(
-        mergeAmenities(parseAmenityString(amenities), result.amenities),
-      );
-      if (next !== amenities) {
-        onAmenitiesChange(next);
-        if (toastOnFill && result.amenities.length > 0) {
-          toast.success("Amenities filled from description — edit anytime");
-        }
-      }
+      applyAmenities(result.amenities, { toastOnFill });
     } catch (err) {
       toast.error("Could not extract amenities", { description: errorMessage(err) });
     } finally {
@@ -90,6 +96,7 @@ export function ListingDescriptionAmenitiesFields({
     const trimmed = source.trim();
     if (trimmed.length < MIN_ENHANCE_CHARS) {
       if (force) toast.error(`Add at least ${MIN_ENHANCE_CHARS} characters before enhancing`);
+      else if (trimmed.length >= 8) await runExtract(trimmed, { toastOnFill: true });
       return;
     }
     if (!force && lastEnhancedFor.current === trimmed) return;
@@ -100,33 +107,28 @@ export function ListingDescriptionAmenitiesFields({
       const result = await enhanceListingCopy({
         data: {
           description: trimmed,
+          existingAmenities: amenitiesRef.current,
           draft: {
             title: draft.title,
             property_type: draft.property_type,
-            bedrooms: draft.bedrooms,
-            bathrooms: draft.bathrooms,
+            bedrooms: Number(draft.bedrooms) || 0,
+            bathrooms: Number(draft.bathrooms) || 0,
             neighborhood: draft.neighborhood,
-            latitude: draft.latitude,
-            longitude: draft.longitude,
-            rent_kes: draft.rent_kes,
-            amenities,
+            latitude: draft.latitude == null ? null : Number(draft.latitude),
+            longitude: draft.longitude == null ? null : Number(draft.longitude),
+            rent_kes: Number(draft.rent_kes) || 0,
+            amenities: amenitiesRef.current,
           },
           imageDataUrls: imageDataUrls.length > 0 ? imageDataUrls : undefined,
         },
       });
-      const next = result.description.trim();
-      // Extract from original + enhanced so amenities dropped during rewrite are still captured.
-      const extractSource =
-        next && next !== trimmed ? `${trimmed}\n\n${next}` : trimmed;
-      if (next && next !== trimmed) {
-        setUndoDescription(trimmed);
-        onDescriptionChange(next);
-        lastEnhancedFor.current = next;
-      } else {
-        lastEnhancedFor.current = trimmed;
-      }
-      lastExtractedFor.current = "";
-      await runExtract(extractSource, { toastOnFill: true });
+      const next = (result.description || "").trim() || trimmed;
+      setUndoDescription(trimmed);
+      onDescriptionChange(next);
+      lastEnhancedFor.current = next;
+      lastExtractedFor.current = next;
+      applyAmenities(result.amenities ?? [], { toastOnFill: false });
+      toast.success("Description analyzed & enhanced — amenities updated");
     } catch (err) {
       toast.error("Could not enhance description", { description: errorMessage(err) });
     } finally {
@@ -151,6 +153,10 @@ export function ListingDescriptionAmenitiesFields({
     setUndoDescription(null);
   }
 
+  let aiStatus = "AI analyzes the description thoroughly, polishes wording, and fills every amenity found.";
+  if (enhancing) aiStatus = "Analyzing description, polishing copy, and extracting amenities…";
+  else if (extracting) aiStatus = "Extracting amenities…";
+
   return (
     <div className="col-span-full space-y-4">
       <label className="block">
@@ -170,7 +176,7 @@ export function ListingDescriptionAmenitiesFields({
             ) : null}
             <button
               type="button"
-              disabled={disabled || enhancing || description.trim().length < 20}
+              disabled={disabled || enhancing || description.trim().length < MIN_ENHANCE_CHARS}
               onClick={() => void runEnhance(description, { force: true })}
               className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/15 disabled:opacity-50"
             >
@@ -192,11 +198,7 @@ export function ListingDescriptionAmenitiesFields({
           placeholder="Describe the unit, building amenities, nearby landmarks, and viewing instructions…"
           className={inputCls}
         />
-        {enhancing || extracting ? (
-          <p className="mt-1.5 text-[11px] text-muted-foreground">
-            {enhancing ? "Enhancing description…" : "Suggesting amenities…"}
-          </p>
-        ) : null}
+        <p className="mt-1.5 text-[11px] text-muted-foreground">{aiStatus}</p>
       </label>
 
       <label className="block">

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
-import { isKenyanPhone } from "@/lib/phone";
-import { metadataFromCheckout } from "@/lib/payments/payment-metadata";
+import { isKenyanPhone, toMpesaPhone254 } from "@/lib/phone";
+import { metadataFromCheckout, parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 import { assertStkPromptRateLimit } from "@/lib/payments/rate-limit";
 import { getServerEnv } from "@/lib/server-env";
 
@@ -57,7 +57,10 @@ export const initiatePaymentSchema = z.object({
 export type InitiatePaymentInput = z.infer<typeof initiatePaymentSchema>;
 
 function formatPhone254(phone: string): string {
-  let clean = phone.replaceAll("+", "").trim();
+  const digits = toMpesaPhone254(phone);
+  if (digits) return digits;
+  // Fallback for already-normalized inputs that somehow skipped validation.
+  let clean = phone.replaceAll(/[\s\-()+]/g, "");
   if (clean.startsWith("0")) clean = "254" + clean.slice(1);
   else if (clean.startsWith("7") || clean.startsWith("1")) clean = "254" + clean;
   return clean;
@@ -114,66 +117,6 @@ async function insertPayment(userId: string, data: InitiatePaymentInput, idempot
   return { row, supabaseAdmin };
 }
 
-const TRIAL_ELIGIBLE_PAYMENT_TYPES = [
-  "tenant_plus",
-  "landlord_plan",
-  "premium_subscription",
-  "provider_subscription",
-] as const;
-
-function defaultSubscriptionPlan(paymentType: string, plan?: string): string {
-  if (plan) return plan;
-  if (paymentType === "tenant_plus") return "plus";
-  if (paymentType === "provider_subscription") return "basic";
-  return "pro";
-}
-
-async function tryFirstSubscriptionTrial(
-  userId: string,
-  data: InitiatePaymentInput,
-): Promise<{
-  paymentId: null;
-  status: "trial_started";
-  trialEnd: string;
-  subscriptionId: string;
-  message: string;
-} | null> {
-  if (
-    !TRIAL_ELIGIBLE_PAYMENT_TYPES.includes(
-      data.paymentType as (typeof TRIAL_ELIGIBLE_PAYMENT_TYPES)[number],
-    )
-  ) {
-    return null;
-  }
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { isFirstTimeSubscriber } = await import("@/lib/payments/trial-eligibility");
-  const { startTrialingSubscription } = await import("@/lib/payments/start-trial-subscription");
-
-  if (!(await isFirstTimeSubscriber(supabaseAdmin, userId))) {
-    return null;
-  }
-
-  const plan = defaultSubscriptionPlan(data.paymentType, data.plan);
-  const { trialEnd, subscriptionId } = await startTrialingSubscription(supabaseAdmin, {
-    userId,
-    paymentType: data.paymentType,
-    plan,
-    billingCycle: data.billingCycle ?? "monthly",
-    paymentMethod: data.paymentMethod,
-    amountKes: data.amountKes,
-    providerId: data.providerId,
-  });
-
-  return {
-    paymentId: null,
-    status: "trial_started",
-    trialEnd,
-    subscriptionId,
-    message: "Your first month is free — no payment collected today.",
-  };
-}
-
 function allowDemoMpesaCompletion(): boolean {
   if (getServerEnv("ALLOW_DEMO_PAYMENTS") === "true") return true;
   if (getServerEnv("ALLOW_DEMO_PAYMENTS") === "false") return false;
@@ -218,6 +161,17 @@ async function completeMpesaPayment(
   row: Awaited<ReturnType<typeof insertPayment>>["row"],
   data: InitiatePaymentInput,
 ) {
+  // Idempotent retry: reuse existing STK instead of prompting again.
+  if (row.mpesa_checkout_id) {
+    return {
+      paymentId: row.id,
+      status: "pending" as const,
+      method: "mpesa" as const,
+      checkoutRequestId: row.mpesa_checkout_id,
+      message: "Waiting for M-Pesa confirmation on your phone",
+    };
+  }
+
   if (!data.phoneNumber || !isKenyanPhone(data.phoneNumber)) {
     throw new Error("Enter a valid M-Pesa phone number");
   }
@@ -249,7 +203,12 @@ async function completeMpesaPayment(
     throw new Error("M-Pesa payments are not configured. Contact support.");
   }
 
-  const receiptCode = "DEMO" + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  const receiptCode = `DEMO${Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 7)
+    .toUpperCase()}`;
   await supabaseAdmin
     .from("payments")
     .update({ status: "completed", mpesa_receipt: receiptCode })
@@ -272,11 +231,10 @@ async function completeMpesaPayment(
 
 /** Shared payment initiation — call from server handlers with a known userId. */
 export async function initiatePaymentCore(userId: string, data: InitiatePaymentInput) {
-  await assertStkPromptRateLimit({ userId });
+  if (data.paymentMethod === "mpesa") {
+    await assertStkPromptRateLimit({ userId });
+  }
   await assertPaymentAuthorization(userId, data);
-
-  const trialStarted = await tryFirstSubscriptionTrial(userId, data);
-  if (trialStarted) return trialStarted;
 
   const { row, supabaseAdmin } = await insertPayment(userId, data, data.idempotencyKey);
 
@@ -286,6 +244,16 @@ export async function initiatePaymentCore(userId: string, data: InitiatePaymentI
 
   if (data.paymentMethod === "mpesa") {
     return completeMpesaPayment(supabaseAdmin, row, data);
+  }
+
+  const meta = parsePaymentMetadata(row.metadata);
+  if (row.mpesa_checkout_id && meta.orderTrackingId && meta.cardRedirectUrl) {
+    return {
+      paymentId: row.id,
+      status: "pending" as const,
+      method: "card" as const,
+      redirectUrl: meta.cardRedirectUrl,
+    };
   }
 
   const { initiateCardPayment, isPesapalConfigured } = await import("@/lib/api/pesapal");
@@ -300,7 +268,7 @@ export async function initiatePaymentCore(userId: string, data: InitiatePaymentI
     .maybeSingle();
 
   const reference = `NS-${row.id}`;
-  const { authorizationUrl } = await initiateCardPayment({
+  const card = await initiateCardPayment({
     reference,
     amountKes: data.amountKes,
     email: data.email ?? `user-${userId.slice(0, 8)}@nyumbasearch.ke`,
@@ -309,12 +277,23 @@ export async function initiatePaymentCore(userId: string, data: InitiatePaymentI
     description: data.title,
   });
 
-  await supabaseAdmin.from("payments").update({ mpesa_checkout_id: reference }).eq("id", row.id);
+  await supabaseAdmin
+    .from("payments")
+    .update({
+      mpesa_checkout_id: reference,
+      metadata: {
+        ...meta,
+        paymentMethod: "card",
+        orderTrackingId: card.orderTrackingId,
+        cardRedirectUrl: card.authorizationUrl,
+      },
+    })
+    .eq("id", row.id);
 
   return {
     paymentId: row.id,
     status: "pending" as const,
     method: "card" as const,
-    redirectUrl: authorizationUrl,
+    redirectUrl: card.authorizationUrl,
   };
 }

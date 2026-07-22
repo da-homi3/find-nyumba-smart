@@ -44,7 +44,7 @@ type InquiryRow = {
   id: string;
   message: string;
   created_at: string;
-  profiles: { full_name?: string; phone?: string } | null;
+  profiles: { full_name?: string | null; phone?: string | null } | null;
 };
 
 type SubscriptionRow = {

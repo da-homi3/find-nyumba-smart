@@ -70,7 +70,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
       <div
         className={`flex items-center justify-between px-4 py-3 transition-colors sm:px-5 ${glassClass}`}
       >
-        <BrandLogoLink className={textClass} logoClassName="h-9 sm:h-10" />
+        <BrandLogoLink className={textClass} logoClassName="h-9 sm:h-10" priority />
 
         <nav className={`hidden items-center gap-1 md:flex ${mutedClass}`}>
           <Link

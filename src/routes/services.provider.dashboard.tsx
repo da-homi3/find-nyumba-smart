@@ -195,7 +195,7 @@ function ProviderDashboardPage() {
                 <ProviderOverviewPanel
                   analytics={analytics}
                   provider={provider}
-                  subscription={subscription}
+                  subscription={subscription ?? null}
                 />
               )}
             </section>
@@ -226,7 +226,7 @@ function ProviderDashboardPage() {
             <section data-tour="provider-subscription">
               <ProviderPlanPanel
                 provider={provider}
-                subscription={subscription}
+                subscription={subscription ?? null}
                 defaultPhone={defaultPhone}
               />
             </section>

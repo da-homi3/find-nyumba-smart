@@ -13,8 +13,18 @@ export function listingsQueryKey(filters: PropertySearchFilters) {
     filters.limit ?? 50,
     filters.offset ?? 0,
     filters.propertyType ?? null,
+    filters.pricingMode ?? null,
     filters.minBedrooms ?? null,
+    filters.verifiedOnly ? 1 : 0,
+    filters.originLat != null ? Number(filters.originLat.toFixed(3)) : null,
+    filters.originLng != null ? Number(filters.originLng.toFixed(3)) : null,
   ] as const;
+}
+
+function shouldRetryListings(failureCount: number, error: Error): boolean {
+  const msg = error.message ?? "";
+  if (/Too many requests|429/.test(msg)) return false;
+  return failureCount < 1;
 }
 
 export function useListingsSearch(filters: PropertySearchFilters) {
@@ -25,7 +35,7 @@ export function useListingsSearch(filters: PropertySearchFilters) {
     gcTime: 24 * 60 * 60_000,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    retry: shouldRetryListings,
+    retryDelay: (attempt) => Math.min(1500 * 2 ** attempt, 10_000),
   });
 }

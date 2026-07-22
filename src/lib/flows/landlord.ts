@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { enhanceListingDescription, extractAmenitiesFromText } from "@/lib/flows/nyumbaai";
+import { polishListingDescriptionAndAmenities } from "@/lib/flows/nyumbaai";
 import { parseAmenityString } from "@/lib/listings/amenities";
 import { sendAccountStatus } from "@/lib/flows/assistant";
 import {
@@ -206,14 +206,25 @@ async function handleListingDescriptionStep(
     await sendText(waPhone, "Please write a longer description.", admin);
     return;
   }
-  const cleaned = await enhanceListingDescription(input, {
-    ...draft,
-    price: draft.price,
-    neighborhood: draft.neighborhood,
-  });
-  const amenities = await extractAmenitiesFromText(cleaned);
+  let existingAmenities: string[] | string | null = null;
+  if (Array.isArray(draft.amenities)) {
+    existingAmenities = draft.amenities as string[];
+  } else if (typeof draft.amenities === "string") {
+    existingAmenities = draft.amenities;
+  }
+
+  const polished = await polishListingDescriptionAndAmenities(
+    input,
+    {
+      ...draft,
+      price: draft.price,
+      neighborhood: draft.neighborhood,
+    },
+    [],
+    existingAmenities,
+  );
   await updateState(admin, waPhone, "listing_photos", {
-    draft: { ...draft, description: cleaned, amenities },
+    draft: { ...draft, description: polished.description, amenities: polished.amenities },
   });
   await sendText(waPhone, "Step 6/8 — Send photos (up to 10). Type *DONE* when finished.", admin);
 }
@@ -303,14 +314,18 @@ async function submitListingDraft(
   const title = draftString(d.title, "Untitled listing");
 
   try {
-    const amenitiesList = Array.isArray(d.amenities)
-      ? (d.amenities as string[])
-      : parseAmenityString(typeof d.amenities === "string" ? d.amenities : "");
+    let amenitiesList: string[] = [];
+    if (Array.isArray(d.amenities)) {
+      amenitiesList = d.amenities as string[];
+    } else if (typeof d.amenities === "string") {
+      amenitiesList = parseAmenityString(d.amenities);
+    }
 
     await admin.from("properties").insert({
       id: propertyId,
       title,
       rent_kes: Number(d.price),
+      rent_kes_max: null,
       property_type: d.property_type as PropertyType,
       bedrooms: Number(d.bedrooms ?? 1),
       bathrooms: 1,

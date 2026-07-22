@@ -2,7 +2,7 @@ import { Bath, BedDouble, Calendar, MapPin, Sparkles, Square } from "lucide-reac
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { formatListingArea, formatListingPrice } from "@/lib/commercial-ranges";
 import { listingPricingNote } from "@/lib/property-types";
-import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
+import { getListingIntel, propertyVerifiedLabel, verificationLevel } from "@/lib/listing-intel";
 import { PropertyIntelligencePanel } from "@/components/PropertyIntelligencePanel";
 import { AdminPropertyVerifyButton } from "@/components/admin/AdminPropertyVerifyButton";
 import { AdminPropertyAuthenticityPanel } from "@/components/admin/AdminPropertyAuthenticityPanel";
@@ -107,6 +107,7 @@ export function PropertyDetailContent({
 }: PropertyDetailContentProps) {
   const vLevel = verificationLevel(p);
   const intel = getListingIntel(p);
+  const verifiedLabel = propertyVerifiedLabel(p);
 
   return (
     <div className="mx-auto max-w-2xl px-5 pt-5">
@@ -117,6 +118,9 @@ export function PropertyDetailContent({
             <MapPin className="h-4 w-4" /> {p.neighborhood} · {intel.subArea}
             {p.address ? ` · ${p.address}` : ""}
           </p>
+          {verifiedLabel ? (
+            <p className="mt-1.5 text-xs font-semibold text-primary">{verifiedLabel}</p>
+          ) : null}
         </div>
         <div className="text-right">
           <div className="font-display text-2xl font-semibold text-primary">

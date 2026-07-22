@@ -3,12 +3,18 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Db = SupabaseClient<Database>;
 
+export const TENANT_FREE_UNLOCK_ALLOWANCE = 3;
+
 export type TenantTrialState = {
   trialUnlocksRemaining: number;
   trialEndsAt: string | null;
   trialActive: boolean;
 };
 
+/**
+ * Tenants get 3 free contact unlocks. Access stays free until those are used;
+ * after that they need Plus for unlimited unlocks / subscription features.
+ */
 export async function ensureTenantTrial(db: Db, userId: string): Promise<TenantTrialState> {
   const { data: profile } = await db
     .from("profiles")
@@ -21,26 +27,26 @@ export async function ensureTenantTrial(db: Db, userId: string): Promise<TenantT
   }
 
   if (!profile.trial_started_at) {
-    const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
-    const trialEndIso = trialEnd.toISOString();
     await db
       .from("profiles")
       .update({
-        trial_unlocks_remaining: 3,
+        trial_unlocks_remaining: TENANT_FREE_UNLOCK_ALLOWANCE,
         trial_started_at: new Date().toISOString(),
-        trial_ends_at: trialEndIso,
+        // No short expiry — free unlocks remain until spent.
+        trial_ends_at: null,
       })
       .eq("id", userId);
-    return { trialUnlocksRemaining: 3, trialEndsAt: trialEndIso, trialActive: true };
+    return {
+      trialUnlocksRemaining: TENANT_FREE_UNLOCK_ALLOWANCE,
+      trialEndsAt: null,
+      trialActive: true,
+    };
   }
 
-  const trialActive = Boolean(
-    profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date(),
-  );
+  const remaining = Math.max(0, profile.trial_unlocks_remaining ?? 0);
   return {
-    trialUnlocksRemaining: profile.trial_unlocks_remaining ?? 0,
+    trialUnlocksRemaining: remaining,
     trialEndsAt: profile.trial_ends_at,
-    trialActive,
+    trialActive: remaining > 0,
   };
 }

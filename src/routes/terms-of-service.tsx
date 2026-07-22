@@ -25,8 +25,9 @@ function TermsPage() {
       <LegalSection title="3. Tenants">
         <p>
           NyumbaSearch connects tenants with landlords; we are not a party to any tenancy agreement.
-          Contact unlock fees are non-refundable once a landlord number is revealed. Free trial
-          unlocks expire 14 days after registration.
+          Contact unlock fees are non-refundable once a landlord number is revealed. New tenants
+          receive a limited number of free unlocks; after those are used, unlocks are charged per
+          listing or included with a Plus subscription.
         </p>
       </LegalSection>
       <LegalSection title="4. Landlords & agents">

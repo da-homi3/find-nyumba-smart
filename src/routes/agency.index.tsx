@@ -52,8 +52,8 @@ function AgencyEntry() {
               Run your agency on <span className="text-gold">NyumbaSearch</span>.
             </h1>
             <p className="mt-5 max-w-md text-background/75">
-              Publish agency-wide listings, capture landlord leads, and grow your pipeline. Sign up
-              to start your 30-day free trial with full dashboard access.
+              Publish agency-wide listings, capture landlord leads, and grow your pipeline. Sign up,
+              get approved, then pay your first month — your second month is free.
             </p>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-2">

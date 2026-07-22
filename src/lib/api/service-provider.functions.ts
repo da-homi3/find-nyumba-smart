@@ -170,7 +170,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
 
     if (!provider) return { provider: null, subscription: null, inquiries: [] };
 
-    const [{ data: subscription }, { data: inquiries }, { data: quoteLeads }] = await Promise.all([
+    const [{ data: subscription }, { data: inquiryRows }, { data: quoteLeads }] = await Promise.all([
       provider.subscription_id
         ? supabaseAdmin
             .from("subscriptions")
@@ -187,7 +187,7 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
             .maybeSingle(),
       supabaseAdmin
         .from("provider_inquiries")
-        .select("*, profiles:tenant_user_id(full_name, phone)")
+        .select("id, message, created_at, tenant_user_id")
         .eq("provider_id", provider.id)
         .order("created_at", { ascending: false })
         .limit(50),
@@ -199,8 +199,27 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
         .limit(50),
     ]);
 
+    const tenantIds = [...new Set((inquiryRows ?? []).map((row) => row.tenant_user_id).filter(Boolean))];
+    const profileMap = new Map<string, { full_name: string | null; phone: string | null }>();
+    if (tenantIds.length > 0) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("id, full_name, phone")
+        .in("id", tenantIds);
+      for (const profile of profiles ?? []) {
+        profileMap.set(profile.id, { full_name: profile.full_name, phone: profile.phone });
+      }
+    }
+
+    const inquiries = (inquiryRows ?? []).map((row) => ({
+      id: row.id,
+      message: row.message,
+      created_at: row.created_at,
+      profiles: profileMap.get(row.tenant_user_id) ?? null,
+    }));
+
     const mergedQuotes = [
-      ...(inquiries ?? []),
+      ...inquiries,
       ...(quoteLeads ?? [])
         .filter((row) => {
           const meta = row.metadata as Record<string, string> | null;
@@ -716,4 +735,82 @@ export const reviewServiceProvider = createServerFn({ method: "POST" })
     });
 
     return { status: "approved" as const };
+  });
+
+const adminCreateProviderSchema = z
+  .object({
+    businessName: z.string().min(2),
+    categories: z.array(z.enum(categories)).min(1),
+    areasServed: z.array(z.string().min(1)).min(1),
+    counties: z.array(z.string().min(1)).min(1).default(["Nairobi"]),
+    description: z.string().optional(),
+    priceRange: z.string().optional(),
+    phone: z.string().trim().optional(),
+    sourceUrl: z
+      .string()
+      .trim()
+      .optional()
+      .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid website URL"),
+    tier: z.enum(["basic", "featured", "premium"]).default("basic"),
+    verified: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const phone = data.phone?.trim() ?? "";
+    const source = data.sourceUrl?.trim() ?? "";
+    if (!phone && !source) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Add a phone number or website URL",
+        path: ["phone"],
+      });
+    }
+    if (phone && phone.length < 9) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter a valid phone number",
+        path: ["phone"],
+      });
+    }
+  });
+
+/** Admin directory upload — live listing with no linked user account. */
+export const adminCreateServiceProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(adminCreateProviderSchema)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const countyNames = data.counties.map((c) => countyNameForCode(c) ?? c);
+
+    const { data: row, error } = await supabaseAdmin
+      .from("service_providers")
+      .insert({
+        user_id: null,
+        business_name: data.businessName.trim(),
+        categories: data.categories,
+        areas_served: data.areasServed,
+        counties: countyNames.length > 0 ? countyNames : ["Nairobi"],
+        description: data.description?.trim() || null,
+        price_range: data.priceRange?.trim() || null,
+        phone: data.phone?.trim() || null,
+        source_url: data.sourceUrl?.trim() || null,
+        tier: data.tier,
+        status: "active",
+        verified: data.verified ? 1 : 0,
+      })
+      .select("id")
+      .single();
+
+    if (error) throw error;
+
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "SERVICE_PROVIDER_CREATED",
+      target_id: row.id,
+      details: `Created directory listing ${data.businessName} (${data.tier})`,
+    });
+
+    return { id: row.id };
   });

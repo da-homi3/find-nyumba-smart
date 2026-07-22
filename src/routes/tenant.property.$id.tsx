@@ -12,6 +12,7 @@ import { usePropertyDetail } from "@/hooks/use-property-detail";
 import { PropertyDetailSkeleton } from "@/components/skeletons/PropertyDetailSkeleton";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
+import { TenantDepositSafetyNotice } from "@/components/TenantDepositSafetyNotice";
 import { isPreviewListing } from "@/lib/listings-preview";
 
 const propertySearchSchema = z.object({
@@ -69,6 +70,7 @@ function PropertyDetail() {
   return (
     <ListingsPreviewOverlay active={previewActive} className="min-h-screen">
       <div className="pb-32 bg-background min-h-screen">
+        <TenantDepositSafetyNotice />
         <PropertyDetailGallery
           property={p}
           gallery={gallery}

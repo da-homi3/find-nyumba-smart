@@ -33,6 +33,7 @@ export function buildPageHead(input: PageSeoInput) {
       { title: input.title },
       { name: "description", content: input.description },
       { name: "robots", content: robots },
+      { property: "og:site_name", content: "NyumbaSearch" },
       { property: "og:title", content: input.title },
       { property: "og:description", content: input.description },
       { property: "og:type", content: input.ogType ?? "website" },

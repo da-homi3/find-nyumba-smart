@@ -308,17 +308,7 @@ export const VERIFICATION_TIERS: {
   { id: "express", name: "Express verification", priceKes: 5000, turnaround: "24 hours" },
 ];
 
-export const LISTING_LIMITS: Record<LandlordPlan, number> = {
-  free: 9,
-  pro: 10,
-  premium: 30,
-  "manager-solo": 25,
-  "manager-team": 100,
-  "manager-enterprise": 9999,
-  "agency-starter": 20,
-  "agency-pro": 100,
-  "agency-enterprise": 9999,
-};
+export { LISTING_LIMITS } from "@/lib/revenue/listing-limits";
 
 export function planPriceLabel(plan: PlanCardDef): string {
   if (plan.priceLabel) return plan.priceLabel;

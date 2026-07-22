@@ -85,6 +85,16 @@ function addBillingDays(days: number): string {
   return d.toISOString();
 }
 
+async function periodDaysForSubscriptionPayment(
+  supabaseAdmin: SupabaseAdmin,
+  userId: string,
+  cycle: "monthly" | "quarterly",
+): Promise<number> {
+  const { subscriptionPeriodDaysAfterPayment } = await import("@/lib/payments/trial-eligibility");
+  const { days } = await subscriptionPeriodDaysAfterPayment(supabaseAdmin, userId, cycle);
+  return days;
+}
+
 function paymentMethod(metadata: PaymentFulfillment["metadata"]) {
   return metadata?.paymentMethod === "card" ? "card" : "mpesa";
 }
@@ -310,11 +320,14 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
     .select("role")
     .eq("user_id", userId);
   const allowed = new Set(["landlord", "manager", "agency"]);
-  if (!(roles ?? []).some((r) => allowed.has(r.role))) return;
+  if (!(roles ?? []).some((r) => allowed.has(r.role))) {
+    throw new Error("Landlord plan fulfillment requires a landlord, manager, or agency role");
+  }
 
   const plan = (metadata.plan ?? "pro") as LandlordPlan;
 
   const cycle = billingCycle(metadata);
+  const days = await periodDaysForSubscriptionPayment(supabaseAdmin, userId, cycle);
 
   await supabaseAdmin
 
@@ -330,7 +343,7 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
     amount_kes: amountKes,
     billing_cycle: cycle,
     payment_method: paymentMethod(metadata),
-    next_billing_date: cycle === "quarterly" ? addBillingDays(90) : addBillingDays(30),
+    next_billing_date: addBillingDays(days),
   });
 }
 
@@ -338,7 +351,7 @@ async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentF
   const { userId, amountKes, metadata = {} } = payment;
 
   const cycle = billingCycle(metadata);
-  const days = cycle === "quarterly" ? 90 : 30;
+  const days = await periodDaysForSubscriptionPayment(supabaseAdmin, userId, cycle);
 
   await supabaseAdmin
     .from("profiles")
@@ -410,7 +423,9 @@ async function fulfillVerification(supabaseAdmin: SupabaseAdmin, payment: Paymen
 
 async function fulfillContactUnlock(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
   const { userId, propertyId, amountKes, paymentId } = payment;
-  if (!propertyId) return;
+  if (!propertyId) {
+    throw new Error("Contact unlock payment is missing propertyId");
+  }
 
   const { data: existing } = await supabaseAdmin
     .from("contact_unlocks")
@@ -456,20 +471,24 @@ async function fulfillProviderSubscription(
   }
   await providerUpdate;
 
+  const days = await periodDaysForSubscriptionPayment(supabaseAdmin, userId, cycle);
+
   await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,
     plan: tier,
     amount_kes: amountKes,
     billing_cycle: cycle,
     payment_method: paymentMethod(metadata),
-    next_billing_date: cycle === "quarterly" ? addBillingDays(90) : addBillingDays(30),
+    next_billing_date: addBillingDays(days),
   });
 }
 
 async function fulfillReport(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
   const { userId, paymentId, metadata = {} } = payment;
 
-  if (!paymentId) return;
+  if (!paymentId) {
+    throw new Error("Report purchase fulfillment requires paymentId");
+  }
 
   const { data: existing } = await supabaseAdmin
     .from("report_purchases")

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type SubmitEvent } from "react";
 import { toast } from "sonner";
 import { fetchProperty, searchProperties } from "@/lib/properties";
-import { getAIChatResponse, getAIValuation } from "@/lib/api/ai.functions";
+import { getAIValuation } from "@/lib/api/ai.functions";
 import {
   createInquiry,
   getPropertyOwnerContact,
@@ -244,7 +244,19 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     setChatInput("");
     setChatLoading(true);
     try {
-      const response = await getAIChatResponse({ data: { message: userMsg, propertyId: id } });
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ message: userMsg, propertyId: id }),
+      });
+      const payload = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
+      const response =
+        payload?.reply?.trim() ||
+        (res.ok
+          ? null
+          : payload?.error) ||
+        "I'm currently unable to access my AI engine. Please try again shortly.";
+      if (!res.ok && !payload?.reply) throw new Error(response);
       setChatMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: "assistant", text: response },

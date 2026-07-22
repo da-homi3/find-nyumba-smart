@@ -17,9 +17,17 @@ export type CommercialRangeInput = {
   price_period?: PricePeriod | null;
 };
 
+/** Commercial listings and for-sale listings may use a from–to price. */
+export function supportsListingPriceRange(input: {
+  property_type: PropertyType;
+  pricing_mode?: PricingMode | null;
+}): boolean {
+  return isCommercialType(input.property_type) || input.pricing_mode === "sale";
+}
+
 export function hasCommercialPriceRange(input: CommercialRangeInput): boolean {
   return (
-    isCommercialType(input.property_type) &&
+    supportsListingPriceRange(input) &&
     input.rent_kes_max != null &&
     input.rent_kes_max > input.rent_kes
   );
@@ -52,14 +60,18 @@ export function formatListingArea(input: CommercialRangeInput): string | null {
 }
 
 export function normalizeCommercialRangeFields<T extends CommercialRangeInput>(data: T): T {
-  if (!isCommercialType(data.property_type)) {
-    return { ...data, rent_kes_max: null, area_sqm_max: null };
-  }
+  const allowPriceRange = supportsListingPriceRange(data);
+  const allowAreaRange = isCommercialType(data.property_type);
 
   const rent_kes_max =
-    data.rent_kes_max != null && data.rent_kes_max > data.rent_kes ? data.rent_kes_max : null;
+    allowPriceRange && data.rent_kes_max != null && data.rent_kes_max > data.rent_kes
+      ? data.rent_kes_max
+      : null;
   const area_sqm_max =
-    data.area_sqm != null && data.area_sqm_max != null && data.area_sqm_max > data.area_sqm
+    allowAreaRange &&
+    data.area_sqm != null &&
+    data.area_sqm_max != null &&
+    data.area_sqm_max > data.area_sqm
       ? data.area_sqm_max
       : null;
 
@@ -70,11 +82,13 @@ export function validateCommercialRanges(
   data: CommercialRangeInput,
   onIssue: (path: string, message: string) => void,
 ): void {
-  if (!isCommercialType(data.property_type)) return;
-
-  if (data.rent_kes_max != null && data.rent_kes_max < data.rent_kes) {
-    onIssue("rent_kes_max", "Maximum price must be greater than or equal to the starting price");
+  if (supportsListingPriceRange(data)) {
+    if (data.rent_kes_max != null && data.rent_kes_max < data.rent_kes) {
+      onIssue("rent_kes_max", "Maximum price must be greater than or equal to the starting price");
+    }
   }
+
+  if (!isCommercialType(data.property_type)) return;
 
   if (data.area_sqm_max != null) {
     if (!data.area_sqm || data.area_sqm <= 0) {

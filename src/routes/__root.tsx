@@ -21,19 +21,21 @@ import {
 } from "@/lib/chunk-load-recovery";
 import {
   APPLE_TOUCH_ICON_PATH,
-  BRAND_LOGO_PATH,
+  BRAND_ICON_192_PATH,
   BRAND_THEME_COLOR,
+  FAVICON_96_PATH,
+  FAVICON_ICO_PATH,
   FAVICON_PATH,
   WEB_MANIFEST_PATH,
 } from "@/lib/brand";
 import { getOgImageUrl, HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site";
-import heroImg from "@/assets/hero-garden-city.jpg";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CookieConsentBanner } from "@/components/CookieConsent";
 import { FullStoryBootstrap } from "@/components/FullStoryBootstrap";
 import { PresenceBootstrap } from "@/components/PresenceBootstrap";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
+import { RequireAccountPhoneModal } from "@/components/auth/RequireAccountPhoneModal";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/motion/PageTransition";
@@ -118,15 +120,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "author", content: "NyumbaSearch" },
+      { name: "application-name", content: "NyumbaSearch" },
+      { name: "apple-mobile-web-app-title", content: "NyumbaSearch" },
+      { name: "theme-color", content: BRAND_THEME_COLOR },
+      { property: "og:site_name", content: "NyumbaSearch" },
       { title: HOMEPAGE_TITLE },
       {
         name: "description",
         content: HOMEPAGE_DESCRIPTION,
       },
-      { name: "author", content: "NyumbaSearch" },
-      { name: "theme-color", content: BRAND_THEME_COLOR },
-      { name: "apple-mobile-web-app-title", content: "NyumbaSearch" },
-      { name: "application-name", content: "NyumbaSearch" },
       { property: "og:title", content: HOMEPAGE_TITLE },
       {
         property: "og:description",
@@ -141,19 +144,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:image", content: getOgImageUrl() },
       { name: "twitter:image", content: getOgImageUrl() },
+      // Optional: set GOOGLE_SITE_VERIFICATION in Worker env after GSC setup
+      ...(typeof process !== "undefined" && process.env.GOOGLE_SITE_VERIFICATION
+        ? [{ name: "google-site-verification", content: process.env.GOOGLE_SITE_VERIFICATION }]
+        : []),
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: FAVICON_PATH, type: "image/png" },
-      { rel: "apple-touch-icon", href: APPLE_TOUCH_ICON_PATH },
+      { rel: "icon", href: FAVICON_ICO_PATH, sizes: "any" },
+      { rel: "icon", href: FAVICON_PATH, type: "image/png", sizes: "48x48" },
+      { rel: "icon", href: FAVICON_96_PATH, type: "image/png", sizes: "96x96" },
+      { rel: "icon", href: BRAND_ICON_192_PATH, type: "image/png", sizes: "192x192" },
+      { rel: "apple-touch-icon", href: APPLE_TOUCH_ICON_PATH, sizes: "180x180" },
       { rel: "manifest", href: WEB_MANIFEST_PATH },
-      { rel: "preload", as: "image", href: BRAND_LOGO_PATH, fetchPriority: "high" },
-      { rel: "preload", as: "image", href: heroImg, fetchPriority: "high" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Syne:wght@600;700;800&family=Inter:wght@400;500;600&display=swap",
       },
     ],
   }),
@@ -225,6 +233,7 @@ function RootComponent() {
         <Toaster />
         <CookieConsentBanner />
         <AuthGateModal />
+        <RequireAccountPhoneModal />
         <FullStoryBootstrap />
         <PresenceBootstrap />
       </AuthProvider>

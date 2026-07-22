@@ -303,7 +303,7 @@ function RegisterProviderPage() {
           </button>
           <h1 className="mt-4 font-display text-2xl font-semibold">Choose a plan</h1>
           <p className="mt-2 text-sm text-emerald-600">
-            Your first month is free for new subscribers — no payment collected today.
+            Pay your first month — new subscribers get the next month free.
           </p>
           <div className="mt-8 grid gap-3">
             {PROVIDER_TIERS.map((t) => (
@@ -336,8 +336,9 @@ function RegisterProviderPage() {
         </button>
         <h1 className="mt-4 font-display text-2xl font-semibold">Choose your plan</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Start your free trial for {selectedTier.label}. Your listing stays on the admin waitlist
-          until NyumbaSearch approves your application — then it goes live.
+          Subscribe to {selectedTier.label}. Your listing stays on the admin waitlist until
+          NyumbaSearch approves your application — then it goes live. First paid month includes a
+          bonus free month.
         </p>
         <div className="mt-8">
           <CheckoutFlow

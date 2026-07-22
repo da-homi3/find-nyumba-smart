@@ -4,6 +4,7 @@ import { z } from "zod";
 import { LandlordShell } from "@/components/LandlordShell";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfilePhone } from "@/hooks/use-profile-phone";
 import { listLandlordProperties } from "@/lib/api/nyumba.functions";
 import { BOOST_PACKAGES, boostPrice } from "@/lib/revenue/plans";
 import type { BoostPackage } from "@/lib/revenue/types";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/landlord/boost")({
 
 function BoostPage() {
   const { user } = useAuth();
+  const { phone: profilePhone } = useProfilePhone();
   const navigate = useNavigate();
   const { package: pkgParam, propertyId: initialProperty } = Route.useSearch();
   const [step, setStep] = useState(initialProperty ? 2 : 1);
@@ -69,7 +71,7 @@ function BoostPage() {
             propertyId,
             boostPackage: packageId,
           }}
-          defaultPhone={(user?.user_metadata?.phone as string | undefined) ?? user?.phone ?? ""}
+          defaultPhone={profilePhone ?? ""}
           allowQuarterly={false}
           onSuccess={() => navigate({ to: "/landlord/dashboard" })}
         />

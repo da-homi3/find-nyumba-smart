@@ -109,6 +109,7 @@ import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.
 import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
 import { Route as AgencyDashboardPlanRouteImport } from './routes/agency.dashboard.plan'
 import { Route as AgencyDashboardBillingRouteImport } from './routes/agency.dashboard.billing'
+import { Route as AdminProvidersNewRouteImport } from './routes/admin.providers.new'
 import { Route as AdminListingsNewRouteImport } from './routes/admin.listings.new'
 import { Route as ManagerPropertiesIdEditRouteImport } from './routes/manager.properties.$id.edit'
 import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
@@ -617,6 +618,11 @@ const AgencyDashboardBillingRoute = AgencyDashboardBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AgencyDashboardRoute,
 } as any)
+const AdminProvidersNewRoute = AdminProvidersNewRouteImport.update({
+  id: '/providers/new',
+  path: '/providers/new',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminListingsNewRoute = AdminListingsNewRouteImport.update({
   id: '/listings/new',
   path: '/listings/new',
@@ -724,6 +730,7 @@ export interface FileRoutesByFullPath {
   '/tenant/': typeof TenantIndexRoute
   '/verify/': typeof VerifyIndexRoute
   '/admin/listings/new': typeof AdminListingsNewRoute
+  '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
@@ -814,6 +821,7 @@ export interface FileRoutesByTo {
   '/tenant': typeof TenantIndexRoute
   '/verify': typeof VerifyIndexRoute
   '/admin/listings/new': typeof AdminListingsNewRoute
+  '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
@@ -922,6 +930,7 @@ export interface FileRoutesById {
   '/tenant/': typeof TenantIndexRoute
   '/verify/': typeof VerifyIndexRoute
   '/admin/listings/new': typeof AdminListingsNewRoute
+  '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
@@ -1031,6 +1040,7 @@ export interface FileRouteTypes {
     | '/tenant/'
     | '/verify/'
     | '/admin/listings/new'
+    | '/admin/providers/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
     | '/agency/properties/new'
@@ -1121,6 +1131,7 @@ export interface FileRouteTypes {
     | '/tenant'
     | '/verify'
     | '/admin/listings/new'
+    | '/admin/providers/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
     | '/agency/properties/new'
@@ -1228,6 +1239,7 @@ export interface FileRouteTypes {
     | '/tenant/'
     | '/verify/'
     | '/admin/listings/new'
+    | '/admin/providers/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
     | '/agency/properties/new'
@@ -1987,6 +1999,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyDashboardBillingRouteImport
       parentRoute: typeof AgencyDashboardRoute
     }
+    '/admin/providers/new': {
+      id: '/admin/providers/new'
+      path: '/providers/new'
+      fullPath: '/admin/providers/new'
+      preLoaderRoute: typeof AdminProvidersNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/listings/new': {
       id: '/admin/listings/new'
       path: '/listings/new'
@@ -2029,6 +2048,7 @@ interface AdminRouteChildren {
   AdminRevenueRoute: typeof AdminRevenueRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminListingsNewRoute: typeof AdminListingsNewRoute
+  AdminProvidersNewRoute: typeof AdminProvidersNewRoute
   AdminListingsIdEditRoute: typeof AdminListingsIdEditRoute
 }
 
@@ -2036,6 +2056,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRevenueRoute: AdminRevenueRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminListingsNewRoute: AdminListingsNewRoute,
+  AdminProvidersNewRoute: AdminProvidersNewRoute,
   AdminListingsIdEditRoute: AdminListingsIdEditRoute,
 }
 

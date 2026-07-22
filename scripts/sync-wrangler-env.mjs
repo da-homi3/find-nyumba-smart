@@ -224,6 +224,20 @@ function patchWranglerCustomDomains(zoneReady) {
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
 }
 
+function patchWranglerPaidPlan() {
+  if (!existsSync(wranglerConfig)) return;
+  const cfg = JSON.parse(readFileSync(wranglerConfig, "utf8"));
+  cfg.compatibility_date = "2026-07-20";
+  cfg.placement = { mode: "smart" };
+  cfg.limits = { cpu_ms: 60_000, subrequests: 100_000 };
+  cfg.observability = { enabled: true, head_sampling_rate: 1 };
+  cfg.logpush = true;
+  writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
+  console.log(
+    "Patched Workers Paid settings: Smart Placement, cpu_ms=60000, subrequests=100000, observability, logpush",
+  );
+}
+
 function patchWranglerAccountId(env) {
   if (!existsSync(wranglerConfig)) return;
   const cfg = JSON.parse(readFileSync(wranglerConfig, "utf8"));
@@ -309,18 +323,23 @@ async function main() {
 
   patchWranglerAccountId(env);
   patchWranglerVars(env);
+  patchWranglerPaidPlan();
   const zoneReady = await hasCloudflareZone("nyumbasearch.com");
   patchWranglerCustomDomains(zoneReady);
   patchWorkerCron();
 
-  console.log("\nUploading Worker secrets…");
-  for (const key of SECRET_KEYS) {
-    if (!env[key]) {
-      console.log(`  skip ${key} (empty)`);
-      continue;
+  if (process.argv.includes("--skip-secrets")) {
+    console.log("\nSkipping Worker secret upload (--skip-secrets)");
+  } else {
+    console.log("\nUploading Worker secrets…");
+    for (const key of SECRET_KEYS) {
+      if (!env[key]) {
+        console.log(`  skip ${key} (empty)`);
+        continue;
+      }
+      console.log(`  put ${key}`);
+      putSecret(key, env[key]);
     }
-    console.log(`  put ${key}`);
-    putSecret(key, env[key]);
   }
 
   console.log("\nDone. Rebuild client for VITE_* keys: npm run build");

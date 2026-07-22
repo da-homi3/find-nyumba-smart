@@ -6,13 +6,15 @@ import {
   RATE_LIMITS,
 } from "@/lib/api/rate-limit";
 import { withCache } from "@/lib/cache/manager";
+import { withEdgeCache } from "@/lib/cache/edge-cache";
 import { normalizeNeighborhoodFilter } from "@/lib/security/neighborhoods";
+import type { PropertySearchFilters } from "@/lib/properties";
 import { buildFullSitemapXml, buildStaticSitemapXml, sitemapResponse } from "@/lib/seo/sitemap";
 import { buildRobotsTxt } from "@/lib/seo/robots";
 import { buildLlmsTxt } from "@/lib/seo/llms";
-import { isServerEnvConfigured } from "@/lib/server-env";
+import { isServerEnvConfigured, getServerEnv } from "@/lib/server-env";
 
-type RouteHandler = (request: Request) => Promise<Response>;
+type RouteHandler = (request: Request, ctx?: ExecutionContext) => Promise<Response>;
 
 function normalizeSeoPath(pathname: string): string {
   let path = pathname.toLowerCase();
@@ -26,6 +28,7 @@ function withPublicRateLimit(
   req: Request,
   endpoint: keyof typeof RATE_LIMITS,
   handler: RouteHandler,
+  ctx?: ExecutionContext,
 ): Promise<Response> {
   const ip = rateLimitKeyFromHeaders(req.headers);
   return rateLimitDistributed(`api:${endpoint}:${ip}`, RATE_LIMITS[endpoint]).then((result) => {
@@ -38,7 +41,7 @@ function withPublicRateLimit(
         result,
       );
     }
-    return handler(req).then((res) => {
+    return handler(req, ctx).then((res) => {
       const headers = new Headers(res.headers);
       headers.set("X-Cache", headers.get("X-Cache") ?? "MISS");
       return applyRateLimitHeaders(new Response(res.body, { status: res.status, headers }), result);
@@ -51,12 +54,18 @@ async function withErrorHandler(
   req: Request,
   handler: RouteHandler,
   onError?: () => Response,
+  ctx?: ExecutionContext,
 ): Promise<Response> {
   try {
-    return await handler(req);
+    return await handler(req, ctx);
   } catch (err) {
     console.error(`${label} error:`, err);
-    return onError?.() ?? new Response("Error", { status: 500 });
+    if (onError) return onError();
+    const message = err instanceof Error ? err.message : "Internal error";
+    return new Response(JSON.stringify({ error: message, code: "INTERNAL" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 
@@ -117,39 +126,82 @@ async function handleV1Api(req: Request): Promise<Response> {
   return handleV1Api(req);
 }
 
-async function handleListingsApi(req: Request): Promise<Response> {
-  const url = new URL(req.url);
-  const { queryListings } = await import("@/lib/api/listings-core");
-  const { propertyTypeSchema } = await import("@/lib/api/nyumba/nyumba-shared");
+async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<Response> {
+  const { getListingsCacheEpoch } = await import("@/lib/cache/manager");
+  const epoch = await getListingsCacheEpoch();
+  const cacheUrl = new URL(req.url);
+  cacheUrl.searchParams.set("_e", String(epoch));
 
-  const typeRaw = url.searchParams.get("type");
-  const parsedType = typeRaw ? propertyTypeSchema.safeParse(typeRaw) : null;
+  return withEdgeCache(req, ctx, async () => {
+    const url = new URL(req.url);
+    const { queryListings } = await import("@/lib/api/listings-core");
+    const { propertyTypeSchema } = await import("@/lib/api/nyumba/nyumba-shared");
 
-  const filters = {
-    limit: Number(url.searchParams.get("limit") ?? "50"),
-    offset: Number(url.searchParams.get("offset") ?? "0"),
-    query: url.searchParams.get("q") ?? undefined,
-    neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
-    propertyType: parsedType?.success ? parsedType.data : undefined,
-    minRent: url.searchParams.get("minRent") ? Number(url.searchParams.get("minRent")) : undefined,
-    maxRent: url.searchParams.get("maxRent") ? Number(url.searchParams.get("maxRent")) : undefined,
-    verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
-    minBedrooms: url.searchParams.get("minBedrooms")
-      ? Number(url.searchParams.get("minBedrooms"))
-      : undefined,
-    sortBy:
-      (url.searchParams.get("sortBy") as "newest" | "price_asc" | "price_desc" | "score" | null) ??
-      "newest",
-  };
+    const typeRaw = url.searchParams.get("type");
+    const parsedType = typeRaw ? propertyTypeSchema.safeParse(typeRaw) : null;
 
-  const result = await queryListings(filters);
-  return new Response(JSON.stringify(result), {
-    headers: {
-      "Content-Type": "application/json",
-      // Short CDN cache — uploads invalidate KV epoch; keep edge fresh enough to notice new listings.
-      "Cache-Control": "public, max-age=10, stale-while-revalidate=30",
-    },
-  });
+    const pricingModeRaw = url.searchParams.get("pricingMode");
+    const pricingMode: "rent" | "sale" | undefined =
+      pricingModeRaw === "rent" || pricingModeRaw === "sale" ? pricingModeRaw : undefined;
+
+    const originLatRaw = url.searchParams.get("originLat");
+    const originLngRaw = url.searchParams.get("originLng");
+    const originLat = originLatRaw != null ? Number(originLatRaw) : Number.NaN;
+    const originLng = originLngRaw != null ? Number(originLngRaw) : Number.NaN;
+    const sortByRaw = url.searchParams.get("sortBy");
+    const sortBy: PropertySearchFilters["sortBy"] =
+      sortByRaw === "nearby" ||
+      sortByRaw === "newest" ||
+      sortByRaw === "price_asc" ||
+      sortByRaw === "price_desc" ||
+      sortByRaw === "score"
+        ? sortByRaw
+        : "newest";
+
+    const filters: PropertySearchFilters = {
+      limit: (() => {
+        const n = Number(url.searchParams.get("limit") ?? "50");
+        return Number.isFinite(n) ? Math.trunc(n) : 50;
+      })(),
+      offset: (() => {
+        const n = Number(url.searchParams.get("offset") ?? "0");
+        return Number.isFinite(n) ? Math.trunc(n) : 0;
+      })(),
+      query: url.searchParams.get("q") ?? undefined,
+      neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
+      propertyType: parsedType?.success ? parsedType.data : undefined,
+      pricingMode,
+      minRent: url.searchParams.get("minRent") ? Number(url.searchParams.get("minRent")) : undefined,
+      maxRent: url.searchParams.get("maxRent") ? Number(url.searchParams.get("maxRent")) : undefined,
+      verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
+      minBedrooms: url.searchParams.get("minBedrooms")
+        ? Number(url.searchParams.get("minBedrooms"))
+        : undefined,
+      sortBy,
+      originLat: Number.isFinite(originLat) ? originLat : undefined,
+      originLng: Number.isFinite(originLng) ? originLng : undefined,
+    };
+
+    const started = Date.now();
+    const result = await queryListings(filters);
+    console.log(
+      JSON.stringify({
+        event: "listings_api",
+        items: result.items.length,
+        total: result.total,
+        limit: filters.limit,
+        sortBy: filters.sortBy,
+        ms: Date.now() - started,
+      }),
+    );
+    return new Response(JSON.stringify(result), {
+      headers: {
+        "Content-Type": "application/json",
+        // Edge + browser SWR — cache key includes listings epoch so uploads bust colo cache.
+        "Cache-Control": "public, max-age=30, stale-while-revalidate=120",
+      },
+    });
+  }, { cacheKeyUrl: cacheUrl.toString() });
 }
 
 async function handleListingsHealth(): Promise<Response> {
@@ -268,12 +320,41 @@ function checkMpesaConfig(): { name: string; status: string } {
   return { name: "mpesa_config", status: configured ? "ok" : "missing" };
 }
 
+function checkAiConfig(): { name: string; status: string } {
+  const gemini = Boolean(getServerEnv("GEMINI_API_KEY") || getServerEnv("GOOGLE_AI_API_KEY"));
+  const workers = Boolean((globalThis as { __env__?: { AI?: unknown } }).__env__?.AI);
+  if (gemini || workers) return { name: "ai_config", status: "ok" };
+  return { name: "ai_config", status: "missing" };
+}
+
+async function checkPesapalLive(): Promise<{ name: string; status: string; error?: string }> {
+  const configured = isServerEnvConfigured([
+    "PESAPAL_CONSUMER_KEY",
+    "PESAPAL_CONSUMER_SECRET",
+    "PESAPAL_NOTIFICATION_ID",
+  ]);
+  if (!configured) return { name: "pesapal", status: "missing" };
+  try {
+    const { probePesapalAuth } = await import("@/lib/api/pesapal");
+    const ok = await probePesapalAuth();
+    return { name: "pesapal", status: ok ? "ok" : "error" };
+  } catch (e) {
+    return {
+      name: "pesapal",
+      status: "error",
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
 async function handleHealthCheck(): Promise<Response> {
   const start = Date.now();
   const checks = await Promise.all([
     checkSupabaseHealth(),
     checkKvHealth(),
     Promise.resolve(checkMpesaConfig()),
+    checkPesapalLive(),
+    Promise.resolve(checkAiConfig()),
   ]);
 
   const healthy = checks.every((c) => c.status === "ok" || c.status === "missing");
@@ -356,6 +437,35 @@ async function handleAiProbe(): Promise<Response> {
   });
 }
 
+async function handleAiChat(req: Request): Promise<Response> {
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "POST required" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const body = (await req.json().catch(() => null)) as {
+    message?: string;
+    propertyId?: string;
+  } | null;
+  const message = typeof body?.message === "string" ? body.message.trim() : "";
+  if (!message || message.length > 2000) {
+    return new Response(JSON.stringify({ error: "message required (1–2000 chars)" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const propertyId =
+    typeof body?.propertyId === "string" && body.propertyId.length > 0
+      ? body.propertyId
+      : undefined;
+  const { answerPropertyAiChat } = await import("@/lib/api/ai.functions");
+  const reply = await answerPropertyAiChat({ message, propertyId });
+  return new Response(JSON.stringify({ reply }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 function handleRobotsTxt(): Response {
   return new Response(buildRobotsTxt(), {
     headers: {
@@ -411,7 +521,7 @@ async function handleEmailUnsubscribe(req: Request): Promise<Response> {
 
 type RouteDef = {
   match: (url: URL, method: string) => boolean;
-  run: (req: Request) => Promise<Response> | Response;
+  run: (req: Request, ctx?: ExecutionContext) => Promise<Response> | Response;
 };
 
 const ROUTES: RouteDef[] = [
@@ -431,10 +541,21 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) =>
-      (url.pathname === "/api/payments/webhook/pesapal" ||
-        url.pathname === "/api/payments/webhook/paystack") &&
-      (method === "POST" || method === "GET"),
+      url.pathname === "/api/payments/webhook/pesapal" && (method === "POST" || method === "GET"),
     run: (req) => withErrorHandler("Pesapal webhook", req, handlePesapalIpn),
+  },
+  {
+    // Paystack retired — card checkout uses Pesapal. Keep path for old bookmarks/dashboards.
+    match: (url, method) =>
+      url.pathname === "/api/payments/webhook/paystack" && (method === "POST" || method === "GET"),
+    run: async () =>
+      new Response(
+        JSON.stringify({
+          error: "Paystack webhooks are retired. Card payments use Pesapal.",
+          code: "PAYSTACK_RETIRED",
+        }),
+        { status: 410, headers: { "Content-Type": "application/json" } },
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/payments/callback/card" && method === "GET",
@@ -484,9 +605,12 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/listings" && method === "GET",
-    run: (req) =>
-      withPublicRateLimit(req, "search", (r) =>
-        withErrorHandler("Listings API", r, handleListingsApi),
+    run: (req, ctx) =>
+      withPublicRateLimit(
+        req,
+        "search",
+        (r, c) => withErrorHandler("Listings API", r, handleListingsApi, undefined, c),
+        ctx,
       ),
   },
   {
@@ -574,6 +698,10 @@ const ROUTES: RouteDef[] = [
     run: () => Response.redirect(`${getSiteUrl()}/privacy`, 301),
   },
   {
+    match: (url) => url.pathname === "/terms" || url.pathname === "/terms-of-use",
+    run: () => Response.redirect(`${getSiteUrl()}/terms-of-service`, 301),
+  },
+  {
     match: (url, method) => url.pathname === "/api/client-errors" && method === "POST",
     run: (req) => withErrorHandler("Client errors", req, handleClientErrors),
   },
@@ -604,6 +732,21 @@ const ROUTES: RouteDef[] = [
         });
       }
     },
+  },
+  {
+    match: (url, method) => url.pathname === "/api/ai/chat" && method === "POST",
+    run: (req) =>
+      withPublicRateLimit(req, "ai", (r) =>
+        withErrorHandler("AI chat", r, handleAiChat, () =>
+          new Response(
+            JSON.stringify({
+              reply:
+                "I'm currently unable to access my AI engine. Please try again shortly, or contact the landlord using the buttons below.",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/email/unsubscribe" && method === "GET",
@@ -657,26 +800,30 @@ const ROUTES: RouteDef[] = [
   },
 ];
 
-/** Digital Asset Links for Android App Links — replace SHA-256 after release keystore is generated. */
+/** Digital Asset Links for Android App Links (upload/release keystore SHA-256).
+ * After Play App Signing is enrolled, also add the Play Console "App signing key certificate" SHA-256. */
 const ANDROID_ASSETLINKS_JSON = `[
   {
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.nyumbasearch.app",
+      "package_name": "ke.co.nyumbasearch.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_RELEASE_KEYSTORE_SHA256_FINGERPRINT"
+        "9C:B0:AD:13:B0:AC:FF:F9:F9:7E:54:72:A6:8B:9C:7F:54:4D:24:25:37:A5:CC:97:A2:82:DF:C2:FD:35:81:58"
       ]
     }
   }
 ]`;
 
 /** Infrastructure routes (webhooks, health, sitemap) handled before TanStack SSR. */
-export async function tryInfrastructureRoute(req: Request): Promise<Response | null> {
+export async function tryInfrastructureRoute(
+  req: Request,
+  ctx?: ExecutionContext,
+): Promise<Response | null> {
   const url = new URL(req.url);
   for (const route of ROUTES) {
     if (route.match(url, req.method)) {
-      return await route.run(req);
+      return await route.run(req, ctx);
     }
   }
   return null;

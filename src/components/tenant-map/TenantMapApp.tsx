@@ -73,7 +73,7 @@ export function TenantMapApp() {
     isError,
     error,
     refetch,
-  } = useListingsSearch({ limit: 500, sortBy: "newest" });
+  } = useListingsSearch({ limit: 300, sortBy: "newest" });
   const properties = useMemo(
     () => mergeListingsForDisplay(searchResult?.items ?? []),
     [searchResult?.items],

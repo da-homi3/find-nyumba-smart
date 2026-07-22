@@ -37,9 +37,9 @@ export function PortalTrialBanner({ portal }: Readonly<{ portal: ListingPortal }
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {trialEnd
-              ? `Your trial runs until ${trialEnd}. After that, your plan renews automatically via M-Pesa unless you cancel.`
-              : "Your 30-day trial includes listings, analytics, and portfolio tools."}{" "}
-            Lead contact details require a lead pack during trial.
+              ? `Your bonus free month runs until ${trialEnd}. After that, renew to keep full access.`
+              : "Your plan includes a bonus free month after your first paid period."}{" "}
+            Lead contact details require a lead pack.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

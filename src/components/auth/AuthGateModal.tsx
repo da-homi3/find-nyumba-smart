@@ -1,4 +1,4 @@
-import { useEffect, useState, type SubmitEvent } from "react";
+import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,10 @@ import { authSubmitLabel, errorMessage } from "@/lib/utils";
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
 
+/** Closed dialogs must stay `hidden` so they never block taps. */
+const dialogCls =
+  "fixed inset-0 z-70 m-0 hidden h-dvh max-h-dvh w-full max-w-none items-end justify-center border-0 bg-black/55 p-4 open:flex sm:items-center backdrop:bg-transparent";
+
 /**
  * Global sign-in / sign-up popup for unsigned visitors.
  * Signup via this modal (email or Google) is always as a tenant.
@@ -37,6 +41,7 @@ export function AuthGateModal() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -56,7 +61,15 @@ export function AuthGateModal() {
     setOpen(true);
   }, [user, loading, pathname]);
 
-  if (!open || user || loading) return null;
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
 
   function dismiss() {
     dismissAuthGateThisSession();
@@ -84,11 +97,9 @@ export function AuthGateModal() {
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) throw signInError;
 
-    try {
-      await ensureTenantAccount();
-    } catch (err) {
+    void ensureTenantAccount().catch((err) => {
       console.warn("[auth-gate] ensureTenantAccount:", err);
-    }
+    });
 
     markSignupTourPending("tenant");
     toast.success("Welcome to NyumbaSearch!");
@@ -101,11 +112,9 @@ export function AuthGateModal() {
     if (error) throw error;
     if (!data.user) throw new Error("Sign in failed");
 
-    try {
-      await ensureTenantAccount();
-    } catch (err) {
+    void ensureTenantAccount().catch((err) => {
       console.warn("[auth-gate] ensureTenantAccount:", err);
-    }
+    });
 
     clearAuthGateDismiss();
     toast.success("Signed in");
@@ -120,20 +129,30 @@ export function AuthGateModal() {
   function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
+    const hardStop = globalThis.setTimeout(() => {
+      setSubmitting(false);
+      toast.error("Sign-in is taking too long. Check your connection and try again.");
+    }, 12_000);
     const run = mode === "signup" ? handleSignup : handleSignin;
     void run()
       .catch((err) => toast.error(errorMessage(err)))
-      .finally(() => setSubmitting(false));
+      .finally(() => {
+        globalThis.clearTimeout(hardStop);
+        setSubmitting(false);
+      });
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/55 p-4 sm:items-center"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
       aria-labelledby="auth-gate-title"
+      className={dialogCls}
+      onCancel={(e) => {
+        e.preventDefault();
+        dismiss();
+      }}
     >
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border bg-card shadow-2xl">
+      <div className="pointer-events-auto relative z-10 w-full max-w-md overflow-hidden rounded-2xl border bg-card shadow-2xl">
         <button
           type="button"
           onClick={dismiss}
@@ -178,9 +197,9 @@ export function AuthGateModal() {
           </div>
 
           <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            or email
-            <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 bg-border" aria-hidden />
+            <span>or email</span>
+            <span className="h-px flex-1 bg-border" aria-hidden />
           </div>
 
           <form onSubmit={onSubmit} className="space-y-3">
@@ -272,6 +291,6 @@ export function AuthGateModal() {
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

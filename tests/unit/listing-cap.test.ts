@@ -21,8 +21,8 @@ describe("resolveListingCap", () => {
   });
 
   it("ignores null admin override", () => {
-    expect(resolveListingCap({ plan: "starter", bonusSlots: 0, adminOverride: null })).toBe(
-      baseListingCap("starter"),
+    expect(resolveListingCap({ plan: "agency-starter", bonusSlots: 0, adminOverride: null })).toBe(
+      baseListingCap("agency-starter"),
     );
   });
 });

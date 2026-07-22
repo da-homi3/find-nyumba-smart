@@ -3,17 +3,40 @@
 
   "name": "nyumba-search",
 
-  "compatibility_date": "2026-05-31",
-
-  "observability": { "enabled": true },
+  "compatibility_date": "2026-07-20",
 
   "compatibility_flags": ["nodejs_compat"],
+
+  "account_id": "7ff77105e5fd9fb5f560d381ec562ed8",
+
+  /**
+   * Workers Paid — run compute near Supabase / upstream APIs when that is faster
+   * for end-to-end latency (static assets still serve from the edge nearest the user).
+   */
+  "placement": {
+    "mode": "smart",
+  },
+
+  /**
+   * Workers Paid limits (free plan caps at 10ms CPU / 50 subrequests).
+   * 60s CPU covers SSR + AI + cron without runaway 5-minute bills.
+   */
+  "limits": {
+    "cpu_ms": 60000,
+    "subrequests": 100000,
+  },
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+
+  /** Pick up account Logpush jobs when configured in the dashboard. */
+  "logpush": true,
 
   "ai": {
     "binding": "AI",
   },
-
-  "account_id": "7ff77105e5fd9fb5f560d381ec562ed8",
 
   "kv_namespaces": [
     {

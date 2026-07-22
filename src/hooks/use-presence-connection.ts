@@ -4,7 +4,8 @@ import type { AppRole } from "@/hooks/use-auth";
 import { getAnonymousSessionId } from "@/lib/anonymous-session";
 
 const PING_MS = 25_000;
-const RECONNECT_MS = 4_000;
+const RECONNECT_BASE_MS = 4_000;
+const RECONNECT_MAX_MS = 60_000;
 
 type PresenceSocket = WebSocket & { __nyumbaPresence?: boolean };
 
@@ -17,7 +18,7 @@ function presenceWsUrl(sessionId: string, path: string, token?: string | null) {
   return url.toString();
 }
 
-function clearTimer(kind: "interval" | "timeout", id: number | null) {
+function clearTimer(kind: "interval" | "timeout", id: ReturnType<typeof setTimeout> | null) {
   if (id == null) return;
   if (kind === "interval") globalThis.clearInterval(id);
   else globalThis.clearTimeout(id);
@@ -29,10 +30,14 @@ export function usePresenceConnection(args: {
   accessToken: string | null | undefined;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathnameRef = useRef(pathname);
   const socketRef = useRef<PresenceSocket | null>(null);
-  const pingTimerRef = useRef<number | null>(null);
-  const reconnectTimerRef = useRef<number | null>(null);
+  const pingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
   const sessionIdRef = useRef<string>(getAnonymousSessionId() ?? crypto.randomUUID());
+
+  pathnameRef.current = pathname;
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -62,7 +67,7 @@ export function usePresenceConnection(args: {
       socket.send(
         JSON.stringify({
           type: "ping",
-          path: pathname,
+          path: pathnameRef.current,
           sessionId: sessionIdRef.current,
         }),
       );
@@ -70,14 +75,18 @@ export function usePresenceConnection(args: {
 
     const scheduleReconnect = () => {
       if (cancelled || reconnectTimerRef.current != null) return;
+      const attempt = reconnectAttemptRef.current;
+      const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
+      reconnectAttemptRef.current = attempt + 1;
       reconnectTimerRef.current = globalThis.setTimeout(() => {
         reconnectTimerRef.current = null;
         connect();
-      }, RECONNECT_MS);
+      }, delay);
     };
 
     const onSocketOpen = (socket: WebSocket) => {
       if (cancelled) return;
+      reconnectAttemptRef.current = 0;
       sendAuth(socket);
       sendPing(socket);
       const pingIfOpen = () => {
@@ -91,7 +100,7 @@ export function usePresenceConnection(args: {
       clearTimers();
 
       const socket = new WebSocket(
-        presenceWsUrl(sessionIdRef.current, pathname, args.accessToken),
+        presenceWsUrl(sessionIdRef.current, pathnameRef.current, args.accessToken),
       ) as PresenceSocket;
       socket.__nyumbaPresence = true;
       socketRef.current = socket;
@@ -108,15 +117,31 @@ export function usePresenceConnection(args: {
       });
     };
 
-    connect();
+    // Defer WS until idle so it doesn't compete with first paint / LCP.
+    let idleHandle: number | null = null;
+    const start = () => {
+      if (cancelled) return;
+      connect();
+    };
+    if (typeof globalThis.requestIdleCallback === "function") {
+      idleHandle = globalThis.requestIdleCallback(start, { timeout: 2500 });
+    } else {
+      idleHandle = globalThis.setTimeout(start, 1200) as unknown as number;
+    }
 
     return () => {
       cancelled = true;
+      if (typeof globalThis.cancelIdleCallback === "function" && idleHandle != null) {
+        globalThis.cancelIdleCallback(idleHandle);
+      } else if (idleHandle != null) {
+        globalThis.clearTimeout(idleHandle);
+      }
       clearTimers();
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [args.accessToken, args.roles, args.userId, pathname]);
+    // Intentionally omit pathname — page changes use the separate effect below.
+  }, [args.accessToken, args.roles, args.userId]);
 
   useEffect(() => {
     const socket = socketRef.current;

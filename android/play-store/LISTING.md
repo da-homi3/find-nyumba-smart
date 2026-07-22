@@ -110,7 +110,7 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 | Field          | URL                                     |
 | -------------- | --------------------------------------- |
-| Privacy policy | https://nyumbasearch.com/privacy-policy |
+| Privacy policy | https://nyumbasearch.com/privacy |
 | Data deletion  | https://nyumbasearch.com/data-deletion  |
 
 ---

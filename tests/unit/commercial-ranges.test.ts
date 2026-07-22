@@ -51,15 +51,34 @@ describe("commercial ranges", () => {
     expect(normalized.area_sqm_max).toBeNull();
   });
 
-  it("clears range fields for non-commercial types", () => {
+  it("clears range fields for non-commercial rent listings", () => {
     const normalized = normalizeCommercialRangeFields({
       property_type: "two_bedroom",
       rent_kes: 45_000,
       rent_kes_max: 60_000,
       area_sqm: 70,
       area_sqm_max: 90,
+      pricing_mode: "rent",
     });
     expect(normalized.rent_kes_max).toBeNull();
+    expect(normalized.area_sqm_max).toBeNull();
+  });
+
+  it("keeps price range for for-sale residential listings", () => {
+    const input = {
+      property_type: "two_bedroom" as const,
+      rent_kes: 4_500_000,
+      rent_kes_max: 5_200_000,
+      pricing_mode: "sale" as const,
+    };
+    expect(hasCommercialPriceRange(input)).toBe(true);
+    expect(formatListingPrice(input)).toBe("KES 4,500,000 – 5,200,000");
+    const normalized = normalizeCommercialRangeFields({
+      ...input,
+      area_sqm: 70,
+      area_sqm_max: 90,
+    });
+    expect(normalized.rent_kes_max).toBe(5_200_000);
     expect(normalized.area_sqm_max).toBeNull();
   });
 

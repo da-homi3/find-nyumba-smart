@@ -195,6 +195,7 @@ function SettingsPage() {
       });
       if (metadataError) throw metadataError;
       qc.invalidateQueries({ queryKey: ["settings-profile", user.id] });
+      qc.invalidateQueries({ queryKey: ["profile-phone", user.id] });
       toast.success("Profile updated");
     } catch (err) {
       toast.error(errorMessage(err));

@@ -30,6 +30,8 @@ import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useListingsSearch } from "@/hooks/use-listings-search";
+import { useTenantBrowseOrigin } from "@/hooks/use-tenant-browse-origin";
+import { sortListingsByProximity } from "@/lib/geo/listings-nearby-sort";
 import {
   prefetchTenantListings,
   TENANT_LISTINGS_PAGE_SIZE,
@@ -42,6 +44,7 @@ const tenantSearchSchema = z.object({
   maxPrice: z.coerce.number().optional(),
   type: z.string().optional(),
   q: z.string().optional(),
+  purpose: z.enum(["all", "rent", "sale"]).optional(),
 });
 
 export const Route = createFileRoute("/tenant/")({
@@ -64,6 +67,7 @@ const PAGE_SIZE = TENANT_LISTINGS_PAGE_SIZE;
 function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFilters {
   const types = search.type ? [search.type as PropertyType] : [];
   const neighborhood = search.neighborhood ?? "All";
+  const listingPurpose = search.purpose ?? "all";
   const scopeFilterActive = types.length > 0 || neighborhood !== "All";
   return {
     ...defaultTenantFilters,
@@ -73,6 +77,7 @@ function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFi
       : (search.maxPrice ?? defaultTenantFilters.maxRent),
     neighborhood,
     types,
+    listingPurpose,
   };
 }
 
@@ -81,6 +86,9 @@ function applyClientFilters(items: Property[], filters: TenantFilters): Property
   if (filters.types.length > 0) {
     const typeSet = new Set(filters.types);
     next = next.filter((p) => typeSet.has(p.property_type));
+  }
+  if (filters.listingPurpose === "rent" || filters.listingPurpose === "sale") {
+    next = next.filter((p) => (p.pricing_mode ?? "rent") === filters.listingPurpose);
   }
   if (filters.bedrooms != null) {
     next = next.filter((p) => p.bedrooms >= filters.bedrooms!);
@@ -128,13 +136,14 @@ function TenantHome() {
   const [page, setPage] = useState(1);
   const lastAnalyticsKey = useRef("");
   const [filters, setFilters] = useState<TenantFilters>(() => filtersFromSearch(search));
+  const { origin: browseOrigin } = useTenantBrowseOrigin(filters.neighborhood);
 
   useEffect(() => {
     setQ(search.q ?? "");
     setPage(1);
     setFilters((f) => ({ ...f, ...filtersFromSearch(search) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync individual URL search params only
-  }, [search.q, search.maxPrice, search.neighborhood, search.type]);
+  }, [search.q, search.maxPrice, search.neighborhood, search.type, search.purpose]);
 
   // Remember browse scroll so returning from Map/Saved feels continuous.
   useEffect(() => {
@@ -174,6 +183,7 @@ function TenantHome() {
     const typeFilterActive = filters.types.length > 0;
     const areaFilterActive = filters.neighborhood !== "All";
     const browseAllInScope = typeFilterActive || areaFilterActive;
+    const nearbySort = filters.sort === "nearby";
     return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
@@ -181,15 +191,23 @@ function TenantHome() {
       maxRent: browseAllInScope ? undefined : effectiveMaxRent(filters.maxRent),
       minRent: browseAllInScope ? undefined : filters.minRent,
       propertyType: filters.types.length === 1 ? filters.types[0] : undefined,
+      pricingMode: filters.listingPurpose === "all" ? undefined : filters.listingPurpose,
       sortBy: filters.sort,
-      limit: browseAllInScope ? Math.max(PAGE_SIZE * page, 500) : PAGE_SIZE * page,
+      originLat: nearbySort ? browseOrigin.lat : undefined,
+      originLng: nearbySort ? browseOrigin.lng : undefined,
+      // Nearby ranking needs a wide pool; type/area chips already fetch broadly.
+      // Cap at 200 so Worker + CDN stay healthy under concurrent tenants.
+      limit: nearbySort || browseAllInScope ? Math.max(PAGE_SIZE * page, 200) : PAGE_SIZE * page,
       offset: 0,
     };
   }, [
+    browseOrigin.lat,
+    browseOrigin.lng,
     debouncedQ,
     filters.neighborhood,
     filters.maxRent,
     filters.minRent,
+    filters.listingPurpose,
     filters.sort,
     filters.types,
     page,
@@ -249,16 +267,27 @@ function TenantHome() {
 
   const sortedFiltered = useMemo(() => {
     const now = Date.now();
+    if (filters.sort === "nearby") {
+      return sortListingsByProximity(displayListings, browseOrigin, now);
+    }
+    if (filters.sort === "newest") {
+      return [...displayListings].sort(
+        (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+      );
+    }
     return [...displayListings].sort((a, b) => {
       const aBoost = a.featured_until && new Date(a.featured_until).getTime() > now ? 1 : 0;
       const bBoost = b.featured_until && new Date(b.featured_until).getTime() > now ? 1 : 0;
       if (aBoost !== bBoost) return bBoost - aBoost;
       return 0;
     });
-  }, [displayListings]);
+  }, [browseOrigin, displayListings, filters.sort]);
 
   const visible = sortedFiltered.slice(0, page * PAGE_SIZE);
-  const verified = displayListings.filter((p) => p.is_verified).slice(0, 4);
+  const verified = [...displayListings]
+    .filter((p) => p.is_verified)
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 4);
   const boostedPool = useMemo(
     () =>
       displayListings.filter(
@@ -282,6 +311,7 @@ function TenantHome() {
           neighborhood: next.neighborhood !== "All" ? next.neighborhood : undefined,
           maxPrice: next.maxRent < TENANT_MAX_RENT ? next.maxRent : undefined,
           type: next.types[0] || undefined,
+          purpose: next.listingPurpose !== "all" ? next.listingPurpose : undefined,
           q: q.trim() || undefined,
         }),
         replace: true,
@@ -483,7 +513,7 @@ function TenantListingsGrid({
     return <ListingGridSkeleton count={9} />;
   }
 
-  if (isError) {
+  if (isError && displayCount === 0) {
     return (
       <div className="mt-8 rounded-2xl border border-destructive/30 p-10 text-center">
         <p className="text-sm font-medium text-destructive">Couldn&apos;t load listings</p>
@@ -505,7 +535,14 @@ function TenantListingsGrid({
 
   return (
     <>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {isError ? (
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">Showing saved results — refresh failed.</span>
+          <button type="button" onClick={onRetry} className="font-semibold text-primary">
+            Retry
+          </button>
+        </div>
+      ) : null}      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((p, index) => {
           const slot = index + 1;
           const boosted = boostedPool.length > 0 ? boostedPool[slot % boostedPool.length] : null;
