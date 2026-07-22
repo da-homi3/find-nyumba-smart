@@ -168,13 +168,13 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 ---
 
-## What's new (version 1.0.3)
+## What's new (version 1.0.4)
 
 ```
-Faster app browsing and Kenya-wide services
+Targets Android 16 and loads faster
 
-• Much faster map and browse load times
+• Updated to meet Google Play Android 16 (API 36) requirements
+• Faster map and browse load times
 • Kenya-wide rentals plus home service providers
 • Card checkout (Pesapal) stays in the app
-• Improved contact unlock and M-Pesa reliability
 ```

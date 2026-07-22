@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace = "ke.co.nyumbasearch.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ke.co.nyumbasearch.app"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        targetSdk = 36
+        versionCode = 5
+        versionName = "1.0.4"
         vectorDrawables.useSupportLibrary = true
     }
 
