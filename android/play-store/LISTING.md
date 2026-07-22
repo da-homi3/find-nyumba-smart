@@ -134,13 +134,13 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 ---
 
-## What's new (version 1.0.0)
+## What's new (version 1.0.1)
 
 ```
-Welcome to NyumbaSearch for Android!
+Card payments and a smoother browse experience
 
-• Fast, mobile-optimised access to nyumbasearch.com
-• Works on slower networks with smart data-saving
-• Deep links from WhatsApp open directly in the app
-• Pull to refresh, saved login, and secure HTTPS browsing
+• Card checkout (Pesapal) stays in the app — no broken redirects
+• Faster, more reliable listing search and map browse
+• Improved contact unlock and M-Pesa payment reliability
+• NyumbaSearch AI answers more consistently on listing pages
 ```
