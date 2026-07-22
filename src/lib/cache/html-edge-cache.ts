@@ -84,9 +84,32 @@ export function storePublicHtmlCache(
   });
 
   const cache = edgeCache();
-  if (!cache) return out;
+  if (!cache) {
+    headers.set("X-HTML-Edge-Cache", "BYPASS");
+    return new Response(out.body, {
+      status: out.status,
+      statusText: out.statusText,
+      headers,
+    });
+  }
 
-  const put = cache.put(htmlCacheKey(request), out.clone()).catch(() => undefined);
+  const put = (async () => {
+    try {
+      const storeHeaders = new Headers(headers);
+      storeHeaders.set("Cache-Control", "public, max-age=45");
+      const body = await out.clone().arrayBuffer();
+      await cache.put(
+        htmlCacheKey(request),
+        new Response(body, {
+          status: out.status,
+          statusText: out.statusText,
+          headers: storeHeaders,
+        }),
+      );
+    } catch (err) {
+      console.error("[html-edge-cache] put failed", err);
+    }
+  })();
   if (typeof ctx?.waitUntil === "function") ctx.waitUntil(put);
   else void put;
 
