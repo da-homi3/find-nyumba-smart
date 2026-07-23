@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 import { PROPERTY_TYPE_OPTIONS } from "@/lib/property-types";
 import type { PropertyType } from "@/lib/property-types";
 import {
   KENYA_COUNTIES,
-  KENYA_LOCATIONS,
   areasForCounty,
   neighborhoodStorageValue,
   countyWideFilterValue,
   parseCountyWideFilter,
-  type KenyaLocation,
 } from "@/data/kenya-locations";
 import { formatRentBudget } from "@/lib/format-rent-budget";
 import { TENANT_MAX_RENT, TENANT_MIN_RENT, TENANT_RENT_STEP } from "@/lib/tenant-filter-defaults";
@@ -37,45 +35,6 @@ const PURPOSE_OPTIONS: { id: ListingPurposeFilter; label: string }[] = [
 ];
 
 const ALL_TYPES = PROPERTY_TYPE_OPTIONS;
-
-function areaChipLabel(loc: KenyaLocation): string {
-  return loc.county === "Nairobi" ? loc.name : `${loc.name}, ${loc.county}`;
-}
-
-function areaFilterOptions(county: string) {
-  if (county === "All") {
-    return [
-      { value: "All", label: "All Kenya" },
-      ...[...KENYA_LOCATIONS]
-        .sort((a, b) => a.name.localeCompare(b.name) || a.county.localeCompare(b.county))
-        .map((loc) => ({
-          value: neighborhoodStorageValue(loc),
-          label: areaChipLabel(loc),
-        })),
-    ];
-  }
-  return [
-    { value: countyWideFilterValue(county), label: `All ${county}` },
-    ...areasForCounty(county)
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((loc) => ({
-        value: neighborhoodStorageValue(loc),
-        label: loc.name,
-      })),
-  ];
-}
-
-function areaChipLocations(county: string): readonly KenyaLocation[] {
-  if (county === "All") {
-    return [...KENYA_LOCATIONS].sort(
-      (a, b) => a.name.localeCompare(b.name) || a.county.localeCompare(b.county),
-    );
-  }
-  return areasForCounty(county)
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
 
 function countyFromNeighborhoodFilter(neighborhood: string): string {
   if (neighborhood === "All") return "All";
@@ -105,45 +64,10 @@ export function TenantFiltersBar({
   const [countyFilter, setCountyFilter] = useState(() =>
     countyFromNeighborhoodFilter(filters.neighborhood),
   );
-  const [areaQuery, setAreaQuery] = useState("");
 
   useEffect(() => {
     setCountyFilter(countyFromNeighborhoodFilter(filters.neighborhood));
   }, [filters.neighborhood]);
-
-  const areaOptions = useMemo(() => areaFilterOptions(countyFilter), [countyFilter]);
-  const chipLocations = useMemo(() => areaChipLocations(countyFilter), [countyFilter]);
-
-  const filteredAreaOptions = useMemo(() => {
-    const q = areaQuery.trim().toLowerCase();
-    const base = !q
-      ? areaOptions
-      : areaOptions.filter(
-          (option) =>
-            option.value === "All" ||
-            option.value.startsWith("All ") ||
-            option.label.toLowerCase().includes(q) ||
-            option.value.toLowerCase().includes(q),
-        );
-    if (
-      filters.neighborhood &&
-      filters.neighborhood !== "All" &&
-      !base.some((option) => option.value === filters.neighborhood)
-    ) {
-      const selected = areaOptions.find((option) => option.value === filters.neighborhood);
-      if (selected) return [selected, ...base];
-    }
-    return base;
-  }, [areaOptions, areaQuery, filters.neighborhood]);
-
-  const filteredChips = useMemo(() => {
-    const q = areaQuery.trim().toLowerCase();
-    if (!q) return chipLocations;
-    return chipLocations.filter((loc) => {
-      const label = areaChipLabel(loc).toLowerCase();
-      return label.includes(q) || loc.name.toLowerCase().includes(q);
-    });
-  }, [chipLocations, areaQuery]);
 
   return (
     <div
@@ -241,7 +165,6 @@ export function TenantFiltersBar({
               onChange={(e) => {
                 const nextCounty = e.target.value;
                 setCountyFilter(nextCounty);
-                setAreaQuery("");
                 onChange({
                   neighborhood: nextCounty === "All" ? "All" : countyWideFilterValue(nextCounty),
                 });
@@ -252,31 +175,6 @@ export function TenantFiltersBar({
               {KENYA_COUNTIES.map((county) => (
                 <option key={county} value={county}>
                   {county}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="w-full min-w-0 flex-[1.4] text-xs sm:min-w-[160px]">
-            <span className="mb-1 block font-medium text-muted-foreground">
-              Area ({areaOptions.length - 1} locations)
-            </span>
-            <input
-              type="search"
-              value={areaQuery}
-              onChange={(e) => setAreaQuery(e.target.value)}
-              placeholder="Search Kilimani, Ruiru, Nyali…"
-              className="mb-1.5 w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
-              aria-label="Search Kenyan areas"
-            />
-            <select
-              value={filters.neighborhood}
-              onChange={(e) => onChange({ neighborhood: e.target.value })}
-              className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
-            >
-              {filteredAreaOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
                 </option>
               ))}
             </select>
@@ -409,70 +307,6 @@ export function TenantFiltersBar({
               }}
             >
               {typeOption.label}
-            </motion.button>
-          );
-        })}
-      </div>
-
-      <div className="mx-auto mt-1.5 flex max-w-2xl gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-        <motion.button
-          type="button"
-          onClick={() =>
-            onChange({
-              neighborhood:
-                countyFilter === "All" ? "All" : countyWideFilterValue(countyFilter),
-            })
-          }
-          animate={{
-            scale:
-              filters.neighborhood === "All" ||
-              filters.neighborhood === countyWideFilterValue(countyFilter)
-                ? 1.05
-                : 1,
-            background:
-              filters.neighborhood === "All" ||
-              filters.neighborhood === countyWideFilterValue(countyFilter)
-                ? "linear-gradient(135deg, #0a5c47, #1eb88a)"
-                : "rgba(255,255,255,0.05)",
-            borderColor:
-              filters.neighborhood === "All" ||
-              filters.neighborhood === countyWideFilterValue(countyFilter)
-                ? "#1eb88a"
-                : "rgba(255,255,255,0.1)",
-            color:
-              filters.neighborhood === "All" ||
-              filters.neighborhood === countyWideFilterValue(countyFilter)
-                ? "#fff"
-                : undefined,
-          }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold"
-        >
-          {countyFilter === "All" ? "All areas" : `All ${countyFilter}`}
-        </motion.button>
-        {filteredChips.map((loc) => {
-          const value = neighborhoodStorageValue(loc);
-          const active = filters.neighborhood === value;
-          return (
-            <motion.button
-              key={value}
-              type="button"
-              onClick={() => onChange({ neighborhood: value })}
-              animate={{
-                scale: active ? 1.05 : 1,
-                background: active
-                  ? "linear-gradient(135deg, #0a5c47, #1eb88a)"
-                  : "rgba(255,255,255,0.05)",
-                borderColor: active ? "#1eb88a" : "rgba(255,255,255,0.1)",
-                color: active ? "#fff" : undefined,
-              }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold"
-              style={{
-                boxShadow: active ? "0 4px 16px rgba(30,184,138,0.3)" : "none",
-              }}
-            >
-              {areaChipLabel(loc)}
             </motion.button>
           );
         })}
