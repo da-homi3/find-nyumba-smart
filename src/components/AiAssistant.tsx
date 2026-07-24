@@ -8,8 +8,9 @@ import { listSavedProperties } from "@/lib/api/nyumba.functions";
 
 import { useAuth } from "@/hooks/use-auth";
 
-import { Bot, Send, Sparkles, X } from "lucide-react";
+import { Bot, Send, X } from "lucide-react";
 import { LazyRadar } from "@/components/LazyRadar";
+import { NyumbaAiFabRobot } from "@/components/NyumbaAiFabRobot";
 
 type Turn = { id: string; role: "user" | "assistant"; text: string };
 
@@ -108,8 +109,8 @@ export function AiAssistant() {
           <X className="h-6 w-6" />
         ) : (
           <>
-            <span className="animate-ns-pulse-ring pointer-events-none absolute inset-[-4px] rounded-full border-2 border-[#1eb88a] opacity-40" />
-            <Sparkles className="h-6 w-6" />
+            <span className="animate-ns-pulse-ring pointer-events-none absolute -inset-1 rounded-full border-2 border-[#1eb88a] opacity-40" />
+            <NyumbaAiFabRobot />
           </>
         )}
       </button>

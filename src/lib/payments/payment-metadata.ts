@@ -15,6 +15,8 @@ export type PaymentMetadata = {
   providerId?: string;
   advertisePackage?: string;
   inquiryId?: string;
+  /** PM rent invoice id when payment_type = rent_payment */
+  invoiceId?: string;
   successPath?: string;
   cancelPath?: string;
   title?: string;
@@ -42,6 +44,7 @@ const STRING_METADATA_KEYS = [
   "providerId",
   "advertisePackage",
   "inquiryId",
+  "invoiceId",
   "successPath",
   "cancelPath",
   "title",
@@ -84,6 +87,7 @@ export function metadataFromCheckout(data: {
   providerId?: string;
   advertisePackage?: string;
   inquiryId?: string;
+  invoiceId?: string;
   successPath?: string;
   cancelPath?: string;
   title?: string;

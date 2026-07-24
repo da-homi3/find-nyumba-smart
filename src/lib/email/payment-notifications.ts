@@ -168,6 +168,8 @@ async function notifyVerification(
 /** Send payment receipt and purpose-specific emails after fulfillment. */
 export async function sendPaymentLifecycleEmails(admin: Admin, payment: PaymentRow): Promise<void> {
   if (payment.status !== "completed") return;
+  // Rent receipts + landlord notify are handled in fulfillPmRentPayment.
+  if (payment.payment_type === "rent_payment") return;
 
   const user = await loadUserContext(admin, payment.user_id);
   if (!user) return;

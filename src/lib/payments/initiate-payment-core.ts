@@ -21,8 +21,20 @@ export const checkoutMetaSchema = z.object({
   providerId: z.string().uuid().optional(),
   advertisePackage: z.string().min(1).optional(),
   inquiryId: z.string().uuid().optional(),
-  successPath: z.string().min(1),
-  cancelPath: z.string().min(1).optional(),
+  invoiceId: z.string().uuid().optional(),
+  successPath: z
+    .string()
+    .min(1)
+    .refine((p) => p.startsWith("/") && !p.startsWith("//") && !/^https?:/i.test(p), {
+      message: "successPath must be a relative app path",
+    }),
+  cancelPath: z
+    .string()
+    .min(1)
+    .refine((p) => p.startsWith("/") && !p.startsWith("//") && !/^https?:/i.test(p), {
+      message: "cancelPath must be a relative app path",
+    })
+    .optional(),
   title: z.string().trim().min(1).max(120),
 });
 
@@ -45,6 +57,7 @@ export const initiatePaymentSchema = z.object({
     "landlord_plan",
     "contact_unlock",
     "provider_subscription",
+    "rent_payment",
   ]),
   phoneNumber: z.string().refine((p) => !p || isKenyanPhone(p), "Invalid Safaricom phone number"),
   paymentMethod: z.enum(["mpesa", "card"]).default("mpesa"),
@@ -85,6 +98,7 @@ async function insertPayment(userId: string, data: InitiatePaymentInput, idempot
     providerId: data.providerId,
     advertisePackage: data.advertisePackage,
     inquiryId: data.inquiryId,
+    invoiceId: data.invoiceId,
     successPath: data.successPath,
     cancelPath: data.cancelPath,
     title: data.title,

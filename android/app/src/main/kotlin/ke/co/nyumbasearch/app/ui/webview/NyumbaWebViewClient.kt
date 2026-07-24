@@ -46,9 +46,35 @@ class NyumbaWebViewClient(
 
     override fun onPageFinished(view: WebView, url: String?) {
         super.onPageFinished(view, url)
-        if (url?.startsWith("file:///android_asset") != true) {
-            onPageFinished()
-        }
+        if (url?.startsWith("file:///android_asset") == true) return
+        if (url.isNullOrBlank() || url == "about:blank") return
+
+        // Native shell: mark standalone + remove PWA SW (can hang listings fetch in WebView).
+        view.evaluateJavascript(
+            """
+            (function(){
+              document.documentElement.classList.add('nyumba-android-app');
+              document.documentElement.dataset.displayMode='standalone';
+              try {
+                if (navigator.serviceWorker) {
+                  navigator.serviceWorker.getRegistrations().then(function(regs){
+                    regs.forEach(function(r){ r.unregister(); });
+                  });
+                  if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({type:'nyumba-android-skip'});
+                  }
+                }
+                if (window.caches && caches.keys) {
+                  caches.keys().then(function(keys){
+                    keys.forEach(function(k){ caches.delete(k); });
+                  });
+                }
+              } catch (e) {}
+            })();
+            """.trimIndent(),
+            null,
+        )
+        onPageFinished()
     }
 
     override fun onReceivedError(
@@ -57,9 +83,10 @@ class NyumbaWebViewClient(
         error: WebResourceError,
     ) {
         super.onReceivedError(view, request, error)
-        if (request.isForMainFrame) {
-            onMainFrameError()
-        }
+        if (!request.isForMainFrame) return
+        val failing = request.url?.toString().orEmpty()
+        if (failing.startsWith("file://") || failing == "about:blank") return
+        onMainFrameError()
     }
 
     override fun onRenderProcessGone(

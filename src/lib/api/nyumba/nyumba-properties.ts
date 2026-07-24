@@ -79,34 +79,55 @@ async function insertPropertyListing(
 
   // Fingerprint is stored for analytics only — same-named / similar units may all stay active.
   const { computeListingFingerprint } = await import("@/lib/api/nyumba/listing-fingerprint");
-  const duplicateHash = await computeListingFingerprint({
-    title: data.title,
-    neighborhood: data.neighborhood,
-    property_type: data.property_type,
-    bedrooms: data.bedrooms,
+  const { enrichListingAddress } = await import("@/lib/apilayer/streetlayer");
+  const addressEnrichment = await enrichListingAddress({
     address: data.address ?? null,
+    neighborhood: data.neighborhood,
+    latitude: data.latitude ?? null,
+    longitude: data.longitude ?? null,
+  });
+  const listingData = {
+    ...data,
+    address: addressEnrichment.address,
+    latitude: addressEnrichment.latitude,
+    longitude: addressEnrichment.longitude,
+  };
+
+  const duplicateHash = await computeListingFingerprint({
+    title: listingData.title,
+    neighborhood: listingData.neighborhood,
+    property_type: listingData.property_type,
+    bedrooms: listingData.bedrooms,
+    address: listingData.address ?? null,
   });
 
   const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
-  let latitude = data.latitude ?? null;
-  let longitude = data.longitude ?? null;
-  if ((latitude == null || longitude == null) && data.neighborhood) {
-    const centroid = neighborhoodCentroid(data.neighborhood);
+  let latitude = listingData.latitude ?? null;
+  let longitude = listingData.longitude ?? null;
+  if ((latitude == null || longitude == null) && listingData.neighborhood) {
+    const centroid = neighborhoodCentroid(listingData.neighborhood);
     if (centroid) {
       latitude = centroid.lat;
       longitude = centroid.lng;
     }
   }
 
+  if (addressEnrichment.addressQuality === "verified" || addressEnrichment.addressQuality === "unsure") {
+    console.info("[streetlayer] listing address", {
+      quality: addressEnrichment.addressQuality,
+      neighborhood: listingData.neighborhood,
+    });
+  }
+
   const { data: property, error } = await insertClient
     .from("properties")
     .insert({
-      ...data,
+      ...listingData,
       latitude,
       longitude,
       owner_id: ownerUserId,
       organization_id: organizationId,
-      property_type: data.property_type,
+      property_type: listingData.property_type,
       duplicate_hash: duplicateHash,
     })
     .select("*")
@@ -595,19 +616,33 @@ export const updateProperty = createServerFn({ method: "POST" })
     const admin = await adminClient();
 
     const { computeListingFingerprint } = await import("@/lib/api/nyumba/listing-fingerprint");
-    const duplicateHash = await computeListingFingerprint({
-      title: payload.title,
-      neighborhood: payload.neighborhood,
-      property_type: payload.property_type,
-      bedrooms: payload.bedrooms,
+    const { enrichListingAddress } = await import("@/lib/apilayer/streetlayer");
+    const addressEnrichment = await enrichListingAddress({
       address: payload.address ?? null,
+      neighborhood: payload.neighborhood,
+      latitude: payload.latitude ?? null,
+      longitude: payload.longitude ?? null,
+    });
+    const listingPayload = {
+      ...payload,
+      address: addressEnrichment.address,
+      latitude: addressEnrichment.latitude,
+      longitude: addressEnrichment.longitude,
+    };
+
+    const duplicateHash = await computeListingFingerprint({
+      title: listingPayload.title,
+      neighborhood: listingPayload.neighborhood,
+      property_type: listingPayload.property_type,
+      bedrooms: listingPayload.bedrooms,
+      address: listingPayload.address ?? null,
     });
 
     const { neighborhoodCentroid } = await import("@/lib/geo/property-map-coords");
-    let latitude = payload.latitude ?? null;
-    let longitude = payload.longitude ?? null;
-    if ((latitude == null || longitude == null) && payload.neighborhood) {
-      const centroid = neighborhoodCentroid(payload.neighborhood);
+    let latitude = listingPayload.latitude ?? null;
+    let longitude = listingPayload.longitude ?? null;
+    if ((latitude == null || longitude == null) && listingPayload.neighborhood) {
+      const centroid = neighborhoodCentroid(listingPayload.neighborhood);
       if (centroid) {
         latitude = centroid.lat;
         longitude = centroid.lng;
@@ -617,10 +652,10 @@ export const updateProperty = createServerFn({ method: "POST" })
     const { data: updated, error } = await admin
       .from("properties")
       .update({
-        ...payload,
+        ...listingPayload,
         latitude,
         longitude,
-        property_type: payload.property_type,
+        property_type: listingPayload.property_type,
         duplicate_hash: duplicateHash,
         updated_at: new Date().toISOString(),
       })

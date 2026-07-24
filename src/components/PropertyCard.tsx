@@ -168,7 +168,7 @@ function PropertyCardImage({
         />
       </motion.div>
       <div
-        className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent from-50% to-[rgba(13,17,23,0.7)]"
+        className="pointer-events-none absolute inset-0 bg-linear-to-t from-[rgba(17,24,39,0.75)] via-transparent to-[rgba(17,24,39,0.15)]"
         aria-hidden
       />
       <PropertyCardBadges
@@ -179,7 +179,7 @@ function PropertyCardImage({
         plusMember={plusMember}
         earlyAccess={earlyAccess}
       />
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 pointer-events-auto">
         <ShareListingButton property={property} variant="card" />
         {showSave && onToggleSave ? (
           <SaveButton saved={saved} onToggle={onToggleSave} className="static" />
@@ -191,7 +191,7 @@ function PropertyCardImage({
       >
         {formatListingPrice(property)}
       </motion.span>
-      <span className="absolute bottom-3 right-3 rounded-md bg-background/90 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
+      <span className="absolute bottom-3 right-3 rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
         {prettyType(property.property_type)}
       </span>
     </div>
@@ -208,21 +208,21 @@ function PropertyCardDetails({
   detailNote: string;
 }>) {
   return (
-    <div className="p-4">
-      <h3 className="line-clamp-1 font-display text-base font-semibold group-hover:text-primary">
+    <div className="p-5">
+      <h3 className="line-clamp-1 font-display text-base font-semibold tracking-tight group-hover:text-primary">
         {property.title}
       </h3>
-      <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2.5 py-0.5 text-xs text-muted-foreground">
         <MapPin className="h-3 w-3 shrink-0" aria-hidden />
         <span>
           {property.neighborhood} · {intel.subArea}
         </span>
       </div>
       {detailNote ? (
-        <p className="mt-1 text-[10px] text-muted-foreground">{detailNote}</p>
+        <p className="mt-1.5 text-[10px] text-muted-foreground">{detailNote}</p>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium">
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium">
         <span className={`inline-flex items-center gap-0.5 ${intelColor(intel.water)}`}>
           <Droplets className="h-3 w-3" aria-hidden /> Water: {intel.water}
         </span>
@@ -235,7 +235,7 @@ function PropertyCardDetails({
         </span>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <BedDouble className="h-3.5 w-3.5" aria-hidden />
@@ -255,7 +255,7 @@ function PropertyCardDetails({
         <motion.span
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
-          className="shrink-0 rounded-lg bg-gradient-emerald px-3 py-1.5 text-[11px] font-semibold text-white"
+          className="shrink-0 rounded-xl bg-gradient-emerald px-3.5 py-2 text-[11px] font-semibold text-white shadow-[0_4px_14px_-4px_rgba(10,143,61,0.5)]"
         >
           View details
         </motion.span>
@@ -344,9 +344,9 @@ export const PropertyCard = memo(function PropertyCard({
           willChange: "transform",
           transformPerspective: 1000,
         }}
-        className={`group relative overflow-hidden rounded-[20px] border border-white/6 bg-(--surface-1) shadow-[0_4px_24px_rgba(0,0,0,0.24)] ${
-          isFeatured ? "ring-2 ring-gold/40" : ""
-        } ${isHovered ? "shadow-[0_32px_80px_rgba(0,0,0,0.25),0_0_0_1px_rgba(30,184,138,0.2)]" : ""}`}
+        className={`group relative overflow-hidden rounded-[22px] glass-card border-white/8 ${
+          isFeatured ? "ring-2 ring-gold/45" : ""
+        } ${isHovered ? "shadow-[0_28px_64px_rgba(17,24,39,0.22),0_0_0_1px_rgba(10,143,61,0.22)]" : ""}`}
       >
         <Link
           to="/tenant/property/$id"

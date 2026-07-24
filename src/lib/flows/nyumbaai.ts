@@ -4,14 +4,13 @@ import {
   type UserAssistantProfile,
 } from "@/lib/whatsapp/user-profile";
 import {
-  CANONICAL_AMENITIES,
   clampAmenities,
   extractAmenitiesHeuristic,
   formatAmenityString,
   mergeAmenities,
   parseAmenityString,
 } from "@/lib/listings/amenities";
-import { firstRegexMatch, JSON_ARRAY_RE, JSON_OBJECT_RE } from "@/lib/api/server-context";
+import { firstRegexMatch, JSON_ARRAY_RE } from "@/lib/api/server-context";
 
 const NYUMBAAI_BASE = `You are NyumbaAI, the personal property assistant for NyumbaSearch — Kenya's verified home search platform at nyumbasearch.com.
 
@@ -141,21 +140,19 @@ function normalizeDesc(text: string): string {
   return text.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+const LISTING_AI_OPTS = { priority: "latency" as const };
+
 export async function enhanceListingDescription(
   rawDesc: string,
   draft: ListingCopyDraft,
 ): Promise<string> {
   const user = `${buildListingContextBlock(draft, rawDesc)}\n\nRewrite this into a neat, proper, professional rental listing description that attracts customers. You must change the wording — do not copy the raw description verbatim.`;
-  const reply = await callGeminiChat(ENHANCE_SYSTEM, user);
+  const reply = await callGeminiChat(ENHANCE_SYSTEM, user, LISTING_AI_OPTS);
   const first = reply?.trim() || "";
-  if (first && normalizeDesc(first) !== normalizeDesc(rawDesc)) return first;
-
-  // Second pass if the model echoed the original.
-  const retryUser = `${buildListingContextBlock(draft, rawDesc)}\n\nThe previous rewrite was too similar to the original. Rewrite again with fresher professional wording, clearer structure, and stronger tenant appeal. Keep the same facts. Do not return the original text.`;
-  const retry = await callGeminiChat(ENHANCE_SYSTEM, retryUser);
-  const second = retry?.trim() || "";
-  if (second) return second;
-  return first || rawDesc;
+  if (!first) {
+    throw new Error("AI enhance is temporarily unavailable. Try again in a moment.");
+  }
+  return first;
 }
 
 export async function enhanceListingCopyWithImages(
@@ -165,7 +162,7 @@ export async function enhanceListingCopyWithImages(
 ): Promise<string> {
   const user = `${buildListingContextBlock(draft, rawDesc)}\n\nRewrite this into a neat, proper, professional rental listing description that attracts customers. You must change the wording — do not copy the raw description verbatim. Use the attached photos only to describe visible finishes honestly. Do not invent rooms or amenities you cannot see.`;
   if (images.length > 0) {
-    const reply = await callGeminiMultimodal(ENHANCE_SYSTEM, user, images);
+    const reply = await callGeminiMultimodal(ENHANCE_SYSTEM, user, images, LISTING_AI_OPTS);
     const first = reply?.trim() || "";
     if (first && normalizeDesc(first) !== normalizeDesc(rawDesc)) return first;
   }
@@ -173,8 +170,8 @@ export async function enhanceListingCopyWithImages(
 }
 
 /**
- * Polish description for professionalism, then extract every amenity from
- * the original + polished text so nothing is lost in the rewrite.
+ * Polish description + extract amenities in parallel (max 2 AI calls).
+ * Avoids the old sequential analyze→enhance→extract cascade that spun the UI forever.
  */
 export async function polishListingDescriptionAndAmenities(
   rawDesc: string,
@@ -186,139 +183,21 @@ export async function polishListingDescriptionAndAmenities(
     ? existingAmenities
     : parseAmenityString(existingAmenities ?? "");
 
-  // 1) Thorough analysis of the raw description (amenities + selling points).
-  const analysis = await analyzePropertyDescription(rawDesc, draft, existing);
-
-  // 2) Enhance using that analysis so the rewrite is informed and complete.
-  const description = await enhanceListingWithAnalysis(rawDesc, draft, analysis, images);
-
-  // 3) Second amenity pass on original + enhanced text, then merge everything.
-  const amenitySource = [rawDesc.trim(), description.trim()].filter(Boolean).join("\n\n");
-  const fromEnhancedPass = await extractAmenitiesFromText(amenitySource, [
-    ...existing,
-    ...analysis.amenities,
+  const [description, fromAi] = await Promise.all([
+    enhanceListingCopyWithImages(rawDesc, draft, images),
+    extractAmenitiesFromText(rawDesc, existing),
   ]);
 
   const amenities = clampAmenities(
     mergeAmenities(
       existing,
-      analysis.amenities,
       extractAmenitiesHeuristic(rawDesc),
       extractAmenitiesHeuristic(description),
-      fromEnhancedPass,
+      fromAi,
     ),
   );
 
   return { description, amenities };
-}
-
-type ListingAnalysis = {
-  amenities: string[];
-  sellingPoints: string[];
-  summary: string;
-};
-
-const ANALYZE_SYSTEM = `You are a meticulous Kenya rental listing analyst for NyumbaSearch.
-Read the property description carefully, line by line. Do a thorough pass for amenities and selling points.
-
-Reply ONLY with valid JSON (no markdown) in this shape:
-{"amenities":["WiFi","Borehole"],"selling_points":["quiet cul-de-sac","near Link Road"],"summary":"one sentence overview"}
-
-Amenities rules:
-- List EVERY amenity, feature, appliance, utility, security item, finish, and facility explicitly mentioned or clearly implied
-- Use short Kenya rental labels (WiFi, Fibre, Borehole, Backup water, Water tank, Parking, Covered parking, Visitor parking, Gym, CCTV, Security guard, Gated community, Electric fence, Biometric access, Generator, Backup power, Solar water heater, Lift, Balcony, DSQ, Servants quarter, Furnished, En-suite, Wardrobe, Hot shower, Instant shower, Swimming pool, Kids play area, Garden, Rooftop, Prepaid electricity, DSTV, Air conditioning, Fridge, Washing machine, Microwave, Kitchen cabinets, Tiled floors, Pet friendly, Water included, Service charge inclusive)
-- Also include other clear features not on that list when stated (e.g. "Open-plan kitchen", "Master en-suite")
-- Do NOT invent amenities that are not supported by the text
-- Prefer completeness — never return a short sample when more are present
-
-Selling points: short factual phrases from the text (location advantages, space, finishes, lifestyle). No invention.`;
-
-async function analyzePropertyDescription(
-  rawDesc: string,
-  draft: ListingCopyDraft,
-  existing: string[],
-): Promise<ListingAnalysis> {
-  const canonicalHint = CANONICAL_AMENITIES.join(", ");
-  const user = `${buildListingContextBlock(draft, rawDesc)}
-
-Known amenities already selected: ${formatAmenityString(existing) || "(none)"}
-Preferred amenity labels when they fit: ${canonicalHint}
-
-Analyze the Raw description thoroughly. Extract every amenity and key selling point. Return JSON only.`;
-
-  const aiRes = await callGeminiChat(ANALYZE_SYSTEM, user);
-  const parsed = parseListingAnalysisJson(aiRes);
-  const heuristic = extractAmenitiesHeuristic(rawDesc);
-  return {
-    amenities: mergeAmenities(parsed.amenities, heuristic),
-    sellingPoints: parsed.sellingPoints,
-    summary: parsed.summary,
-  };
-}
-
-function parseListingAnalysisJson(aiRes: string | null): ListingAnalysis {
-  const empty: ListingAnalysis = { amenities: [], sellingPoints: [], summary: "" };
-  if (!aiRes) return empty;
-  try {
-    const jsonText = firstRegexMatch(aiRes, JSON_OBJECT_RE);
-    if (!jsonText) {
-      return { ...empty, amenities: parseAmenityJsonArray(aiRes) };
-    }
-    const parsed = JSON.parse(jsonText) as Record<string, unknown>;
-    const amenities = Array.isArray(parsed.amenities)
-      ? parsed.amenities.filter((x): x is string => typeof x === "string").map((s) => s.trim()).filter(Boolean)
-      : [];
-    const sellingRaw = parsed.selling_points ?? parsed.sellingPoints;
-    const sellingPoints = Array.isArray(sellingRaw)
-      ? sellingRaw.filter((x): x is string => typeof x === "string").map((s) => s.trim()).filter(Boolean)
-      : [];
-    const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
-    return { amenities, sellingPoints, summary };
-  } catch {
-    return { ...empty, amenities: parseAmenityJsonArray(aiRes) };
-  }
-}
-
-async function enhanceListingWithAnalysis(
-  rawDesc: string,
-  draft: ListingCopyDraft,
-  analysis: ListingAnalysis,
-  images: GeminiInlineImage[] = [],
-): Promise<string> {
-  const analysisBlock = [
-    analysis.summary ? `Analyst summary: ${analysis.summary}` : null,
-    analysis.sellingPoints.length
-      ? `Verified selling points to weave in (do not invent beyond these + the draft):\n- ${analysis.sellingPoints.join("\n- ")}`
-      : null,
-    analysis.amenities.length
-      ? `Verified amenities to reflect naturally when relevant: ${formatAmenityString(analysis.amenities)}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  const user = `${buildListingContextBlock(draft, rawDesc)}
-
-${analysisBlock}
-
-Using the analysis above, rewrite the Raw description into a neat, proper, professional rental listing that attracts customers.
-You must change the wording — do not copy the raw description verbatim.
-Only mention amenities/selling points supported by the draft, analysis, or photos.`;
-
-  if (images.length > 0) {
-    const withPhotos = `${user}\nUse the attached photos only to describe visible finishes honestly. Do not invent rooms or amenities you cannot see.`;
-    const reply = await callGeminiMultimodal(ENHANCE_SYSTEM, withPhotos, images);
-    const first = reply?.trim() || "";
-    if (first && normalizeDesc(first) !== normalizeDesc(rawDesc)) return first;
-  }
-
-  const reply = await callGeminiChat(ENHANCE_SYSTEM, user);
-  const first = reply?.trim() || "";
-  if (first && normalizeDesc(first) !== normalizeDesc(rawDesc)) return first;
-
-  const retryUser = `${user}\n\nThe previous rewrite was too similar to the original. Rewrite again with fresher professional wording, clearer structure, and stronger tenant appeal. Keep the same facts. Do not return the original text.`;
-  const retry = await callGeminiChat(ENHANCE_SYSTEM, retryUser);
-  return retry?.trim() || first || rawDesc;
 }
 
 function parseAmenityJsonArray(aiRes: string | null): string[] {
@@ -357,7 +236,7 @@ Prefer completeness over brevity — list all distinct amenities, not a short sa
 
   const user = `Description:\n${description}\n\nKnown amenities already selected: ${formatAmenityString(existing) || "(none)"}\n\nReturn a JSON array with every amenity found.`;
 
-  const aiRes = await callGeminiChat(system, user);
+  const aiRes = await callGeminiChat(system, user, LISTING_AI_OPTS);
   const fromAi = parseAmenityJsonArray(aiRes);
 
   return clampAmenities(mergeAmenities(existing, heuristic, fromAi));

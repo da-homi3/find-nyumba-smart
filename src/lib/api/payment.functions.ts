@@ -176,18 +176,29 @@ async function resolveAdvertiserUserId(opts: {
   throw new Error(error?.message ?? "Could not create billing account for this email");
 }
 
+import { timingSafeEqual } from "@/lib/security/timing-safe-equal";
+
 const advertisePaymentSchema = initiatePaymentSchema.extend({
   paymentType: z.literal("invoice"),
   advertisePackage: z.string().min(1),
   email: z.string().email(),
   name: z.string().trim().min(1).max(120).optional(),
   inquiryId: z.string().uuid().optional(),
+  checkoutToken: z.string().uuid().optional(),
 });
 
-/** Public prefill for advertise pay page (limited fields only). */
+/** Public prefill for advertise pay page — PII only when checkout token matches. */
 export const getAdvertiseInquiryCheckout = createServerFn({ method: "GET" })
-  .inputValidator(z.object({ inquiryId: z.string().uuid() }))
+  .inputValidator(
+    z.object({
+      inquiryId: z.string().uuid(),
+      checkoutToken: z.string().uuid().optional(),
+    }),
+  )
   .handler(async ({ data }) => {
+    const { checkRateLimit, RATE_LIMITS } = await import("@/lib/api/rate-limit");
+    checkRateLimit(`advertise-prefill:${data.inquiryId}`, RATE_LIMITS.advertiseCheckout);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: inquiry, error } = await supabaseAdmin
       .from("partnership_inquiries")
@@ -197,25 +208,91 @@ export const getAdvertiseInquiryCheckout = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw error;
     if (!inquiry) return null;
+
     const meta = (inquiry.metadata ?? {}) as Record<string, string>;
-    return {
+    const publicFields = {
       id: inquiry.id,
-      email: inquiry.email,
-      contactName: inquiry.contact_name,
-      phone: inquiry.phone,
       company: inquiry.company,
       packageId: meta.package ?? null,
       status: meta.status ?? "pending",
     };
+
+    const expectedToken = meta.checkoutToken;
+    const tokenOk =
+      Boolean(expectedToken) &&
+      Boolean(data.checkoutToken) &&
+      timingSafeEqual(expectedToken, data.checkoutToken!);
+
+    // Without a valid token: never leak contact PII (UUID alone is not a secret).
+    if (!tokenOk) {
+      return {
+        ...publicFields,
+        email: null as string | null,
+        contactName: null as string | null,
+        phone: null as string | null,
+        unlocked: false as const,
+      };
+    }
+
+    return {
+      ...publicFields,
+      email: inquiry.email,
+      contactName: inquiry.contact_name,
+      phone: inquiry.phone,
+      unlocked: true as const,
+    };
   });
+
+async function resolveAdvertiseInquiryContacts(
+  inquiryId: string,
+  checkoutToken: string | undefined,
+  email: string,
+  name: string | undefined,
+  phone: string | undefined,
+): Promise<{ email: string; name?: string; phone?: string }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: inquiry, error } = await supabaseAdmin
+    .from("partnership_inquiries")
+    .select("id, email, contact_name, phone, inquiry_type, metadata")
+    .eq("id", inquiryId)
+    .eq("inquiry_type", "advertise")
+    .maybeSingle();
+  if (error) throw error;
+  if (!inquiry) throw new Error("Advertising enquiry not found");
+
+  const meta = (inquiry.metadata ?? {}) as Record<string, string>;
+  if (meta.checkoutToken) {
+    if (!checkoutToken || !timingSafeEqual(meta.checkoutToken, checkoutToken)) {
+      throw new Error("Invalid or missing payment link — use the link from your approval email");
+    }
+  }
+
+  const inquiryEmail = inquiry.email?.trim().toLowerCase();
+  if (inquiryEmail?.includes("@") && email !== inquiryEmail) {
+    throw new Error("Email must match the approved advertising enquiry");
+  }
+
+  return {
+    email: inquiryEmail?.includes("@") ? inquiryEmail : email,
+    name: name || inquiry.contact_name || undefined,
+    phone: phone || inquiry.phone?.trim() || undefined,
+  };
+}
 
 /**
  * Public advertise checkout — M-Pesa STK or Pesapal card via the shared payment core.
  * Does not require an existing session; creates a billing user from the advertiser email.
+ * Enquiry-linked payments require the emailed checkout token + matching email.
  */
 export const initiateAdvertisePayment = createServerFn({ method: "POST" })
   .inputValidator(advertisePaymentSchema)
   .handler(async ({ data }) => {
+    const { checkRateLimit, RATE_LIMITS } = await import("@/lib/api/rate-limit");
+    checkRateLimit(
+      `advertise-pay:${data.email.trim().toLowerCase()}`,
+      RATE_LIMITS.advertiseCheckout,
+    );
+
     const { ADVERTISE_PACKAGES, advertisePackagePrice } = await import("@/lib/revenue/plans");
     const pkg = ADVERTISE_PACKAGES.find((p) => p.id === data.advertisePackage);
     if (!pkg) throw new Error("Unknown advertising package");
@@ -225,23 +302,21 @@ export const initiateAdvertisePayment = createServerFn({ method: "POST" })
       throw new Error(`Amount must be KES ${expected.toLocaleString()} for ${pkg.name}`);
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let email = data.email.trim().toLowerCase();
     let name = data.name?.trim();
     let phone: string | undefined = data.phoneNumber?.trim() || undefined;
 
     if (data.inquiryId) {
-      const { data: inquiry, error } = await supabaseAdmin
-        .from("partnership_inquiries")
-        .select("id, email, contact_name, phone, inquiry_type, metadata")
-        .eq("id", data.inquiryId)
-        .eq("inquiry_type", "advertise")
-        .maybeSingle();
-      if (error) throw error;
-      if (!inquiry) throw new Error("Advertising enquiry not found");
-      if (inquiry.email?.includes("@")) email = inquiry.email.trim().toLowerCase();
-      name = name || inquiry.contact_name;
-      phone = phone || inquiry.phone?.trim() || undefined;
+      const resolved = await resolveAdvertiseInquiryContacts(
+        data.inquiryId,
+        data.checkoutToken,
+        email,
+        name,
+        phone,
+      );
+      email = resolved.email;
+      name = resolved.name;
+      phone = resolved.phone;
     }
 
     const userId = await resolveAdvertiserUserId({ email, name, phone });

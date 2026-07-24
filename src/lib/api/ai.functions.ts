@@ -393,7 +393,17 @@ export async function answerPropertyAiChat(input: {
     : { summary: "", row: null };
 
   const systemPrompt = buildPropertyChatSystemPrompt(context.summary);
-  const response = await callGeminiChat(systemPrompt, input.message);
+  let response = await callGeminiChat(systemPrompt, input.message);
+  if (response) return response;
+
+  // One retry with a shorter prompt if the first pass exhausted quota/timeouts.
+  const shortSystem = [
+    "You are NyumbaAI for NyumbaSearch (Kenya). Answer in under 80 words.",
+    context.summary ? `Listing:\n${context.summary}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  response = await callGeminiChat(shortSystem, input.message);
   if (response) return response;
 
   return propertyChatFallback(input.message, context.row);
@@ -425,10 +435,10 @@ function propertyChatFallback(
       property.authenticity_score != null
         ? ` Trust score: ${property.authenticity_score}%.`
         : "";
-    return `${verified}${score} For ${property.neighborhood}, visit in daylight, never pay a deposit before viewing, and use Call/WhatsApp below once unlocked. I can share more once the AI engine reconnects.`;
+    return `${verified}${score} For ${property.neighborhood}, visit in daylight, never pay a deposit before viewing, and use Call/WhatsApp below once unlocked. Ask again for a fuller AI read on this home.`;
   }
   if (property) {
-    return `I couldn't reach the AI engine just now. You're looking at **${property.title}** in ${property.neighborhood}. Try again in a moment, or contact the landlord with Call / WhatsApp below.`;
+    return `Quick tip while I refresh: you're looking at **${property.title}** in ${property.neighborhood}. Try your question once more, or contact the landlord with Call / WhatsApp below.`;
   }
-  return "I'm currently unable to access my AI engine. Please try again shortly, or contact the landlord using the buttons below.";
+  return "Please try that question once more — or contact the landlord using the buttons below.";
 }

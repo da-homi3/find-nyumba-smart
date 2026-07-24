@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   browseOriginFromGeolocation,
+  browseOriginFromIpHint,
   resolveBrowseOriginFallback,
   writeStoredBrowseOrigin,
+  writeStoredIpBrowseOrigin,
   type BrowseOrigin,
 } from "@/lib/geo/tenant-browse-origin";
+import { getClientAreaHint } from "@/lib/api/geo-hint.functions";
 
 const GEO_TIMEOUT_MS = 8_000;
 
 /**
- * Tenant browse center: geolocation when allowed, else selected area / map / Nairobi.
+ * Tenant browse center: geolocation when allowed, else IP area hint, else selected area / map / Nairobi.
  */
 export function useTenantBrowseOrigin(neighborhoodFilter: string): {
   origin: BrowseOrigin;
@@ -20,6 +23,7 @@ export function useTenantBrowseOrigin(neighborhoodFilter: string): {
     [neighborhoodFilter],
   );
   const [geoOrigin, setGeoOrigin] = useState<BrowseOrigin | null>(null);
+  const [ipOrigin, setIpOrigin] = useState<BrowseOrigin | null>(null);
   const [locating, setLocating] = useState(true);
 
   useEffect(() => {
@@ -55,13 +59,35 @@ export function useTenantBrowseOrigin(neighborhoodFilter: string): {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getClientAreaHint()
+      .then((hint) => {
+        if (cancelled) return;
+        if (hint.lat == null || hint.lng == null) return;
+        const next = browseOriginFromIpHint({
+          lat: hint.lat,
+          lng: hint.lng,
+          neighborhood: hint.neighborhood,
+        });
+        writeStoredIpBrowseOrigin(next);
+        setIpOrigin(next);
+      })
+      .catch(() => {
+        // IP hint is optional — Nairobi fallback remains.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Prefer live geolocation; when the tenant picks an area chip, bias to that area instead.
   const origin = useMemo(() => {
     if (neighborhoodFilter && neighborhoodFilter !== "All") {
       return fallback;
     }
-    return geoOrigin ?? fallback;
-  }, [fallback, geoOrigin, neighborhoodFilter]);
+    return geoOrigin ?? ipOrigin ?? fallback;
+  }, [fallback, geoOrigin, ipOrigin, neighborhoodFilter]);
 
   return { origin, locating };
 }

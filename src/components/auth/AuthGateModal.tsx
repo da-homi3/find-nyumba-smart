@@ -18,6 +18,7 @@ import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
 import { isKenyanPhone } from "@/lib/phone";
 import { validatePasswordPair } from "@/lib/validate-password";
 import { authSubmitLabel, errorMessage } from "@/lib/utils";
+import { normalizeAuthCredentials } from "@/lib/auth/credentials";
 
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -77,24 +78,32 @@ export function AuthGateModal() {
   }
 
   async function handleSignup() {
-    const passwordError = validatePasswordPair(password, confirmPassword);
-    if (passwordError) throw new Error(passwordError);
     if (fullName.trim().length < 2) throw new Error("Enter your full name");
     if (!isKenyanPhone(phone)) {
       throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
     }
 
+    const { email: cleanEmail, password: cleanPassword } = normalizeAuthCredentials({
+      email,
+      password,
+    });
+    const passwordError = validatePasswordPair(cleanPassword, confirmPassword.trim());
+    if (passwordError) throw new Error(passwordError);
+
     await registerAccountSignup({
       data: {
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
         fullName: fullName.trim(),
         phone: phone.trim(),
         role: "tenant",
       },
     });
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
     if (signInError) throw signInError;
 
     void ensureTenantAccount().catch((err) => {
@@ -108,7 +117,18 @@ export function AuthGateModal() {
   }
 
   async function handleSignin() {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { email: cleanEmail, password: cleanPassword } = normalizeAuthCredentials({
+      email,
+      password,
+    });
+    if (!cleanEmail || !cleanPassword) {
+      throw new Error("Enter your email and password.");
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
     if (error) throw error;
     if (!data.user) throw new Error("Sign in failed");
 
@@ -132,7 +152,7 @@ export function AuthGateModal() {
     const hardStop = globalThis.setTimeout(() => {
       setSubmitting(false);
       toast.error("Sign-in is taking too long. Check your connection and try again.");
-    }, 12_000);
+    }, 25_000);
     const run = mode === "signup" ? handleSignup : handleSignin;
     void run()
       .catch((err) => toast.error(errorMessage(err)))
@@ -237,9 +257,14 @@ export function AuthGateModal() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmail((v) => v.trim())}
                 required
                 className={inputCls}
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="email"
               />
             </label>
 
@@ -250,9 +275,12 @@ export function AuthGateModal() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={mode === "signup" ? 8 : 6}
+                minLength={mode === "signup" ? 8 : 1}
                 className={inputCls}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
               />
             </label>
 

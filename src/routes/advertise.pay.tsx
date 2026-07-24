@@ -26,6 +26,7 @@ const packageEnum = z.enum([
 const searchSchema = z.object({
   package: packageEnum.default("listing_banner"),
   ref: z.string().uuid().optional(),
+  t: z.string().uuid().optional(),
 });
 
 export const Route = createFileRoute("/advertise/pay")({
@@ -36,16 +37,20 @@ export const Route = createFileRoute("/advertise/pay")({
 
 function AdvertisePayPage() {
   const { user } = useAuth();
-  const { package: packageId, ref: inquiryId } = Route.useSearch();
+  const { package: packageId, ref: inquiryId, t: checkoutToken } = Route.useSearch();
   const pkg = ADVERTISE_PACKAGES.find((p) => p.id === packageId) ?? ADVERTISE_PACKAGES[0];
   const amountKes = advertisePackagePrice(packageId);
   const refQuery = inquiryId ? `&ref=${inquiryId}` : "";
-  const checkoutPath = `/advertise/pay?package=${packageId}${refQuery}`;
+  const tokenQuery = checkoutToken ? `&t=${checkoutToken}` : "";
+  const checkoutPath = `/advertise/pay?package=${packageId}${refQuery}${tokenQuery}`;
 
   const { data: inquiry } = useQuery({
-    queryKey: ["advertise-inquiry-checkout", inquiryId],
+    queryKey: ["advertise-inquiry-checkout", inquiryId, checkoutToken],
     enabled: !!inquiryId,
-    queryFn: () => getAdvertiseInquiryCheckout({ data: { inquiryId: inquiryId! } }),
+    queryFn: () =>
+      getAdvertiseInquiryCheckout({
+        data: { inquiryId: inquiryId!, checkoutToken },
+      }),
   });
 
   const defaultEmail = inquiry?.email ?? user?.email ?? "";
@@ -66,6 +71,12 @@ function AdvertisePayPage() {
         </p>
         {inquiry?.company ? (
           <p className="mt-1 text-xs text-muted-foreground">For {inquiry.company}</p>
+        ) : null}
+        {inquiryId && inquiry && !inquiry.unlocked ? (
+          <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+            Open the full payment link from your approval email to unlock saved contact details. You
+            can still pay by entering the same email used on the enquiry.
+          </p>
         ) : null}
         {inquiry?.status === "paid" ? (
           <p className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
@@ -102,6 +113,7 @@ function AdvertisePayPage() {
                     paymentType: "invoice",
                     advertisePackage: data.advertisePackage ?? packageId,
                     inquiryId: data.inquiryId ?? inquiryId,
+                    checkoutToken,
                     email,
                     name: data.name ?? requesterName,
                   },

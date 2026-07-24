@@ -34,6 +34,7 @@ import { CookieConsentBanner } from "@/components/CookieConsent";
 import { FullStoryBootstrap } from "@/components/FullStoryBootstrap";
 import { PresenceBootstrap } from "@/components/PresenceBootstrap";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
+import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { RequireAccountPhoneModal } from "@/components/auth/RequireAccountPhoneModal";
 import { Toaster } from "@/components/ui/sonner";
@@ -41,6 +42,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { useSmoothScroll } from "@/lib/smooth-scroll";
 import { shouldShowTenantBottomNav } from "@/lib/tenant-mobile-nav";
+import { registerPwaServiceWorker } from "@/lib/register-pwa";
+import { InstallAppBanner } from "@/components/InstallAppBanner";
 
 function NotFoundComponent() {
   return (
@@ -122,8 +125,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "author", content: "NyumbaSearch" },
       { name: "application-name", content: "NyumbaSearch" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "NyumbaSearch" },
       { name: "theme-color", content: BRAND_THEME_COLOR },
+      { name: "format-detection", content: "telephone=no" },
       { property: "og:site_name", content: "NyumbaSearch" },
       { title: HOMEPAGE_TITLE },
       {
@@ -161,7 +168,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Syne:wght@600;700;800&family=Inter:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap",
       },
     ],
   }),
@@ -221,21 +228,26 @@ function RootComponent() {
 
   useEffect(() => {
     clearChunkReloadGuard();
+    registerPwaServiceWorker();
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ErrorBoundary>
-          <AnimatedOutlet />
-        </ErrorBoundary>
-        <TenantMobileNav />
-        <Toaster />
-        <CookieConsentBanner />
-        <AuthGateModal />
-        <RequireAccountPhoneModal />
-        <FullStoryBootstrap />
-        <PresenceBootstrap />
+        <AmbientBackdrop />
+        <div className="relative z-10">
+          <ErrorBoundary>
+            <AnimatedOutlet />
+          </ErrorBoundary>
+          <TenantMobileNav />
+          <Toaster />
+          <CookieConsentBanner />
+          <InstallAppBanner />
+          <AuthGateModal />
+          <RequireAccountPhoneModal />
+          <FullStoryBootstrap />
+          <PresenceBootstrap />
+        </div>
       </AuthProvider>
     </QueryClientProvider>
   );

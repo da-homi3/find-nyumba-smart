@@ -423,3 +423,103 @@ export function foundingMemberConfirmedEmail(opts: { name: string; bonusListings
     text: `${opts.bonusListings} bonus listing slots are now on your account.`,
   };
 }
+
+export function tenantPortalInviteEmail(opts: {
+  tenantName: string;
+  propertyName: string;
+  inviteUrl: string;
+  hasExistingAccount: boolean;
+}) {
+  const action = opts.hasExistingAccount
+    ? "Sign in to accept and link your existing NyumbaSearch account."
+    : "Create a free account (or sign in) to accept and manage your tenancy.";
+  const body = `
+    <h1>You're invited to your tenancy portal</h1>
+    <p>Hi ${opts.tenantName},</p>
+    <p>Your landlord invited you to manage your tenancy at <strong>${opts.propertyName}</strong> on NyumbaSearch.</p>
+    <p>${action}</p>
+    <p><a class="btn" href="${opts.inviteUrl}">Respond to invitation</a></p>
+    <p style="font-size:13px;color:#666">This link expires in 14 days. If you decline, your landlord can still manage the lease internally.</p>
+  `;
+  return {
+    subject: `Your landlord has invited you to manage your tenancy on NyumbaSearch`,
+    html: baseLayout({
+      preheader: `Invitation for ${opts.propertyName}`,
+      body,
+    }),
+    text: `You're invited to manage your tenancy at ${opts.propertyName}. ${action} ${opts.inviteUrl}`,
+  };
+}
+
+export function rentReceiptEmail(opts: {
+  tenantName: string;
+  propertyName: string;
+  unitLabel: string;
+  periodMonth: string;
+  amountKes: number;
+  mpesaRef: string | null;
+}) {
+  const body = `
+    <h1>Payment received</h1>
+    <p>Hi ${opts.tenantName},</p>
+    <table style="width:100%;border-collapse:collapse">
+      <tr><td style="padding:8px 0;color:#64748B">Property</td><td style="padding:8px 0;text-align:right;font-weight:600">${opts.propertyName}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Unit</td><td style="padding:8px 0;text-align:right;font-weight:600">${opts.unitLabel}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Period</td><td style="padding:8px 0;text-align:right;font-weight:600">${opts.periodMonth}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Amount paid</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#0A5C47">${formatKes(opts.amountKes)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">M-Pesa Ref</td><td style="padding:8px 0;text-align:right;font-family:monospace">${opts.mpesaRef ?? "—"}</td></tr>
+    </table>
+    <p style="color:#8AB5A0;font-size:12px;margin-top:20px">This receipt is generated automatically by NyumbaSearch on behalf of your landlord/property manager.</p>
+  `;
+  return {
+    subject: `Rent receipt — ${opts.periodMonth} — ${opts.propertyName}`,
+    html: baseLayout({ preheader: `Rent payment ${formatKes(opts.amountKes)}`, body }),
+    text: `Rent receipt for ${opts.propertyName} unit ${opts.unitLabel} (${opts.periodMonth}): ${formatKes(opts.amountKes)}. Ref: ${opts.mpesaRef ?? "—"}`,
+  };
+}
+
+export function rentReminderSubject(
+  type: "upcoming" | "due_today" | "overdue_3day" | "overdue_7day",
+  unitLabel: string,
+  balanceKes: number,
+): string {
+  const amount = formatKes(balanceKes);
+  switch (type) {
+    case "upcoming":
+      return `Rent of ${amount} due in 3 days — ${unitLabel}`;
+    case "due_today":
+      return `Rent due today — ${amount} for ${unitLabel}`;
+    case "overdue_3day":
+      return `Rent overdue — please pay ${amount} for ${unitLabel}`;
+    case "overdue_7day":
+      return `Urgent: rent 7 days overdue for ${unitLabel}`;
+    default:
+      return "Rent reminder";
+  }
+}
+
+export function rentReminderEmail(opts: {
+  type: "upcoming" | "due_today" | "overdue_3day" | "overdue_7day";
+  tenantName: string;
+  propertyName: string;
+  unitLabel: string;
+  balanceKes: number;
+  dueDate: string;
+}) {
+  const payUrl = "https://nyumbasearch.com/tenant/rent";
+  const body = `
+    <h1>${rentReminderSubject(opts.type, opts.unitLabel, opts.balanceKes)}</h1>
+    <p>Hi ${opts.tenantName},</p>
+    <p>This is a reminder about rent for <strong>${opts.propertyName}</strong>, unit <strong>${opts.unitLabel}</strong>.</p>
+    <div class="highlight">
+      <p style="margin:0"><strong>Balance:</strong> ${formatKes(opts.balanceKes)}</p>
+      <p style="margin:8px 0 0"><strong>Due date:</strong> ${opts.dueDate}</p>
+    </div>
+    <p><a class="btn" href="${payUrl}">Pay rent with M-Pesa</a></p>
+  `;
+  return {
+    html: baseLayout({ preheader: `Rent reminder for ${opts.unitLabel}`, body }),
+    text: `${rentReminderSubject(opts.type, opts.unitLabel, opts.balanceKes)}. Balance ${formatKes(opts.balanceKes)}. Pay: ${payUrl}`,
+  };
+}
+

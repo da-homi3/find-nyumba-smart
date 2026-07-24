@@ -71,7 +71,7 @@ export function TenantFiltersBar({
 
   return (
     <div
-      className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-5"
+      className="sticky top-0 z-20 border-b border-border/60 bg-background/80 px-4 py-3 shadow-soft backdrop-blur-xl supports-backdrop-filter:bg-background/70 sm:px-5"
       data-tour="tenant-filters"
     >
       <div className="mx-auto max-w-2xl">
@@ -106,7 +106,7 @@ export function TenantFiltersBar({
               "Scanning…"
             ) : (
               <>
-                <strong className="text-[#1eb88a]">{resultCount}</strong> homes
+                <strong className="text-primary">{resultCount}</strong> homes
               </>
             )}
           </motion.span>
@@ -120,7 +120,7 @@ export function TenantFiltersBar({
             Filters
           </div>
 
-          <label className="w-full min-w-0 flex-1 text-xs sm:min-w-[120px] sm:w-auto">
+          <label className="w-full min-w-0 flex-1 text-xs sm:min-w-30 sm:w-auto">
             <span className="mb-1 block font-medium text-muted-foreground">
               {filters.listingPurpose === "sale" ? "Budget (KES)" : "Budget (KES/mo)"}
             </span>
@@ -145,9 +145,7 @@ export function TenantFiltersBar({
             <span className="mb-1 block font-medium text-muted-foreground">Purpose</span>
             <select
               value={filters.listingPurpose}
-              onChange={(e) =>
-                onChange({ listingPurpose: e.target.value as ListingPurposeFilter })
-              }
+              onChange={(e) => onChange({ listingPurpose: e.target.value as ListingPurposeFilter })}
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"
             >
               {PURPOSE_OPTIONS.map((option) => (
@@ -243,7 +241,7 @@ export function TenantFiltersBar({
               "Scanning…"
             ) : (
               <>
-                <strong className="text-[#1eb88a]">{resultCount}</strong> homes found
+                <strong className="text-primary">{resultCount}</strong> homes found
               </>
             )}
           </motion.span>
@@ -258,19 +256,9 @@ export function TenantFiltersBar({
               key={option.id}
               type="button"
               onClick={() => onChange({ listingPurpose: option.id })}
-              animate={{
-                scale: active ? 1.05 : 1,
-                background: active
-                  ? "linear-gradient(135deg, #0a5c47, #1eb88a)"
-                  : "rgba(255,255,255,0.05)",
-                borderColor: active ? "#1eb88a" : "rgba(255,255,255,0.1)",
-                color: active ? "#fff" : undefined,
-              }}
+              animate={{ scale: active ? 1.04 : 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold"
-              style={{
-                boxShadow: active ? "0 4px 16px rgba(30,184,138,0.3)" : "none",
-              }}
+              className={`filter-chip ${active ? "is-active" : ""}`}
             >
               {option.label}
             </motion.button>
@@ -292,19 +280,9 @@ export function TenantFiltersBar({
                   : [...filters.types, typeOption.id];
                 onChange({ types: next });
               }}
-              animate={{
-                scale: active ? 1.05 : 1,
-                background: active
-                  ? "linear-gradient(135deg, #0a5c47, #1eb88a)"
-                  : "rgba(255,255,255,0.05)",
-                borderColor: active ? "#1eb88a" : "rgba(255,255,255,0.1)",
-                color: active ? "#fff" : undefined,
-              }}
+              animate={{ scale: active ? 1.04 : 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold capitalize"
-              style={{
-                boxShadow: active ? "0 4px 16px rgba(30,184,138,0.3)" : "none",
-              }}
+              className={`filter-chip capitalize ${active ? "is-active" : ""}`}
             >
               {typeOption.label}
             </motion.button>

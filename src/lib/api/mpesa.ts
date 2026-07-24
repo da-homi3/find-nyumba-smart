@@ -61,8 +61,18 @@ export function isMpesaConfigured(): boolean {
 }
 
 export function mpesaCallbackUrl(): string {
-  if (getServerEnv("MPESA_CALLBACK_URL")) return getServerEnv("MPESA_CALLBACK_URL")!;
-  return `${getSiteUrl()}/api/mpesa/callback`;
+  const base =
+    getServerEnv("MPESA_CALLBACK_URL") ?? `${getSiteUrl()}/api/mpesa/callback`;
+  const secret = getServerEnv("MPESA_WEBHOOK_SECRET");
+  if (!secret) return base;
+  try {
+    const url = new URL(base);
+    if (!url.searchParams.has("secret")) url.searchParams.set("secret", secret);
+    return url.toString();
+  } catch {
+    const sep = base.includes("?") ? "&" : "?";
+    return `${base}${sep}secret=${encodeURIComponent(secret)}`;
+  }
 }
 
 async function getAccessToken(): Promise<string> {

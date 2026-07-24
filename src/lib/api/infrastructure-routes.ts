@@ -741,7 +741,7 @@ const ROUTES: RouteDef[] = [
           new Response(
             JSON.stringify({
               reply:
-                "I'm currently unable to access my AI engine. Please try again shortly, or contact the landlord using the buttons below.",
+                "Please try that question once more — or contact the landlord using the buttons below.",
             }),
             { status: 200, headers: { "Content-Type": "application/json" } },
           ),
@@ -751,6 +751,17 @@ const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/email/unsubscribe" && method === "GET",
     run: (req) => withErrorHandler("Email unsubscribe", req, handleEmailUnsubscribe),
+  },
+  {
+    match: (url, method) =>
+      url.pathname === "/api/maintenance/respond" && (method === "GET" || method === "POST"),
+    run: (req) =>
+      withErrorHandler("Maintenance respond", req, async (r) => {
+        const { handleMaintenanceProviderRespond } = await import(
+          "@/lib/api/pm-maintenance.functions"
+        );
+        return handleMaintenanceProviderRespond(r);
+      }),
   },
   {
     match: (url) => normalizeSeoPath(url.pathname) === "/robots.txt",

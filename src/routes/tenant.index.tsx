@@ -8,10 +8,14 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { recordSearchEvent } from "@/lib/api/analytics.functions";
 import { hasAnalyticsConsent } from "@/lib/cookie-consent";
 import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
-import heroImg from "@/assets/hero-nairobi.jpg";
+import heroImg from "@/assets/hero-nairobi-apartments.webp";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
 import { EmptyState } from "@/components/EmptyState";
-import { defaultTenantFilters, effectiveMaxRent, TENANT_MAX_RENT } from "@/lib/tenant-filter-defaults";
+import {
+  defaultTenantFilters,
+  effectiveMaxRent,
+  TENANT_MAX_RENT,
+} from "@/lib/tenant-filter-defaults";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
@@ -27,6 +31,12 @@ import {
 import { SiteNav } from "@/components/SiteNav";
 import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
+import {
+  listRecentSearches,
+  POPULAR_SEARCHES,
+  pushRecentSearch,
+  type RecentSearch,
+} from "@/lib/recent-searches";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useListingsSearch } from "@/hooks/use-listings-search";
@@ -136,7 +146,13 @@ function TenantHome() {
   const [page, setPage] = useState(1);
   const lastAnalyticsKey = useRef("");
   const [filters, setFilters] = useState<TenantFilters>(() => filtersFromSearch(search));
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [searchFocused, setSearchFocused] = useState(false);
   const { origin: browseOrigin } = useTenantBrowseOrigin(filters.neighborhood);
+
+  useEffect(() => {
+    setRecentSearches(listRecentSearches());
+  }, []);
 
   useEffect(() => {
     setQ(search.q ?? "");
@@ -178,6 +194,16 @@ function TenantHome() {
       replace: true,
     });
   }, [debouncedQ, navigate, search.q]);
+
+  useEffect(() => {
+    const trimmed = debouncedQ.trim();
+    if (trimmed.length < 2) return;
+    pushRecentSearch({
+      q: trimmed,
+      neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
+    });
+    setRecentSearches(listRecentSearches());
+  }, [debouncedQ, filters.neighborhood]);
 
   const listingFilters = useMemo(() => {
     const typeFilterActive = filters.types.length > 0;
@@ -300,7 +326,10 @@ function TenantHome() {
     setFilters((f) => {
       const next = { ...f, ...patch };
       // Selecting a property type or area expands budget so high- and low-priced homes both appear.
-      if ((patch.types && patch.types.length > 0) || (patch.neighborhood && patch.neighborhood !== "All")) {
+      if (
+        (patch.types && patch.types.length > 0) ||
+        (patch.neighborhood && patch.neighborhood !== "All")
+      ) {
         next.minRent = 0;
         next.maxRent = TENANT_MAX_RENT;
       }
@@ -360,7 +389,7 @@ function TenantHome() {
             Find your next home in Nairobi
           </h1>
           <div
-            className="mt-6 flex items-center gap-2 rounded-2xl bg-background p-2 shadow-elegant"
+            className="glass-surface mt-6 flex items-center gap-2 rounded-2xl bg-card/90 p-2 shadow-elegant"
             data-tour="tenant-search"
           >
             <Search className="ml-2 h-5 w-5 text-muted-foreground" />
@@ -370,17 +399,78 @@ function TenantHome() {
                 setQ(e.target.value);
                 setPage(1);
               }}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => {
+                // Delay so chip clicks register before collapse.
+                window.setTimeout(() => setSearchFocused(false), 150);
+              }}
               placeholder="Neighborhood, type, keyword…"
               className="flex-1 bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              aria-label="Search homes"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={searchFocused}
+              aria-controls="tenant-search-suggestions"
             />
             <Link
               to="/tenant/map"
-              className="rounded-xl bg-foreground p-2 text-background"
+              className="rounded-xl bg-primary p-2 text-primary-foreground transition hover:opacity-90"
               aria-label="Open map view"
             >
               <MapPin className="h-4 w-4" />
             </Link>
           </div>
+          {(searchFocused || q.length === 0) && (
+            <div id="tenant-search-suggestions" className="mt-3 space-y-2">
+              {recentSearches.length > 0 ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+                    Recent
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentSearches.slice(0, 5).map((item) => (
+                      <button
+                        key={`${item.q}-${item.at}`}
+                        type="button"
+                        className="search-suggest-chip"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setQ(item.q);
+                          setPage(1);
+                          if (item.neighborhood) {
+                            setFilters((f) => ({ ...f, neighborhood: item.neighborhood! }));
+                          }
+                        }}
+                      >
+                        {item.q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/60">
+                  Popular
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {POPULAR_SEARCHES.map((term) => (
+                    <button
+                      key={term}
+                      type="button"
+                      className="search-suggest-chip"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setQ(term);
+                        setPage(1);
+                      }}
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -439,7 +529,8 @@ function TenantHome() {
           <div>
             <h3 className="font-display font-semibold">Ask NyumbaAI</h3>
             <p className="text-xs text-muted-foreground">
-              Tap the chat bubble — verified property owners, no scams, just honest neighbourhood advice.
+              Tap the chat bubble — verified property owners, no scams, just honest neighbourhood
+              advice.
             </p>
           </div>
         </div>
@@ -542,7 +633,8 @@ function TenantListingsGrid({
             Retry
           </button>
         </div>
-      ) : null}      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      ) : null}{" "}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((p, index) => {
           const slot = index + 1;
           const boosted = boostedPool.length > 0 ? boostedPool[slot % boostedPool.length] : null;

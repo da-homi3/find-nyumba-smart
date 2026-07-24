@@ -73,20 +73,20 @@ export function TenantMapChrome({
   return (
     <>
       {!isOnline && (
-        <div className="absolute inset-x-4 top-20 z-20 flex items-center gap-2 rounded-full border border-gold/40 bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-card backdrop-blur">
+        <div className="glass-surface absolute inset-x-4 top-20 z-20 flex items-center gap-2 rounded-full border border-gold/40 px-3 py-1.5 text-xs font-semibold text-foreground shadow-card">
           <WifiOff className="h-3.5 w-3.5 text-gold" />
           Offline — showing {filteredProperties.length} cached listings
         </div>
       )}
       {error && isOnline && (
-        <div className="absolute inset-x-4 top-24 z-10 rounded-2xl border bg-card/95 p-3 text-xs shadow-card backdrop-blur">
+        <div className="glass-card absolute inset-x-4 top-24 z-10 rounded-2xl p-3 text-xs shadow-card">
           <p className="font-semibold text-foreground">Fallback map active</p>
           <p className="text-muted-foreground">{error}</p>
         </div>
       )}
 
       <div className="pointer-events-none absolute inset-x-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex flex-col gap-2">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-background/95 p-2 shadow-elegant backdrop-blur">
+        <div className="glass-surface pointer-events-auto flex items-center gap-2 rounded-2xl p-2 shadow-elegant">
           <PlaceSearchField
             compact
             value={query}
@@ -100,7 +100,7 @@ export function TenantMapChrome({
           <button
             type="button"
             onClick={onLocateMe}
-            className="shrink-0 rounded-xl border bg-background p-2 text-foreground"
+            className="shrink-0 rounded-xl border border-border/60 bg-card/60 p-2 text-foreground transition hover:bg-card"
             aria-label="Use my location"
           >
             <Navigation className="h-4 w-4" />
@@ -108,20 +108,20 @@ export function TenantMapChrome({
           <button
             type="button"
             onClick={onRecenter}
-            className="shrink-0 rounded-xl bg-foreground p-2 text-background transition hover:opacity-90"
+            className="shrink-0 rounded-xl bg-primary p-2 text-primary-foreground transition hover:opacity-90"
             aria-label="Recenter on Nairobi"
           >
             <MapPin className="h-4 w-4" />
           </button>
           <Link
             to="/tenant"
-            className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+            className="shrink-0 rounded-xl bg-gradient-gold px-3 py-2 text-xs font-semibold text-gold-foreground"
           >
             List view
           </Link>
         </div>
         {placeFocus ? (
-          <div className="pointer-events-auto flex items-center gap-2 self-start rounded-full border bg-background/95 px-3 py-1.5 text-xs shadow-card backdrop-blur">
+          <div className="glass-surface pointer-events-auto flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-xs shadow-card">
             <MapPin className="h-3.5 w-3.5 text-primary" />
             <span className="font-semibold">{placeFocus.label}</span>
             <span className="text-muted-foreground">
@@ -141,10 +141,8 @@ export function TenantMapChrome({
           <button
             type="button"
             onClick={onToggleHeat}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur transition ${
-              showHeat
-                ? "bg-gradient-gold text-gold-foreground"
-                : "bg-background/90 text-foreground"
+            className={`filter-chip inline-flex items-center gap-1.5 py-1.5 text-xs ${
+              showHeat ? "is-active border-gold bg-gradient-gold text-gold-foreground shadow-soft" : ""
             }`}
           >
             <Flame className="h-3.5 w-3.5" /> Rent heat
@@ -152,19 +150,15 @@ export function TenantMapChrome({
           <button
             type="button"
             onClick={onToggleWater}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur transition ${
-              showWater ? "bg-primary text-primary-foreground" : "bg-background/90 text-foreground"
-            }`}
+            className={`filter-chip inline-flex items-center gap-1.5 py-1.5 text-xs ${showWater ? "is-active" : ""}`}
           >
             Water
           </button>
           <button
             type="button"
             onClick={onToggleSecurity}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold shadow-card backdrop-blur transition ${
-              showSecurity
-                ? "bg-primary text-primary-foreground"
-                : "bg-background/90 text-foreground"
+            className={`filter-chip inline-flex items-center gap-1.5 py-1.5 text-xs ${
+              showSecurity ? "is-active" : ""
             }`}
           >
             Security
@@ -172,12 +166,12 @@ export function TenantMapChrome({
           <button
             type="button"
             onClick={onTogglePanel}
-            className="inline-flex items-center gap-1.5 rounded-full bg-background/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-card backdrop-blur"
+            className="filter-chip inline-flex items-center gap-1.5 py-1.5 text-xs"
           >
             <Layers className="h-3.5 w-3.5" /> {countLabel}
           </button>
           {visibleCount === 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-xs text-amber-800 shadow-card backdrop-blur">
+            <span className="glass-surface inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-amber-800 shadow-card dark:text-amber-200">
               No listings near this place — try a nearby area
             </span>
           )}
@@ -198,7 +192,7 @@ export function TenantMapChrome({
       )}
 
       <aside
-        className={`pointer-events-auto absolute bottom-24 left-0 top-24 z-10 hidden w-80 overflow-y-auto border-r bg-background/95 p-3 shadow-card backdrop-blur transition lg:block ${
+        className={`glass-surface pointer-events-auto absolute bottom-24 left-0 top-24 z-10 hidden w-80 overflow-y-auto border-r border-border/50 p-3 shadow-card transition lg:block ${
           panelOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -240,7 +234,7 @@ export function TenantMapChrome({
 
       <div className="pointer-events-none absolute inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 max-md:bottom-[max(4.5rem,calc(env(safe-area-inset-bottom)+4rem))]">
         {selected ? (
-          <div className="pointer-events-auto relative flex gap-3 rounded-2xl border bg-card p-3 shadow-elegant">
+          <div className="glass-card pointer-events-auto relative flex gap-3 rounded-2xl p-3 shadow-elegant">
             <button
               type="button"
               onClick={onClearSelected}
@@ -283,7 +277,7 @@ export function TenantMapChrome({
             </div>
           </div>
         ) : (
-          <div className="pointer-events-auto rounded-2xl bg-background/95 px-4 py-3 text-center text-xs text-muted-foreground shadow-card backdrop-blur">
+          <div className="glass-surface pointer-events-auto rounded-2xl px-4 py-3 text-center text-xs text-muted-foreground shadow-card">
             Search a landmark or area · tap a pin · pinch to zoom
           </div>
         )}

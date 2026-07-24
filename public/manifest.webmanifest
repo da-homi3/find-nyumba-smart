@@ -1,14 +1,17 @@
 {
+  "id": "/",
   "name": "NyumbaSearch",
   "short_name": "NyumbaSearch",
   "description": "Verified vacant homes across Nairobi from verified property owners.",
   "start_url": "/tenant",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#4A2713",
   "theme_color": "#4A2713",
   "lang": "en-KE",
+  "categories": ["lifestyle", "business"],
   "icons": [
     {
       "src": "/brand/v4/favicon-48.png",

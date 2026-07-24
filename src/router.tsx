@@ -7,10 +7,9 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // Keep data fresh for 5 min, retain in cache 24h so poor-network /
-        // offline sessions can still render the last-known good payload.
+        // Keep data fresh for 5 min, retain in cache 2h (payment/rent UIs stay fresher).
         staleTime: 5 * 60 * 1000,
-        gcTime: 24 * 60 * 60 * 1000,
+        gcTime: 2 * 60 * 60 * 1000,
         retry: 2,
         refetchOnWindowFocus: false,
         networkMode: "offlineFirst",

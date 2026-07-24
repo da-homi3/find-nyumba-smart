@@ -47,15 +47,18 @@ import { Route as AdvertiseIndexRouteImport } from './routes/advertise.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as VerifyRequestRouteImport } from './routes/verify.request'
 import { Route as TenantSavedRouteImport } from './routes/tenant.saved'
+import { Route as TenantRentRouteImport } from './routes/tenant.rent'
 import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
 import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
 import { Route as TenantMapRouteImport } from './routes/tenant.map'
+import { Route as TenantMaintenanceRouteImport } from './routes/tenant.maintenance'
 import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
 import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
 import { Route as ServicesRegisterRouteImport } from './routes/services.register'
 import { Route as ServicesCategoryRouteImport } from './routes/services.$category'
 import { Route as ManagerTeamRouteImport } from './routes/manager.team'
 import { Route as ManagerPropertiesRouteImport } from './routes/manager.properties'
+import { Route as ManagerManageRouteImport } from './routes/manager.manage'
 import { Route as ManagerLeadsRouteImport } from './routes/manager.leads'
 import { Route as ManagerIntegrationsRouteImport } from './routes/manager.integrations'
 import { Route as ManagerImportRouteImport } from './routes/manager.import'
@@ -64,6 +67,7 @@ import { Route as ManagerCheckoutRouteImport } from './routes/manager.checkout'
 import { Route as ManagerCaretakersRouteImport } from './routes/manager.caretakers'
 import { Route as ManagerAnalyticsRouteImport } from './routes/manager.analytics'
 import { Route as LandlordPropertiesRouteImport } from './routes/landlord.properties'
+import { Route as LandlordManageRouteImport } from './routes/landlord.manage'
 import { Route as LandlordLeadsRouteImport } from './routes/landlord.leads'
 import { Route as LandlordIntegrationsRouteImport } from './routes/landlord.integrations'
 import { Route as LandlordImportRouteImport } from './routes/landlord.import'
@@ -78,6 +82,7 @@ import { Route as AuthPendingRouteImport } from './routes/auth.pending'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AgencyTeamRouteImport } from './routes/agency.team'
 import { Route as AgencyPropertiesRouteImport } from './routes/agency.properties'
+import { Route as AgencyManageRouteImport } from './routes/agency.manage'
 import { Route as AgencyLeadsRouteImport } from './routes/agency.leads'
 import { Route as AgencyIntegrationsRouteImport } from './routes/agency.integrations'
 import { Route as AgencyImportRouteImport } from './routes/agency.import'
@@ -89,31 +94,56 @@ import { Route as AdvertisePayRouteImport } from './routes/advertise.pay'
 import { Route as AdminRevenueRouteImport } from './routes/admin.revenue'
 import { Route as TenantMessagesIndexRouteImport } from './routes/tenant.messages.index'
 import { Route as ManagerPropertiesIndexRouteImport } from './routes/manager.properties.index'
+import { Route as ManagerManageIndexRouteImport } from './routes/manager.manage.index'
 import { Route as ManagerDashboardIndexRouteImport } from './routes/manager.dashboard.index'
 import { Route as LandlordPropertiesIndexRouteImport } from './routes/landlord.properties.index'
+import { Route as LandlordManageIndexRouteImport } from './routes/landlord.manage.index'
 import { Route as LandlordDashboardIndexRouteImport } from './routes/landlord.dashboard.index'
 import { Route as AgencyPropertiesIndexRouteImport } from './routes/agency.properties.index'
+import { Route as AgencyManageIndexRouteImport } from './routes/agency.manage.index'
 import { Route as AgencyDashboardIndexRouteImport } from './routes/agency.dashboard.index'
 import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.status.$requestId'
 import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
 import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
+import { Route as TenantInviteTokenRouteImport } from './routes/tenant.invite.$token'
 import { Route as ServicesProviderDashboardRouteImport } from './routes/services.provider.dashboard'
 import { Route as ServicesProviderIdRouteImport } from './routes/services.provider.$id'
 import { Route as ManagerPropertiesNewRouteImport } from './routes/manager.properties.new'
+import { Route as ManagerManageNewRouteImport } from './routes/manager.manage.new'
+import { Route as ManagerManagePropertyIdRouteImport } from './routes/manager.manage.$propertyId'
 import { Route as ManagerDashboardPlanRouteImport } from './routes/manager.dashboard.plan'
 import { Route as ManagerDashboardBillingRouteImport } from './routes/manager.dashboard.billing'
 import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
+import { Route as LandlordManageNewRouteImport } from './routes/landlord.manage.new'
+import { Route as LandlordManagePropertyIdRouteImport } from './routes/landlord.manage.$propertyId'
 import { Route as LandlordDashboardPlanRouteImport } from './routes/landlord.dashboard.plan'
 import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.dashboard.billing'
 import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
+import { Route as AgencyManageNewRouteImport } from './routes/agency.manage.new'
+import { Route as AgencyManagePropertyIdRouteImport } from './routes/agency.manage.$propertyId'
 import { Route as AgencyDashboardPlanRouteImport } from './routes/agency.dashboard.plan'
 import { Route as AgencyDashboardBillingRouteImport } from './routes/agency.dashboard.billing'
 import { Route as AdminProvidersNewRouteImport } from './routes/admin.providers.new'
 import { Route as AdminListingsNewRouteImport } from './routes/admin.listings.new'
+import { Route as ManagerManagePropertyIdIndexRouteImport } from './routes/manager.manage.$propertyId.index'
+import { Route as LandlordManagePropertyIdIndexRouteImport } from './routes/landlord.manage.$propertyId.index'
+import { Route as AgencyManagePropertyIdIndexRouteImport } from './routes/agency.manage.$propertyId.index'
 import { Route as ManagerPropertiesIdEditRouteImport } from './routes/manager.properties.$id.edit'
+import { Route as ManagerManagePropertyIdUnitsRouteImport } from './routes/manager.manage.$propertyId.units'
+import { Route as ManagerManagePropertyIdTenantsRouteImport } from './routes/manager.manage.$propertyId.tenants'
+import { Route as ManagerManagePropertyIdRentRouteImport } from './routes/manager.manage.$propertyId.rent'
+import { Route as ManagerManagePropertyIdMaintenanceRouteImport } from './routes/manager.manage.$propertyId.maintenance'
 import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
+import { Route as LandlordManagePropertyIdUnitsRouteImport } from './routes/landlord.manage.$propertyId.units'
+import { Route as LandlordManagePropertyIdTenantsRouteImport } from './routes/landlord.manage.$propertyId.tenants'
+import { Route as LandlordManagePropertyIdRentRouteImport } from './routes/landlord.manage.$propertyId.rent'
+import { Route as LandlordManagePropertyIdMaintenanceRouteImport } from './routes/landlord.manage.$propertyId.maintenance'
 import { Route as AgencyPropertiesIdEditRouteImport } from './routes/agency.properties.$id.edit'
+import { Route as AgencyManagePropertyIdUnitsRouteImport } from './routes/agency.manage.$propertyId.units'
+import { Route as AgencyManagePropertyIdTenantsRouteImport } from './routes/agency.manage.$propertyId.tenants'
+import { Route as AgencyManagePropertyIdRentRouteImport } from './routes/agency.manage.$propertyId.rent'
+import { Route as AgencyManagePropertyIdMaintenanceRouteImport } from './routes/agency.manage.$propertyId.maintenance'
 import { Route as AdminListingsIdEditRouteImport } from './routes/admin.listings.$id.edit'
 
 const WhatsappRoute = WhatsappRouteImport.update({
@@ -306,6 +336,11 @@ const TenantSavedRoute = TenantSavedRouteImport.update({
   path: '/saved',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantRentRoute = TenantRentRouteImport.update({
+  id: '/rent',
+  path: '/rent',
+  getParentRoute: () => TenantRoute,
+} as any)
 const TenantProfileRoute = TenantProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -319,6 +354,11 @@ const TenantMessagesRoute = TenantMessagesRouteImport.update({
 const TenantMapRoute = TenantMapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantMaintenanceRoute = TenantMaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
   getParentRoute: () => TenantRoute,
 } as any)
 const TenantCompareRoute = TenantCompareRouteImport.update({
@@ -349,6 +389,11 @@ const ManagerTeamRoute = ManagerTeamRouteImport.update({
 const ManagerPropertiesRoute = ManagerPropertiesRouteImport.update({
   id: '/properties',
   path: '/properties',
+  getParentRoute: () => ManagerRoute,
+} as any)
+const ManagerManageRoute = ManagerManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
   getParentRoute: () => ManagerRoute,
 } as any)
 const ManagerLeadsRoute = ManagerLeadsRouteImport.update({
@@ -389,6 +434,11 @@ const ManagerAnalyticsRoute = ManagerAnalyticsRouteImport.update({
 const LandlordPropertiesRoute = LandlordPropertiesRouteImport.update({
   id: '/properties',
   path: '/properties',
+  getParentRoute: () => LandlordRoute,
+} as any)
+const LandlordManageRoute = LandlordManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
   getParentRoute: () => LandlordRoute,
 } as any)
 const LandlordLeadsRoute = LandlordLeadsRouteImport.update({
@@ -461,6 +511,11 @@ const AgencyPropertiesRoute = AgencyPropertiesRouteImport.update({
   path: '/properties',
   getParentRoute: () => AgencyRoute,
 } as any)
+const AgencyManageRoute = AgencyManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => AgencyRoute,
+} as any)
 const AgencyLeadsRoute = AgencyLeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -516,6 +571,11 @@ const ManagerPropertiesIndexRoute = ManagerPropertiesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ManagerPropertiesRoute,
 } as any)
+const ManagerManageIndexRoute = ManagerManageIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManagerManageRoute,
+} as any)
 const ManagerDashboardIndexRoute = ManagerDashboardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -526,6 +586,11 @@ const LandlordPropertiesIndexRoute = LandlordPropertiesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LandlordPropertiesRoute,
 } as any)
+const LandlordManageIndexRoute = LandlordManageIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LandlordManageRoute,
+} as any)
 const LandlordDashboardIndexRoute = LandlordDashboardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -535,6 +600,11 @@ const AgencyPropertiesIndexRoute = AgencyPropertiesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AgencyPropertiesRoute,
+} as any)
+const AgencyManageIndexRoute = AgencyManageIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AgencyManageRoute,
 } as any)
 const AgencyDashboardIndexRoute = AgencyDashboardIndexRouteImport.update({
   id: '/',
@@ -561,6 +631,11 @@ const TenantMessagesIdRoute = TenantMessagesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => TenantMessagesRoute,
 } as any)
+const TenantInviteTokenRoute = TenantInviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => TenantRoute,
+} as any)
 const ServicesProviderDashboardRoute =
   ServicesProviderDashboardRouteImport.update({
     id: '/provider/dashboard',
@@ -577,6 +652,16 @@ const ManagerPropertiesNewRoute = ManagerPropertiesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => ManagerPropertiesRoute,
 } as any)
+const ManagerManageNewRoute = ManagerManageNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ManagerManageRoute,
+} as any)
+const ManagerManagePropertyIdRoute = ManagerManagePropertyIdRouteImport.update({
+  id: '/$propertyId',
+  path: '/$propertyId',
+  getParentRoute: () => ManagerManageRoute,
+} as any)
 const ManagerDashboardPlanRoute = ManagerDashboardPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
@@ -592,6 +677,17 @@ const LandlordPropertiesNewRoute = LandlordPropertiesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => LandlordPropertiesRoute,
 } as any)
+const LandlordManageNewRoute = LandlordManageNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => LandlordManageRoute,
+} as any)
+const LandlordManagePropertyIdRoute =
+  LandlordManagePropertyIdRouteImport.update({
+    id: '/$propertyId',
+    path: '/$propertyId',
+    getParentRoute: () => LandlordManageRoute,
+  } as any)
 const LandlordDashboardPlanRoute = LandlordDashboardPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
@@ -607,6 +703,16 @@ const AgencyPropertiesNewRoute = AgencyPropertiesNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => AgencyPropertiesRoute,
+} as any)
+const AgencyManageNewRoute = AgencyManageNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AgencyManageRoute,
+} as any)
+const AgencyManagePropertyIdRoute = AgencyManagePropertyIdRouteImport.update({
+  id: '/$propertyId',
+  path: '/$propertyId',
+  getParentRoute: () => AgencyManageRoute,
 } as any)
 const AgencyDashboardPlanRoute = AgencyDashboardPlanRouteImport.update({
   id: '/plan',
@@ -628,22 +734,112 @@ const AdminListingsNewRoute = AdminListingsNewRouteImport.update({
   path: '/listings/new',
   getParentRoute: () => AdminRoute,
 } as any)
+const ManagerManagePropertyIdIndexRoute =
+  ManagerManagePropertyIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ManagerManagePropertyIdRoute,
+  } as any)
+const LandlordManagePropertyIdIndexRoute =
+  LandlordManagePropertyIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => LandlordManagePropertyIdRoute,
+  } as any)
+const AgencyManagePropertyIdIndexRoute =
+  AgencyManagePropertyIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AgencyManagePropertyIdRoute,
+  } as any)
 const ManagerPropertiesIdEditRoute = ManagerPropertiesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
   getParentRoute: () => ManagerPropertiesRoute,
 } as any)
+const ManagerManagePropertyIdUnitsRoute =
+  ManagerManagePropertyIdUnitsRouteImport.update({
+    id: '/units',
+    path: '/units',
+    getParentRoute: () => ManagerManagePropertyIdRoute,
+  } as any)
+const ManagerManagePropertyIdTenantsRoute =
+  ManagerManagePropertyIdTenantsRouteImport.update({
+    id: '/tenants',
+    path: '/tenants',
+    getParentRoute: () => ManagerManagePropertyIdRoute,
+  } as any)
+const ManagerManagePropertyIdRentRoute =
+  ManagerManagePropertyIdRentRouteImport.update({
+    id: '/rent',
+    path: '/rent',
+    getParentRoute: () => ManagerManagePropertyIdRoute,
+  } as any)
+const ManagerManagePropertyIdMaintenanceRoute =
+  ManagerManagePropertyIdMaintenanceRouteImport.update({
+    id: '/maintenance',
+    path: '/maintenance',
+    getParentRoute: () => ManagerManagePropertyIdRoute,
+  } as any)
 const LandlordPropertiesIdEditRoute =
   LandlordPropertiesIdEditRouteImport.update({
     id: '/$id/edit',
     path: '/$id/edit',
     getParentRoute: () => LandlordPropertiesRoute,
   } as any)
+const LandlordManagePropertyIdUnitsRoute =
+  LandlordManagePropertyIdUnitsRouteImport.update({
+    id: '/units',
+    path: '/units',
+    getParentRoute: () => LandlordManagePropertyIdRoute,
+  } as any)
+const LandlordManagePropertyIdTenantsRoute =
+  LandlordManagePropertyIdTenantsRouteImport.update({
+    id: '/tenants',
+    path: '/tenants',
+    getParentRoute: () => LandlordManagePropertyIdRoute,
+  } as any)
+const LandlordManagePropertyIdRentRoute =
+  LandlordManagePropertyIdRentRouteImport.update({
+    id: '/rent',
+    path: '/rent',
+    getParentRoute: () => LandlordManagePropertyIdRoute,
+  } as any)
+const LandlordManagePropertyIdMaintenanceRoute =
+  LandlordManagePropertyIdMaintenanceRouteImport.update({
+    id: '/maintenance',
+    path: '/maintenance',
+    getParentRoute: () => LandlordManagePropertyIdRoute,
+  } as any)
 const AgencyPropertiesIdEditRoute = AgencyPropertiesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
   getParentRoute: () => AgencyPropertiesRoute,
 } as any)
+const AgencyManagePropertyIdUnitsRoute =
+  AgencyManagePropertyIdUnitsRouteImport.update({
+    id: '/units',
+    path: '/units',
+    getParentRoute: () => AgencyManagePropertyIdRoute,
+  } as any)
+const AgencyManagePropertyIdTenantsRoute =
+  AgencyManagePropertyIdTenantsRouteImport.update({
+    id: '/tenants',
+    path: '/tenants',
+    getParentRoute: () => AgencyManagePropertyIdRoute,
+  } as any)
+const AgencyManagePropertyIdRentRoute =
+  AgencyManagePropertyIdRentRouteImport.update({
+    id: '/rent',
+    path: '/rent',
+    getParentRoute: () => AgencyManagePropertyIdRoute,
+  } as any)
+const AgencyManagePropertyIdMaintenanceRoute =
+  AgencyManagePropertyIdMaintenanceRouteImport.update({
+    id: '/maintenance',
+    path: '/maintenance',
+    getParentRoute: () => AgencyManagePropertyIdRoute,
+  } as any)
 const AdminListingsIdEditRoute = AdminListingsIdEditRouteImport.update({
   id: '/listings/$id/edit',
   path: '/listings/$id/edit',
@@ -686,6 +882,7 @@ export interface FileRoutesByFullPath {
   '/agency/import': typeof AgencyImportRoute
   '/agency/integrations': typeof AgencyIntegrationsRoute
   '/agency/leads': typeof AgencyLeadsRoute
+  '/agency/manage': typeof AgencyManageRouteWithChildren
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
   '/agency/team': typeof AgencyTeamRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -700,6 +897,7 @@ export interface FileRoutesByFullPath {
   '/landlord/import': typeof LandlordImportRoute
   '/landlord/integrations': typeof LandlordIntegrationsRoute
   '/landlord/leads': typeof LandlordLeadsRoute
+  '/landlord/manage': typeof LandlordManageRouteWithChildren
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/manager/analytics': typeof ManagerAnalyticsRoute
   '/manager/caretakers': typeof ManagerCaretakersRoute
@@ -708,15 +906,18 @@ export interface FileRoutesByFullPath {
   '/manager/import': typeof ManagerImportRoute
   '/manager/integrations': typeof ManagerIntegrationsRoute
   '/manager/leads': typeof ManagerLeadsRoute
+  '/manager/manage': typeof ManagerManageRouteWithChildren
   '/manager/properties': typeof ManagerPropertiesRouteWithChildren
   '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
+  '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
+  '/tenant/rent': typeof TenantRentRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/verify/request': typeof VerifyRequestRoute
   '/admin/': typeof AdminIndexRoute
@@ -733,30 +934,55 @@ export interface FileRoutesByFullPath {
   '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
+  '/agency/manage/$propertyId': typeof AgencyManagePropertyIdRouteWithChildren
+  '/agency/manage/new': typeof AgencyManageNewRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
+  '/landlord/manage/$propertyId': typeof LandlordManagePropertyIdRouteWithChildren
+  '/landlord/manage/new': typeof LandlordManageNewRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/dashboard/billing': typeof ManagerDashboardBillingRoute
   '/manager/dashboard/plan': typeof ManagerDashboardPlanRoute
+  '/manager/manage/$propertyId': typeof ManagerManagePropertyIdRouteWithChildren
+  '/manager/manage/new': typeof ManagerManageNewRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
   '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
+  '/tenant/invite/$token': typeof TenantInviteTokenRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/agency/dashboard/': typeof AgencyDashboardIndexRoute
+  '/agency/manage/': typeof AgencyManageIndexRoute
   '/agency/properties/': typeof AgencyPropertiesIndexRoute
   '/landlord/dashboard/': typeof LandlordDashboardIndexRoute
+  '/landlord/manage/': typeof LandlordManageIndexRoute
   '/landlord/properties/': typeof LandlordPropertiesIndexRoute
   '/manager/dashboard/': typeof ManagerDashboardIndexRoute
+  '/manager/manage/': typeof ManagerManageIndexRoute
   '/manager/properties/': typeof ManagerPropertiesIndexRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
   '/admin/listings/$id/edit': typeof AdminListingsIdEditRoute
+  '/agency/manage/$propertyId/maintenance': typeof AgencyManagePropertyIdMaintenanceRoute
+  '/agency/manage/$propertyId/rent': typeof AgencyManagePropertyIdRentRoute
+  '/agency/manage/$propertyId/tenants': typeof AgencyManagePropertyIdTenantsRoute
+  '/agency/manage/$propertyId/units': typeof AgencyManagePropertyIdUnitsRoute
   '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/manage/$propertyId/maintenance': typeof LandlordManagePropertyIdMaintenanceRoute
+  '/landlord/manage/$propertyId/rent': typeof LandlordManagePropertyIdRentRoute
+  '/landlord/manage/$propertyId/tenants': typeof LandlordManagePropertyIdTenantsRoute
+  '/landlord/manage/$propertyId/units': typeof LandlordManagePropertyIdUnitsRoute
   '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/manage/$propertyId/maintenance': typeof ManagerManagePropertyIdMaintenanceRoute
+  '/manager/manage/$propertyId/rent': typeof ManagerManagePropertyIdRentRoute
+  '/manager/manage/$propertyId/tenants': typeof ManagerManagePropertyIdTenantsRoute
+  '/manager/manage/$propertyId/units': typeof ManagerManagePropertyIdUnitsRoute
   '/manager/properties/$id/edit': typeof ManagerPropertiesIdEditRoute
+  '/agency/manage/$propertyId/': typeof AgencyManagePropertyIdIndexRoute
+  '/landlord/manage/$propertyId/': typeof LandlordManagePropertyIdIndexRoute
+  '/manager/manage/$propertyId/': typeof ManagerManagePropertyIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -806,8 +1032,10 @@ export interface FileRoutesByTo {
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
+  '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/profile': typeof TenantProfileRoute
+  '/tenant/rent': typeof TenantRentRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/verify/request': typeof VerifyRequestRoute
   '/admin': typeof AdminIndexRoute
@@ -824,30 +1052,52 @@ export interface FileRoutesByTo {
   '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
+  '/agency/manage/new': typeof AgencyManageNewRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
+  '/landlord/manage/new': typeof LandlordManageNewRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/dashboard/billing': typeof ManagerDashboardBillingRoute
   '/manager/dashboard/plan': typeof ManagerDashboardPlanRoute
+  '/manager/manage/new': typeof ManagerManageNewRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
   '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
+  '/tenant/invite/$token': typeof TenantInviteTokenRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/agency/dashboard': typeof AgencyDashboardIndexRoute
+  '/agency/manage': typeof AgencyManageIndexRoute
   '/agency/properties': typeof AgencyPropertiesIndexRoute
   '/landlord/dashboard': typeof LandlordDashboardIndexRoute
+  '/landlord/manage': typeof LandlordManageIndexRoute
   '/landlord/properties': typeof LandlordPropertiesIndexRoute
   '/manager/dashboard': typeof ManagerDashboardIndexRoute
+  '/manager/manage': typeof ManagerManageIndexRoute
   '/manager/properties': typeof ManagerPropertiesIndexRoute
   '/tenant/messages': typeof TenantMessagesIndexRoute
   '/admin/listings/$id/edit': typeof AdminListingsIdEditRoute
+  '/agency/manage/$propertyId/maintenance': typeof AgencyManagePropertyIdMaintenanceRoute
+  '/agency/manage/$propertyId/rent': typeof AgencyManagePropertyIdRentRoute
+  '/agency/manage/$propertyId/tenants': typeof AgencyManagePropertyIdTenantsRoute
+  '/agency/manage/$propertyId/units': typeof AgencyManagePropertyIdUnitsRoute
   '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/manage/$propertyId/maintenance': typeof LandlordManagePropertyIdMaintenanceRoute
+  '/landlord/manage/$propertyId/rent': typeof LandlordManagePropertyIdRentRoute
+  '/landlord/manage/$propertyId/tenants': typeof LandlordManagePropertyIdTenantsRoute
+  '/landlord/manage/$propertyId/units': typeof LandlordManagePropertyIdUnitsRoute
   '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/manage/$propertyId/maintenance': typeof ManagerManagePropertyIdMaintenanceRoute
+  '/manager/manage/$propertyId/rent': typeof ManagerManagePropertyIdRentRoute
+  '/manager/manage/$propertyId/tenants': typeof ManagerManagePropertyIdTenantsRoute
+  '/manager/manage/$propertyId/units': typeof ManagerManagePropertyIdUnitsRoute
   '/manager/properties/$id/edit': typeof ManagerPropertiesIdEditRoute
+  '/agency/manage/$propertyId': typeof AgencyManagePropertyIdIndexRoute
+  '/landlord/manage/$propertyId': typeof LandlordManagePropertyIdIndexRoute
+  '/manager/manage/$propertyId': typeof ManagerManagePropertyIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -886,6 +1136,7 @@ export interface FileRoutesById {
   '/agency/import': typeof AgencyImportRoute
   '/agency/integrations': typeof AgencyIntegrationsRoute
   '/agency/leads': typeof AgencyLeadsRoute
+  '/agency/manage': typeof AgencyManageRouteWithChildren
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
   '/agency/team': typeof AgencyTeamRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -900,6 +1151,7 @@ export interface FileRoutesById {
   '/landlord/import': typeof LandlordImportRoute
   '/landlord/integrations': typeof LandlordIntegrationsRoute
   '/landlord/leads': typeof LandlordLeadsRoute
+  '/landlord/manage': typeof LandlordManageRouteWithChildren
   '/landlord/properties': typeof LandlordPropertiesRouteWithChildren
   '/manager/analytics': typeof ManagerAnalyticsRoute
   '/manager/caretakers': typeof ManagerCaretakersRoute
@@ -908,15 +1160,18 @@ export interface FileRoutesById {
   '/manager/import': typeof ManagerImportRoute
   '/manager/integrations': typeof ManagerIntegrationsRoute
   '/manager/leads': typeof ManagerLeadsRoute
+  '/manager/manage': typeof ManagerManageRouteWithChildren
   '/manager/properties': typeof ManagerPropertiesRouteWithChildren
   '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
+  '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
   '/tenant/profile': typeof TenantProfileRoute
+  '/tenant/rent': typeof TenantRentRoute
   '/tenant/saved': typeof TenantSavedRoute
   '/verify/request': typeof VerifyRequestRoute
   '/admin/': typeof AdminIndexRoute
@@ -933,30 +1188,55 @@ export interface FileRoutesById {
   '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
+  '/agency/manage/$propertyId': typeof AgencyManagePropertyIdRouteWithChildren
+  '/agency/manage/new': typeof AgencyManageNewRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
+  '/landlord/manage/$propertyId': typeof LandlordManagePropertyIdRouteWithChildren
+  '/landlord/manage/new': typeof LandlordManageNewRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/dashboard/billing': typeof ManagerDashboardBillingRoute
   '/manager/dashboard/plan': typeof ManagerDashboardPlanRoute
+  '/manager/manage/$propertyId': typeof ManagerManagePropertyIdRouteWithChildren
+  '/manager/manage/new': typeof ManagerManageNewRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
   '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
+  '/tenant/invite/$token': typeof TenantInviteTokenRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/agency/dashboard/': typeof AgencyDashboardIndexRoute
+  '/agency/manage/': typeof AgencyManageIndexRoute
   '/agency/properties/': typeof AgencyPropertiesIndexRoute
   '/landlord/dashboard/': typeof LandlordDashboardIndexRoute
+  '/landlord/manage/': typeof LandlordManageIndexRoute
   '/landlord/properties/': typeof LandlordPropertiesIndexRoute
   '/manager/dashboard/': typeof ManagerDashboardIndexRoute
+  '/manager/manage/': typeof ManagerManageIndexRoute
   '/manager/properties/': typeof ManagerPropertiesIndexRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
   '/admin/listings/$id/edit': typeof AdminListingsIdEditRoute
+  '/agency/manage/$propertyId/maintenance': typeof AgencyManagePropertyIdMaintenanceRoute
+  '/agency/manage/$propertyId/rent': typeof AgencyManagePropertyIdRentRoute
+  '/agency/manage/$propertyId/tenants': typeof AgencyManagePropertyIdTenantsRoute
+  '/agency/manage/$propertyId/units': typeof AgencyManagePropertyIdUnitsRoute
   '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/manage/$propertyId/maintenance': typeof LandlordManagePropertyIdMaintenanceRoute
+  '/landlord/manage/$propertyId/rent': typeof LandlordManagePropertyIdRentRoute
+  '/landlord/manage/$propertyId/tenants': typeof LandlordManagePropertyIdTenantsRoute
+  '/landlord/manage/$propertyId/units': typeof LandlordManagePropertyIdUnitsRoute
   '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/manage/$propertyId/maintenance': typeof ManagerManagePropertyIdMaintenanceRoute
+  '/manager/manage/$propertyId/rent': typeof ManagerManagePropertyIdRentRoute
+  '/manager/manage/$propertyId/tenants': typeof ManagerManagePropertyIdTenantsRoute
+  '/manager/manage/$propertyId/units': typeof ManagerManagePropertyIdUnitsRoute
   '/manager/properties/$id/edit': typeof ManagerPropertiesIdEditRoute
+  '/agency/manage/$propertyId/': typeof AgencyManagePropertyIdIndexRoute
+  '/landlord/manage/$propertyId/': typeof LandlordManagePropertyIdIndexRoute
+  '/manager/manage/$propertyId/': typeof ManagerManagePropertyIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -996,6 +1276,7 @@ export interface FileRouteTypes {
     | '/agency/import'
     | '/agency/integrations'
     | '/agency/leads'
+    | '/agency/manage'
     | '/agency/properties'
     | '/agency/team'
     | '/auth/callback'
@@ -1010,6 +1291,7 @@ export interface FileRouteTypes {
     | '/landlord/import'
     | '/landlord/integrations'
     | '/landlord/leads'
+    | '/landlord/manage'
     | '/landlord/properties'
     | '/manager/analytics'
     | '/manager/caretakers'
@@ -1018,15 +1300,18 @@ export interface FileRouteTypes {
     | '/manager/import'
     | '/manager/integrations'
     | '/manager/leads'
+    | '/manager/manage'
     | '/manager/properties'
     | '/manager/team'
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
     | '/tenant/compare'
+    | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/messages'
     | '/tenant/profile'
+    | '/tenant/rent'
     | '/tenant/saved'
     | '/verify/request'
     | '/admin/'
@@ -1043,30 +1328,55 @@ export interface FileRouteTypes {
     | '/admin/providers/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
+    | '/agency/manage/$propertyId'
+    | '/agency/manage/new'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
     | '/landlord/dashboard/plan'
+    | '/landlord/manage/$propertyId'
+    | '/landlord/manage/new'
     | '/landlord/properties/new'
     | '/manager/dashboard/billing'
     | '/manager/dashboard/plan'
+    | '/manager/manage/$propertyId'
+    | '/manager/manage/new'
     | '/manager/properties/new'
     | '/services/provider/$id'
     | '/services/provider/dashboard'
+    | '/tenant/invite/$token'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/agency/dashboard/'
+    | '/agency/manage/'
     | '/agency/properties/'
     | '/landlord/dashboard/'
+    | '/landlord/manage/'
     | '/landlord/properties/'
     | '/manager/dashboard/'
+    | '/manager/manage/'
     | '/manager/properties/'
     | '/tenant/messages/'
     | '/admin/listings/$id/edit'
+    | '/agency/manage/$propertyId/maintenance'
+    | '/agency/manage/$propertyId/rent'
+    | '/agency/manage/$propertyId/tenants'
+    | '/agency/manage/$propertyId/units'
     | '/agency/properties/$id/edit'
+    | '/landlord/manage/$propertyId/maintenance'
+    | '/landlord/manage/$propertyId/rent'
+    | '/landlord/manage/$propertyId/tenants'
+    | '/landlord/manage/$propertyId/units'
     | '/landlord/properties/$id/edit'
+    | '/manager/manage/$propertyId/maintenance'
+    | '/manager/manage/$propertyId/rent'
+    | '/manager/manage/$propertyId/tenants'
+    | '/manager/manage/$propertyId/units'
     | '/manager/properties/$id/edit'
+    | '/agency/manage/$propertyId/'
+    | '/landlord/manage/$propertyId/'
+    | '/manager/manage/$propertyId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1116,8 +1426,10 @@ export interface FileRouteTypes {
     | '/services/register'
     | '/tenant/checkout'
     | '/tenant/compare'
+    | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/profile'
+    | '/tenant/rent'
     | '/tenant/saved'
     | '/verify/request'
     | '/admin'
@@ -1134,30 +1446,52 @@ export interface FileRouteTypes {
     | '/admin/providers/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
+    | '/agency/manage/new'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
     | '/landlord/dashboard/plan'
+    | '/landlord/manage/new'
     | '/landlord/properties/new'
     | '/manager/dashboard/billing'
     | '/manager/dashboard/plan'
+    | '/manager/manage/new'
     | '/manager/properties/new'
     | '/services/provider/$id'
     | '/services/provider/dashboard'
+    | '/tenant/invite/$token'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/agency/dashboard'
+    | '/agency/manage'
     | '/agency/properties'
     | '/landlord/dashboard'
+    | '/landlord/manage'
     | '/landlord/properties'
     | '/manager/dashboard'
+    | '/manager/manage'
     | '/manager/properties'
     | '/tenant/messages'
     | '/admin/listings/$id/edit'
+    | '/agency/manage/$propertyId/maintenance'
+    | '/agency/manage/$propertyId/rent'
+    | '/agency/manage/$propertyId/tenants'
+    | '/agency/manage/$propertyId/units'
     | '/agency/properties/$id/edit'
+    | '/landlord/manage/$propertyId/maintenance'
+    | '/landlord/manage/$propertyId/rent'
+    | '/landlord/manage/$propertyId/tenants'
+    | '/landlord/manage/$propertyId/units'
     | '/landlord/properties/$id/edit'
+    | '/manager/manage/$propertyId/maintenance'
+    | '/manager/manage/$propertyId/rent'
+    | '/manager/manage/$propertyId/tenants'
+    | '/manager/manage/$propertyId/units'
     | '/manager/properties/$id/edit'
+    | '/agency/manage/$propertyId'
+    | '/landlord/manage/$propertyId'
+    | '/manager/manage/$propertyId'
   id:
     | '__root__'
     | '/'
@@ -1195,6 +1529,7 @@ export interface FileRouteTypes {
     | '/agency/import'
     | '/agency/integrations'
     | '/agency/leads'
+    | '/agency/manage'
     | '/agency/properties'
     | '/agency/team'
     | '/auth/callback'
@@ -1209,6 +1544,7 @@ export interface FileRouteTypes {
     | '/landlord/import'
     | '/landlord/integrations'
     | '/landlord/leads'
+    | '/landlord/manage'
     | '/landlord/properties'
     | '/manager/analytics'
     | '/manager/caretakers'
@@ -1217,15 +1553,18 @@ export interface FileRouteTypes {
     | '/manager/import'
     | '/manager/integrations'
     | '/manager/leads'
+    | '/manager/manage'
     | '/manager/properties'
     | '/manager/team'
     | '/services/$category'
     | '/services/register'
     | '/tenant/checkout'
     | '/tenant/compare'
+    | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/messages'
     | '/tenant/profile'
+    | '/tenant/rent'
     | '/tenant/saved'
     | '/verify/request'
     | '/admin/'
@@ -1242,30 +1581,55 @@ export interface FileRouteTypes {
     | '/admin/providers/new'
     | '/agency/dashboard/billing'
     | '/agency/dashboard/plan'
+    | '/agency/manage/$propertyId'
+    | '/agency/manage/new'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
     | '/landlord/dashboard/plan'
+    | '/landlord/manage/$propertyId'
+    | '/landlord/manage/new'
     | '/landlord/properties/new'
     | '/manager/dashboard/billing'
     | '/manager/dashboard/plan'
+    | '/manager/manage/$propertyId'
+    | '/manager/manage/new'
     | '/manager/properties/new'
     | '/services/provider/$id'
     | '/services/provider/dashboard'
+    | '/tenant/invite/$token'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/agency/dashboard/'
+    | '/agency/manage/'
     | '/agency/properties/'
     | '/landlord/dashboard/'
+    | '/landlord/manage/'
     | '/landlord/properties/'
     | '/manager/dashboard/'
+    | '/manager/manage/'
     | '/manager/properties/'
     | '/tenant/messages/'
     | '/admin/listings/$id/edit'
+    | '/agency/manage/$propertyId/maintenance'
+    | '/agency/manage/$propertyId/rent'
+    | '/agency/manage/$propertyId/tenants'
+    | '/agency/manage/$propertyId/units'
     | '/agency/properties/$id/edit'
+    | '/landlord/manage/$propertyId/maintenance'
+    | '/landlord/manage/$propertyId/rent'
+    | '/landlord/manage/$propertyId/tenants'
+    | '/landlord/manage/$propertyId/units'
     | '/landlord/properties/$id/edit'
+    | '/manager/manage/$propertyId/maintenance'
+    | '/manager/manage/$propertyId/rent'
+    | '/manager/manage/$propertyId/tenants'
+    | '/manager/manage/$propertyId/units'
     | '/manager/properties/$id/edit'
+    | '/agency/manage/$propertyId/'
+    | '/landlord/manage/$propertyId/'
+    | '/manager/manage/$propertyId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1565,6 +1929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantSavedRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/tenant/rent': {
+      id: '/tenant/rent'
+      path: '/rent'
+      fullPath: '/tenant/rent'
+      preLoaderRoute: typeof TenantRentRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/tenant/profile': {
       id: '/tenant/profile'
       path: '/profile'
@@ -1584,6 +1955,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/tenant/map'
       preLoaderRoute: typeof TenantMapRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/maintenance': {
+      id: '/tenant/maintenance'
+      path: '/maintenance'
+      fullPath: '/tenant/maintenance'
+      preLoaderRoute: typeof TenantMaintenanceRouteImport
       parentRoute: typeof TenantRoute
     }
     '/tenant/compare': {
@@ -1626,6 +2004,13 @@ declare module '@tanstack/react-router' {
       path: '/properties'
       fullPath: '/manager/properties'
       preLoaderRoute: typeof ManagerPropertiesRouteImport
+      parentRoute: typeof ManagerRoute
+    }
+    '/manager/manage': {
+      id: '/manager/manage'
+      path: '/manage'
+      fullPath: '/manager/manage'
+      preLoaderRoute: typeof ManagerManageRouteImport
       parentRoute: typeof ManagerRoute
     }
     '/manager/leads': {
@@ -1682,6 +2067,13 @@ declare module '@tanstack/react-router' {
       path: '/properties'
       fullPath: '/landlord/properties'
       preLoaderRoute: typeof LandlordPropertiesRouteImport
+      parentRoute: typeof LandlordRoute
+    }
+    '/landlord/manage': {
+      id: '/landlord/manage'
+      path: '/manage'
+      fullPath: '/landlord/manage'
+      preLoaderRoute: typeof LandlordManageRouteImport
       parentRoute: typeof LandlordRoute
     }
     '/landlord/leads': {
@@ -1782,6 +2174,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgencyPropertiesRouteImport
       parentRoute: typeof AgencyRoute
     }
+    '/agency/manage': {
+      id: '/agency/manage'
+      path: '/manage'
+      fullPath: '/agency/manage'
+      preLoaderRoute: typeof AgencyManageRouteImport
+      parentRoute: typeof AgencyRoute
+    }
     '/agency/leads': {
       id: '/agency/leads'
       path: '/leads'
@@ -1859,6 +2258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerPropertiesIndexRouteImport
       parentRoute: typeof ManagerPropertiesRoute
     }
+    '/manager/manage/': {
+      id: '/manager/manage/'
+      path: '/'
+      fullPath: '/manager/manage/'
+      preLoaderRoute: typeof ManagerManageIndexRouteImport
+      parentRoute: typeof ManagerManageRoute
+    }
     '/manager/dashboard/': {
       id: '/manager/dashboard/'
       path: '/'
@@ -1873,6 +2279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandlordPropertiesIndexRouteImport
       parentRoute: typeof LandlordPropertiesRoute
     }
+    '/landlord/manage/': {
+      id: '/landlord/manage/'
+      path: '/'
+      fullPath: '/landlord/manage/'
+      preLoaderRoute: typeof LandlordManageIndexRouteImport
+      parentRoute: typeof LandlordManageRoute
+    }
     '/landlord/dashboard/': {
       id: '/landlord/dashboard/'
       path: '/'
@@ -1886,6 +2299,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/agency/properties/'
       preLoaderRoute: typeof AgencyPropertiesIndexRouteImport
       parentRoute: typeof AgencyPropertiesRoute
+    }
+    '/agency/manage/': {
+      id: '/agency/manage/'
+      path: '/'
+      fullPath: '/agency/manage/'
+      preLoaderRoute: typeof AgencyManageIndexRouteImport
+      parentRoute: typeof AgencyManageRoute
     }
     '/agency/dashboard/': {
       id: '/agency/dashboard/'
@@ -1922,6 +2342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantMessagesIdRouteImport
       parentRoute: typeof TenantMessagesRoute
     }
+    '/tenant/invite/$token': {
+      id: '/tenant/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/tenant/invite/$token'
+      preLoaderRoute: typeof TenantInviteTokenRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/services/provider/dashboard': {
       id: '/services/provider/dashboard'
       path: '/provider/dashboard'
@@ -1942,6 +2369,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/manager/properties/new'
       preLoaderRoute: typeof ManagerPropertiesNewRouteImport
       parentRoute: typeof ManagerPropertiesRoute
+    }
+    '/manager/manage/new': {
+      id: '/manager/manage/new'
+      path: '/new'
+      fullPath: '/manager/manage/new'
+      preLoaderRoute: typeof ManagerManageNewRouteImport
+      parentRoute: typeof ManagerManageRoute
+    }
+    '/manager/manage/$propertyId': {
+      id: '/manager/manage/$propertyId'
+      path: '/$propertyId'
+      fullPath: '/manager/manage/$propertyId'
+      preLoaderRoute: typeof ManagerManagePropertyIdRouteImport
+      parentRoute: typeof ManagerManageRoute
     }
     '/manager/dashboard/plan': {
       id: '/manager/dashboard/plan'
@@ -1964,6 +2405,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandlordPropertiesNewRouteImport
       parentRoute: typeof LandlordPropertiesRoute
     }
+    '/landlord/manage/new': {
+      id: '/landlord/manage/new'
+      path: '/new'
+      fullPath: '/landlord/manage/new'
+      preLoaderRoute: typeof LandlordManageNewRouteImport
+      parentRoute: typeof LandlordManageRoute
+    }
+    '/landlord/manage/$propertyId': {
+      id: '/landlord/manage/$propertyId'
+      path: '/$propertyId'
+      fullPath: '/landlord/manage/$propertyId'
+      preLoaderRoute: typeof LandlordManagePropertyIdRouteImport
+      parentRoute: typeof LandlordManageRoute
+    }
     '/landlord/dashboard/plan': {
       id: '/landlord/dashboard/plan'
       path: '/plan'
@@ -1984,6 +2439,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/agency/properties/new'
       preLoaderRoute: typeof AgencyPropertiesNewRouteImport
       parentRoute: typeof AgencyPropertiesRoute
+    }
+    '/agency/manage/new': {
+      id: '/agency/manage/new'
+      path: '/new'
+      fullPath: '/agency/manage/new'
+      preLoaderRoute: typeof AgencyManageNewRouteImport
+      parentRoute: typeof AgencyManageRoute
+    }
+    '/agency/manage/$propertyId': {
+      id: '/agency/manage/$propertyId'
+      path: '/$propertyId'
+      fullPath: '/agency/manage/$propertyId'
+      preLoaderRoute: typeof AgencyManagePropertyIdRouteImport
+      parentRoute: typeof AgencyManageRoute
     }
     '/agency/dashboard/plan': {
       id: '/agency/dashboard/plan'
@@ -2013,12 +2482,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminListingsNewRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/manager/manage/$propertyId/': {
+      id: '/manager/manage/$propertyId/'
+      path: '/'
+      fullPath: '/manager/manage/$propertyId/'
+      preLoaderRoute: typeof ManagerManagePropertyIdIndexRouteImport
+      parentRoute: typeof ManagerManagePropertyIdRoute
+    }
+    '/landlord/manage/$propertyId/': {
+      id: '/landlord/manage/$propertyId/'
+      path: '/'
+      fullPath: '/landlord/manage/$propertyId/'
+      preLoaderRoute: typeof LandlordManagePropertyIdIndexRouteImport
+      parentRoute: typeof LandlordManagePropertyIdRoute
+    }
+    '/agency/manage/$propertyId/': {
+      id: '/agency/manage/$propertyId/'
+      path: '/'
+      fullPath: '/agency/manage/$propertyId/'
+      preLoaderRoute: typeof AgencyManagePropertyIdIndexRouteImport
+      parentRoute: typeof AgencyManagePropertyIdRoute
+    }
     '/manager/properties/$id/edit': {
       id: '/manager/properties/$id/edit'
       path: '/$id/edit'
       fullPath: '/manager/properties/$id/edit'
       preLoaderRoute: typeof ManagerPropertiesIdEditRouteImport
       parentRoute: typeof ManagerPropertiesRoute
+    }
+    '/manager/manage/$propertyId/units': {
+      id: '/manager/manage/$propertyId/units'
+      path: '/units'
+      fullPath: '/manager/manage/$propertyId/units'
+      preLoaderRoute: typeof ManagerManagePropertyIdUnitsRouteImport
+      parentRoute: typeof ManagerManagePropertyIdRoute
+    }
+    '/manager/manage/$propertyId/tenants': {
+      id: '/manager/manage/$propertyId/tenants'
+      path: '/tenants'
+      fullPath: '/manager/manage/$propertyId/tenants'
+      preLoaderRoute: typeof ManagerManagePropertyIdTenantsRouteImport
+      parentRoute: typeof ManagerManagePropertyIdRoute
+    }
+    '/manager/manage/$propertyId/rent': {
+      id: '/manager/manage/$propertyId/rent'
+      path: '/rent'
+      fullPath: '/manager/manage/$propertyId/rent'
+      preLoaderRoute: typeof ManagerManagePropertyIdRentRouteImport
+      parentRoute: typeof ManagerManagePropertyIdRoute
+    }
+    '/manager/manage/$propertyId/maintenance': {
+      id: '/manager/manage/$propertyId/maintenance'
+      path: '/maintenance'
+      fullPath: '/manager/manage/$propertyId/maintenance'
+      preLoaderRoute: typeof ManagerManagePropertyIdMaintenanceRouteImport
+      parentRoute: typeof ManagerManagePropertyIdRoute
     }
     '/landlord/properties/$id/edit': {
       id: '/landlord/properties/$id/edit'
@@ -2027,12 +2545,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandlordPropertiesIdEditRouteImport
       parentRoute: typeof LandlordPropertiesRoute
     }
+    '/landlord/manage/$propertyId/units': {
+      id: '/landlord/manage/$propertyId/units'
+      path: '/units'
+      fullPath: '/landlord/manage/$propertyId/units'
+      preLoaderRoute: typeof LandlordManagePropertyIdUnitsRouteImport
+      parentRoute: typeof LandlordManagePropertyIdRoute
+    }
+    '/landlord/manage/$propertyId/tenants': {
+      id: '/landlord/manage/$propertyId/tenants'
+      path: '/tenants'
+      fullPath: '/landlord/manage/$propertyId/tenants'
+      preLoaderRoute: typeof LandlordManagePropertyIdTenantsRouteImport
+      parentRoute: typeof LandlordManagePropertyIdRoute
+    }
+    '/landlord/manage/$propertyId/rent': {
+      id: '/landlord/manage/$propertyId/rent'
+      path: '/rent'
+      fullPath: '/landlord/manage/$propertyId/rent'
+      preLoaderRoute: typeof LandlordManagePropertyIdRentRouteImport
+      parentRoute: typeof LandlordManagePropertyIdRoute
+    }
+    '/landlord/manage/$propertyId/maintenance': {
+      id: '/landlord/manage/$propertyId/maintenance'
+      path: '/maintenance'
+      fullPath: '/landlord/manage/$propertyId/maintenance'
+      preLoaderRoute: typeof LandlordManagePropertyIdMaintenanceRouteImport
+      parentRoute: typeof LandlordManagePropertyIdRoute
+    }
     '/agency/properties/$id/edit': {
       id: '/agency/properties/$id/edit'
       path: '/$id/edit'
       fullPath: '/agency/properties/$id/edit'
       preLoaderRoute: typeof AgencyPropertiesIdEditRouteImport
       parentRoute: typeof AgencyPropertiesRoute
+    }
+    '/agency/manage/$propertyId/units': {
+      id: '/agency/manage/$propertyId/units'
+      path: '/units'
+      fullPath: '/agency/manage/$propertyId/units'
+      preLoaderRoute: typeof AgencyManagePropertyIdUnitsRouteImport
+      parentRoute: typeof AgencyManagePropertyIdRoute
+    }
+    '/agency/manage/$propertyId/tenants': {
+      id: '/agency/manage/$propertyId/tenants'
+      path: '/tenants'
+      fullPath: '/agency/manage/$propertyId/tenants'
+      preLoaderRoute: typeof AgencyManagePropertyIdTenantsRouteImport
+      parentRoute: typeof AgencyManagePropertyIdRoute
+    }
+    '/agency/manage/$propertyId/rent': {
+      id: '/agency/manage/$propertyId/rent'
+      path: '/rent'
+      fullPath: '/agency/manage/$propertyId/rent'
+      preLoaderRoute: typeof AgencyManagePropertyIdRentRouteImport
+      parentRoute: typeof AgencyManagePropertyIdRoute
+    }
+    '/agency/manage/$propertyId/maintenance': {
+      id: '/agency/manage/$propertyId/maintenance'
+      path: '/maintenance'
+      fullPath: '/agency/manage/$propertyId/maintenance'
+      preLoaderRoute: typeof AgencyManagePropertyIdMaintenanceRouteImport
+      parentRoute: typeof AgencyManagePropertyIdRoute
     }
     '/admin/listings/$id/edit': {
       id: '/admin/listings/$id/edit'
@@ -2092,6 +2666,45 @@ const AgencyDashboardRouteWithChildren = AgencyDashboardRoute._addFileChildren(
   AgencyDashboardRouteChildren,
 )
 
+interface AgencyManagePropertyIdRouteChildren {
+  AgencyManagePropertyIdMaintenanceRoute: typeof AgencyManagePropertyIdMaintenanceRoute
+  AgencyManagePropertyIdRentRoute: typeof AgencyManagePropertyIdRentRoute
+  AgencyManagePropertyIdTenantsRoute: typeof AgencyManagePropertyIdTenantsRoute
+  AgencyManagePropertyIdUnitsRoute: typeof AgencyManagePropertyIdUnitsRoute
+  AgencyManagePropertyIdIndexRoute: typeof AgencyManagePropertyIdIndexRoute
+}
+
+const AgencyManagePropertyIdRouteChildren: AgencyManagePropertyIdRouteChildren =
+  {
+    AgencyManagePropertyIdMaintenanceRoute:
+      AgencyManagePropertyIdMaintenanceRoute,
+    AgencyManagePropertyIdRentRoute: AgencyManagePropertyIdRentRoute,
+    AgencyManagePropertyIdTenantsRoute: AgencyManagePropertyIdTenantsRoute,
+    AgencyManagePropertyIdUnitsRoute: AgencyManagePropertyIdUnitsRoute,
+    AgencyManagePropertyIdIndexRoute: AgencyManagePropertyIdIndexRoute,
+  }
+
+const AgencyManagePropertyIdRouteWithChildren =
+  AgencyManagePropertyIdRoute._addFileChildren(
+    AgencyManagePropertyIdRouteChildren,
+  )
+
+interface AgencyManageRouteChildren {
+  AgencyManagePropertyIdRoute: typeof AgencyManagePropertyIdRouteWithChildren
+  AgencyManageNewRoute: typeof AgencyManageNewRoute
+  AgencyManageIndexRoute: typeof AgencyManageIndexRoute
+}
+
+const AgencyManageRouteChildren: AgencyManageRouteChildren = {
+  AgencyManagePropertyIdRoute: AgencyManagePropertyIdRouteWithChildren,
+  AgencyManageNewRoute: AgencyManageNewRoute,
+  AgencyManageIndexRoute: AgencyManageIndexRoute,
+}
+
+const AgencyManageRouteWithChildren = AgencyManageRoute._addFileChildren(
+  AgencyManageRouteChildren,
+)
+
 interface AgencyPropertiesRouteChildren {
   AgencyPropertiesNewRoute: typeof AgencyPropertiesNewRoute
   AgencyPropertiesIndexRoute: typeof AgencyPropertiesIndexRoute
@@ -2115,6 +2728,7 @@ interface AgencyRouteChildren {
   AgencyImportRoute: typeof AgencyImportRoute
   AgencyIntegrationsRoute: typeof AgencyIntegrationsRoute
   AgencyLeadsRoute: typeof AgencyLeadsRoute
+  AgencyManageRoute: typeof AgencyManageRouteWithChildren
   AgencyPropertiesRoute: typeof AgencyPropertiesRouteWithChildren
   AgencyTeamRoute: typeof AgencyTeamRoute
   AgencyIndexRoute: typeof AgencyIndexRoute
@@ -2128,6 +2742,7 @@ const AgencyRouteChildren: AgencyRouteChildren = {
   AgencyImportRoute: AgencyImportRoute,
   AgencyIntegrationsRoute: AgencyIntegrationsRoute,
   AgencyLeadsRoute: AgencyLeadsRoute,
+  AgencyManageRoute: AgencyManageRouteWithChildren,
   AgencyPropertiesRoute: AgencyPropertiesRouteWithChildren,
   AgencyTeamRoute: AgencyTeamRoute,
   AgencyIndexRoute: AgencyIndexRoute,
@@ -2181,6 +2796,45 @@ const LandlordDashboardRouteChildren: LandlordDashboardRouteChildren = {
 const LandlordDashboardRouteWithChildren =
   LandlordDashboardRoute._addFileChildren(LandlordDashboardRouteChildren)
 
+interface LandlordManagePropertyIdRouteChildren {
+  LandlordManagePropertyIdMaintenanceRoute: typeof LandlordManagePropertyIdMaintenanceRoute
+  LandlordManagePropertyIdRentRoute: typeof LandlordManagePropertyIdRentRoute
+  LandlordManagePropertyIdTenantsRoute: typeof LandlordManagePropertyIdTenantsRoute
+  LandlordManagePropertyIdUnitsRoute: typeof LandlordManagePropertyIdUnitsRoute
+  LandlordManagePropertyIdIndexRoute: typeof LandlordManagePropertyIdIndexRoute
+}
+
+const LandlordManagePropertyIdRouteChildren: LandlordManagePropertyIdRouteChildren =
+  {
+    LandlordManagePropertyIdMaintenanceRoute:
+      LandlordManagePropertyIdMaintenanceRoute,
+    LandlordManagePropertyIdRentRoute: LandlordManagePropertyIdRentRoute,
+    LandlordManagePropertyIdTenantsRoute: LandlordManagePropertyIdTenantsRoute,
+    LandlordManagePropertyIdUnitsRoute: LandlordManagePropertyIdUnitsRoute,
+    LandlordManagePropertyIdIndexRoute: LandlordManagePropertyIdIndexRoute,
+  }
+
+const LandlordManagePropertyIdRouteWithChildren =
+  LandlordManagePropertyIdRoute._addFileChildren(
+    LandlordManagePropertyIdRouteChildren,
+  )
+
+interface LandlordManageRouteChildren {
+  LandlordManagePropertyIdRoute: typeof LandlordManagePropertyIdRouteWithChildren
+  LandlordManageNewRoute: typeof LandlordManageNewRoute
+  LandlordManageIndexRoute: typeof LandlordManageIndexRoute
+}
+
+const LandlordManageRouteChildren: LandlordManageRouteChildren = {
+  LandlordManagePropertyIdRoute: LandlordManagePropertyIdRouteWithChildren,
+  LandlordManageNewRoute: LandlordManageNewRoute,
+  LandlordManageIndexRoute: LandlordManageIndexRoute,
+}
+
+const LandlordManageRouteWithChildren = LandlordManageRoute._addFileChildren(
+  LandlordManageRouteChildren,
+)
+
 interface LandlordPropertiesRouteChildren {
   LandlordPropertiesNewRoute: typeof LandlordPropertiesNewRoute
   LandlordPropertiesIndexRoute: typeof LandlordPropertiesIndexRoute
@@ -2205,6 +2859,7 @@ interface LandlordRouteChildren {
   LandlordImportRoute: typeof LandlordImportRoute
   LandlordIntegrationsRoute: typeof LandlordIntegrationsRoute
   LandlordLeadsRoute: typeof LandlordLeadsRoute
+  LandlordManageRoute: typeof LandlordManageRouteWithChildren
   LandlordPropertiesRoute: typeof LandlordPropertiesRouteWithChildren
   LandlordIndexRoute: typeof LandlordIndexRoute
 }
@@ -2218,6 +2873,7 @@ const LandlordRouteChildren: LandlordRouteChildren = {
   LandlordImportRoute: LandlordImportRoute,
   LandlordIntegrationsRoute: LandlordIntegrationsRoute,
   LandlordLeadsRoute: LandlordLeadsRoute,
+  LandlordManageRoute: LandlordManageRouteWithChildren,
   LandlordPropertiesRoute: LandlordPropertiesRouteWithChildren,
   LandlordIndexRoute: LandlordIndexRoute,
 }
@@ -2240,6 +2896,45 @@ const ManagerDashboardRouteChildren: ManagerDashboardRouteChildren = {
 
 const ManagerDashboardRouteWithChildren =
   ManagerDashboardRoute._addFileChildren(ManagerDashboardRouteChildren)
+
+interface ManagerManagePropertyIdRouteChildren {
+  ManagerManagePropertyIdMaintenanceRoute: typeof ManagerManagePropertyIdMaintenanceRoute
+  ManagerManagePropertyIdRentRoute: typeof ManagerManagePropertyIdRentRoute
+  ManagerManagePropertyIdTenantsRoute: typeof ManagerManagePropertyIdTenantsRoute
+  ManagerManagePropertyIdUnitsRoute: typeof ManagerManagePropertyIdUnitsRoute
+  ManagerManagePropertyIdIndexRoute: typeof ManagerManagePropertyIdIndexRoute
+}
+
+const ManagerManagePropertyIdRouteChildren: ManagerManagePropertyIdRouteChildren =
+  {
+    ManagerManagePropertyIdMaintenanceRoute:
+      ManagerManagePropertyIdMaintenanceRoute,
+    ManagerManagePropertyIdRentRoute: ManagerManagePropertyIdRentRoute,
+    ManagerManagePropertyIdTenantsRoute: ManagerManagePropertyIdTenantsRoute,
+    ManagerManagePropertyIdUnitsRoute: ManagerManagePropertyIdUnitsRoute,
+    ManagerManagePropertyIdIndexRoute: ManagerManagePropertyIdIndexRoute,
+  }
+
+const ManagerManagePropertyIdRouteWithChildren =
+  ManagerManagePropertyIdRoute._addFileChildren(
+    ManagerManagePropertyIdRouteChildren,
+  )
+
+interface ManagerManageRouteChildren {
+  ManagerManagePropertyIdRoute: typeof ManagerManagePropertyIdRouteWithChildren
+  ManagerManageNewRoute: typeof ManagerManageNewRoute
+  ManagerManageIndexRoute: typeof ManagerManageIndexRoute
+}
+
+const ManagerManageRouteChildren: ManagerManageRouteChildren = {
+  ManagerManagePropertyIdRoute: ManagerManagePropertyIdRouteWithChildren,
+  ManagerManageNewRoute: ManagerManageNewRoute,
+  ManagerManageIndexRoute: ManagerManageIndexRoute,
+}
+
+const ManagerManageRouteWithChildren = ManagerManageRoute._addFileChildren(
+  ManagerManageRouteChildren,
+)
 
 interface ManagerPropertiesRouteChildren {
   ManagerPropertiesNewRoute: typeof ManagerPropertiesNewRoute
@@ -2264,6 +2959,7 @@ interface ManagerRouteChildren {
   ManagerImportRoute: typeof ManagerImportRoute
   ManagerIntegrationsRoute: typeof ManagerIntegrationsRoute
   ManagerLeadsRoute: typeof ManagerLeadsRoute
+  ManagerManageRoute: typeof ManagerManageRouteWithChildren
   ManagerPropertiesRoute: typeof ManagerPropertiesRouteWithChildren
   ManagerTeamRoute: typeof ManagerTeamRoute
   ManagerIndexRoute: typeof ManagerIndexRoute
@@ -2277,6 +2973,7 @@ const ManagerRouteChildren: ManagerRouteChildren = {
   ManagerImportRoute: ManagerImportRoute,
   ManagerIntegrationsRoute: ManagerIntegrationsRoute,
   ManagerLeadsRoute: ManagerLeadsRoute,
+  ManagerManageRoute: ManagerManageRouteWithChildren,
   ManagerPropertiesRoute: ManagerPropertiesRouteWithChildren,
   ManagerTeamRoute: ManagerTeamRoute,
   ManagerIndexRoute: ManagerIndexRoute,
@@ -2322,11 +3019,14 @@ const TenantMessagesRouteWithChildren = TenantMessagesRoute._addFileChildren(
 interface TenantRouteChildren {
   TenantCheckoutRoute: typeof TenantCheckoutRoute
   TenantCompareRoute: typeof TenantCompareRoute
+  TenantMaintenanceRoute: typeof TenantMaintenanceRoute
   TenantMapRoute: typeof TenantMapRoute
   TenantMessagesRoute: typeof TenantMessagesRouteWithChildren
   TenantProfileRoute: typeof TenantProfileRoute
+  TenantRentRoute: typeof TenantRentRoute
   TenantSavedRoute: typeof TenantSavedRoute
   TenantIndexRoute: typeof TenantIndexRoute
+  TenantInviteTokenRoute: typeof TenantInviteTokenRoute
   TenantPropertyIdRoute: typeof TenantPropertyIdRoute
   TenantReviewPropertyIdRoute: typeof TenantReviewPropertyIdRoute
 }
@@ -2334,11 +3034,14 @@ interface TenantRouteChildren {
 const TenantRouteChildren: TenantRouteChildren = {
   TenantCheckoutRoute: TenantCheckoutRoute,
   TenantCompareRoute: TenantCompareRoute,
+  TenantMaintenanceRoute: TenantMaintenanceRoute,
   TenantMapRoute: TenantMapRoute,
   TenantMessagesRoute: TenantMessagesRouteWithChildren,
   TenantProfileRoute: TenantProfileRoute,
+  TenantRentRoute: TenantRentRoute,
   TenantSavedRoute: TenantSavedRoute,
   TenantIndexRoute: TenantIndexRoute,
+  TenantInviteTokenRoute: TenantInviteTokenRoute,
   TenantPropertyIdRoute: TenantPropertyIdRoute,
   TenantReviewPropertyIdRoute: TenantReviewPropertyIdRoute,
 }

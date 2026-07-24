@@ -140,7 +140,7 @@ async function findAuthUserByEmail(email: string) {
   let page = 1;
   const perPage = 200;
 
-  while (page <= 10) {
+  while (page <= 50) {
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
     if (error) throw error;
     const match = data.users.find((user) => user.email?.toLowerCase() === normalized);
@@ -160,9 +160,18 @@ async function verifyUserPassword(email: string, password: string): Promise<bool
     process.env.VITE_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return false;
 
+  const { normalizeAuthCredentials } = await import("@/lib/auth/credentials");
+  const { email: cleanEmail, password: cleanPassword } = normalizeAuthCredentials({
+    email,
+    password,
+  });
+
   const { createClient } = await import("@supabase/supabase-js");
   const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error } = await client.auth.signInWithPassword({ email, password });
+  const { error } = await client.auth.signInWithPassword({
+    email: cleanEmail,
+    password: cleanPassword,
+  });
   if (error) {
     console.debug("[auth] link-account password check failed:", error.message);
   }
@@ -229,11 +238,47 @@ function validateSignupInput(data: z.infer<typeof signupSchema>) {
   }
 }
 
+async function validateSignupTrustSignals(data: z.infer<typeof signupSchema>) {
+  validateSignupInput(data);
+  const { assertCleanEmail, assertCleanKenyanMobile } = await import("@/lib/apilayer/verify");
+  const { normalizeAuthEmail } = await import("@/lib/auth/credentials");
+  await Promise.all([
+    assertCleanEmail(normalizeAuthEmail(data.email), "signup"),
+    assertCleanKenyanMobile(data.phone, "signup"),
+  ]);
+}
+
+async function signupIpTrustMetadata(): Promise<Record<string, string>> {
+  try {
+    const request = getRequest();
+    const ip = rateLimitKeyFromHeaders(request?.headers);
+    if (!ip || ip === "anonymous") return {};
+    const { resolveAreaHintFromIp } = await import("@/lib/apilayer/ipstack");
+    const hint = await resolveAreaHintFromIp(ip);
+    if (!hint.available && !hint.configured) return {};
+    const meta: Record<string, string> = {};
+    if (hint.countryCode) meta.signup_ip_country = hint.countryCode;
+    if (hint.fraudRisk) meta.signup_ip_risk = hint.fraudRisk;
+    if (hint.neighborhood || hint.county) {
+      meta.preferred_area = hint.neighborhood || hint.county || "";
+    }
+    if (hint.countryMismatchLikely) meta.signup_ip_country_mismatch = "1";
+    return meta;
+  } catch (err) {
+    console.warn("[auth] ipstack signup hint failed:", err);
+    return {};
+  }
+}
+
 type SignupMetadata = {
   full_name: string;
   phone: string;
   role: z.infer<typeof signupSchema>["role"];
   organization_name?: string;
+  signup_ip_country?: string;
+  signup_ip_risk?: string;
+  preferred_area?: string;
+  signup_ip_country_mismatch?: string;
 };
 
 async function handleDuplicateSignup(
@@ -252,10 +297,11 @@ async function handleDuplicateSignup(
       throw new Error("An account with this email already exists. Try signing in.");
     }
 
+    const { normalizeAuthPassword } = await import("@/lib/auth/credentials");
     await linkPortalRoleToExistingUser(supabaseAdmin, {
       userId: existing.id,
       email,
-      password: data.password,
+      password: normalizeAuthPassword(data.password),
       fullName: data.fullName,
       phone: data.phone,
       role: data.role as PortalListerRole,
@@ -265,9 +311,10 @@ async function handleDuplicateSignup(
     return { userId: existing.id, recovered: false as const, linked: true as const, foundingMember };
   }
 
+  const { normalizeAuthPassword } = await import("@/lib/auth/credentials");
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {
     email_confirm: true,
-    password: data.password,
+    password: normalizeAuthPassword(data.password),
     user_metadata: { ...existing.user_metadata, ...metadata },
   });
   if (updateError) throw updateError;
@@ -281,20 +328,26 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
   .inputValidator(signupSchema)
   .handler(async ({ data }) => {
     checkRateLimit(`signup:${data.email.toLowerCase()}`, RATE_LIMITS.signup);
-    validateSignupInput(data);
+    await validateSignupTrustSignals(data);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const email = data.email.trim().toLowerCase();
+    const { normalizeAuthCredentials } = await import("@/lib/auth/credentials");
+    const { email, password } = normalizeAuthCredentials({
+      email: data.email,
+      password: data.password,
+    });
+    const ipMeta = await signupIpTrustMetadata();
     const metadata: SignupMetadata = {
       full_name: data.fullName.trim(),
       phone: data.phone.trim(),
       role: data.role,
       organization_name: data.organizationName?.trim() || undefined,
+      ...ipMeta,
     };
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: data.password,
+      password,
       email_confirm: true,
       user_metadata: metadata,
     });

@@ -243,23 +243,34 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     setChatMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "user", text: userMsg }]);
     setChatInput("");
     setChatLoading(true);
-    try {
+
+    const askOnce = async () => {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ message: userMsg, propertyId: id }),
       });
-      const payload = (await res.json().catch(() => null)) as { reply?: string; error?: string } | null;
+      const payload = (await res.json().catch(() => null)) as
+        | { reply?: string; error?: string }
+        | null;
       const response =
         payload?.reply?.trim() ||
-        (res.ok
-          ? null
-          : payload?.error) ||
-        "I'm currently unable to access my AI engine. Please try again shortly.";
-      if (!res.ok && !payload?.reply) throw new Error(response);
+        (res.ok ? null : payload?.error) ||
+        "Please try that question once more.";
+      return { ok: res.ok, response, softFail: /try (your question |that question )?once more|Ask again for a fuller/i.test(response) };
+    };
+
+    try {
+      let result = await askOnce();
+      // Auto-retry once when the engine was briefly unavailable.
+      if (result.softFail || (!result.ok && !result.response)) {
+        await new Promise((r) => setTimeout(r, 700));
+        result = await askOnce();
+      }
+      if (!result.ok && !result.response) throw new Error(result.response);
       setChatMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: "assistant", text: response },
+        { id: crypto.randomUUID(), role: "assistant", text: result.response },
       ]);
     } catch {
       toast.error("AI assistant offline. Please try again.");

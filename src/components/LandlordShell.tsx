@@ -12,6 +12,7 @@ import {
   Upload,
   Plug,
   Crown,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
@@ -24,6 +25,7 @@ import { portalNavTourAttr } from "@/lib/onboarding/portal-nav-tour";
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/landlord/properties", label: "Properties", icon: Building2 },
+  { to: "/landlord/manage", label: "Manage portfolio", icon: Briefcase },
   { to: "/landlord/import", label: "Bulk import", icon: Upload },
   { to: "/landlord/integrations", label: "API & integrations", icon: Plug },
   { to: "/landlord/leads", label: "Messages", icon: Inbox },
@@ -45,13 +47,13 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
   }, [user, loading, navigate]);
 
   return (
-    <div className="flex min-h-screen bg-secondary">
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-foreground text-background lg:flex">
+    <div className="portal-shell flex">
+      <aside className="portal-sidebar hidden w-64 shrink-0 flex-col lg:flex">
         <div className="px-4 py-6">
-          <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
+          <div className="portal-sidebar-logo">
             <BrandLogoLink to="/" logoClassName="h-7" />
           </div>
-          <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-background/60">
+          <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-white/55">
             Landlord portal
           </div>
         </div>
@@ -62,8 +64,8 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
               to={n.to}
               preload="intent"
               data-tour={portalNavTourAttr(n.to)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10 hover:text-background"
-              activeProps={{ className: "bg-background/10 text-background font-semibold" }}
+              className="portal-nav-link"
+              activeProps={{ className: "portal-nav-link is-active" }}
             >
               <n.icon className="h-4 w-4" /> {n.label}
             </Link>
@@ -73,25 +75,21 @@ export function LandlordShell({ children }: Readonly<{ children: ReactNode }>) {
           <Link
             to="/landlord/properties/new"
             data-tour="portal-add-property"
-            className="flex items-center justify-center gap-2 rounded-lg bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground"
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground shadow-soft transition active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" /> Add property
           </Link>
           <DashboardSettingsLink variant="sidebar" />
-          <button
-            type="button"
-            onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10"
-          >
+          <button type="button" onClick={signOut} className="portal-nav-link w-full">
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
         <PortalMobileHeader portalLabel="Landlord portal" nav={mobileNav} />
         {!loading && user && !isLandlord && (
-          <div className="border-b bg-gold/20 px-6 py-3 text-sm text-foreground">
+          <div className="border-b border-gold/30 bg-gold/15 px-6 py-3 text-sm text-foreground">
             This account isn't registered as a landlord.{" "}
             <Link to="/landlord" className="font-semibold underline">
               Switch accounts

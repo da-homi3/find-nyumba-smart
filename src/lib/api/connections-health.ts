@@ -72,6 +72,25 @@ export async function checkConnections(): Promise<ConnectionStatus[]> {
         : "Demo payments until MPESA_* vars are set",
     },
     {
+      name: "apilayer",
+      status:
+        process.env.APILAYER_API_KEY ||
+        process.env.MAILBOXLAYER_ACCESS_KEY ||
+        process.env.NUMVERIFY_ACCESS_KEY ||
+        process.env.IPSTACK_ACCESS_KEY ||
+        process.env.STREETLAYER_ACCESS_KEY
+          ? "ok"
+          : "degraded",
+      detail:
+        process.env.APILAYER_API_KEY ||
+        process.env.MAILBOXLAYER_ACCESS_KEY ||
+        process.env.NUMVERIFY_ACCESS_KEY ||
+        process.env.IPSTACK_ACCESS_KEY ||
+        process.env.STREETLAYER_ACCESS_KEY
+          ? "mailboxlayer / numverify / ipstack / streetlayer keys present"
+          : "Set APILAYER_API_KEY (or per-product ACCESS_KEY vars)",
+    },
+    {
       name: "google_maps",
       status: process.env.VITE_GOOGLE_MAPS_API_KEY ? "ok" : "degraded",
       detail: process.env.VITE_GOOGLE_MAPS_API_KEY

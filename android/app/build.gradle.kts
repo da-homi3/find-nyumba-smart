@@ -13,8 +13,8 @@ android {
         applicationId = "ke.co.nyumbasearch.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 9
+        versionName = "1.0.8"
         vectorDrawables.useSupportLibrary = true
     }
 

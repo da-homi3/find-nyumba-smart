@@ -11,6 +11,7 @@ const SKIP_PREFIXES = [
   "/agency",
   "/manager",
   "/caretaker",
+  "/tenant",
   "/settings",
   "/checkout",
   "/portal",

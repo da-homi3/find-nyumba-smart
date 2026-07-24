@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Loader2, Sparkles, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeoutOrThrow } from "@/lib/auth/with-timeout";
 import { enhanceListingCopy, extractListingAmenities } from "@/lib/api/listing-ai.functions";
 import {
   CANONICAL_AMENITIES,
@@ -19,6 +20,8 @@ const inputCls =
 /** Auto-polish + amenity extract once the landlord has a usable draft. */
 const MIN_ENHANCE_CHARS = 20;
 const SHORT_DESC_FOR_CHIPS = 20;
+/** Hard stop so the Enhance spinner never spins forever. */
+const ENHANCE_CLIENT_TIMEOUT_MS = 35_000;
 
 export type ListingAiDraftContext = {
   title: string;
@@ -104,24 +107,28 @@ export function ListingDescriptionAmenitiesFields({
     try {
       const imageDataUrls =
         imageFiles.length > 0 ? await compressImagesForListingAi(imageFiles) : [];
-      const result = await enhanceListingCopy({
-        data: {
-          description: trimmed,
-          existingAmenities: amenitiesRef.current,
-          draft: {
-            title: draft.title,
-            property_type: draft.property_type,
-            bedrooms: Number(draft.bedrooms) || 0,
-            bathrooms: Number(draft.bathrooms) || 0,
-            neighborhood: draft.neighborhood,
-            latitude: draft.latitude == null ? null : Number(draft.latitude),
-            longitude: draft.longitude == null ? null : Number(draft.longitude),
-            rent_kes: Number(draft.rent_kes) || 0,
-            amenities: amenitiesRef.current,
+      const result = await withTimeoutOrThrow(
+        enhanceListingCopy({
+          data: {
+            description: trimmed,
+            existingAmenities: amenitiesRef.current,
+            draft: {
+              title: draft.title,
+              property_type: draft.property_type,
+              bedrooms: Number(draft.bedrooms) || 0,
+              bathrooms: Number(draft.bathrooms) || 0,
+              neighborhood: draft.neighborhood,
+              latitude: draft.latitude == null ? null : Number(draft.latitude),
+              longitude: draft.longitude == null ? null : Number(draft.longitude),
+              rent_kes: Number(draft.rent_kes) || 0,
+              amenities: amenitiesRef.current,
+            },
+            imageDataUrls: imageDataUrls.length > 0 ? imageDataUrls : undefined,
           },
-          imageDataUrls: imageDataUrls.length > 0 ? imageDataUrls : undefined,
-        },
-      });
+        }),
+        ENHANCE_CLIENT_TIMEOUT_MS,
+        "AI enhance timed out. Check your connection and try again.",
+      );
       const next = (result.description || "").trim() || trimmed;
       setUndoDescription(trimmed);
       onDescriptionChange(next);

@@ -306,14 +306,16 @@ function Kpi({
   hint: string;
 }>) {
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-soft">
+    <div className="glass-card rounded-2xl p-5 shadow-soft transition hover:border-primary/25">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <Icon className="h-4 w-4 text-primary" />
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </span>
       </div>
-      <p className="mt-2 font-display text-2xl font-semibold">{value}</p>
+      <p className="mt-2 font-display text-2xl font-semibold tracking-tight">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
     </div>
   );
@@ -333,7 +335,7 @@ function ToolCard({
   return (
     <Link
       to={to}
-      className="rounded-2xl border bg-card p-5 shadow-soft transition hover:border-primary/40 hover:bg-secondary/40"
+      className="glass-card rounded-2xl p-5 shadow-soft transition hover:border-primary/40 hover:shadow-elegant"
     >
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
         <Icon className="h-4 w-4" />

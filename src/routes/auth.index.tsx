@@ -34,6 +34,7 @@ import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
 import { buildPageHead } from "@/lib/seo/head";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
+import { normalizeAuthCredentials } from "@/lib/auth/credentials";
 
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -91,6 +92,33 @@ function signupSubtitle(role: AccountRole): string {
   return "Join thousands finding verified homes in Nairobi.";
 }
 
+function signupPrivilegedSuccessMessage(linked: boolean): string {
+  if (linked) {
+    return "Application submitted for your existing account — we’ll email you once approved.";
+  }
+  return "Application submitted — NyumbaSearch ops will review and email you when approved.";
+}
+
+async function completePrivilegedSignup(opts: {
+  role: "landlord" | "manager" | "agency";
+  organizationName: string;
+  phone: string;
+  linked: boolean;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  if (!opts.linked) {
+    await submitPortalApplication({
+      data: {
+        requestedRole: opts.role,
+        organizationName: opts.organizationName.trim() || undefined,
+        phone: opts.phone.trim() || undefined,
+      },
+    });
+  }
+  toast.success(signupPrivilegedSuccessMessage(opts.linked));
+  opts.navigate({ to: "/auth/pending" });
+}
+
 function TenantAuth() {
   const { redirect, signupFor, mode: modeParam } = Route.useSearch();
   const navigate = useNavigate();
@@ -119,13 +147,17 @@ function TenantAuth() {
     if (!isKenyanPhone(phone)) {
       throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
     }
-    const passwordError = validatePasswordPair(password, confirmPassword);
+    const { email: cleanEmail, password: cleanPassword } = normalizeAuthCredentials({
+      email,
+      password,
+    });
+    const passwordError = validatePasswordPair(cleanPassword, confirmPassword.trim());
     if (passwordError) throw new Error(passwordError);
 
     const signupResult = await registerAccountSignup({
       data: {
-        email,
-        password,
+        email: cleanEmail,
+        password: cleanPassword,
         fullName,
         phone: phone.trim(),
         role,
@@ -133,7 +165,10 @@ function TenantAuth() {
       },
     });
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
     if (signInError) throw signInError;
 
     if (signupResult.foundingMember) {
@@ -143,23 +178,13 @@ function TenantAuth() {
     }
 
     if (isPrivilegedAccountRole(role)) {
-      const privilegedRole = role as "landlord" | "manager" | "agency";
-
-      if (!("linked" in signupResult && signupResult.linked)) {
-        const portalPayload = {
-          requestedRole: privilegedRole,
-          organizationName: organizationName.trim() || undefined,
-          phone: phone.trim() || undefined,
-        };
-        await submitPortalApplication({ data: portalPayload });
-      }
-
-      toast.success(
-        "linked" in signupResult && signupResult.linked
-          ? "Application submitted for your existing account — we’ll email you once approved."
-          : "Application submitted — NyumbaSearch ops will review and email you when approved.",
-      );
-      navigate({ to: "/auth/pending" });
+      await completePrivilegedSignup({
+        role: role as "landlord" | "manager" | "agency",
+        organizationName,
+        phone,
+        linked: "linked" in signupResult && Boolean(signupResult.linked),
+        navigate,
+      });
       return;
     }
 
@@ -172,13 +197,28 @@ function TenantAuth() {
   }
 
   async function handleSignin() {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { email: cleanEmail, password: cleanPassword } = normalizeAuthCredentials({
+      email,
+      password,
+    });
+    if (!cleanEmail || !cleanPassword) {
+      throw new Error("Enter your email and password.");
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
     if (error) throw error;
     if (!data.user) throw new Error("Sign in failed");
 
     // Client queries with timeouts — avoid hanging on server-fn / getSession contention.
     const roles = await withTimeout(resolveRoles(data.user), 4000, [] as string[]);
-    const apps = await withTimeout(loadPortalApplications(data.user.id), 4000, [] as PortalAppRow[]);
+    const apps = await withTimeout(
+      loadPortalApplications(data.user.id),
+      4000,
+      [] as PortalAppRow[],
+    );
     const hasPendingOnly =
       apps.some((a) => a.status === "pending") &&
       !roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
@@ -188,7 +228,11 @@ function TenantAuth() {
       return;
     }
 
-    const activePortal = await withTimeout(loadActivePortal(data.user.id), 3000, "tenant" as PortalId);
+    const activePortal = await withTimeout(
+      loadActivePortal(data.user.id),
+      3000,
+      "tenant" as PortalId,
+    );
 
     void ensureTenantAccount().catch((err) => {
       console.warn("[auth] ensureTenantAccount after signin:", err);
@@ -216,7 +260,7 @@ function TenantAuth() {
     const hardStop = globalThis.setTimeout(() => {
       setLoading(false);
       toast.error("Sign-in is taking too long. Check your connection and try again.");
-    }, 12_000);
+    }, 25_000);
     submitForm()
       .catch((err) => toast.error(errorMessage(err)))
       .finally(() => {
@@ -226,192 +270,180 @@ function TenantAuth() {
   }
 
   const submitLabel = authSubmitLabel(loading, mode === "reset" ? "signin" : mode);
+  const showGoogle = mode === "signin" || role === "tenant";
 
+  if (mode === "reset") {
+    return (
+      <AuthPageShell>
+        <div className="mt-8 rounded-2xl border bg-card p-6 shadow-soft">
+          <PasswordResetFlow
+            initialEmail={email}
+            onCancel={() => {
+              setMode("signin");
+              void navigate({
+                to: "/auth",
+                search: { redirect, mode: "signin" },
+                replace: true,
+              });
+            }}
+          />
+        </div>
+      </AuthPageShell>
+    );
+  }
+
+  return (
+    <AuthPageShell>
+      <h1 className="mt-6 font-display text-3xl font-semibold">
+        {mode === "signin" ? "Welcome back" : "Create your account"}
+      </h1>
+
+      <p className="mt-2 text-sm text-muted-foreground">
+        {mode === "signin"
+          ? "Sign in to save homes and contact verified property owners."
+          : signupSubtitle(role)}
+      </p>
+
+      <div className="mt-6 flex rounded-xl border bg-secondary p-1">
+        {(["signin", "signup"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
+              mode === m ? "bg-background shadow-sm" : "text-muted-foreground"
+            }`}
+          >
+            {m === "signin" ? "Sign in" : "Sign up"}
+          </button>
+        ))}
+      </div>
+
+      {showGoogle && (
+        <div className="mt-4 space-y-3">
+          <GoogleAuthButton
+            nextPath={redirect?.startsWith("/") ? redirect : "/tenant"}
+            label={mode === "signup" ? "Sign up with Google" : "Sign in with Google"}
+            disabled={loading}
+          />
+          <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" aria-hidden />
+            <span>or email</span>
+            <span className="h-px flex-1 bg-border" aria-hidden />
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        {mode === "signup" && (
+          <SignupProfileFields
+            fullName={fullName}
+            phone={phone}
+            organizationName={organizationName}
+            role={role}
+            onFullNameChange={setFullName}
+            onPhoneChange={setPhone}
+            onOrganizationNameChange={setOrganizationName}
+            onRoleChange={setRole}
+          />
+        )}
+
+        <Field label="Email">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setEmail((v) => v.trim())}
+            required
+            className={inputCls}
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            inputMode="email"
+          />
+        </Field>
+
+        <Field label="Password">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={mode === "signup" ? 8 : 1}
+            className={inputCls}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </Field>
+
+        {mode === "signup" && (
+          <Field label="Confirm password">
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              className={inputCls}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </Field>
+        )}
+
+        {mode === "signin" && (
+          <button
+            type="button"
+            onClick={() => {
+              setMode("reset");
+              void navigate({
+                to: "/auth",
+                search: { redirect, mode: "reset" },
+                replace: true,
+              });
+            }}
+            className="block w-full text-right text-xs font-semibold text-primary"
+          >
+            Forgot password?
+          </button>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
+        >
+          {submitLabel}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        <Link to="/settings" className="font-semibold text-foreground">
+          Settings & portals
+        </Link>
+        {" · "}
+        <Link to="/caretaker" className="font-semibold text-foreground">
+          Caretaker PIN sign in
+        </Link>
+      </p>
+    </AuthPageShell>
+  );
+}
+
+function AuthPageShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-md px-6 pt-10 pb-16">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-
         <BrandLogoLink className="mt-6" logoClassName="h-10" />
-
-        {mode === "reset" ? (
-          <div className="mt-8 rounded-2xl border bg-card p-6 shadow-soft">
-            <PasswordResetFlow
-              initialEmail={email}
-              onCancel={() => {
-                setMode("signin");
-                void navigate({
-                  to: "/auth",
-                  search: { redirect, mode: "signin" },
-                  replace: true,
-                });
-              }}
-            />
-          </div>
-        ) : (
-          <>
-            <h1 className="mt-6 font-display text-3xl font-semibold">
-              {mode === "signin" ? "Welcome back" : "Create your account"}
-            </h1>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              {mode === "signin"
-                ? "Sign in to save homes and contact verified property owners."
-                : signupSubtitle(role)}
-            </p>
-
-            <div className="mt-6 flex rounded-xl border bg-secondary p-1">
-              {(["signin", "signup"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-semibold ${
-                    mode === m ? "bg-background shadow-sm" : "text-muted-foreground"
-                  }`}
-                >
-                  {m === "signin" ? "Sign in" : "Sign up"}
-                </button>
-              ))}
-            </div>
-
-            {(mode === "signin" || (mode === "signup" && role === "tenant")) && (
-              <div className="mt-4 space-y-3">
-                <GoogleAuthButton
-                  nextPath={redirect?.startsWith("/") ? redirect : "/tenant"}
-                  label={mode === "signup" ? "Sign up with Google" : "Sign in with Google"}
-                  disabled={loading}
-                />
-                <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <span className="h-px flex-1 bg-border" aria-hidden />
-                  <span>or email</span>
-                  <span className="h-px flex-1 bg-border" aria-hidden />
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={onSubmit} className="mt-6 space-y-4">
-              {mode === "signup" && (
-                <>
-                  <Field label="Full name">
-                    <input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      className={inputCls}
-                    />
-                  </Field>
-
-                  <Field label="Phone (M-Pesa number)">
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="07XX XXX XXX"
-                      required
-                      className={inputCls}
-                    />
-                  </Field>
-
-                  <Field label="Account type">
-                    <RoleSelector value={role} onSelect={setRole} />
-                    <PromoBadge role={role} />
-                  </Field>
-
-                  {ORG_REQUIRED_ROLES.has(role) && (
-                    <Field label={organizationFieldLabel(role)}>
-                      <input
-                        value={organizationName}
-                        onChange={(e) => setOrganizationName(e.target.value)}
-                        required
-                        placeholder={organizationFieldPlaceholder(role)}
-                        className={inputCls}
-                      />
-                    </Field>
-                  )}
-
-                  {isPrivilegedAccountRole(role) && (
-                    <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
-                      Landlord, property manager, and agency accounts require NyumbaSearch admin
-                      approval before dashboard access. After your first paid month, you get one
-                      bonus month free.
-                    </p>
-                  )}
-                </>
-              )}
-
-              <Field label="Email">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className={inputCls}
-                />
-              </Field>
-
-              <Field label="Password">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={mode === "signup" ? 8 : 6}
-                  className={inputCls}
-                />
-              </Field>
-
-              {mode === "signup" && (
-                <Field label="Confirm password">
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    className={inputCls}
-                  />
-                </Field>
-              )}
-
-              {mode === "signin" && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("reset");
-                    void navigate({
-                      to: "/auth",
-                      search: { redirect, mode: "reset" },
-                      replace: true,
-                    });
-                  }}
-                  className="block w-full text-right text-xs font-semibold text-primary"
-                >
-                  Forgot password?
-                </button>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
-              >
-                {submitLabel}
-              </button>
-            </form>
-
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              <Link to="/settings" className="font-semibold text-foreground">
-                Settings & portals
-              </Link>
-              {" · "}
-              <Link to="/caretaker" className="font-semibold text-foreground">
-                Caretaker PIN sign in
-              </Link>
-            </p>
-          </>
-        )}
+        {children}
       </div>
     </div>
   );
@@ -426,5 +458,72 @@ function Field({ label, children }: Readonly<{ label: string; children: React.Re
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+function SignupProfileFields({
+  fullName,
+  phone,
+  organizationName,
+  role,
+  onFullNameChange,
+  onPhoneChange,
+  onOrganizationNameChange,
+  onRoleChange,
+}: Readonly<{
+  fullName: string;
+  phone: string;
+  organizationName: string;
+  role: AccountRole;
+  onFullNameChange: (value: string) => void;
+  onPhoneChange: (value: string) => void;
+  onOrganizationNameChange: (value: string) => void;
+  onRoleChange: (value: AccountRole) => void;
+}>) {
+  return (
+    <>
+      <Field label="Full name">
+        <input
+          value={fullName}
+          onChange={(e) => onFullNameChange(e.target.value)}
+          required
+          className={inputCls}
+        />
+      </Field>
+
+      <Field label="Phone (M-Pesa number)">
+        <input
+          value={phone}
+          onChange={(e) => onPhoneChange(e.target.value)}
+          placeholder="07XX XXX XXX"
+          required
+          className={inputCls}
+        />
+      </Field>
+
+      <Field label="Account type">
+        <RoleSelector value={role} onSelect={onRoleChange} />
+        <PromoBadge role={role} />
+      </Field>
+
+      {ORG_REQUIRED_ROLES.has(role) && (
+        <Field label={organizationFieldLabel(role)}>
+          <input
+            value={organizationName}
+            onChange={(e) => onOrganizationNameChange(e.target.value)}
+            required
+            placeholder={organizationFieldPlaceholder(role)}
+            className={inputCls}
+          />
+        </Field>
+      )}
+
+      {isPrivilegedAccountRole(role) && (
+        <p className="rounded-xl bg-secondary px-3 py-2 text-xs text-muted-foreground">
+          Landlord, property manager, and agency accounts require NyumbaSearch admin approval
+          before dashboard access. After your first paid month, you get one bonus month free.
+        </p>
+      )}
+    </>
   );
 }

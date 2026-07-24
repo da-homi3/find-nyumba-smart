@@ -23,6 +23,13 @@ function formatAuthErrorMessage(message: string): string {
   if (lower.includes("user already registered")) {
     return "An account with this email already exists. Try signing in.";
   }
+  if (
+    lower.includes("invalid login credentials") ||
+    lower.includes("invalid_credentials") ||
+    lower.includes("email not confirmed")
+  ) {
+    return "Email or password is incorrect. Check for extra spaces, or use Forgot password.";
+  }
   return message;
 }
 

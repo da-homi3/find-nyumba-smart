@@ -2,11 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
+import { withTimeoutOrThrow } from "@/lib/auth/with-timeout";
 import {
   extractAmenitiesFromText,
   polishListingDescriptionAndAmenities,
 } from "@/lib/flows/nyumbaai";
 import { formatAmenityString } from "@/lib/listings/amenities";
+
+const ENHANCE_SERVER_TIMEOUT_MS = 28_000;
+const EXTRACT_SERVER_TIMEOUT_MS = 18_000;
 
 const imagePartSchema = z.object({
   mimeType: z.string().min(3).max(64),
@@ -60,7 +64,11 @@ export const extractListingAmenities = createServerFn({ method: "POST" })
     const { userId } = getAuthContext(context);
     await rateLimitAi(userId, "extract");
 
-    const amenities = await extractAmenitiesFromText(data.description, data.existingAmenities);
+    const amenities = await withTimeoutOrThrow(
+      extractAmenitiesFromText(data.description, data.existingAmenities),
+      EXTRACT_SERVER_TIMEOUT_MS,
+      "Amenity extraction timed out. Try again in a moment.",
+    );
     return {
       amenities,
       amenitiesCsv: formatAmenityString(amenities),
@@ -91,11 +99,15 @@ export const enhanceListingCopy = createServerFn({ method: "POST" })
         ? draft.amenities
         : undefined);
 
-    const polished = await polishListingDescriptionAndAmenities(
-      data.description,
-      draft,
-      data.imageDataUrls ?? [],
-      existing,
+    const polished = await withTimeoutOrThrow(
+      polishListingDescriptionAndAmenities(
+        data.description,
+        draft,
+        data.imageDataUrls ?? [],
+        existing,
+      ),
+      ENHANCE_SERVER_TIMEOUT_MS,
+      "AI enhance timed out. Try again in a moment.",
     );
 
     return {

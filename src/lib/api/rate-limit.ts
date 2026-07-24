@@ -12,6 +12,7 @@ export const RATE_LIMITS = {
   portalSignup: { max: 5, windowMs: 60_000 },
   passwordReset: { max: 3, windowMs: 15 * 60_000 },
   payment: { max: 12, windowMs: 120_000 },
+  advertiseCheckout: { max: 30, windowMs: 60_000 },
   mpesa: { max: 12, windowMs: 120_000 },
   stk: { max: 12, windowMs: 120_000 },
   stkPhone: { max: 15, windowMs: 120_000 },

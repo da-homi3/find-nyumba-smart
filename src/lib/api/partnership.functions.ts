@@ -62,8 +62,17 @@ type InquiryPayload = z.infer<typeof inquirySchema>;
 function parseEmailFromContact(contact: string | undefined, email?: string): string | null {
   if (email?.includes("@")) return email.trim();
   if (!contact) return null;
-  const match = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.exec(contact);
-  return match?.[0]?.toLowerCase() ?? null;
+  // Linear scan — avoid backtracking email regexes flagged by Sonar S5852/S8786
+  const at = contact.indexOf("@");
+  if (at <= 0 || at >= contact.length - 1) return null;
+  let start = at;
+  while (start > 0 && !/\s/.test(contact[start - 1]!)) start -= 1;
+  let end = at + 1;
+  while (end < contact.length && !/\s/.test(contact[end]!)) end += 1;
+  const candidate = contact.slice(start, end).toLowerCase();
+  const domain = candidate.slice(candidate.indexOf("@") + 1);
+  if (!domain.includes(".") || domain.startsWith(".") || domain.endsWith(".")) return null;
+  return candidate;
 }
 
 function formatInquiryEmail(data: InquiryPayload): string {
@@ -208,7 +217,8 @@ export const approveAdvertiseInquiry = createServerFn({ method: "POST" })
     const packageId = data.packageId ?? meta.package ?? "listing_banner";
     const pkg = ADVERTISE_PACKAGES.find((p) => p.id === packageId) ?? ADVERTISE_PACKAGES[0];
     const amountKes = data.amountKes ?? pkg.priceKes;
-    const payUrl = `${site}/advertise/pay?package=${pkg.id}&ref=${inquiry.id}`;
+    const checkoutToken = meta.checkoutToken || crypto.randomUUID();
+    const payUrl = `${site}/advertise/pay?package=${pkg.id}&ref=${inquiry.id}&t=${checkoutToken}`;
     const submitterEmail = inquiry.email;
     if (!submitterEmail?.includes("@")) {
       throw new Error("Inquiry has no email address for approval");
@@ -225,7 +235,7 @@ export const approveAdvertiseInquiry = createServerFn({ method: "POST" })
       `Amount: ${formatKes(amountKes)}`,
       `Company: ${inquiry.company ?? "—"}`,
       notesLine,
-      "To activate your ads, complete payment:",
+      "To activate your ads, complete payment (this link is unique to you):",
       payUrl,
       "",
       "Your ads will go live within 48 hours of payment confirmation.",
@@ -251,6 +261,7 @@ export const approveAdvertiseInquiry = createServerFn({ method: "POST" })
           package: pkg.id,
           packageAmount: String(amountKes),
           paymentLink: payUrl,
+          checkoutToken,
           status: "approved",
           approvedAt: new Date().toISOString(),
         } as Record<string, string>,

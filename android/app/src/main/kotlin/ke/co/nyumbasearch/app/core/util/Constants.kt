@@ -2,6 +2,7 @@ package ke.co.nyumbasearch.app.core.util
 
 object Constants {
     const val BASE_URL = "https://nyumbasearch.com/"
+    const val TENANT_URL = "https://nyumbasearch.com/tenant"
     const val APP_SHELL_PATH = "file:///android_asset/app_shell/shell.html"
     const val SHELL_LOAD_DELAY_MS = 80L
 

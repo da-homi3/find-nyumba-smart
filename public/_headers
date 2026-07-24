@@ -1,22 +1,25 @@
-/*
-  cache-control: public, max-age=60
-/assets/*
-  cache-control: public, max-age=31536000, immutable
-/brand/v4/*
-  cache-control: public, max-age=31536000, immutable
-/brand/*
-  cache-control: public, max-age=86400, must-revalidate
-/favicon.ico
-  cache-control: public, max-age=86400, must-revalidate
-/favicon*.png
-  cache-control: public, max-age=86400, must-revalidate
-/apple-touch-icon*.png
-  cache-control: public, max-age=86400, must-revalidate
-/manifest.webmanifest
-  cache-control: public, max-age=3600, must-revalidate
-/*.jpg
-  cache-control: public, max-age=604800
-/*.png
-  cache-control: public, max-age=86400, must-revalidate
-/*.webp
-  cache-control: public, max-age=604800
+/*
+  cache-control: public, max-age=60
+/assets/*
+  cache-control: public, max-age=31536000, immutable
+/brand/v4/*
+  cache-control: public, max-age=31536000, immutable
+/brand/*
+  cache-control: public, max-age=86400, must-revalidate
+/favicon.ico
+  cache-control: public, max-age=86400, must-revalidate
+/favicon*.png
+  cache-control: public, max-age=86400, must-revalidate
+/apple-touch-icon*.png
+  cache-control: public, max-age=86400, must-revalidate
+/manifest.webmanifest
+  cache-control: public, max-age=3600, must-revalidate
+/sw.js
+  cache-control: public, max-age=0, must-revalidate
+  service-worker-allowed: /
+/*.jpg
+  cache-control: public, max-age=604800
+/*.png
+  cache-control: public, max-age=86400, must-revalidate
+/*.webp
+  cache-control: public, max-age=604800

@@ -3,7 +3,7 @@ import { readStoredMapViewport } from "@/lib/mapbox/map-viewport-memory";
 import { matchLocation, neighborhoodStorageValue } from "@/data/kenya-locations";
 import { nearbyKenyaLocations } from "@/lib/geo/location-search";
 
-export type BrowseOriginSource = "geolocation" | "neighborhood" | "map" | "default";
+export type BrowseOriginSource = "geolocation" | "neighborhood" | "map" | "ip" | "default";
 
 export type BrowseOrigin = {
   lat: number;
@@ -14,6 +14,7 @@ export type BrowseOrigin = {
 };
 
 const ORIGIN_STORAGE_KEY = "nyumba-browse-origin";
+const IP_ORIGIN_STORAGE_KEY = "nyumba-browse-origin-ip";
 
 /** Nairobi CBD — last-resort browse center. */
 export const DEFAULT_BROWSE_ORIGIN: BrowseOrigin = {
@@ -52,6 +53,36 @@ export function writeStoredBrowseOrigin(origin: BrowseOrigin): void {
   }
 }
 
+export function readStoredIpBrowseOrigin(): BrowseOrigin | null {
+  if (globalThis.sessionStorage === undefined) return null;
+  try {
+    const raw = sessionStorage.getItem(IP_ORIGIN_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as BrowseOrigin;
+    if (!Number.isFinite(parsed.lat) || !Number.isFinite(parsed.lng)) return null;
+    return {
+      lat: parsed.lat,
+      lng: parsed.lng,
+      source: "ip",
+      homeNeighborhood: parsed.homeNeighborhood,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function writeStoredIpBrowseOrigin(origin: BrowseOrigin): void {
+  if (globalThis.sessionStorage === undefined) return;
+  try {
+    sessionStorage.setItem(
+      IP_ORIGIN_STORAGE_KEY,
+      JSON.stringify({ ...origin, source: "ip" satisfies BrowseOriginSource }),
+    );
+  } catch {
+    // ignore
+  }
+}
+
 export function homeNeighborhoodForCoords(lat: number, lng: number): string | undefined {
   const nearest = nearbyKenyaLocations(lat, lng, { limit: 1, maxKm: 25 })[0];
   return nearest?.neighborhood;
@@ -80,6 +111,9 @@ export function resolveBrowseOriginFallback(neighborhoodFilter?: string): Browse
   const storedGeo = readStoredBrowseOrigin();
   if (storedGeo) return storedGeo;
 
+  const storedIp = readStoredIpBrowseOrigin();
+  if (storedIp) return storedIp;
+
   const mapViewport = readStoredMapViewport();
   if (mapViewport) {
     return {
@@ -99,5 +133,18 @@ export function browseOriginFromGeolocation(lat: number, lng: number): BrowseOri
     lng,
     source: "geolocation",
     homeNeighborhood: homeNeighborhoodForCoords(lat, lng),
+  };
+}
+
+export function browseOriginFromIpHint(input: {
+  lat: number;
+  lng: number;
+  neighborhood?: string | null;
+}): BrowseOrigin {
+  return {
+    lat: input.lat,
+    lng: input.lng,
+    source: "ip",
+    homeNeighborhood: input.neighborhood ?? homeNeighborhoodForCoords(input.lat, input.lng),
   };
 }

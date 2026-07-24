@@ -55,6 +55,8 @@ export type PaymentFulfillment = {
 
     inquiryId?: string;
 
+    invoiceId?: string;
+
     renewalSubscriptionId?: string;
   };
 };
@@ -207,14 +209,18 @@ async function fulfillBoost(
 ) {
   const { userId, propertyId, amountKes, metadata = {} } = payment;
 
-  if (!propertyId) return;
+  if (!propertyId) {
+    throw new Error("Boost payment missing propertyId");
+  }
 
   const { data: owned } = await supabaseAdmin
     .from("properties")
     .select("owner_id")
     .eq("id", propertyId)
     .maybeSingle();
-  if (owned?.owner_id !== userId) return;
+  if (owned?.owner_id !== userId) {
+    throw new Error("Boost payment property owner mismatch");
+  }
 
   const packageId = (metadata.boostPackage ?? "spotlight") as BoostPackage;
 
@@ -291,25 +297,29 @@ async function fulfillLeadPack(supabaseAdmin: SupabaseAdmin, payment: PaymentFul
 
   if (qty <= 0) return;
 
-  const { data: profile } = await supabaseAdmin
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("lead_pack_balance")
+      .eq("id", userId)
+      .maybeSingle();
 
-    .from("profiles")
+    const current = profile?.lead_pack_balance ?? 0;
+    const next = current + qty;
 
-    .select("lead_pack_balance")
+    const { data: updated, error } = await supabaseAdmin
+      .from("profiles")
+      .update({ lead_pack_balance: next })
+      .eq("id", userId)
+      .eq("lead_pack_balance", current)
+      .select("id")
+      .maybeSingle();
 
-    .eq("id", userId)
+    if (error) throw error;
+    if (updated) return;
+  }
 
-    .maybeSingle();
-
-  const current = profile?.lead_pack_balance ?? 0;
-
-  await supabaseAdmin
-
-    .from("profiles")
-
-    .update({ lead_pack_balance: current + qty })
-
-    .eq("id", userId);
+  throw new Error("Failed to credit lead pack after concurrent updates");
 }
 
 async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -568,6 +578,27 @@ async function fulfillInvoice(supabaseAdmin: SupabaseAdmin, payment: PaymentFulf
   });
 }
 
+async function fulfillRentPayment(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
+  const invoiceId = payment.metadata?.invoiceId;
+  if (!invoiceId) throw new Error("Rent payment missing invoiceId in metadata");
+  if (!payment.paymentId) throw new Error("Rent payment missing paymentId");
+
+  const { data: row } = await supabaseAdmin
+    .from("payments")
+    .select("mpesa_receipt")
+    .eq("id", payment.paymentId)
+    .maybeSingle();
+
+  const { fulfillPmRentPayment } = await import("@/lib/pm/rent-fulfillment");
+  await fulfillPmRentPayment(supabaseAdmin, {
+    invoiceId,
+    amountKes: payment.amountKes,
+    paymentId: payment.paymentId,
+    userId: payment.userId,
+    mpesaReceipt: row?.mpesa_receipt ?? null,
+  });
+}
+
 const FULFILLMENT_HANDLERS: Record<
   string,
   (admin: SupabaseAdmin, payment: PaymentFulfillment) => Promise<void>
@@ -593,6 +624,8 @@ const FULFILLMENT_HANDLERS: Record<
   provider_subscription: fulfillProviderSubscription,
 
   invoice: fulfillInvoice,
+
+  rent_payment: fulfillRentPayment,
 };
 
 export async function fulfillPayment(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -614,6 +647,30 @@ export async function fulfillPaymentRow(
 ) {
   const meta = parsePaymentMetadata(row.metadata);
   if (meta.fulfilledAt) return;
+
+  const fulfilledAt = new Date().toISOString();
+  const claimedMeta = { ...meta, fulfilledAt };
+  // Compare-and-set: only one concurrent fulfiller wins
+  const { data: claimed, error: claimErr } = await supabaseAdmin
+    .from("payments")
+    .update({ metadata: claimedMeta })
+    .eq("id", row.id)
+    .is("metadata->>fulfilledAt", null)
+    .select("id")
+    .maybeSingle();
+
+  if (claimErr) {
+    // Fallback when PostgREST cannot filter jsonb path — re-read and bail if already fulfilled
+    const { data: fresh } = await supabaseAdmin
+      .from("payments")
+      .select("metadata")
+      .eq("id", row.id)
+      .maybeSingle();
+    if (parsePaymentMetadata(fresh?.metadata).fulfilledAt) return;
+    await supabaseAdmin.from("payments").update({ metadata: claimedMeta }).eq("id", row.id);
+  } else if (!claimed) {
+    return;
+  }
 
   try {
     await fulfillPayment(supabaseAdmin, {
@@ -660,17 +717,14 @@ export async function fulfillPaymentRow(
 
         inquiryId: meta.inquiryId,
 
+        invoiceId: meta.invoiceId,
+
         renewalSubscriptionId: meta.renewalSubscriptionId,
       },
     });
-
-    await supabaseAdmin
-      .from("payments")
-      .update({
-        metadata: { ...meta, fulfilledAt: new Date().toISOString() },
-      })
-      .eq("id", row.id);
   } catch (err) {
+    // Allow retry by clearing the claim
+    await supabaseAdmin.from("payments").update({ metadata: meta }).eq("id", row.id);
     const message = err instanceof Error ? err.message : String(err);
     const { Monitors } = await import("@/lib/alerts/monitors");
     void Monitors.paymentFulfillFailed(row.id, row.payment_type, message);

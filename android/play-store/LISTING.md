@@ -168,6 +168,17 @@ Nairobi rent, bedsitter Nairobi, house to rent Kenya, apartment Kilimani, rental
 
 ---
 
+## What's new (version 1.0.8)
+
+```
+More reliable sign-in, AI listing tools, and safer contacts
+
+• Sign-in no longer fails when autofill adds spaces to email or password
+• Enhance with AI finishes instead of spinning forever
+• Stronger email and phone checks on signup and contact unlock
+• Smarter default search area and cleaner listing addresses
+```
+
 ## What's new (version 1.0.4)
 
 ```

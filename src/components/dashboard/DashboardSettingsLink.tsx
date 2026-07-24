@@ -15,7 +15,7 @@ export function DashboardSettingsLink({ variant = "pill", className }: Dashboard
         to="/settings"
         aria-label="Open settings"
         className={cn(
-          "inline-flex rounded-lg p-2 text-background/80 transition hover:bg-background/10 hover:text-background",
+          "inline-flex rounded-lg p-2 text-white/80 transition hover:bg-white/10 hover:text-white",
           className,
         )}
       >
@@ -26,13 +26,7 @@ export function DashboardSettingsLink({ variant = "pill", className }: Dashboard
 
   if (variant === "sidebar") {
     return (
-      <Link
-        to="/settings"
-        className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10",
-          className,
-        )}
-      >
+      <Link to="/settings" className={cn("portal-nav-link w-full", className)}>
         <Settings className="h-4 w-4" /> Settings
       </Link>
     );

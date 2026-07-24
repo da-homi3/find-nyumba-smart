@@ -14,6 +14,7 @@ import {
   Upload,
   Plug,
   Crown,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogoLink } from "@/components/BrandLogo";
@@ -27,6 +28,7 @@ import { useEffect, type ReactNode } from "react";
 const ownerNav = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/properties", label: "Properties", icon: Building2 },
+  { to: "/agency/manage", label: "Manage portfolio", icon: Briefcase },
   { to: "/agency/import", label: "Bulk import", icon: Upload },
   { to: "/agency/integrations", label: "API & integrations", icon: Plug },
   { to: "/agency/leads", label: "Messages", icon: Inbox },
@@ -41,6 +43,7 @@ const ownerNav = [
 const memberNav = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/properties", label: "Properties", icon: Building2 },
+  { to: "/agency/manage", label: "Manage portfolio", icon: Briefcase },
   { to: "/agency/leads", label: "Messages", icon: Inbox },
   { to: "/agency/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -67,7 +70,7 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary">
+      <div className="portal-shell flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -75,8 +78,8 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
 
   if (isPending || (membership && membership.isPending)) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-secondary px-6 text-center">
-        <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
+      <div className="portal-shell flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="portal-sidebar-logo">
           <BrandLogoLink to="/" logoClassName="h-7" />
         </div>
         <h1 className="font-display text-2xl font-semibold">Awaiting owner approval</h1>
@@ -96,13 +99,13 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
   }
 
   return (
-    <div className="flex min-h-screen bg-secondary">
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-foreground text-background lg:flex">
+    <div className="portal-shell flex">
+      <aside className="portal-sidebar hidden w-64 shrink-0 flex-col lg:flex">
         <div className="px-4 py-6">
-          <div className="rounded-xl bg-white px-3 py-2 shadow-sm">
+          <div className="portal-sidebar-logo">
             <BrandLogoLink to="/" logoClassName="h-7" />
           </div>
-          <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-background/60">
+          <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-white/55">
             Agency portal
             {isOwner ? " · Owner" : " · Team"}
           </div>
@@ -114,8 +117,8 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
               to={n.to}
               preload="intent"
               data-tour={portalNavTourAttr(n.to)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10 hover:text-background"
-              activeProps={{ className: "bg-background/10 text-background font-semibold" }}
+              className="portal-nav-link"
+              activeProps={{ className: "portal-nav-link is-active" }}
             >
               <n.icon className="h-4 w-4" /> {n.label}
             </Link>
@@ -125,21 +128,17 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
           <Link
             to="/agency/properties/new"
             data-tour="portal-add-property"
-            className="flex items-center justify-center gap-2 rounded-lg bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground"
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-gold px-3 py-2.5 text-sm font-semibold text-gold-foreground shadow-soft transition active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" /> Add property
           </Link>
           <DashboardSettingsLink variant="sidebar" />
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-background/75 hover:bg-background/10"
-          >
+          <button type="button" onClick={() => signOut()} className="portal-nav-link w-full">
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
       </aside>
-      <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
         <PortalMobileHeader portalLabel="Agency portal" nav={mobileNav} />
         {children}
       </main>

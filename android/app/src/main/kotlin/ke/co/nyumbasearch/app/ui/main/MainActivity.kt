@@ -6,6 +6,7 @@ import android.app.DownloadManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.webkit.CookieManager
@@ -16,9 +17,11 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.isVisible
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import ke.co.nyumbasearch.app.BuildConfig
@@ -44,7 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefetchManager: PrefetchManager
     private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
 
-    private var pendingUrl: String = Constants.BASE_URL
+    private var pendingUrl: String = Constants.TENANT_URL
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
     private var pendingGeoCallback: android.webkit.GeolocationPermissions.Callback? = null
     private var pendingGeoOrigin: String? = null
@@ -75,9 +78,15 @@ class MainActivity : AppCompatActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        supportActionBar?.hide()
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
 
         tierDetector = NetworkTierDetector(this)
         appShellLoader = AppShellLoader(binding.webView)
@@ -88,8 +97,9 @@ class MainActivity : AppCompatActivity() {
         setupBackNavigation()
         setupOfflineRetry()
         setupNetworkObserver()
+        maybeClearStaleWebViewState()
 
-        pendingUrl = intent.dataString ?: Constants.BASE_URL
+        pendingUrl = intent.dataString ?: Constants.TENANT_URL
         initWebView(binding.webView)
         loadWithAppHeaders(pendingUrl, useShell = savedInstanceState == null)
         prefetchManager.prefetchIfOnWifi(
@@ -98,25 +108,48 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-  @SuppressLint("SetJavaScriptEnabled")
+    /** Bust broken WebView HTTP cache left by older builds (keep cookies/session). */
+    private fun maybeClearStaleWebViewState() {
+        val prefs = getSharedPreferences("nyumba_webview", MODE_PRIVATE)
+        val last = prefs.getInt("cleared_for_version", 0)
+        if (last >= BuildConfig.VERSION_CODE) return
+        runCatching { binding.webView.clearCache(true) }
+        prefs.edit().putInt("cleared_for_version", BuildConfig.VERSION_CODE).apply()
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
     private fun initWebView(webView: WebView) {
         SessionPersistence.configureCookies(webView)
 
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            databaseEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            // Assets not needed for cold start anymore; keep false for security on API 30+.
             allowFileAccess = false
-            allowContentAccess = false
+            allowContentAccess = true
             javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(false)
             setGeolocationEnabled(true)
             mediaPlaybackRequiresUserGesture = true
             loadsImagesAutomatically = true
             blockNetworkImage = false
             textZoom = 100
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            builtInZoomControls = false
+            displayZoomControls = false
+            // Identify the Play Store shell so the site never shows browser/install chrome.
+            userAgentString =
+                "$userAgentString NyumbaSearchApp/${BuildConfig.VERSION_NAME} (standalone)"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                safeBrowsingEnabled = true
+            }
         }
 
+        webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
         webView.addJavascriptInterface(JsBridge(), "NyumbaAndroid")
         webView.webChromeClient = NyumbaChromeClient(this)
         webView.webViewClient = NyumbaWebViewClient(
@@ -170,7 +203,7 @@ class MainActivity : AppCompatActivity() {
                     when {
                         binding.webView.canGoBack() -> binding.webView.goBack()
                         isOnHomepage() -> showExitConfirmationDialog()
-                        else -> loadWithAppHeaders(Constants.BASE_URL, useShell = false)
+                        else -> loadWithAppHeaders(Constants.TENANT_URL, useShell = false)
                     }
                 }
             },
@@ -282,7 +315,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun isOnHomepage(): Boolean {
         val url = binding.webView.url ?: return true
-        return url == Constants.BASE_URL || url == "https://www.nyumbasearch.com/"
+        return url == Constants.BASE_URL ||
+            url == Constants.TENANT_URL ||
+            url == "https://www.nyumbasearch.com/" ||
+            url == "https://www.nyumbasearch.com/tenant"
     }
 
     private fun showExitConfirmationDialog() {
@@ -302,14 +338,13 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         binding.webView.onPause()
-        binding.webView.pauseTimers()
+        // Do not pauseTimers() — it freezes in-flight listing fetches on Android 11+.
         SessionPersistence.flushCookies()
     }
 
     override fun onResume() {
         super.onResume()
         binding.webView.onResume()
-        binding.webView.resumeTimers()
     }
 
     override fun onDestroy() {

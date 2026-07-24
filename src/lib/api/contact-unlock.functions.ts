@@ -24,7 +24,10 @@ async function resolveContactPhones(
   if (!property) return [];
 
   const listingPhones = phonesFromProperty(property);
-  if (listingPhones.length > 0) return listingPhones;
+  if (listingPhones.length > 0) {
+    const { filterTrustedContactPhones } = await import("@/lib/apilayer/verify");
+    return filterTrustedContactPhones(listingPhones);
+  }
 
   if (!property.owner_id) return [];
   const { data: profile } = await admin
@@ -33,7 +36,9 @@ async function resolveContactPhones(
     .eq("id", property.owner_id)
     .maybeSingle();
   const fallback = profile?.phone?.trim();
-  return fallback ? [fallback] : [];
+  if (!fallback) return [];
+  const { filterTrustedContactPhones } = await import("@/lib/apilayer/verify");
+  return filterTrustedContactPhones([fallback]);
 }
 
 export const getListingUnlockState = createServerFn({ method: "POST" })
@@ -194,6 +199,14 @@ async function unlockWithPayment(
 ) {
   if (data.method === "mpesa" && (!data.phoneNumber || !isKenyanPhone(data.phoneNumber))) {
     throw new Error("Enter a valid M-Pesa phone number");
+  }
+
+  const { assertCleanEmail, assertCleanKenyanMobile } = await import("@/lib/apilayer/verify");
+  if (data.method === "mpesa" && data.phoneNumber) {
+    await assertCleanKenyanMobile(data.phoneNumber, "unlock");
+  }
+  if (data.email?.trim()) {
+    await assertCleanEmail(data.email.trim(), "unlock");
   }
 
   const idempotencyKey =

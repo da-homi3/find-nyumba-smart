@@ -24,16 +24,18 @@ type Props = {
 function resolveGlassClass(isHero: boolean, scrolled: boolean): string {
   if (isHero) {
     return scrolled
-      ? "bg-[rgba(13,17,23,0.9)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-      : "bg-[rgba(13,17,23,0.4)]";
+      ? "bg-[rgba(17,24,39,0.88)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+      : "bg-[rgba(17,24,39,0.42)]";
   }
-  return scrolled ? "bg-background/95 shadow-card" : "bg-background/80";
+  return scrolled
+    ? "bg-background/90 shadow-card"
+    : "bg-background/75";
 }
 
 function headerShellClass(isHero: boolean): string {
   return isHero
-    ? "fixed top-4 inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/10 backdrop-blur-xl sm:inset-x-6"
-    : "sticky top-0 z-30 border-b backdrop-blur-xl";
+    ? "fixed top-4 inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/12 backdrop-blur-2xl sm:inset-x-6"
+    : "sticky top-0 z-30 border-b border-border/60 backdrop-blur-2xl";
 }
 
 function heroOutlineClass(isHero: boolean): string {
@@ -75,13 +77,13 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
         <nav className={`hidden items-center gap-1 md:flex ${mutedClass}`}>
           <Link
             to="/tenant"
-            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+            className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
           >
             Browse
           </Link>
           <Link
             to="/tenant/map"
-            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+            className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
           >
             Map
           </Link>

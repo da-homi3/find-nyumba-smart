@@ -37,8 +37,8 @@ class PrefetchManager(
     }
 
     fun defaultPrefetchUrls(): List<String> = listOf(
-        Constants.BASE_URL,
-        "${Constants.BASE_URL}tenant",
+        Constants.TENANT_URL,
         "${Constants.BASE_URL}tenant/map",
+        Constants.BASE_URL,
     )
 }
