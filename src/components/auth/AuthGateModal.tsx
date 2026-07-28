@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { registerAccountSignup } from "@/lib/api/auth.functions";
 import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
 import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
+import { SignupPolicyDialog } from "@/components/auth/SignupPolicyDialog";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import {
   clearAuthGateDismiss,
@@ -14,6 +15,7 @@ import {
   isAuthGateDismissedThisSession,
   shouldSkipAuthGate,
 } from "@/lib/auth/auth-gate";
+import { SIGNUP_POLICY_VERSION } from "@/lib/auth/signup-policy";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
 import { isKenyanPhone } from "@/lib/phone";
 import { validatePasswordPair } from "@/lib/validate-password";
@@ -42,6 +44,10 @@ export function AuthGateModal() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [policyAcceptedAt, setPolicyAcceptedAt] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"email" | "google" | null>(null);
+  const [googleStartSignal, setGoogleStartSignal] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -97,6 +103,8 @@ export function AuthGateModal() {
         fullName: fullName.trim(),
         phone: phone.trim(),
         role: "tenant",
+        acceptedPolicyVersion: SIGNUP_POLICY_VERSION,
+        acceptedPolicyAt: policyAcceptedAt ?? new Date().toISOString(),
       },
     });
 
@@ -148,6 +156,11 @@ export function AuthGateModal() {
 
   function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "signup" && !policyAcceptedAt) {
+      setPendingAction("email");
+      setPolicyOpen(true);
+      return;
+    }
     setSubmitting(true);
     const hardStop = globalThis.setTimeout(() => {
       setSubmitting(false);
@@ -160,6 +173,39 @@ export function AuthGateModal() {
         globalThis.clearTimeout(hardStop);
         setSubmitting(false);
       });
+  }
+
+  function closePolicy() {
+    if (submitting) return;
+    setPolicyOpen(false);
+    setPendingAction(null);
+  }
+
+  function acceptPolicy() {
+    const acceptedAt = new Date().toISOString();
+    setPolicyAcceptedAt(acceptedAt);
+    setPolicyOpen(false);
+
+    if (pendingAction === "google") {
+      setPendingAction(null);
+      setGoogleStartSignal((value) => value + 1);
+      return;
+    }
+
+    if (pendingAction === "email") {
+      setPendingAction(null);
+      setSubmitting(true);
+      const hardStop = globalThis.setTimeout(() => {
+        setSubmitting(false);
+        toast.error("Sign-up is taking too long. Check your connection and try again.");
+      }, 25_000);
+      void handleSignup()
+        .catch((err) => toast.error(errorMessage(err)))
+        .finally(() => {
+          globalThis.clearTimeout(hardStop);
+          setSubmitting(false);
+        });
+    }
   }
 
   return (
@@ -213,6 +259,22 @@ export function AuthGateModal() {
               nextPath="/tenant"
               label={mode === "signup" ? "Sign up with Google" : "Sign in with Google"}
               disabled={submitting}
+              onBeforeStart={() => {
+                if (mode !== "signup" || policyAcceptedAt) return true;
+                setPendingAction("google");
+                setPolicyOpen(true);
+                return false;
+              }}
+              startSignal={googleStartSignal}
+              policyAcceptance={
+                mode === "signup" && policyAcceptedAt
+                  ? {
+                      role: "tenant",
+                      version: SIGNUP_POLICY_VERSION,
+                      acceptedAt: policyAcceptedAt,
+                    }
+                  : undefined
+              }
             />
           </div>
 
@@ -319,6 +381,13 @@ export function AuthGateModal() {
           </button>
         </div>
       </div>
+      <SignupPolicyDialog
+        open={policyOpen}
+        role="tenant"
+        busy={submitting}
+        onClose={closePolicy}
+        onAccept={acceptPolicy}
+      />
     </dialog>
   );
 }

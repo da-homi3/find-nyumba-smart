@@ -216,78 +216,102 @@ export async function handleDailyCron(request: Request): Promise<Response> {
   if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { runSubscriptionRenewalCron } = await import("@/lib/payments/renewal-cron");
-  const { runTrialReminderCron, runReengagementCron, runSavedSearchDigestCron } =
-    await import("@/lib/cron/marketing-cron");
   const { runEmailRetryCron } = await import("@/lib/cron/email-retry-cron");
   const { runViewingReminderCron } = await import("@/lib/cron/whatsapp-cron");
-  const { runSalesBotCron } = await import("@/lib/cron/sales-cron");
 
-  const { asPmDb } = await import("@/lib/pm/access");
-  const { flagPmOverdueInvoices } = await import("@/lib/pm/cron");
-  const { applyPmLateFees, sendPmRentReminders } = await import("@/lib/pm/rent-reminders");
-
-  const pmDb = asPmDb(supabaseAdmin);
-
-  const [
-    renewals,
-    trial,
-    reengagement,
-    savedSearch,
-    emailRetry,
-    viewingReminders,
-    sales,
-    pmOverdue,
-    pmLateFees,
-    pmReminders,
-  ] = await Promise.all([
-      runSubscriptionRenewalCron(supabaseAdmin),
-      runTrialReminderCron(supabaseAdmin).catch((e) => {
-        console.warn("[cron] trial reminders:", e);
-        return { trialEnding: 0, trialExpired: 0 };
-      }),
-      runReengagementCron(supabaseAdmin).catch((e) => {
-        console.warn("[cron] re-engagement:", e);
-        return { sent: 0 };
-      }),
-      runSavedSearchDigestCron(supabaseAdmin).catch((e) => {
-        console.warn("[cron] saved search digest:", e);
-        return { sent: 0 };
-      }),
-      runEmailRetryCron(supabaseAdmin).catch((e) => {
-        console.warn("[cron] email retry:", e);
-        return { retried: 0, succeeded: 0 };
-      }),
-      runViewingReminderCron(supabaseAdmin).catch((e) => {
-        console.warn("[cron] whatsapp viewing reminders:", e);
-        return { tomorrow: 0, today: 0, skipped: true };
-      }),
-      runSalesBotCron(supabaseAdmin).catch((e) => {
-        console.warn("[cron] sales bot:", e);
-        return { upgrade: { sent: 0 }, landlord: { sent: 0 } };
-      }),
-      flagPmOverdueInvoices(pmDb).catch((e) => {
-        console.warn("[cron] pm overdue invoices:", e);
-        return { updated: 0 };
-      }),
-      applyPmLateFees(pmDb).catch((e) => {
-        console.warn("[cron] pm late fees:", e);
-        return { updated: 0 };
-      }),
-      sendPmRentReminders(pmDb).catch((e) => {
-        console.warn("[cron] pm rent reminders:", e);
-        return { sent: 0 };
-      }),
-    ]);
+  const [renewals, emailRetry, viewingReminders] = await Promise.all([
+    runSubscriptionRenewalCron(supabaseAdmin),
+    runEmailRetryCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] email retry:", e);
+      return { retried: 0, succeeded: 0 };
+    }),
+    runViewingReminderCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] whatsapp viewing reminders:", e);
+      return { tomorrow: 0, today: 0, skipped: true };
+    }),
+  ]);
 
   return new Response(
     JSON.stringify({
       ok: true,
       renewals,
-      marketing: { trial, reengagement, savedSearch },
       emailRetry,
       whatsapp: { viewingReminders },
+    }),
+    { headers: { "Content-Type": "application/json" } },
+  );
+}
+
+/** PM rent ops + payouts — separate schedule so IntaSend/DB work cannot starve billing. */
+export async function handleDailyPmCron(request: Request): Promise<Response> {
+  if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { asPmDb } = await import("@/lib/pm/access");
+  const { flagPmOverdueInvoices } = await import("@/lib/pm/cron");
+  const { applyPmLateFees, sendPmRentReminders } = await import("@/lib/pm/rent-reminders");
+  const { runDailyPayoutBatch } = await import("@/lib/pm/payout-batch");
+
+  const pmDb = asPmDb(supabaseAdmin);
+  const [pmOverdue, pmLateFees, pmReminders, pmPayouts] = await Promise.all([
+    flagPmOverdueInvoices(pmDb).catch((e) => {
+      console.warn("[cron] pm overdue invoices:", e);
+      return { updated: 0 };
+    }),
+    applyPmLateFees(pmDb).catch((e) => {
+      console.warn("[cron] pm late fees:", e);
+      return { updated: 0 };
+    }),
+    sendPmRentReminders(pmDb).catch((e) => {
+      console.warn("[cron] pm rent reminders:", e);
+      return { sent: 0 };
+    }),
+    runDailyPayoutBatch(pmDb).catch((e) => {
+      console.warn("[cron] pm payout batch:", e);
+      return { batchesCreated: 0, completed: 0, failed: 0, skipped: 0 };
+    }),
+  ]);
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      pm: { overdue: pmOverdue, lateFees: pmLateFees, reminders: pmReminders, payouts: pmPayouts },
+    }),
+    { headers: { "Content-Type": "application/json" } },
+  );
+}
+
+/** Marketing / sales emails — separate schedule from billing + PM. */
+export async function handleDailyMarketingCron(request: Request): Promise<Response> {
+  if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { runTrialReminderCron, runReengagementCron, runSavedSearchDigestCron } =
+    await import("@/lib/cron/marketing-cron");
+  const { runSalesBotCron } = await import("@/lib/cron/sales-cron");
+
+  const [trial, reengagement, savedSearch, sales] = await Promise.all([
+    runTrialReminderCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] trial reminders:", e);
+      return { trialEnding: 0, trialExpired: 0 };
+    }),
+    runReengagementCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] re-engagement:", e);
+      return { sent: 0 };
+    }),
+    runSavedSearchDigestCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] saved search digest:", e);
+      return { sent: 0 };
+    }),
+    runSalesBotCron(supabaseAdmin).catch((e) => {
+      console.warn("[cron] sales bot:", e);
+      return { upgrade: { sent: 0 }, landlord: { sent: 0 } };
+    }),
+  ]);
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      marketing: { trial, reengagement, savedSearch },
       sales,
-      pm: { overdue: pmOverdue, lateFees: pmLateFees, reminders: pmReminders },
     }),
     { headers: { "Content-Type": "application/json" } },
   );

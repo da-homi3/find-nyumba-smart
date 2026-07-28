@@ -20,7 +20,9 @@ export type AdminTab =
   | "advertise"
   | "announcements"
   | "founding_promo"
-  | "listing_accounts";
+  | "listing_accounts"
+  | "property_management"
+  | "payouts";
 
 export type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
 export type AdminPropertyCheck = Awaited<ReturnType<typeof listAdminVerificationRequests>>[number];

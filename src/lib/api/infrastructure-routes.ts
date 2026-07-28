@@ -49,6 +49,16 @@ function withPublicRateLimit(
   });
 }
 
+function unknownErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  if (typeof err === "string" && err.trim()) return err;
+  if (err && typeof err === "object" && "message" in err) {
+    const message = (err as { message: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return "Internal error";
+}
+
 async function withErrorHandler(
   label: string,
   req: Request,
@@ -61,7 +71,7 @@ async function withErrorHandler(
   } catch (err) {
     console.error(`${label} error:`, err);
     if (onError) return onError();
-    const message = err instanceof Error ? err.message : "Internal error";
+    const message = unknownErrorMessage(err);
     return new Response(JSON.stringify({ error: message, code: "INTERNAL" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -104,6 +114,16 @@ async function handleRenewalCronRoute(req: Request): Promise<Response> {
 async function handleDailyCronRoute(req: Request): Promise<Response> {
   const { handleDailyCron } = await import("@/lib/payments/webhook-handlers");
   return handleDailyCron(req);
+}
+
+async function handleDailyPmCronRoute(req: Request): Promise<Response> {
+  const { handleDailyPmCron } = await import("@/lib/payments/webhook-handlers");
+  return handleDailyPmCron(req);
+}
+
+async function handleDailyMarketingCronRoute(req: Request): Promise<Response> {
+  const { handleDailyMarketingCron } = await import("@/lib/payments/webhook-handlers");
+  return handleDailyMarketingCron(req);
 }
 
 async function handleWeeklyCronRoute(req: Request): Promise<Response> {
@@ -571,6 +591,14 @@ const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/cron/daily" && method === "POST",
     run: (req) => withErrorHandler("Daily cron", req, handleDailyCronRoute),
+  },
+  {
+    match: (url, method) => url.pathname === "/api/cron/daily-pm" && method === "POST",
+    run: (req) => withErrorHandler("Daily PM cron", req, handleDailyPmCronRoute),
+  },
+  {
+    match: (url, method) => url.pathname === "/api/cron/daily-marketing" && method === "POST",
+    run: (req) => withErrorHandler("Daily marketing cron", req, handleDailyMarketingCronRoute),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/weekly" && method === "POST",

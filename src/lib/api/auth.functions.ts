@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { ORG_REQUIRED_ROLES, isPrivilegedAccountRole, type AccountRole } from "@/lib/account-roles";
+import { SIGNUP_POLICY_VERSION } from "@/lib/auth/signup-policy";
 import { submitPendingPortalApplicationForUser } from "@/lib/api/portal.functions";
 import type { PortalListerRole } from "@/lib/payments/portal-trial";
 import { checkRateLimit, rateLimitKeyFromHeaders, RATE_LIMITS } from "@/lib/api/rate-limit";
@@ -122,6 +123,8 @@ const signupSchema = z.object({
   phone: z.string().trim().min(9).max(30),
   role: z.enum(["tenant", "landlord", "manager", "agency"]),
   organizationName: z.string().trim().max(200).optional(),
+  acceptedPolicyVersion: z.string().min(1),
+  acceptedPolicyAt: z.string().datetime(),
 });
 
 function isDuplicateAuthUserError(message: string): boolean {
@@ -236,6 +239,9 @@ function validateSignupInput(data: z.infer<typeof signupSchema>) {
   if (!isKenyanPhone(data.phone)) {
     throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
   }
+  if (data.acceptedPolicyVersion !== SIGNUP_POLICY_VERSION) {
+    throw new Error("Please review and accept the latest signup terms before continuing.");
+  }
 }
 
 async function validateSignupTrustSignals(data: z.infer<typeof signupSchema>) {
@@ -275,6 +281,9 @@ type SignupMetadata = {
   phone: string;
   role: z.infer<typeof signupSchema>["role"];
   organization_name?: string;
+  terms_policy_version: string;
+  terms_policy_accepted_at: string;
+  terms_policy_role: z.infer<typeof signupSchema>["role"];
   signup_ip_country?: string;
   signup_ip_risk?: string;
   preferred_area?: string;
@@ -342,6 +351,9 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
       phone: data.phone.trim(),
       role: data.role,
       organization_name: data.organizationName?.trim() || undefined,
+      terms_policy_version: data.acceptedPolicyVersion,
+      terms_policy_accepted_at: data.acceptedPolicyAt,
+      terms_policy_role: data.role,
       ...ipMeta,
     };
 

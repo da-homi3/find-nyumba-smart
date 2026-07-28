@@ -323,6 +323,7 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
         name,
         role: app.requested_role,
         reason: data.rejectionReason,
+        userId: app.user_id,
       });
       return { status: "rejected" as const };
     }
@@ -347,7 +348,12 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
       },
     );
 
-    await sendApplicantApproved({ email, name, role: app.requested_role });
+    await sendApplicantApproved({
+      email,
+      name,
+      role: app.requested_role,
+      userId: app.user_id,
+    });
 
     return { status: "approved" as const, organizationId, trialStarted, trialEnd };
   });

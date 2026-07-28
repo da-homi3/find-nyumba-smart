@@ -10,6 +10,7 @@ import { BOOST_PACKAGES, boostPrice } from "@/lib/revenue/plans";
 import type { BoostPackage } from "@/lib/revenue/types";
 import { useEffect, useState } from "react";
 import { formatKes } from "@/lib/properties";
+import { getBoostPriceForUser } from "@/lib/api/trust-rewards.functions";
 
 const searchSchema = z.object({
   package: z.enum(["spotlight", "homepage", "campaign"]).optional(),
@@ -54,7 +55,27 @@ function BoostPage() {
 
   const active = properties.filter((p) => p.is_active);
   const pkg = BOOST_PACKAGES.find((p) => p.id === packageId)!;
-  const boostAmount = boostPrice(packageId);
+  const baseAmount = boostPrice(packageId);
+  const [boostAmount, setBoostAmount] = useState(baseAmount);
+  const [loyaltyLevel, setLoyaltyLevel] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getBoostPriceForUser({ data: { packageId } })
+      .then((res) => {
+        if (cancelled) return;
+        setBoostAmount(res.amountKes);
+        setLoyaltyLevel(res.level);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setBoostAmount(baseAmount);
+        setLoyaltyLevel(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [packageId, baseAmount]);
 
   if (step === 3) {
     return (
@@ -63,7 +84,10 @@ function BoostPage() {
           checkoutPath={`/landlord/boost?package=${packageId}&propertyId=${propertyId}`}
           lineItem={{
             title: `${pkg.name} boost`,
-            subtitle: pkg.placement,
+            subtitle:
+              loyaltyLevel && boostAmount < baseAmount
+                ? `${pkg.placement} · ${loyaltyLevel} loyalty discount`
+                : pkg.placement,
             amountKes: boostAmount,
           }}
           metadata={{
@@ -77,6 +101,9 @@ function BoostPage() {
         />
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Your listing will appear in boosted positions within 15 minutes.
+          {loyaltyLevel && boostAmount < baseAmount
+            ? ` ${loyaltyLevel} members pay ${formatKes(boostAmount)} (was ${formatKes(baseAmount)}).`
+            : ""}
         </p>
       </div>
     );

@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, Plus, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { listPmProperties } from "@/lib/api/pm.functions";
+import { getPmModuleStatus } from "@/lib/api/pm-module.functions";
+import { formatKes } from "@/lib/properties";
+import { PmModuleUpsellCard } from "@/components/pm/PmModuleUpsellCard";
 import { type PmPortal } from "@/components/pm/pm-nav";
 
 const NEW_PATH = {
@@ -17,11 +20,46 @@ const DETAIL_PATH = {
   manager: "/manager/manage/$propertyId",
 } as const;
 
+const SUBSCRIBE_PATH = {
+  landlord: "/landlord/manage/subscribe",
+  agency: "/agency/manage/subscribe",
+  manager: "/manager/manage/subscribe",
+} as const;
+
 export function PmPropertyListPage({ portal }: Readonly<{ portal: PmPortal }>) {
+  const statusQ = useQuery({
+    queryKey: ["pm-module-status"],
+    queryFn: () => getPmModuleStatus(),
+  });
+
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["pm-properties", portal],
     queryFn: () => listPmProperties(),
+    enabled: statusQ.data?.active === true,
   });
+
+  if (statusQ.isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!statusQ.data?.active) {
+    const price = statusQ.data?.recommendedPriceKes ?? 1500;
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8">
+        <h1 className="mb-8 font-display text-2xl font-semibold tracking-tight text-foreground">
+          Property Management
+        </h1>
+        <PmModuleUpsellCard
+          priceLabel={`From ${formatKes(price)}/mo — first month free`}
+          subscribePath={SUBSCRIBE_PATH[portal]}
+        />
+      </div>
+    );
+  }
 
   let body: ReactNode;
   if (isLoading) {

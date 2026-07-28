@@ -25,6 +25,7 @@ function clearTimer(kind: "interval" | "timeout", id: ReturnType<typeof setTimeo
 }
 
 export function usePresenceConnection(args: {
+  enabled?: boolean;
   userId: string | null | undefined;
   roles: AppRole[];
   accessToken: string | null | undefined;
@@ -41,6 +42,7 @@ export function usePresenceConnection(args: {
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
+    if (args.enabled === false) return undefined;
 
     let cancelled = false;
 
@@ -141,7 +143,7 @@ export function usePresenceConnection(args: {
       socketRef.current = null;
     };
     // Intentionally omit pathname — page changes use the separate effect below.
-  }, [args.accessToken, args.roles, args.userId]);
+  }, [args.accessToken, args.enabled, args.roles, args.userId]);
 
   useEffect(() => {
     const socket = socketRef.current;

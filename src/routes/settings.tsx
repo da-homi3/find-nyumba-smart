@@ -13,6 +13,7 @@ import {
   User,
   Bell,
   Lock,
+  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,21 +23,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { errorMessage } from "@/lib/utils";
 import { isKenyanPhone } from "@/lib/phone";
 import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+} from "@/lib/api/notifications.functions";
+import {
   readNotificationPrefs,
   writeNotificationPrefs,
   type NotificationPrefs,
 } from "@/lib/notification-prefs";
+import type { NotificationPreferences } from "@/lib/notifications/types";
 import { scorePassword } from "@/lib/password-strength";
 import { validatePasswordPair } from "@/lib/validate-password";
 import { setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
 import { useTheme, type ThemeMode } from "@/hooks/use-theme";
+import { getMyTrustRewards } from "@/lib/api/trust-rewards.functions";
+import { ReputationBadge } from "@/components/ReputationBadge";
+import { LEVEL_BENEFITS } from "@/lib/loyalty/benefits";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — NyumbaSearch" }] }),
   component: SettingsPage,
 });
 
-type Tab = "profile" | "notifications" | "security" | "portals";
+type Tab = "profile" | "notifications" | "security" | "portals" | "trust";
 
 const PORTALS: {
   id: PortalId;
@@ -75,6 +84,7 @@ const TABS: { id: Tab; label: string; icon: typeof User }[] = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Lock },
   { id: "portals", label: "Portals", icon: Building2 },
+  { id: "trust", label: "Trust & rewards", icon: Award },
 ];
 
 function SettingsPage() {
@@ -97,6 +107,7 @@ function SettingsPage() {
   const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs>(() => readNotificationPrefs(user?.id));
+  const [serverPrefs, setServerPrefs] = useState<NotificationPreferences | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -116,6 +127,22 @@ function SettingsPage() {
       return data;
     },
   });
+
+  const { data: loadedServerPrefs } = useQuery({
+    queryKey: ["notification-preferences", user?.id],
+    enabled: !!user,
+    queryFn: () => getNotificationPreferences(),
+  });
+
+  const { data: trustRewards, isLoading: trustLoading } = useQuery({
+    queryKey: ["trust-rewards", user?.id],
+    enabled: !!user && tab === "trust",
+    queryFn: () => getMyTrustRewards(),
+  });
+
+  useEffect(() => {
+    if (loadedServerPrefs) setServerPrefs(loadedServerPrefs);
+  }, [loadedServerPrefs]);
 
   useEffect(() => {
     setFullName(profile?.full_name ?? user?.user_metadata?.full_name ?? "");
@@ -210,6 +237,25 @@ function SettingsPage() {
     setPrefs(next);
     writeNotificationPrefs(user.id, next);
     toast.success("Notification preference saved");
+  }
+
+  async function updateServerPref<K extends keyof NotificationPreferences>(
+    key: K,
+    value: NotificationPreferences[K],
+  ) {
+    if (!serverPrefs) return;
+    const previous = serverPrefs;
+    const next = { ...serverPrefs, [key]: value };
+    setServerPrefs(next);
+    try {
+      const saved = await updateNotificationPreferences({ data: { [key]: value } });
+      setServerPrefs(saved);
+      qc.invalidateQueries({ queryKey: ["notification-preferences"] });
+      toast.success("Notification preference saved");
+    } catch (err) {
+      setServerPrefs(previous);
+      toast.error(errorMessage(err));
+    }
   }
 
   async function toggleSavedAlerts(enabled: boolean) {
@@ -335,12 +381,52 @@ function SettingsPage() {
             checked={prefs.savedAlerts}
             onChange={(v) => void toggleSavedAlerts(v)}
           />
-          <ToggleRow
-            label="Message updates"
-            description="When landlords reply to your inquiries"
-            checked={prefs.messageUpdates}
-            onChange={(v) => updatePref("messageUpdates", v)}
-          />
+          {serverPrefs ? (
+            <>
+              <ToggleRow
+                label="Product announcements"
+                description="In-app and push for NyumbaSearch updates"
+                checked={serverPrefs.announcements}
+                onChange={(v) => void updateServerPref("announcements", v)}
+              />
+              <ToggleRow
+                label="Listing matches"
+                description="When new homes match your alerts"
+                checked={serverPrefs.listings}
+                onChange={(v) => void updateServerPref("listings", v)}
+              />
+              <ToggleRow
+                label="Messages & leads"
+                description="Inquiry replies and contact unlocks"
+                checked={serverPrefs.messages}
+                onChange={(v) => void updateServerPref("messages", v)}
+              />
+              <ToggleRow
+                label="Maintenance"
+                description="Property management maintenance updates"
+                checked={serverPrefs.maintenance}
+                onChange={(v) => void updateServerPref("maintenance", v)}
+              />
+              <ToggleRow
+                label="Payments & rent"
+                description="Receipts, rent reminders, and billing"
+                checked={serverPrefs.payments}
+                onChange={(v) => void updateServerPref("payments", v)}
+              />
+              <ToggleRow
+                label="Account & portal"
+                description="Approvals, team invites, and account changes"
+                checked={serverPrefs.account}
+                onChange={(v) => void updateServerPref("account", v)}
+              />
+              <ToggleRow
+                label="Push notifications"
+                description="Browser and app push when available"
+                checked={serverPrefs.push_enabled}
+                onChange={(v) => void updateServerPref("push_enabled", v)}
+              />
+            </>
+          ) : null}
           <ToggleRow
             label="Viewing reminders"
             description="Reminders before scheduled property viewings"
@@ -502,6 +588,64 @@ function SettingsPage() {
             </section>
           )}
         </>
+      )}
+
+      {tab === "trust" && (
+        <section className="mt-6 space-y-4">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Trust & rewards
+          </h2>
+          {trustLoading && (
+            <p className="text-sm text-muted-foreground">Loading your trust profile…</p>
+          )}
+          {trustRewards && (
+            <>
+              <div className="rounded-2xl border bg-card p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Your reputation
+                </p>
+                <div className="mt-2 flex items-baseline gap-3">
+                  <span className="font-display text-3xl font-semibold">{trustRewards.score}</span>
+                  <ReputationBadge score={trustRewards.score} tierLabel={trustRewards.tierLabel} />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Other people only see your trust badge — never the private factors behind it.
+                </p>
+              </div>
+              <div className="rounded-2xl border bg-card p-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Loyalty
+                </p>
+                <p className="mt-2 font-display text-2xl font-semibold capitalize">
+                  {trustRewards.currentLevel}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {trustRewards.totalPoints} points
+                  {trustRewards.nextLevel
+                    ? ` · ${trustRewards.pointsToNext} to ${trustRewards.nextLevel}`
+                    : " · top tier"}
+                </p>
+                <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                  <li>
+                    Boost discount:{" "}
+                    {Math.round(
+                      (LEVEL_BENEFITS[trustRewards.currentLevel]?.boostDiscount ?? 0) * 100,
+                    )}
+                    %
+                  </li>
+                  <li>
+                    Extra listing slots:{" "}
+                    {LEVEL_BENEFITS[trustRewards.currentLevel]?.extraFreeListing ?? 0}
+                  </li>
+                  <li>
+                    Priority support:{" "}
+                    {LEVEL_BENEFITS[trustRewards.currentLevel]?.prioritySupport ? "Yes" : "No"}
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
+        </section>
       )}
 
       <button

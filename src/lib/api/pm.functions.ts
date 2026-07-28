@@ -16,11 +16,12 @@ import {
   assertStaffCan,
   type PmStaffRole,
 } from "@/lib/pm/access";
+import { recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
 import {
   bedroomsForUnitType,
-  invoiceStatusAfterPayment,
   mapPmUnitTypeToListingType,
 } from "@/lib/pm/invoice-status";
+import { requirePmModuleSubscription } from "@/lib/pm/module-gate";
 import {
   deletePmTenantInvite,
   readPmTenantInvite,
@@ -147,6 +148,7 @@ export const createPmProperty = createServerFn({ method: "POST" })
     const { supabase, userId } = authContext(context);
     await requirePortalRole(supabase, userId);
     const admin = asPmDb(await adminClient());
+    await requirePmModuleSubscription(admin, userId);
     const orgId = await getUserOrganizationId(supabase, userId);
 
     const { data: row, error } = await admin
@@ -162,6 +164,7 @@ export const createPmProperty = createServerFn({ method: "POST" })
         lng: data.lng ?? null,
         photo_url: data.photoUrl ?? null,
         status: "active",
+        pm_module_active: true,
       })
       .select("*")
       .single();
@@ -186,19 +189,30 @@ export const getPmProperty = createServerFn({ method: "POST" })
     const { property, staffRole } = await assertPmPropertyAccess(admin, userId, data.propertyId);
 
     const [{ data: buildings }, { data: units }, { data: tenants }] = await Promise.all([
-      admin.from("pm_buildings").select("*").eq("property_id", data.propertyId).order("name"),
+      admin
+        .from("pm_buildings")
+        .select("id, property_id, name, floor_count, created_at")
+        .eq("property_id", data.propertyId)
+        .order("name")
+        .limit(200),
       admin
         .from("pm_units")
-        .select("*")
+        .select(
+          "id, property_id, building_id, unit_label, floor, unit_type, bedrooms, bathrooms, monthly_rent, deposit_amount, status, amenities, caretaker_name, caretaker_phone, linked_listing_id, created_at, updated_at",
+        )
         .eq("property_id", data.propertyId)
         .is("deleted_at", null)
-        .order("unit_label"),
+        .order("unit_label")
+        .limit(1000),
       admin
         .from("pm_tenants")
-        .select("*")
+        .select(
+          "id, property_id, full_name, phone, email, national_id, emergency_contact_name, emergency_contact_phone, occupation, notes, tenant_user_id, portal_invited_at, portal_status, created_at",
+        )
         .eq("property_id", data.propertyId)
         .is("deleted_at", null)
-        .order("full_name"),
+        .order("full_name")
+        .limit(1000),
     ]);
 
     return {
@@ -809,9 +823,10 @@ export const listPmInvoices = createServerFn({ method: "POST" })
 
     const { data: invoices, error } = await admin
       .from("pm_rent_invoices")
-      .select("*")
+      .select("id, lease_id, period_month, due_date, status, amount_due, amount_paid, late_fee")
       .in("lease_id", leaseIds)
-      .order("period_month", { ascending: false });
+      .order("period_month", { ascending: false })
+      .limit(240);
     if (error) throw error;
 
     const unitById = new Map(
@@ -836,6 +851,110 @@ export const listPmInvoices = createServerFn({ method: "POST" })
         tenant_id: lease?.tenant_id ?? null,
       };
     });
+  });
+
+/** Rent ledger for CSV / Excel / printable PDF export. */
+export const getPmFinancialReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      propertyId: z.string().uuid(),
+      periodMonth: z
+        .string()
+        .regex(/^\d{4}-\d{2}$/)
+        .optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await requirePortalRole(supabase, userId);
+    const admin = asPmDb(await adminClient());
+    const { staffRole } = await assertPmPropertyAccess(admin, userId, data.propertyId);
+    assertStaffCan(staffRole, "invoices:view");
+
+    const periodMonth = data.periodMonth ?? new Date().toISOString().slice(0, 7);
+
+    const { data: property } = await admin
+      .from("pm_properties")
+      .select("name")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    const propertyName = (property?.name as string | undefined) ?? "Property";
+
+    const { data: units } = await admin
+      .from("pm_units")
+      .select("id, unit_label")
+      .eq("property_id", data.propertyId)
+      .is("deleted_at", null);
+    const unitIds = (units ?? []).map((u: { id: string }) => u.id);
+    if (unitIds.length === 0) {
+      const { buildFinancialReportSummary } = await import("@/lib/pm/financial-report");
+      return {
+        summary: buildFinancialReportSummary(propertyName, periodMonth, []),
+        rows: [],
+      };
+    }
+
+    const { data: leases } = await admin
+      .from("pm_leases")
+      .select("id, unit_id, tenant_id")
+      .in("unit_id", unitIds);
+    const leaseIds = (leases ?? []).map((l: { id: string }) => l.id);
+    if (leaseIds.length === 0) {
+      const { buildFinancialReportSummary } = await import("@/lib/pm/financial-report");
+      return {
+        summary: buildFinancialReportSummary(propertyName, periodMonth, []),
+        rows: [],
+      };
+    }
+
+    const { data: invoices, error } = await admin
+      .from("pm_rent_invoices")
+      .select("*")
+      .in("lease_id", leaseIds)
+      .eq("period_month", periodMonth)
+      .order("due_date", { ascending: true });
+    if (error) throw error;
+
+    const unitById = new Map(
+      (units ?? []).map((u: { id: string; unit_label: string }) => [u.id, u.unit_label]),
+    );
+    const leaseById = new Map(
+      (leases ?? []).map((l: { id: string; unit_id: string; tenant_id: string }) => [l.id, l]),
+    );
+    const tenantIds = [
+      ...new Set((leases ?? []).map((l: { tenant_id: string }) => l.tenant_id)),
+    ];
+    const tenantName = new Map<string, string>();
+    if (tenantIds.length) {
+      const { data: tenants } = await admin
+        .from("pm_tenants")
+        .select("id, full_name")
+        .in("id", tenantIds);
+      for (const t of tenants ?? []) {
+        tenantName.set(t.id as string, (t.full_name as string) ?? "Tenant");
+      }
+    }
+
+    const { buildFinancialReportSummary } = await import("@/lib/pm/financial-report");
+
+    const rows = (invoices ?? []).map((inv: Record<string, unknown>) => {
+      const lease = leaseById.get(inv.lease_id as string);
+      return {
+        propertyName,
+        unitLabel: lease ? (unitById.get(lease.unit_id) ?? "") : "",
+        tenantName: lease ? (tenantName.get(lease.tenant_id) ?? "Tenant") : "Tenant",
+        periodMonth: inv.period_month as string,
+        dueDate: inv.due_date as string,
+        amountDue: Number(inv.amount_due),
+        amountPaid: Number(inv.amount_paid),
+        lateFee: Number(inv.late_fee ?? 0),
+        status: inv.status as string,
+      };
+    });
+
+    const summary = buildFinancialReportSummary(propertyName, periodMonth, rows);
+    return { summary, rows };
   });
 
 export const recordPmPayment = createServerFn({ method: "POST" })
@@ -877,37 +996,40 @@ export const recordPmPayment = createServerFn({ method: "POST" })
     const { staffRole } = await assertPmPropertyAccess(admin, userId, unit.property_id);
     assertStaffCan(staffRole, "payments:create");
 
-    const lateFee = Number(invoice.late_fee ?? 0);
-    const { error: payErr } = await admin.from("pm_rent_payments").insert({
-      invoice_id: data.invoiceId,
-      amount: data.amount,
-      method: data.method,
-      recorded_by_user_id: userId,
-      note: data.note ?? null,
-    });
+    const { data: property } = await admin
+      .from("pm_properties")
+      .select("id, owner_user_id")
+      .eq("id", unit.property_id)
+      .maybeSingle();
+    if (!property) throw new Error("Property not found");
+
+    const { data: payRow, error: payErr } = await admin
+      .from("pm_rent_payments")
+      .insert({
+        invoice_id: data.invoiceId,
+        amount: data.amount,
+        method: data.method,
+        recorded_by_user_id: userId,
+        note: data.note ?? null,
+      })
+      .select("id")
+      .single();
     if (payErr) throw payErr;
 
-    const { data: pays } = await admin
-      .from("pm_rent_payments")
-      .select("amount")
-      .eq("invoice_id", data.invoiceId);
-    const newAmountPaid = (pays ?? []).reduce(
-      (sum: number, row: { amount: number }) => sum + Number(row.amount),
-      0,
-    );
-    const newStatus = invoiceStatusAfterPayment(
-      invoice.amount_due as number,
-      newAmountPaid,
-      lateFee,
-    );
+    try {
+      const { recordPlatformFee } = await import("@/lib/pm/platform-fee");
+      await recordPlatformFee(admin, {
+        rentPaymentId: payRow.id,
+        ownerUserId: property.owner_user_id,
+        propertyId: property.id,
+        grossAmount: data.amount,
+      });
+    } catch (e) {
+      console.warn("[pm] platform fee record failed:", e);
+    }
 
-    const { error: invErr } = await admin
-      .from("pm_rent_invoices")
-      .update({ amount_paid: newAmountPaid, status: newStatus })
-      .eq("id", data.invoiceId);
-    if (invErr) throw invErr;
-
-    return { success: true as const, status: newStatus, amountPaid: newAmountPaid };
+    const reconciled = await recomputeInvoiceStatus(admin, data.invoiceId);
+    return { success: true as const, ...reconciled };
   });
 
 // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -946,6 +1068,7 @@ export const getPmPropertyDashboard = createServerFn({ method: "POST" })
     let collectedThisMonth = 0;
     let outstandingRent = 0;
     let openMaintenanceRequests = 0;
+    let avgMaintenanceDays: number | null = null;
     let upcomingLeaseExpirations: Array<{
       end_date: string;
       full_name: string;
@@ -960,24 +1083,16 @@ export const getPmPropertyDashboard = createServerFn({ method: "POST" })
         .eq("status", "active");
 
       const leaseIds = (leases ?? []).map((l: { id: string }) => l.id);
-      if (leaseIds.length > 0) {
-        const { data: invoices } = await admin
-          .from("pm_rent_invoices")
-          .select("amount_due, amount_paid, late_fee, status")
-          .in("lease_id", leaseIds)
-          .eq("period_month", periodMonth);
+      const {
+        sumRentForPeriod,
+        avgClosedMaintenanceDays,
+        leasesEndingSoon,
+      } = await import("@/lib/pm/dashboard-metrics");
 
-        for (const inv of invoices ?? []) {
-          const due = inv.amount_due as number;
-          const paid = inv.amount_paid as number;
-          const late = Number(inv.late_fee ?? 0);
-          expectedIncome += due;
-          collectedThisMonth += paid;
-          if (inv.status !== "paid") {
-            outstandingRent += Math.max(0, due + late - paid);
-          }
-        }
-      }
+      const rent = await sumRentForPeriod(admin, leaseIds, periodMonth);
+      expectedIncome = rent.expectedIncome;
+      collectedThisMonth = rent.collectedThisMonth;
+      outstandingRent = rent.outstandingRent;
 
       const { count } = await admin
         .from("pm_maintenance_requests")
@@ -985,48 +1100,38 @@ export const getPmPropertyDashboard = createServerFn({ method: "POST" })
         .in("unit_id", unitIds)
         .not("status", "in", '("completed","confirmed")');
       openMaintenanceRequests = count ?? 0;
-
-      const ending = (leases ?? []).filter(
-        (l: { end_date: string }) => l.end_date >= todayIso && l.end_date <= in30Iso,
+      avgMaintenanceDays = await avgClosedMaintenanceDays(admin, unitIds);
+      upcomingLeaseExpirations = await leasesEndingSoon(
+        admin,
+        (leases ?? []) as Array<{ end_date: string; tenant_id: string; unit_id: string }>,
+        todayIso,
+        in30Iso,
       );
-      if (ending.length > 0) {
-        const tenantIds = ending.map((l: { tenant_id: string }) => l.tenant_id);
-        const { data: tenants } = await admin
-          .from("pm_tenants")
-          .select("id, full_name")
-          .in("id", tenantIds);
-        const { data: unitRows } = await admin
-          .from("pm_units")
-          .select("id, unit_label")
-          .in(
-            "id",
-            ending.map((l: { unit_id: string }) => l.unit_id),
-          );
-        const tenantName = new Map(
-          (tenants ?? []).map((t: { id: string; full_name: string }) => [t.id, t.full_name]),
-        );
-        const unitLabel = new Map(
-          (unitRows ?? []).map((u: { id: string; unit_label: string }) => [u.id, u.unit_label]),
-        );
-        upcomingLeaseExpirations = ending
-          .map((l: { end_date: string; tenant_id: string; unit_id: string }) => ({
-            end_date: l.end_date,
-            full_name: tenantName.get(l.tenant_id) ?? "Tenant",
-            unit_label: unitLabel.get(l.unit_id) ?? "",
-          }))
-          .sort((a, b) => a.end_date.localeCompare(b.end_date));
-      }
     }
+
+    const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+    const { computePropertyHealthScore } = await import("@/lib/pm/property-health");
+    const health = computePropertyHealthScore({
+      occupancyRate,
+      expectedIncomeKes: expectedIncome,
+      collectedThisMonthKes: collectedThisMonth,
+      totalUnits,
+      vacantUnits,
+      openMaintenanceRequests,
+      avgMaintenanceDays,
+    });
 
     return {
       totalUnits,
       occupiedUnits,
       vacantUnits,
-      occupancyRate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
+      occupancyRate,
       expectedIncome,
       collectedThisMonth,
       outstandingRent,
       openMaintenanceRequests,
+      avgMaintenanceDays,
+      health,
       upcomingLeaseExpirations,
     };
   });

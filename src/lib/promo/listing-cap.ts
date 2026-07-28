@@ -44,13 +44,14 @@ export function resolveListingCap(input: {
   plan: LandlordPlan;
   bonusSlots?: number;
   adminOverride?: number | null;
+  loyaltyExtraSlots?: number;
 }): number {
   if (input.adminOverride != null) {
     return Math.max(0, Math.min(9999, input.adminOverride));
   }
   const base = baseListingCap(input.plan);
   if (base >= 9999) return base;
-  return base + (input.bonusSlots ?? 0);
+  return base + (input.bonusSlots ?? 0) + (input.loyaltyExtraSlots ?? 0);
 }
 
 export async function getListingCap(supabase: Db, userId: string): Promise<number> {
@@ -66,10 +67,22 @@ export async function getListingCap(supabase: Db, userId: string): Promise<numbe
     getActiveLandlordPlan(supabase, userId),
     getListingCapProfile(supabase, userId),
   ]);
+
+  let loyaltyExtraSlots = 0;
+  try {
+    const { getLoyaltyLevel } = await import("@/lib/loyalty/points");
+    const { loyaltyExtraListings } = await import("@/lib/loyalty/benefits");
+    const level = await getLoyaltyLevel(supabase, userId);
+    loyaltyExtraSlots = loyaltyExtraListings(level);
+  } catch (err) {
+    console.warn("[listing-cap] loyalty lookup failed", err);
+  }
+
   return resolveListingCap({
     plan,
     bonusSlots: profile?.bonus_listing_slots ?? 0,
     adminOverride: profile?.admin_listing_limit_override,
+    loyaltyExtraSlots,
   });
 }
 

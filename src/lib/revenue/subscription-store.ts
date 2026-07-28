@@ -35,33 +35,34 @@ export async function getPortalSubscriptionMeta(
 ): Promise<PortalSubscriptionMeta | null> {
   const { data } = await supabase
     .from("subscriptions")
-    .select("plan, status, trial_end, next_billing_date")
+    .select("plan, status, trial_end, next_billing_date, module")
     .eq("user_id", userId)
     .in("status", ["active", "trialing", "past_due"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
-  if (!data || new Date(data.next_billing_date).getTime() <= Date.now()) {
-    return null;
+  const now = Date.now();
+  for (const row of data ?? []) {
+    const module = (row as { module?: string }).module ?? "marketplace";
+    if (module !== "marketplace") continue;
+    if (new Date(row.next_billing_date).getTime() <= now) continue;
+    if (row.status !== "active" && row.status !== "trialing" && row.status !== "past_due") {
+      continue;
+    }
+    return {
+      status: row.status,
+      plan: row.plan,
+      trialEnd: row.trial_end,
+      nextBillingDate: row.next_billing_date,
+    };
   }
-
-  if (data.status !== "active" && data.status !== "trialing" && data.status !== "past_due") {
-    return null;
-  }
-
-  return {
-    status: data.status,
-    plan: data.plan,
-    trialEnd: data.trial_end,
-    nextBillingDate: data.next_billing_date,
-  };
+  return null;
 }
 
 export async function getActiveLandlordPlan(supabase: Db, userId: string): Promise<LandlordPlan> {
   const { data } = await supabase
     .from("subscriptions")
-    .select("plan, status, next_billing_date")
+    .select("plan, status, next_billing_date, module")
     .eq("user_id", userId)
     .in("status", ["active", "trialing"])
     .order("created_at", { ascending: false });
@@ -69,6 +70,8 @@ export async function getActiveLandlordPlan(supabase: Db, userId: string): Promi
   const now = Date.now();
   let best: LandlordPlan = "free";
   for (const row of data ?? []) {
+    const module = (row as { module?: string }).module ?? "marketplace";
+    if (module !== "marketplace") continue;
     if (!isLandlordPlan(row.plan)) continue;
     if (new Date(row.next_billing_date).getTime() <= now) continue;
     if (planRank(row.plan) > planRank(best)) best = row.plan;

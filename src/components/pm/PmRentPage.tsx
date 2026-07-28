@@ -4,7 +4,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { formatKes } from "@/lib/properties";
 import { getPmProperty, listPmInvoices, recordPmPayment } from "@/lib/api/pm.functions";
+import { listPmPaymentClaims } from "@/lib/api/pm-module.functions";
 import { rentBalanceRemaining } from "@/lib/pm/invoice-status";
+import { PaymentClaimCard, type PmPaymentClaim } from "@/components/pm/PaymentClaimCard";
 import { PmPropertySubnav, type PmPortal } from "@/components/pm/pm-nav";
 
 type PmInvoice = Awaited<ReturnType<typeof listPmInvoices>>[number];
@@ -21,6 +23,10 @@ export function PmRentPage({
   const invoicesQ = useQuery({
     queryKey: ["pm-invoices", propertyId],
     queryFn: () => listPmInvoices({ data: { propertyId } }),
+  });
+  const claimsQ = useQuery({
+    queryKey: ["pm-payment-claims", propertyId],
+    queryFn: () => listPmPaymentClaims({ data: { propertyId, status: "pending" } }),
   });
 
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -56,6 +62,7 @@ export function PmRentPage({
   if (!detail.data) return null;
 
   const invoices: PmInvoice[] = invoicesQ.data ?? [];
+  const claims = (claimsQ.data ?? []) as PmPaymentClaim[];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -66,12 +73,29 @@ export function PmRentPage({
         <PmPropertySubnav portal={portal} propertyId={propertyId} active="rent" />
       </div>
 
+      {claims.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Tenant payment claims
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Confirm to credit the ledger, or dispute to escalate to NyumbaSearch. Claims are never
+            silently deleted.
+          </p>
+          <div className="mt-3 space-y-2">
+            {claims.map((claim) => (
+              <PaymentClaimCard key={claim.id} claim={claim} propertyId={propertyId} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {invoices.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-8 text-sm text-muted-foreground">
           No invoices yet. Monthly cron creates one per active lease (or seed via lease + cron).
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="mt-8 space-y-2">
           {invoices.map((inv) => {
             const balance = rentBalanceRemaining(inv.amount_due, inv.amount_paid, inv.late_fee);
             const totalDue = inv.amount_due + inv.late_fee;

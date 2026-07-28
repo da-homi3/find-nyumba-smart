@@ -1,7 +1,17 @@
-import { getProperty, listProperties } from "@/lib/api/nyumba.functions";
+import { getProperty } from "@/lib/api/nyumba.functions";
 import { getAnonymousSessionId } from "@/lib/anonymous-session";
 import { fetchListingsApi } from "@/lib/listings-client";
 import type { PropertyType, PricingMode, PricePeriod } from "@/lib/property-types";
+
+/** SSR must call query cores in-process — createServerFn self-fetch deadlocks Workers. */
+async function listPropertiesOnServer(filters?: PropertySearchFilters) {
+  const { queryListings } = await import("@/lib/api/listings-core");
+  return queryListings({
+    limit: filters?.limit ?? 50,
+    offset: filters?.offset ?? 0,
+    ...filters,
+  });
+}
 
 export type { PropertyType } from "@/lib/property-types";
 export { prettyPropertyType as prettyType } from "@/lib/property-types";
@@ -69,9 +79,7 @@ export async function fetchProperties(filters?: PropertySearchFilters): Promise<
     });
     return result.items;
   }
-  const result = await listProperties({
-    data: { limit: filters?.limit ?? 50, offset: filters?.offset ?? 0, ...filters },
-  });
+  const result = await listPropertiesOnServer(filters);
   return result.items;
 }
 
@@ -108,7 +116,7 @@ export async function searchProperties(filters?: PropertySearchFilters) {
   if (isBrowser()) {
     return fetchListingsApi(filters ?? {});
   }
-  return listProperties({ data: filters ?? {} });
+  return listPropertiesOnServer(filters);
 }
 
 export async function fetchProperty(id: string): Promise<Property | null> {

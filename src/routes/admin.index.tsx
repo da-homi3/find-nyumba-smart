@@ -36,6 +36,8 @@ import { AdminAdvertiseTab } from "@/components/admin/AdminAdvertiseTab";
 import { AdminFoundingPromoTab } from "@/components/admin/AdminFoundingPromoTab";
 import { AdminListingAccountsTab } from "@/components/admin/AdminListingAccountsTab";
 import { AdminAnalyticsTab } from "@/components/admin/AdminAnalyticsTab";
+import { AdminPmTab } from "@/components/admin/AdminPmTab";
+import { AdminPayoutsTab } from "@/components/admin/AdminPayoutsTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -69,6 +71,8 @@ function AdminDashboard() {
     if (tabFromUrl === "property_checks") return "property_checks";
     if (tabFromUrl === "properties") return "properties";
     if (tabFromUrl === "analytics") return "analytics";
+    if (tabFromUrl === "property_management") return "property_management";
+    if (tabFromUrl === "payouts") return "payouts";
     return "verifications";
   });
   const qc = useQueryClient();
@@ -79,6 +83,8 @@ function AdminDashboard() {
     if (tabFromUrl === "property_checks") setActiveTab("property_checks");
     if (tabFromUrl === "properties") setActiveTab("properties");
     if (tabFromUrl === "analytics") setActiveTab("analytics");
+    if (tabFromUrl === "property_management") setActiveTab("property_management");
+    if (tabFromUrl === "payouts") setActiveTab("payouts");
   }, [tabFromUrl]);
 
   const { data: verifications = [], isLoading: verLoading } = useQuery({
@@ -266,6 +272,8 @@ function AdminDashboard() {
     { id: "announcements" as const, label: "Announcements", count: 0 },
     { id: "listing_accounts" as const, label: "Listing limits", count: 0 },
     { id: "founding_promo" as const, label: "Founding promo", count: 0 },
+    { id: "property_management" as const, label: "Property Mgmt", count: 0 },
+    { id: "payouts" as const, label: "Rent payouts", count: 0 },
   ];
 
   if (authLoading) {
@@ -393,6 +401,8 @@ function AdminDashboard() {
           {activeTab === "announcements" && <AdminAnnouncementsTab />}
           {activeTab === "founding_promo" && <AdminFoundingPromoTab />}
           {activeTab === "listing_accounts" && <AdminListingAccountsTab />}
+          {activeTab === "property_management" && <AdminPmTab />}
+          {activeTab === "payouts" && <AdminPayoutsTab />}
         </div>
       </div>
       <OnboardingTourHost tourId="admin-dashboard" />

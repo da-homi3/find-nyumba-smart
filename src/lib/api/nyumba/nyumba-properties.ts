@@ -376,7 +376,8 @@ export const listLandlordProperties = createServerFn({ method: "GET" })
       .from("properties")
       .select("*")
       .eq("owner_id", userId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(300);
 
     if (error) throw error;
     return mapPropertyRows(data ?? []);
@@ -394,7 +395,7 @@ export const listAgencyProperties = createServerFn({ method: "GET" })
     } else {
       query = query.eq("owner_id", userId);
     }
-    const { data, error } = await query.limit(500);
+    const { data, error } = await query.limit(200);
     if (error) throw error;
     return mapPropertyRows(data ?? []);
   });
@@ -664,6 +665,12 @@ export const updateProperty = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
 
+    void import("@/lib/trust/hooks").then(({ onListingUpdated }) =>
+      onListingUpdated(admin, userId, propertyId).catch((err) =>
+        console.warn("[updateProperty] loyalty hook failed:", err),
+      ),
+    );
+
     const bustListingCaches = () => {
       void import("@/lib/cache/manager")
         .then(({ invalidateListingCaches }) => invalidateListingCaches())
@@ -697,8 +704,13 @@ export const getLandlordDashboard = createServerFn({ method: "GET" })
     await requireRole(supabase, userId, "landlord");
     const [{ data: properties, error: propertiesError }, { data: leads, error: leadsError }] =
       await Promise.all([
-        supabase.from("properties").select("*").eq("owner_id", userId),
-        supabase.from("inquiries").select("*").eq("landlord_id", userId),
+        supabase.from("properties").select("*").eq("owner_id", userId).limit(300),
+        supabase
+          .from("inquiries")
+          .select("*")
+          .eq("landlord_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(200),
       ]);
 
     if (propertiesError) throw propertiesError;

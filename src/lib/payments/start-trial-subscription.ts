@@ -13,6 +13,7 @@ export type StartTrialInput = {
   paymentMethod: "mpesa" | "card";
   amountKes: number;
   providerId?: string;
+  module?: "marketplace" | "property_management";
 };
 
 export async function startTrialingSubscription(
@@ -26,6 +27,7 @@ export async function startTrialingSubscription(
     .insert({
       user_id: input.userId,
       plan: input.plan,
+      module: input.module ?? "marketplace",
       status: "trialing",
       amount_kes: input.amountKes,
       billing_cycle: input.billingCycle,

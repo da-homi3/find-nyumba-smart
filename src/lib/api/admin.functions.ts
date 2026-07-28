@@ -549,6 +549,15 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
+    if (data.status === "approved") {
+      const { onVerificationApproved } = await import("@/lib/trust/hooks");
+      await onVerificationApproved(supabaseAdmin, {
+        userId: row.user_id,
+        verificationId: row.id,
+        verificationType: row.verification_type ?? "identity",
+      });
+    }
+
     const { data: userAuth } = await supabaseAdmin.auth.admin.getUserById(row.user_id);
     const email = userAuth.user?.email;
     const name =

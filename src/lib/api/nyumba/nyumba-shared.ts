@@ -474,5 +474,6 @@ export async function notifyInquiryParticipant(
     propertyTitle: inquiry.properties?.title ?? "your listing",
     preview: body,
     threadUrl: `${baseUrl}${threadPath}`,
+    recipientUserId: recipientId,
   });
 }

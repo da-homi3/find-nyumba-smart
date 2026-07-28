@@ -74,6 +74,10 @@ export async function handleFcmTokenRequest(req: Request): Promise<Response> {
     }
 
     const result = await registerFcmToken(supabaseAdmin, data.user.id, token);
+    await supabaseAdmin.from("push_tokens").upsert(
+      { user_id: data.user.id, token, platform: "android" },
+      { onConflict: "user_id,token" },
+    );
     return new Response(JSON.stringify({ ok: true, ...result, sendEnabled }), {
       headers: { "Content-Type": "application/json" },
     });

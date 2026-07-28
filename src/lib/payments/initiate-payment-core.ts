@@ -1,9 +1,13 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
 import { isKenyanPhone, toMpesaPhone254 } from "@/lib/phone";
 import { metadataFromCheckout, parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 import { assertStkPromptRateLimit } from "@/lib/payments/rate-limit";
 import { getServerEnv } from "@/lib/server-env";
+
+type AdminDb = SupabaseClient<Database>;
 
 export const checkoutMetaSchema = z.object({
   plan: z.string().optional(),
@@ -58,6 +62,7 @@ export const initiatePaymentSchema = z.object({
     "contact_unlock",
     "provider_subscription",
     "rent_payment",
+    "pm_module",
   ]),
   phoneNumber: z.string().refine((p) => !p || isKenyanPhone(p), "Invalid Safaricom phone number"),
   paymentMethod: z.enum(["mpesa", "card"]).default("mpesa"),
@@ -137,6 +142,48 @@ function allowDemoMpesaCompletion(): boolean {
   return getServerEnv("MPESA_ENV") === "sandbox" && getServerEnv("NODE_ENV") === "development";
 }
 
+async function assertListerPurchaseRole(supabaseAdmin: AdminDb, userId: string) {
+  const { data: roles, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  if (error) throw error;
+  const allowed = new Set(["landlord", "manager", "agency"]);
+  if (!(roles ?? []).some((r) => allowed.has(r.role))) {
+    throw new Error("A landlord, manager, or agency account is required for this purchase");
+  }
+}
+
+async function assertBoostOwnershipAndPrice(
+  supabaseAdmin: AdminDb,
+  userId: string,
+  data: InitiatePaymentInput,
+) {
+  if (!data.propertyId) throw new Error("Select a property for this purchase");
+  const { data: property, error } = await supabaseAdmin
+    .from("properties")
+    .select("owner_id")
+    .eq("id", data.propertyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (property?.owner_id !== userId) {
+    throw new Error("You can only purchase boosts for your own listings");
+  }
+
+  if (data.paymentType !== "property_boost" || !data.boostPackage) return;
+
+  const { boostPrice } = await import("@/lib/revenue/plans");
+  const { getLoyaltyLevel } = await import("@/lib/loyalty/points");
+  const { applyLoyaltyDiscount } = await import("@/lib/loyalty/benefits");
+  const level = await getLoyaltyLevel(supabaseAdmin, userId);
+  const expected = applyLoyaltyDiscount(boostPrice(data.boostPackage), level);
+  if (data.amountKes !== expected) {
+    throw new Error(
+      `Boost price mismatch — expected KES ${expected} for your ${level} loyalty tier`,
+    );
+  }
+}
+
 async function assertPaymentAuthorization(userId: string, data: InitiatePaymentInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -145,28 +192,11 @@ async function assertPaymentAuthorization(userId: string, data: InitiatePaymentI
     data.paymentType === "premium_subscription" ||
     data.paymentType === "lead_pack"
   ) {
-    const { data: roles, error } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    if (error) throw error;
-    const allowed = new Set(["landlord", "manager", "agency"]);
-    if (!(roles ?? []).some((r) => allowed.has(r.role))) {
-      throw new Error("A landlord, manager, or agency account is required for this purchase");
-    }
+    await assertListerPurchaseRole(supabaseAdmin, userId);
   }
 
   if (data.paymentType === "property_boost" || data.paymentType === "featured_listing") {
-    if (!data.propertyId) throw new Error("Select a property for this purchase");
-    const { data: property, error } = await supabaseAdmin
-      .from("properties")
-      .select("owner_id")
-      .eq("id", data.propertyId)
-      .maybeSingle();
-    if (error) throw error;
-    if (property?.owner_id !== userId) {
-      throw new Error("You can only purchase boosts for your own listings");
-    }
+    await assertBoostOwnershipAndPrice(supabaseAdmin, userId, data);
   }
 }
 

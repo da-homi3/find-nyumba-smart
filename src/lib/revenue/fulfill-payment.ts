@@ -115,26 +115,33 @@ async function upsertActiveSubscription(
     payment_method: string;
     next_billing_date: string;
     status?: string;
+    module?: "marketplace" | "property_management";
   },
 ) {
+  const module = sub.module ?? "marketplace";
+
   const { data: existing } = await supabaseAdmin
     .from("subscriptions")
     .select("id")
     .eq("user_id", sub.user_id)
-    .eq("plan", sub.plan)
+    .eq("module", module)
     .in("status", ["active", "trialing", "past_due"])
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (existing) {
     await supabaseAdmin
       .from("subscriptions")
       .update({
+        plan: sub.plan,
         status: sub.status ?? "active",
         amount_kes: sub.amount_kes,
         billing_cycle: sub.billing_cycle,
         payment_method: sub.payment_method,
         next_billing_date: sub.next_billing_date,
         grace_period_end: null,
+        module,
       })
       .eq("id", existing.id);
     return;
@@ -143,6 +150,7 @@ async function upsertActiveSubscription(
   await supabaseAdmin.from("subscriptions").insert({
     user_id: sub.user_id,
     plan: sub.plan,
+    module,
     status: sub.status ?? "active",
     amount_kes: sub.amount_kes,
     billing_cycle: sub.billing_cycle,
@@ -354,7 +362,29 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
     billing_cycle: cycle,
     payment_method: paymentMethod(metadata),
     next_billing_date: addBillingDays(days),
+    module: "marketplace",
   });
+}
+
+async function fulfillPmModule(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
+  const { userId, amountKes, metadata = {} } = payment;
+  const plan = metadata.plan ?? "pm-starter";
+  const cycle = billingCycle(metadata);
+  const days = cycle === "quarterly" ? 90 : 30;
+
+  await upsertActiveSubscription(supabaseAdmin, {
+    user_id: userId,
+    plan,
+    amount_kes: amountKes,
+    billing_cycle: cycle,
+    payment_method: paymentMethod(metadata),
+    next_billing_date: addBillingDays(days),
+    module: "property_management",
+  });
+
+  const { asPmDb } = await import("@/lib/pm/access");
+  const { activatePmModuleForAccount } = await import("@/lib/pm/module-gate");
+  await activatePmModuleForAccount(asPmDb(supabaseAdmin), userId);
 }
 
 async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -612,6 +642,8 @@ const FULFILLMENT_HANDLERS: Record<
   premium_subscription: fulfillLandlordPlan,
 
   landlord_plan: fulfillLandlordPlan,
+
+  pm_module: fulfillPmModule,
 
   tenant_plus: fulfillTenantPlus,
 

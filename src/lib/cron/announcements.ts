@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { sendEmail } from "@/lib/email/send";
 import { baseLayout } from "@/lib/email/base-layout";
+import { notifyUsers } from "@/lib/notifications/notify-user";
 import { sanitiseText } from "@/lib/security/sanitize";
 
 type Admin = SupabaseClient<Database>;
@@ -19,7 +20,7 @@ export async function sendProductAnnouncement(
   admin: Admin,
   announcement: ProductAnnouncement,
   adminId?: string,
-): Promise<{ sent: number; skipped: number }> {
+): Promise<{ sent: number; skipped: number; inAppCreated: number }> {
   const title = sanitiseText(announcement.title, 200);
   const body = sanitiseText(announcement.body, 5000);
   const ctaLabel = sanitiseText(announcement.ctaLabel, 80);
@@ -39,6 +40,14 @@ export async function sendProductAnnouncement(
     const { data: profiles } = await admin.from("profiles").select("id").limit(2000);
     userIds = (profiles ?? []).map((p) => p.id);
   }
+
+  const inApp = await notifyUsers(admin, userIds, {
+    type: "announcement",
+    title,
+    body: body.slice(0, 280),
+    href: ctaUrl,
+    metadata: { ctaLabel },
+  });
 
   let sent = 0;
   let skipped = 0;
@@ -86,16 +95,22 @@ export async function sendProductAnnouncement(
   await admin.from("admin_audit_logs").insert({
     admin_id: adminId ?? null,
     action: "PRODUCT_ANNOUNCEMENT",
-    details: JSON.stringify({ title, sent, skipped, roles: announcement.targetRoles }),
+    details: JSON.stringify({
+      title,
+      sent,
+      skipped,
+      inAppCreated: inApp.created,
+      roles: announcement.targetRoles,
+    }),
   });
 
-  return { sent, skipped };
+  return { sent, skipped, inAppCreated: inApp.created };
 }
 
 /** Batch helper for large sends with rate pacing. */
 export async function sendProductAnnouncementBatched(
   admin: Admin,
   announcement: ProductAnnouncement,
-): Promise<{ sent: number; skipped: number }> {
+): Promise<{ sent: number; skipped: number; inAppCreated: number }> {
   return sendProductAnnouncement(admin, announcement);
 }

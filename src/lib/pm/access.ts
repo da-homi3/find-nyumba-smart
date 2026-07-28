@@ -3,6 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { ForbiddenError } from "@/lib/api/_authz";
 import { getUserOrganizationId } from "@/lib/api/nyumba/nyumba-shared";
 import { staffCan, type PmStaffRole } from "@/lib/pm/permissions";
+import { requirePmModule } from "@/lib/pm/module-gate";
 
 export type { PmStaffRole };
 export { staffCan };
@@ -19,6 +20,7 @@ export type PmPropertyRow = {
   lng: number | null;
   photo_url: string | null;
   status: string;
+  pm_module_active?: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -50,11 +52,13 @@ async function userIsAdmin(admin: PmDb, userId: string): Promise<boolean> {
 /**
  * Ensures the authenticated user may access a managed (pm_*) property.
  * Admins and owners get staffRole `owner`; staff rows and org members get their role.
+ * Also enforces Property Management module activation (402 when inactive).
  */
 export async function assertPmPropertyAccess(
   admin: PmDb,
   userId: string,
   propertyId: string,
+  opts?: { skipModuleGate?: boolean },
 ): Promise<{ property: PmPropertyRow; staffRole: PmStaffRole }> {
   const { data: property, error } = await admin
     .from("pm_properties")
@@ -71,32 +75,37 @@ export async function assertPmPropertyAccess(
   }
 
   const row = property as PmPropertyRow;
+  let staffRole: PmStaffRole | null = null;
 
   if (await userIsAdmin(admin, userId)) {
-    return { property: row, staffRole: "owner" };
-  }
+    staffRole = "owner";
+  } else if (row.owner_user_id === userId) {
+    staffRole = "owner";
+  } else {
+    const { data: staff } = await admin
+      .from("pm_property_staff")
+      .select("role")
+      .eq("property_id", propertyId)
+      .eq("user_id", userId)
+      .maybeSingle();
 
-  if (row.owner_user_id === userId) {
-    return { property: row, staffRole: "owner" };
-  }
-
-  const { data: staff } = await admin
-    .from("pm_property_staff")
-    .select("role")
-    .eq("property_id", propertyId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (staff?.role) {
-    return { property: row, staffRole: staff.role as PmStaffRole };
-  }
-
-  if (row.agency_id) {
-    const orgId = await getUserOrganizationId(admin as SupabaseClient<Database>, userId);
-    if (orgId && orgId === row.agency_id) {
-      return { property: row, staffRole: "property_manager" };
+    if (staff?.role) {
+      staffRole = staff.role as PmStaffRole;
+    } else if (row.agency_id) {
+      const orgId = await getUserOrganizationId(admin as SupabaseClient<Database>, userId);
+      if (orgId && orgId === row.agency_id) {
+        staffRole = "property_manager";
+      }
     }
   }
 
-  throw new ForbiddenError("No access to this property");
+  if (!staffRole) {
+    throw new ForbiddenError("No access to this property");
+  }
+
+  if (!opts?.skipModuleGate) {
+    await requirePmModule(admin, propertyId);
+  }
+
+  return { property: row, staffRole };
 }

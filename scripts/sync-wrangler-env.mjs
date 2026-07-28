@@ -38,6 +38,11 @@ const VAR_KEYS = [
   "VITE_MAPBOX_TOKEN",
   "WHATSAPP_API_VERSION",
   "OPS_ALERT_EMAIL",
+  "FCM_SEND_ENABLED",
+  "FCM_PROJECT_ID",
+  "VAPID_SUBJECT",
+  "VAPID_PUBLIC_KEY",
+  "INTASEND_ENV",
 ];
 
 /** Uploaded as Worker secrets */
@@ -52,6 +57,8 @@ const SECRET_KEYS = [
   "MPESA_WEBHOOK_SECRET",
   "PESAPAL_CONSUMER_KEY",
   "PESAPAL_CONSUMER_SECRET",
+  "INTASEND_SECRET_KEY",
+  "INTASEND_API_KEY",
   "CRON_SECRET",
   "GEMINI_API_KEY",
   "NVIDIA_API_KEY",
@@ -66,12 +73,17 @@ const SECRET_KEYS = [
   "NUMVERIFY_ACCESS_KEY",
   "IPSTACK_ACCESS_KEY",
   "STREETLAYER_ACCESS_KEY",
+  "FCM_CLIENT_EMAIL",
+  "FCM_PRIVATE_KEY",
+  "VAPID_PRIVATE_KEY",
 ];
 
 const DEPRECATED_ENV_KEYS = new Set([
   "LOVABLE_API_KEY",
   "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY",
   "VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID",
+  "FLW_SECRET_KEY",
+  "FLUTTERWAVE_SECRET_KEY",
 ]);
 
 function parseEnvFile(text) {
@@ -159,6 +171,56 @@ function removeDeprecatedKeys(next) {
   }
 }
 
+function warnMissingEnvGroup(env, keys, message, followup) {
+  const missing = keys.filter((key) => !env[key]);
+  if (missing.length === 0) return;
+  console.warn(message, missing.join(", "));
+  if (followup) console.warn(followup);
+}
+
+function warnOptionalConfig(env) {
+  warnMissingEnvGroup(
+    env,
+    ["MPESA_CONSUMER_KEY", "MPESA_CONSUMER_SECRET", "MPESA_SHORTCODE", "MPESA_PASSKEY"],
+    "M-Pesa not fully configured — add to .env from https://developer.safaricom.co.ke/:",
+    "Payments will stay in demo mode until these are set.",
+  );
+
+  if (!env.GEMINI_API_KEY) {
+    console.log("NyumbaAI: Cloudflare Workers AI on production (GEMINI_API_KEY optional for local dev).");
+  }
+
+  warnMissingEnvGroup(
+    env,
+    ["PESAPAL_CONSUMER_KEY", "PESAPAL_CONSUMER_SECRET", "PESAPAL_NOTIFICATION_ID"],
+    "Pesapal not fully configured — run: node scripts/setup-pesapal-ipn.mjs",
+  );
+
+  if (!env.INTASEND_SECRET_KEY && !env.INTASEND_API_KEY) {
+    console.warn(
+      "IntaSend bank payouts off — add INTASEND_SECRET_KEY to .env (Dashboard → API Keys), fund wallet, then: npm run config:cloudflare",
+    );
+  }
+
+  if (!env.VITE_MAPBOX_TOKEN && !env.MAPBOX_PUBLIC_TOKEN) {
+    console.warn(
+      "Mapbox 3D map not configured — add VITE_MAPBOX_TOKEN (pk.ey...) from https://account.mapbox.com/access-tokens/",
+    );
+  }
+}
+
+function uploadWorkerSecrets(env) {
+  console.log("\nUploading Worker secrets…");
+  for (const key of SECRET_KEYS) {
+    if (!env[key]) {
+      console.log(`  skip ${key} (empty)`);
+      continue;
+    }
+    console.log(`  put ${key}`);
+    putSecret(key, env[key]);
+  }
+}
+
 function ensureDefaults(env) {
   const next = { ...env };
   applyUrlDefaults(next);
@@ -223,9 +285,9 @@ function patchWranglerCustomDomains(zoneReady) {
     }));
     console.log(`Patched custom domains: ${CUSTOM_DOMAINS.join(", ")}`);
   } else {
-    delete cfg.routes;
+    // Never strip custom domains on a failed zone probe — that broke production deploys.
     console.warn(
-      "Skipping custom domains — add nyumbasearch.com in Cloudflare Dashboard → Add site, then: npm run deploy:domain",
+      "Zone probe failed — keeping existing custom domain routes. Re-run: npm run deploy:domain if needed",
     );
   }
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
@@ -289,44 +351,7 @@ async function main() {
   env = ensureDefaults(env);
   writeFileSync(envPath, serializeEnvFile(env, original));
   console.log("Updated .env defaults (PUBLIC_APP_URL, CARETAKER_SESSION_SECRET, etc.)");
-
-  const missingMpesa = [
-    "MPESA_CONSUMER_KEY",
-    "MPESA_CONSUMER_SECRET",
-    "MPESA_SHORTCODE",
-    "MPESA_PASSKEY",
-  ].filter((k) => !env[k]);
-  if (missingMpesa.length) {
-    console.warn(
-      "M-Pesa not fully configured — add to .env from https://developer.safaricom.co.ke/:",
-      missingMpesa.join(", "),
-    );
-    console.warn("Payments will stay in demo mode until these are set.");
-  }
-
-  if (!env.GEMINI_API_KEY) {
-    console.log(
-      "NyumbaAI: Cloudflare Workers AI on production (GEMINI_API_KEY optional for local dev).",
-    );
-  }
-
-  const missingPesapal = [
-    "PESAPAL_CONSUMER_KEY",
-    "PESAPAL_CONSUMER_SECRET",
-    "PESAPAL_NOTIFICATION_ID",
-  ].filter((k) => !env[k]);
-  if (missingPesapal.length) {
-    console.warn(
-      "Pesapal not fully configured — run: node scripts/setup-pesapal-ipn.mjs",
-      missingPesapal.join(", "),
-    );
-  }
-
-  if (!env.VITE_MAPBOX_TOKEN && !env.MAPBOX_PUBLIC_TOKEN) {
-    console.warn(
-      "Mapbox 3D map not configured — add VITE_MAPBOX_TOKEN (pk.ey...) from https://account.mapbox.com/access-tokens/",
-    );
-  }
+  warnOptionalConfig(env);
 
   patchWranglerAccountId(env);
   patchWranglerVars(env);
@@ -338,15 +363,7 @@ async function main() {
   if (process.argv.includes("--skip-secrets")) {
     console.log("\nSkipping Worker secret upload (--skip-secrets)");
   } else {
-    console.log("\nUploading Worker secrets…");
-    for (const key of SECRET_KEYS) {
-      if (!env[key]) {
-        console.log(`  skip ${key} (empty)`);
-        continue;
-      }
-      console.log(`  put ${key}`);
-      putSecret(key, env[key]);
-    }
+    uploadWorkerSecrets(env);
   }
 
   console.log("\nDone. Rebuild client for VITE_* keys: npm run build");

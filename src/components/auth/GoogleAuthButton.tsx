@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { startGoogleAuth } from "@/lib/auth/google-oauth";
+import type { PendingSignupPolicyAcceptance } from "@/lib/auth/auth-gate";
 import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -8,6 +9,9 @@ type GoogleAuthButtonProps = Readonly<{
   label?: string;
   className?: string;
   disabled?: boolean;
+  onBeforeStart?: () => boolean | Promise<boolean>;
+  startSignal?: number;
+  policyAcceptance?: PendingSignupPolicyAcceptance;
 }>;
 
 export function GoogleAuthButton({
@@ -15,13 +19,16 @@ export function GoogleAuthButton({
   label = "Continue with Google",
   className = "",
   disabled = false,
+  onBeforeStart,
+  startSignal = 0,
+  policyAcceptance,
 }: GoogleAuthButtonProps) {
   const [busy, setBusy] = useState(false);
 
-  async function onClick() {
+  async function beginAuth() {
     setBusy(true);
     try {
-      const { error } = await startGoogleAuth({ nextPath, role: "tenant" });
+      const { error } = await startGoogleAuth({ nextPath, role: "tenant", policyAcceptance });
       if (error) {
         toast.error(error);
         setBusy(false);
@@ -32,6 +39,21 @@ export function GoogleAuthButton({
       setBusy(false);
     }
   }
+
+  async function onClick() {
+    if (onBeforeStart) {
+      const allowed = await onBeforeStart();
+      if (!allowed) return;
+    }
+    await beginAuth();
+  }
+
+  useEffect(() => {
+    if (startSignal <= 0) return;
+    void beginAuth();
+    // Intentionally keyed to parent-issued signal bumps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startSignal]);
 
   return (
     <button

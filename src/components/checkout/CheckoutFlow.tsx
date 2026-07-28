@@ -47,7 +47,8 @@ export type CheckoutMetadata = {
     | "report"
     | "contact_unlock"
     | "provider_subscription"
-    | "invoice";
+    | "invoice"
+    | "pm_module";
   propertyId?: string;
   plan?: string;
   boostPackage?: "spotlight" | "homepage" | "campaign";

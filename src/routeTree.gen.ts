@@ -19,6 +19,7 @@ import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as ManagerRouteImport } from './routes/manager'
 import { Route as LandlordAgreementRouteImport } from './routes/landlord-agreement'
 import { Route as LandlordRouteImport } from './routes/landlord'
@@ -110,19 +111,25 @@ import { Route as TenantInviteTokenRouteImport } from './routes/tenant.invite.$t
 import { Route as ServicesProviderDashboardRouteImport } from './routes/services.provider.dashboard'
 import { Route as ServicesProviderIdRouteImport } from './routes/services.provider.$id'
 import { Route as ManagerPropertiesNewRouteImport } from './routes/manager.properties.new'
+import { Route as ManagerManageSubscribeRouteImport } from './routes/manager.manage.subscribe'
 import { Route as ManagerManageNewRouteImport } from './routes/manager.manage.new'
 import { Route as ManagerManagePropertyIdRouteImport } from './routes/manager.manage.$propertyId'
 import { Route as ManagerDashboardPlanRouteImport } from './routes/manager.dashboard.plan'
+import { Route as ManagerDashboardPayoutsRouteImport } from './routes/manager.dashboard.payouts'
 import { Route as ManagerDashboardBillingRouteImport } from './routes/manager.dashboard.billing'
 import { Route as LandlordPropertiesNewRouteImport } from './routes/landlord.properties.new'
+import { Route as LandlordManageSubscribeRouteImport } from './routes/landlord.manage.subscribe'
 import { Route as LandlordManageNewRouteImport } from './routes/landlord.manage.new'
 import { Route as LandlordManagePropertyIdRouteImport } from './routes/landlord.manage.$propertyId'
 import { Route as LandlordDashboardPlanRouteImport } from './routes/landlord.dashboard.plan'
+import { Route as LandlordDashboardPayoutsRouteImport } from './routes/landlord.dashboard.payouts'
 import { Route as LandlordDashboardBillingRouteImport } from './routes/landlord.dashboard.billing'
 import { Route as AgencyPropertiesNewRouteImport } from './routes/agency.properties.new'
+import { Route as AgencyManageSubscribeRouteImport } from './routes/agency.manage.subscribe'
 import { Route as AgencyManageNewRouteImport } from './routes/agency.manage.new'
 import { Route as AgencyManagePropertyIdRouteImport } from './routes/agency.manage.$propertyId'
 import { Route as AgencyDashboardPlanRouteImport } from './routes/agency.dashboard.plan'
+import { Route as AgencyDashboardPayoutsRouteImport } from './routes/agency.dashboard.payouts'
 import { Route as AgencyDashboardBillingRouteImport } from './routes/agency.dashboard.billing'
 import { Route as AdminProvidersNewRouteImport } from './routes/admin.providers.new'
 import { Route as AdminListingsNewRouteImport } from './routes/admin.listings.new'
@@ -194,6 +201,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ManagerRoute = ManagerRouteImport.update({
@@ -652,6 +664,11 @@ const ManagerPropertiesNewRoute = ManagerPropertiesNewRouteImport.update({
   path: '/new',
   getParentRoute: () => ManagerPropertiesRoute,
 } as any)
+const ManagerManageSubscribeRoute = ManagerManageSubscribeRouteImport.update({
+  id: '/subscribe',
+  path: '/subscribe',
+  getParentRoute: () => ManagerManageRoute,
+} as any)
 const ManagerManageNewRoute = ManagerManageNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -667,6 +684,11 @@ const ManagerDashboardPlanRoute = ManagerDashboardPlanRouteImport.update({
   path: '/plan',
   getParentRoute: () => ManagerDashboardRoute,
 } as any)
+const ManagerDashboardPayoutsRoute = ManagerDashboardPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => ManagerDashboardRoute,
+} as any)
 const ManagerDashboardBillingRoute = ManagerDashboardBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -676,6 +698,11 @@ const LandlordPropertiesNewRoute = LandlordPropertiesNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => LandlordPropertiesRoute,
+} as any)
+const LandlordManageSubscribeRoute = LandlordManageSubscribeRouteImport.update({
+  id: '/subscribe',
+  path: '/subscribe',
+  getParentRoute: () => LandlordManageRoute,
 } as any)
 const LandlordManageNewRoute = LandlordManageNewRouteImport.update({
   id: '/new',
@@ -693,6 +720,12 @@ const LandlordDashboardPlanRoute = LandlordDashboardPlanRouteImport.update({
   path: '/plan',
   getParentRoute: () => LandlordDashboardRoute,
 } as any)
+const LandlordDashboardPayoutsRoute =
+  LandlordDashboardPayoutsRouteImport.update({
+    id: '/payouts',
+    path: '/payouts',
+    getParentRoute: () => LandlordDashboardRoute,
+  } as any)
 const LandlordDashboardBillingRoute =
   LandlordDashboardBillingRouteImport.update({
     id: '/billing',
@@ -703,6 +736,11 @@ const AgencyPropertiesNewRoute = AgencyPropertiesNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => AgencyPropertiesRoute,
+} as any)
+const AgencyManageSubscribeRoute = AgencyManageSubscribeRouteImport.update({
+  id: '/subscribe',
+  path: '/subscribe',
+  getParentRoute: () => AgencyManageRoute,
 } as any)
 const AgencyManageNewRoute = AgencyManageNewRouteImport.update({
   id: '/new',
@@ -717,6 +755,11 @@ const AgencyManagePropertyIdRoute = AgencyManagePropertyIdRouteImport.update({
 const AgencyDashboardPlanRoute = AgencyDashboardPlanRouteImport.update({
   id: '/plan',
   path: '/plan',
+  getParentRoute: () => AgencyDashboardRoute,
+} as any)
+const AgencyDashboardPayoutsRoute = AgencyDashboardPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
   getParentRoute: () => AgencyDashboardRoute,
 } as any)
 const AgencyDashboardBillingRoute = AgencyDashboardBillingRouteImport.update({
@@ -863,6 +906,7 @@ export interface FileRoutesByFullPath {
   '/landlord': typeof LandlordRouteWithChildren
   '/landlord-agreement': typeof LandlordAgreementRoute
   '/manager': typeof ManagerRouteWithChildren
+  '/notifications': typeof NotificationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -933,19 +977,25 @@ export interface FileRoutesByFullPath {
   '/admin/listings/new': typeof AdminListingsNewRoute
   '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
+  '/agency/dashboard/payouts': typeof AgencyDashboardPayoutsRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/manage/$propertyId': typeof AgencyManagePropertyIdRouteWithChildren
   '/agency/manage/new': typeof AgencyManageNewRoute
+  '/agency/manage/subscribe': typeof AgencyManageSubscribeRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
+  '/landlord/dashboard/payouts': typeof LandlordDashboardPayoutsRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
   '/landlord/manage/$propertyId': typeof LandlordManagePropertyIdRouteWithChildren
   '/landlord/manage/new': typeof LandlordManageNewRoute
+  '/landlord/manage/subscribe': typeof LandlordManageSubscribeRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/dashboard/billing': typeof ManagerDashboardBillingRoute
+  '/manager/dashboard/payouts': typeof ManagerDashboardPayoutsRoute
   '/manager/dashboard/plan': typeof ManagerDashboardPlanRoute
   '/manager/manage/$propertyId': typeof ManagerManagePropertyIdRouteWithChildren
   '/manager/manage/new': typeof ManagerManageNewRoute
+  '/manager/manage/subscribe': typeof ManagerManageSubscribeRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
   '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
@@ -994,6 +1044,7 @@ export interface FileRoutesByTo {
   '/finance': typeof FinanceRoute
   '/insurance': typeof InsuranceRoute
   '/landlord-agreement': typeof LandlordAgreementRoute
+  '/notifications': typeof NotificationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -1051,16 +1102,22 @@ export interface FileRoutesByTo {
   '/admin/listings/new': typeof AdminListingsNewRoute
   '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
+  '/agency/dashboard/payouts': typeof AgencyDashboardPayoutsRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/manage/new': typeof AgencyManageNewRoute
+  '/agency/manage/subscribe': typeof AgencyManageSubscribeRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
+  '/landlord/dashboard/payouts': typeof LandlordDashboardPayoutsRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
   '/landlord/manage/new': typeof LandlordManageNewRoute
+  '/landlord/manage/subscribe': typeof LandlordManageSubscribeRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/dashboard/billing': typeof ManagerDashboardBillingRoute
+  '/manager/dashboard/payouts': typeof ManagerDashboardPayoutsRoute
   '/manager/dashboard/plan': typeof ManagerDashboardPlanRoute
   '/manager/manage/new': typeof ManagerManageNewRoute
+  '/manager/manage/subscribe': typeof ManagerManageSubscribeRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
   '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
@@ -1117,6 +1174,7 @@ export interface FileRoutesById {
   '/landlord': typeof LandlordRouteWithChildren
   '/landlord-agreement': typeof LandlordAgreementRoute
   '/manager': typeof ManagerRouteWithChildren
+  '/notifications': typeof NotificationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -1187,19 +1245,25 @@ export interface FileRoutesById {
   '/admin/listings/new': typeof AdminListingsNewRoute
   '/admin/providers/new': typeof AdminProvidersNewRoute
   '/agency/dashboard/billing': typeof AgencyDashboardBillingRoute
+  '/agency/dashboard/payouts': typeof AgencyDashboardPayoutsRoute
   '/agency/dashboard/plan': typeof AgencyDashboardPlanRoute
   '/agency/manage/$propertyId': typeof AgencyManagePropertyIdRouteWithChildren
   '/agency/manage/new': typeof AgencyManageNewRoute
+  '/agency/manage/subscribe': typeof AgencyManageSubscribeRoute
   '/agency/properties/new': typeof AgencyPropertiesNewRoute
   '/landlord/dashboard/billing': typeof LandlordDashboardBillingRoute
+  '/landlord/dashboard/payouts': typeof LandlordDashboardPayoutsRoute
   '/landlord/dashboard/plan': typeof LandlordDashboardPlanRoute
   '/landlord/manage/$propertyId': typeof LandlordManagePropertyIdRouteWithChildren
   '/landlord/manage/new': typeof LandlordManageNewRoute
+  '/landlord/manage/subscribe': typeof LandlordManageSubscribeRoute
   '/landlord/properties/new': typeof LandlordPropertiesNewRoute
   '/manager/dashboard/billing': typeof ManagerDashboardBillingRoute
+  '/manager/dashboard/payouts': typeof ManagerDashboardPayoutsRoute
   '/manager/dashboard/plan': typeof ManagerDashboardPlanRoute
   '/manager/manage/$propertyId': typeof ManagerManagePropertyIdRouteWithChildren
   '/manager/manage/new': typeof ManagerManageNewRoute
+  '/manager/manage/subscribe': typeof ManagerManageSubscribeRoute
   '/manager/properties/new': typeof ManagerPropertiesNewRoute
   '/services/provider/$id': typeof ServicesProviderIdRoute
   '/services/provider/dashboard': typeof ServicesProviderDashboardRoute
@@ -1257,6 +1321,7 @@ export interface FileRouteTypes {
     | '/landlord'
     | '/landlord-agreement'
     | '/manager'
+    | '/notifications'
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
@@ -1327,19 +1392,25 @@ export interface FileRouteTypes {
     | '/admin/listings/new'
     | '/admin/providers/new'
     | '/agency/dashboard/billing'
+    | '/agency/dashboard/payouts'
     | '/agency/dashboard/plan'
     | '/agency/manage/$propertyId'
     | '/agency/manage/new'
+    | '/agency/manage/subscribe'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
+    | '/landlord/dashboard/payouts'
     | '/landlord/dashboard/plan'
     | '/landlord/manage/$propertyId'
     | '/landlord/manage/new'
+    | '/landlord/manage/subscribe'
     | '/landlord/properties/new'
     | '/manager/dashboard/billing'
+    | '/manager/dashboard/payouts'
     | '/manager/dashboard/plan'
     | '/manager/manage/$propertyId'
     | '/manager/manage/new'
+    | '/manager/manage/subscribe'
     | '/manager/properties/new'
     | '/services/provider/$id'
     | '/services/provider/dashboard'
@@ -1388,6 +1459,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/insurance'
     | '/landlord-agreement'
+    | '/notifications'
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
@@ -1445,16 +1517,22 @@ export interface FileRouteTypes {
     | '/admin/listings/new'
     | '/admin/providers/new'
     | '/agency/dashboard/billing'
+    | '/agency/dashboard/payouts'
     | '/agency/dashboard/plan'
     | '/agency/manage/new'
+    | '/agency/manage/subscribe'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
+    | '/landlord/dashboard/payouts'
     | '/landlord/dashboard/plan'
     | '/landlord/manage/new'
+    | '/landlord/manage/subscribe'
     | '/landlord/properties/new'
     | '/manager/dashboard/billing'
+    | '/manager/dashboard/payouts'
     | '/manager/dashboard/plan'
     | '/manager/manage/new'
+    | '/manager/manage/subscribe'
     | '/manager/properties/new'
     | '/services/provider/$id'
     | '/services/provider/dashboard'
@@ -1510,6 +1588,7 @@ export interface FileRouteTypes {
     | '/landlord'
     | '/landlord-agreement'
     | '/manager'
+    | '/notifications'
     | '/pricing'
     | '/privacy'
     | '/refund-policy'
@@ -1580,19 +1659,25 @@ export interface FileRouteTypes {
     | '/admin/listings/new'
     | '/admin/providers/new'
     | '/agency/dashboard/billing'
+    | '/agency/dashboard/payouts'
     | '/agency/dashboard/plan'
     | '/agency/manage/$propertyId'
     | '/agency/manage/new'
+    | '/agency/manage/subscribe'
     | '/agency/properties/new'
     | '/landlord/dashboard/billing'
+    | '/landlord/dashboard/payouts'
     | '/landlord/dashboard/plan'
     | '/landlord/manage/$propertyId'
     | '/landlord/manage/new'
+    | '/landlord/manage/subscribe'
     | '/landlord/properties/new'
     | '/manager/dashboard/billing'
+    | '/manager/dashboard/payouts'
     | '/manager/dashboard/plan'
     | '/manager/manage/$propertyId'
     | '/manager/manage/new'
+    | '/manager/manage/subscribe'
     | '/manager/properties/new'
     | '/services/provider/$id'
     | '/services/provider/dashboard'
@@ -1649,6 +1734,7 @@ export interface RootRouteChildren {
   LandlordRoute: typeof LandlordRouteWithChildren
   LandlordAgreementRoute: typeof LandlordAgreementRoute
   ManagerRoute: typeof ManagerRouteWithChildren
+  NotificationsRoute: typeof NotificationsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
@@ -1731,6 +1817,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing'
       preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/manager': {
@@ -2370,6 +2463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerPropertiesNewRouteImport
       parentRoute: typeof ManagerPropertiesRoute
     }
+    '/manager/manage/subscribe': {
+      id: '/manager/manage/subscribe'
+      path: '/subscribe'
+      fullPath: '/manager/manage/subscribe'
+      preLoaderRoute: typeof ManagerManageSubscribeRouteImport
+      parentRoute: typeof ManagerManageRoute
+    }
     '/manager/manage/new': {
       id: '/manager/manage/new'
       path: '/new'
@@ -2391,6 +2491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerDashboardPlanRouteImport
       parentRoute: typeof ManagerDashboardRoute
     }
+    '/manager/dashboard/payouts': {
+      id: '/manager/dashboard/payouts'
+      path: '/payouts'
+      fullPath: '/manager/dashboard/payouts'
+      preLoaderRoute: typeof ManagerDashboardPayoutsRouteImport
+      parentRoute: typeof ManagerDashboardRoute
+    }
     '/manager/dashboard/billing': {
       id: '/manager/dashboard/billing'
       path: '/billing'
@@ -2404,6 +2511,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/landlord/properties/new'
       preLoaderRoute: typeof LandlordPropertiesNewRouteImport
       parentRoute: typeof LandlordPropertiesRoute
+    }
+    '/landlord/manage/subscribe': {
+      id: '/landlord/manage/subscribe'
+      path: '/subscribe'
+      fullPath: '/landlord/manage/subscribe'
+      preLoaderRoute: typeof LandlordManageSubscribeRouteImport
+      parentRoute: typeof LandlordManageRoute
     }
     '/landlord/manage/new': {
       id: '/landlord/manage/new'
@@ -2426,6 +2540,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandlordDashboardPlanRouteImport
       parentRoute: typeof LandlordDashboardRoute
     }
+    '/landlord/dashboard/payouts': {
+      id: '/landlord/dashboard/payouts'
+      path: '/payouts'
+      fullPath: '/landlord/dashboard/payouts'
+      preLoaderRoute: typeof LandlordDashboardPayoutsRouteImport
+      parentRoute: typeof LandlordDashboardRoute
+    }
     '/landlord/dashboard/billing': {
       id: '/landlord/dashboard/billing'
       path: '/billing'
@@ -2439,6 +2560,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/agency/properties/new'
       preLoaderRoute: typeof AgencyPropertiesNewRouteImport
       parentRoute: typeof AgencyPropertiesRoute
+    }
+    '/agency/manage/subscribe': {
+      id: '/agency/manage/subscribe'
+      path: '/subscribe'
+      fullPath: '/agency/manage/subscribe'
+      preLoaderRoute: typeof AgencyManageSubscribeRouteImport
+      parentRoute: typeof AgencyManageRoute
     }
     '/agency/manage/new': {
       id: '/agency/manage/new'
@@ -2459,6 +2587,13 @@ declare module '@tanstack/react-router' {
       path: '/plan'
       fullPath: '/agency/dashboard/plan'
       preLoaderRoute: typeof AgencyDashboardPlanRouteImport
+      parentRoute: typeof AgencyDashboardRoute
+    }
+    '/agency/dashboard/payouts': {
+      id: '/agency/dashboard/payouts'
+      path: '/payouts'
+      fullPath: '/agency/dashboard/payouts'
+      preLoaderRoute: typeof AgencyDashboardPayoutsRouteImport
       parentRoute: typeof AgencyDashboardRoute
     }
     '/agency/dashboard/billing': {
@@ -2652,12 +2787,14 @@ const AdvertiseRouteWithChildren = AdvertiseRoute._addFileChildren(
 
 interface AgencyDashboardRouteChildren {
   AgencyDashboardBillingRoute: typeof AgencyDashboardBillingRoute
+  AgencyDashboardPayoutsRoute: typeof AgencyDashboardPayoutsRoute
   AgencyDashboardPlanRoute: typeof AgencyDashboardPlanRoute
   AgencyDashboardIndexRoute: typeof AgencyDashboardIndexRoute
 }
 
 const AgencyDashboardRouteChildren: AgencyDashboardRouteChildren = {
   AgencyDashboardBillingRoute: AgencyDashboardBillingRoute,
+  AgencyDashboardPayoutsRoute: AgencyDashboardPayoutsRoute,
   AgencyDashboardPlanRoute: AgencyDashboardPlanRoute,
   AgencyDashboardIndexRoute: AgencyDashboardIndexRoute,
 }
@@ -2692,12 +2829,14 @@ const AgencyManagePropertyIdRouteWithChildren =
 interface AgencyManageRouteChildren {
   AgencyManagePropertyIdRoute: typeof AgencyManagePropertyIdRouteWithChildren
   AgencyManageNewRoute: typeof AgencyManageNewRoute
+  AgencyManageSubscribeRoute: typeof AgencyManageSubscribeRoute
   AgencyManageIndexRoute: typeof AgencyManageIndexRoute
 }
 
 const AgencyManageRouteChildren: AgencyManageRouteChildren = {
   AgencyManagePropertyIdRoute: AgencyManagePropertyIdRouteWithChildren,
   AgencyManageNewRoute: AgencyManageNewRoute,
+  AgencyManageSubscribeRoute: AgencyManageSubscribeRoute,
   AgencyManageIndexRoute: AgencyManageIndexRoute,
 }
 
@@ -2783,12 +2922,14 @@ const CaretakerRouteWithChildren = CaretakerRoute._addFileChildren(
 
 interface LandlordDashboardRouteChildren {
   LandlordDashboardBillingRoute: typeof LandlordDashboardBillingRoute
+  LandlordDashboardPayoutsRoute: typeof LandlordDashboardPayoutsRoute
   LandlordDashboardPlanRoute: typeof LandlordDashboardPlanRoute
   LandlordDashboardIndexRoute: typeof LandlordDashboardIndexRoute
 }
 
 const LandlordDashboardRouteChildren: LandlordDashboardRouteChildren = {
   LandlordDashboardBillingRoute: LandlordDashboardBillingRoute,
+  LandlordDashboardPayoutsRoute: LandlordDashboardPayoutsRoute,
   LandlordDashboardPlanRoute: LandlordDashboardPlanRoute,
   LandlordDashboardIndexRoute: LandlordDashboardIndexRoute,
 }
@@ -2822,12 +2963,14 @@ const LandlordManagePropertyIdRouteWithChildren =
 interface LandlordManageRouteChildren {
   LandlordManagePropertyIdRoute: typeof LandlordManagePropertyIdRouteWithChildren
   LandlordManageNewRoute: typeof LandlordManageNewRoute
+  LandlordManageSubscribeRoute: typeof LandlordManageSubscribeRoute
   LandlordManageIndexRoute: typeof LandlordManageIndexRoute
 }
 
 const LandlordManageRouteChildren: LandlordManageRouteChildren = {
   LandlordManagePropertyIdRoute: LandlordManagePropertyIdRouteWithChildren,
   LandlordManageNewRoute: LandlordManageNewRoute,
+  LandlordManageSubscribeRoute: LandlordManageSubscribeRoute,
   LandlordManageIndexRoute: LandlordManageIndexRoute,
 }
 
@@ -2884,12 +3027,14 @@ const LandlordRouteWithChildren = LandlordRoute._addFileChildren(
 
 interface ManagerDashboardRouteChildren {
   ManagerDashboardBillingRoute: typeof ManagerDashboardBillingRoute
+  ManagerDashboardPayoutsRoute: typeof ManagerDashboardPayoutsRoute
   ManagerDashboardPlanRoute: typeof ManagerDashboardPlanRoute
   ManagerDashboardIndexRoute: typeof ManagerDashboardIndexRoute
 }
 
 const ManagerDashboardRouteChildren: ManagerDashboardRouteChildren = {
   ManagerDashboardBillingRoute: ManagerDashboardBillingRoute,
+  ManagerDashboardPayoutsRoute: ManagerDashboardPayoutsRoute,
   ManagerDashboardPlanRoute: ManagerDashboardPlanRoute,
   ManagerDashboardIndexRoute: ManagerDashboardIndexRoute,
 }
@@ -2923,12 +3068,14 @@ const ManagerManagePropertyIdRouteWithChildren =
 interface ManagerManageRouteChildren {
   ManagerManagePropertyIdRoute: typeof ManagerManagePropertyIdRouteWithChildren
   ManagerManageNewRoute: typeof ManagerManageNewRoute
+  ManagerManageSubscribeRoute: typeof ManagerManageSubscribeRoute
   ManagerManageIndexRoute: typeof ManagerManageIndexRoute
 }
 
 const ManagerManageRouteChildren: ManagerManageRouteChildren = {
   ManagerManagePropertyIdRoute: ManagerManagePropertyIdRouteWithChildren,
   ManagerManageNewRoute: ManagerManageNewRoute,
+  ManagerManageSubscribeRoute: ManagerManageSubscribeRoute,
   ManagerManageIndexRoute: ManagerManageIndexRoute,
 }
 
@@ -3081,6 +3228,7 @@ const rootRouteChildren: RootRouteChildren = {
   LandlordRoute: LandlordRouteWithChildren,
   LandlordAgreementRoute: LandlordAgreementRoute,
   ManagerRoute: ManagerRouteWithChildren,
+  NotificationsRoute: NotificationsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RefundPolicyRoute: RefundPolicyRoute,

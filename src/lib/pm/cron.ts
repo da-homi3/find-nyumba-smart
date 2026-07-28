@@ -1,5 +1,7 @@
 import type { PmDb } from "@/lib/pm/access";
 
+const INVOICE_INSERT_CHUNK = 100;
+
 export async function generatePmMonthlyInvoices(admin: PmDb): Promise<{ created: number }> {
   const today = new Date();
   const periodMonth = today.toISOString().slice(0, 7);
@@ -16,23 +18,32 @@ export async function generatePmMonthlyInvoices(admin: PmDb): Promise<{ created:
 
   if (error) throw error;
 
+  const rows = (leases ?? []).map((lease: { id: string; monthly_rent: number }) => ({
+    lease_id: lease.id,
+    period_month: periodMonth,
+    amount_due: lease.monthly_rent,
+    due_date: dueDateIso,
+    status: "pending" as const,
+  }));
+
+  if (rows.length === 0) return { created: 0 };
+
   let created = 0;
-  for (const lease of leases ?? []) {
-    const { error: insertError } = await admin.from("pm_rent_invoices").insert({
-      lease_id: lease.id,
-      period_month: periodMonth,
-      amount_due: lease.monthly_rent,
-      due_date: dueDateIso,
-      status: "pending",
-    });
-    // Unique (lease_id, period_month) — ignore duplicates
-    if (!insertError) {
-      created += 1;
+  for (let i = 0; i < rows.length; i += INVOICE_INSERT_CHUNK) {
+    const chunk = rows.slice(i, i + INVOICE_INSERT_CHUNK);
+    const { data, error: insertError } = await admin
+      .from("pm_rent_invoices")
+      .upsert(chunk, {
+        onConflict: "lease_id,period_month",
+        ignoreDuplicates: true,
+      })
+      .select("id");
+
+    if (insertError) {
+      console.warn("[pm-cron] invoice upsert:", insertError.message);
       continue;
     }
-    if (!/duplicate|unique/i.test(insertError.message ?? "")) {
-      console.warn("[pm-cron] invoice insert:", insertError.message);
-    }
+    created += (data ?? []).length;
   }
 
   return { created };
@@ -48,5 +59,11 @@ export async function flagPmOverdueInvoices(admin: PmDb): Promise<{ updated: num
     .select("id");
 
   if (error) throw error;
-  return { updated: data?.length ?? 0 };
+  const ids = (data ?? []).map((r: { id: string }) => r.id);
+  if (ids.length) {
+    const { onInvoicesFlaggedOverdue } = await import("@/lib/trust/hooks");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await onInvoicesFlaggedOverdue(supabaseAdmin, ids);
+  }
+  return { updated: ids.length };
 }

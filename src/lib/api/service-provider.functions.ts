@@ -710,6 +710,7 @@ export const reviewServiceProvider = createServerFn({ method: "POST" })
         name,
         role: "service provider",
         reason: data.rejectionReason,
+        userId: provider.user_id,
       });
       await supabaseAdmin.from("admin_audit_logs").insert({
         admin_id: userId,
@@ -729,6 +730,7 @@ export const reviewServiceProvider = createServerFn({ method: "POST" })
       email,
       name,
       role: "service_provider",
+      userId: provider.user_id,
     });
 
     await supabaseAdmin.from("admin_audit_logs").insert({

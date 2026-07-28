@@ -68,11 +68,14 @@ async function ensureOrgForOwner(
   const isManager = roles.has("manager");
   const orgType = isManager ? "property_manager" : "agency";
   const displayName = profile?.full_name?.trim();
-  const orgName = displayName
-    ? `${displayName}${isManager ? " Property Management" : " Agency"}`
-    : isManager
-      ? "My Property Management"
-      : "My Agency";
+  let orgName: string;
+  if (displayName) {
+    orgName = `${displayName}${isManager ? " Property Management" : " Agency"}`;
+  } else if (isManager) {
+    orgName = "My Property Management";
+  } else {
+    orgName = "My Agency";
+  }
   const slug = `${slugify(orgName)}-${userId.slice(0, 8)}`;
 
   const { data: org, error } = await admin
@@ -130,15 +133,14 @@ async function sendTeamInviteEmail(opts: {
   let setupPasswordUrl: string | undefined;
   let otpCode: string | undefined;
 
-  if (opts.isNewAccount) {
-    const user = await findAuthUserByEmail(opts.email);
-    if (user) {
-      const { generateSixDigitResetCode, storePasswordResetCode } =
-        await import("@/lib/auth/password-reset-store");
-      otpCode = generateSixDigitResetCode();
-      await storePasswordResetCode({ email: opts.email, userId: user.id, code: otpCode });
-      setupPasswordUrl = `${getSiteUrl()}/auth/reset?email=${encodeURIComponent(opts.email)}`;
-    }
+  const invitee = await findAuthUserByEmail(opts.email);
+
+  if (opts.isNewAccount && invitee) {
+    const { generateSixDigitResetCode, storePasswordResetCode } =
+      await import("@/lib/auth/password-reset-store");
+    otpCode = generateSixDigitResetCode();
+    await storePasswordResetCode({ email: opts.email, userId: invitee.id, code: otpCode });
+    setupPasswordUrl = `${getSiteUrl()}/auth/reset?email=${encodeURIComponent(opts.email)}`;
   }
 
   const sent = await notifyOrgTeamInvited({
@@ -154,6 +156,7 @@ async function sendTeamInviteEmail(opts: {
     isNewAccount: opts.isNewAccount,
     setupPasswordUrl,
     otpCode,
+    userId: invitee?.id,
   });
 
   if (!sent) {
@@ -368,6 +371,7 @@ export const approveOrgTeamMember = createServerFn({ method: "POST" })
         inviteeName: profile?.full_name?.trim() || memberEmail.split("@")[0],
         organizationName: org.name,
         portalType: org.type as "agency" | "property_manager",
+        userId: data.memberUserId,
       });
     }
 

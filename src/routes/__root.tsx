@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
@@ -34,7 +34,6 @@ import { CookieConsentBanner } from "@/components/CookieConsent";
 import { FullStoryBootstrap } from "@/components/FullStoryBootstrap";
 import { PresenceBootstrap } from "@/components/PresenceBootstrap";
 import { TenantBottomNav } from "@/components/TenantBottomNav";
-import { AmbientBackdrop } from "@/components/motion/AmbientBackdrop";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
 import { RequireAccountPhoneModal } from "@/components/auth/RequireAccountPhoneModal";
 import { Toaster } from "@/components/ui/sonner";
@@ -43,7 +42,24 @@ import { PageTransition } from "@/components/motion/PageTransition";
 import { useSmoothScroll } from "@/lib/smooth-scroll";
 import { shouldShowTenantBottomNav } from "@/lib/tenant-mobile-nav";
 import { registerPwaServiceWorker } from "@/lib/register-pwa";
+import { WebPushBootstrap } from "@/components/WebPushBootstrap";
 import { InstallAppBanner } from "@/components/InstallAppBanner";
+
+const AmbientBackdrop = lazy(() =>
+  import("@/components/motion/AmbientBackdrop").then((m) => ({ default: m.AmbientBackdrop })),
+);
+
+function shouldShowAmbientBackdrop(pathname: string): boolean {
+  if (pathname === "/") return true;
+  return (
+    pathname.startsWith("/about") ||
+    pathname.startsWith("/pricing") ||
+    pathname.startsWith("/advertise") ||
+    pathname.startsWith("/contact") ||
+    pathname.startsWith("/services") ||
+    pathname.startsWith("/partnership")
+  );
+}
 
 function NotFoundComponent() {
   return (
@@ -222,6 +238,16 @@ function TenantMobileNav() {
   return <TenantBottomNav />;
 }
 
+function AmbientBackdropHost() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (!shouldShowAmbientBackdrop(pathname)) return null;
+  return (
+    <Suspense fallback={null}>
+      <AmbientBackdrop />
+    </Suspense>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useSmoothScroll();
@@ -234,7 +260,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AmbientBackdrop />
+        <AmbientBackdropHost />
         <div className="relative z-10">
           <ErrorBoundary>
             <AnimatedOutlet />
@@ -247,6 +273,7 @@ function RootComponent() {
           <RequireAccountPhoneModal />
           <FullStoryBootstrap />
           <PresenceBootstrap />
+          <WebPushBootstrap />
         </div>
       </AuthProvider>
     </QueryClientProvider>

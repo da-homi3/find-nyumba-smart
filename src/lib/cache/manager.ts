@@ -101,17 +101,44 @@ export async function cacheSet<T>(key: string, value: T, config: CacheConfig): P
   await kvPut(key, JSON.stringify(envelope), Math.max(60, ttl));
 }
 
+/**
+ * Bound how long a coalesced upstream fetch may run.
+ * Keep under the browser listings timeout (20s) so clients can still fall back.
+ * Do not clear `inflight` here — waiters share one promise; the owner `finally` cleans up.
+ */
+const INFLIGHT_TIMEOUT_MS = 12_000;
+
+function withInflightTimeout<T>(promise: Promise<T>, key: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`[cache] inflight timed out for ${key}`));
+    }, INFLIGHT_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function refreshCoalesced<T>(
   key: string,
   configName: keyof typeof CACHE_CONFIGS,
   fetcher: () => Promise<T>,
 ): Promise<T> {
   const existing = inflight.get(key);
+  // Waiters must share the same promise — wrapping each join with its own timeout
+  // previously deleted `inflight` early and returned 500 while Supabase was still working.
   if (existing) return existing as Promise<T>;
 
   const pending = (async () => {
     try {
-      const data = await fetcher();
+      const data = await withInflightTimeout(fetcher(), key);
       try {
         await cacheSet(key, data, CACHE_CONFIGS[configName]);
       } catch (err) {

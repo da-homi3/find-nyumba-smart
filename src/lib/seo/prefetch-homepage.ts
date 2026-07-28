@@ -6,20 +6,49 @@ import {
   loadFeaturedTestimonials,
   loadPropertyIntelligenceStats,
 } from "@/lib/api/homepage.functions";
-import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 
 /** Enough for featured grid + popular neighborhood counts without over-fetching. */
-export const HOMEPAGE_LISTINGS_LIMIT = 16;
+export const HOMEPAGE_LISTINGS_LIMIT = 12;
+
+const HOMEPAGE_PREFETCH_TIMEOUT_MS = 4_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`[homepage] ${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+type ProviderCounts = Record<string, number>;
 
 /** Prefetch above-fold homepage listings during SSR. Everything else warms without blocking TTFB. */
 export async function prefetchHomepageQueries(queryClient: QueryClient): Promise<{
-  providerCounts: Awaited<ReturnType<typeof getProviderCategoryCounts>>;
+  providerCounts: ProviderCounts;
 }> {
-  await queryClient.prefetchQuery({
-    queryKey: ["properties", "homepage-featured"],
-    queryFn: () => fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT, sortBy: "newest" }),
-  });
+  try {
+    await withTimeout(
+      queryClient.prefetchQuery({
+        queryKey: ["properties", "homepage-featured"],
+        queryFn: () => fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT, sortBy: "newest" }),
+      }),
+      HOMEPAGE_PREFETCH_TIMEOUT_MS,
+      "featured listings",
+    );
+  } catch (err) {
+    // Fail open — client useQuery will refill; never hang the Worker on homepage SSR.
+    console.warn("[homepage] featured prefetch skipped", err);
+  }
 
+  // Warm secondary queries without awaiting (and without createServerFn self-fetch).
   void queryClient.prefetchQuery({
     queryKey: ["public-stats"],
     queryFn: () => loadPublicStats(),
@@ -40,17 +69,17 @@ export async function prefetchHomepageQueries(queryClient: QueryClient): Promise
   // Prefer KV-warm counts; never block first paint on a cold provider scan.
   try {
     const { cacheGet } = await import("@/lib/cache/manager");
-    const cached = await cacheGet<Awaited<ReturnType<typeof getProviderCategoryCounts>>>(
-      "provider_category_counts_v1",
+    const cached = await withTimeout(
+      cacheGet<ProviderCounts>("provider_category_counts_v1"),
+      800,
+      "provider counts cache",
     );
     if (cached) {
-      void getProviderCategoryCounts();
       return { providerCounts: cached };
     }
   } catch {
-    // ignore cache miss path
+    // ignore cache miss / timeout path
   }
 
-  void getProviderCategoryCounts();
-  return { providerCounts: {} as Awaited<ReturnType<typeof getProviderCategoryCounts>> };
+  return { providerCounts: {} };
 }

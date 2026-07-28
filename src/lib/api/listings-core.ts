@@ -21,7 +21,9 @@ import {
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
   const f = data ?? {};
+  // v2 busts any isolate/KV keys poisoned by hung singleflight (e.g. historic l16|newest).
   const parts = [
+    "v2",
     `l${f.limit ?? 50}`,
     `o${f.offset ?? 0}`,
     f.sortBy ?? "newest",
@@ -222,7 +224,16 @@ export async function queryListingsDirect(
       offset = legacy.offset;
     }
 
-    if (error) throw error;
+    if (error) {
+      const message =
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as { message: unknown }).message === "string"
+          ? (error as { message: string }).message
+          : "Listings query failed";
+      throw new Error(message);
+    }
 
     let items = mapPropertyRows((rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0]).map(
       (item) => ({
@@ -266,10 +277,16 @@ export async function queryListings(
 ): Promise<ListingsResult> {
   const epoch = await getListingsCacheEpoch();
   const key = `e${epoch}|${listingsCacheKey(data)}`;
-  const { data: result } = await withCache(key, "listings_search", () =>
-    queryListingsDirect(data, supabase),
-  );
-  return result;
+  try {
+    const { data: result } = await withCache(key, "listings_search", () =>
+      queryListingsDirect(data, supabase),
+    );
+    return result;
+  } catch (err) {
+    // Singleflight/cache timeouts must not blank Browse — one uncached retry.
+    console.error("[listings] cache path failed, direct retry", err);
+    return queryListingsDirect(data, supabase);
+  }
 }
 
 export async function listingsHealthCheck(): Promise<{

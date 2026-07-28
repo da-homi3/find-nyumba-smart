@@ -3,7 +3,11 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
-import { consumeOAuthIntent, clearAuthGateDismiss } from "@/lib/auth/auth-gate";
+import {
+  consumeOAuthIntent,
+  consumePendingSignupPolicy,
+  clearAuthGateDismiss,
+} from "@/lib/auth/auth-gate";
 import { withTimeout } from "@/lib/auth/with-timeout";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
 import { buildPageHead } from "@/lib/seo/head";
@@ -98,6 +102,22 @@ async function resolveOAuthLandingPath(preferredNext: string): Promise<string> {
   }
 }
 
+async function applyPendingSignupPolicyToUser() {
+  const acceptance = consumePendingSignupPolicy();
+  if (!acceptance) return;
+  try {
+    await supabase.auth.updateUser({
+      data: {
+        terms_policy_version: acceptance.version,
+        terms_policy_accepted_at: acceptance.acceptedAt,
+        terms_policy_role: acceptance.role,
+      },
+    });
+  } catch (err) {
+    console.warn("[auth/callback] could not persist pending signup policy:", err);
+  }
+}
+
 function AuthCallbackPage() {
   const { next: nextParam } = Route.useSearch();
   const [message, setMessage] = useState("Finishing Google sign-in…");
@@ -120,6 +140,8 @@ function AuthCallbackPage() {
 
         const ok = await establishSessionFromUrl();
         if (!ok) throw new Error("Could not complete Google sign-in. Try again.");
+
+        await applyPendingSignupPolicyToUser();
 
         void ensureTenantAccount().catch((err) => {
           console.warn("[auth/callback] ensureTenantAccount:", err);

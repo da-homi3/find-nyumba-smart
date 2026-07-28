@@ -82,6 +82,7 @@ type ReminderInvoice = {
   period_month: string;
   full_name: string;
   email: string | null;
+  tenant_user_id: string | null;
   unit_label: string;
   property_name: string;
 };
@@ -109,13 +110,18 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
 
   const [{ data: units }, { data: tenants }] = await Promise.all([
     admin.from("pm_units").select("id, unit_label, property_id").in("id", unitIds),
-    admin.from("pm_tenants").select("id, full_name, email").in("id", tenantIds),
+    admin.from("pm_tenants").select("id, full_name, email, tenant_user_id").in("id", tenantIds),
   ]);
   const unitById = new Map(
     (units ?? []).map((u: { id: string; unit_label: string; property_id: string }) => [u.id, u]),
   );
   const tenantById = new Map(
-    (tenants ?? []).map((t: { id: string; full_name: string; email: string | null }) => [t.id, t]),
+    (tenants ?? []).map(
+      (t: { id: string; full_name: string; email: string | null; tenant_user_id: string | null }) => [
+        t.id,
+        t,
+      ],
+    ),
   );
 
   const propertyIds = [...new Set((units ?? []).map((u: { property_id: string }) => u.property_id))];
@@ -145,11 +151,61 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
       period_month: inv.period_month,
       full_name: tenant.full_name,
       email: tenant.email,
+      tenant_user_id: tenant.tenant_user_id ?? null,
       unit_label: unit.unit_label,
       property_name: property?.name ?? "Property",
     });
   }
   return results;
+}
+
+async function deliverRentReminder(
+  admin: PmDb,
+  stage: ReminderType,
+  inv: ReminderInvoice,
+): Promise<boolean> {
+  const balance = Math.max(0, inv.amount_due + inv.late_fee - inv.amount_paid);
+
+  if (inv.email) {
+    const tpl = rentReminderEmail({
+      type: stage,
+      tenantName: inv.full_name,
+      propertyName: inv.property_name,
+      unitLabel: inv.unit_label,
+      balanceKes: balance,
+      dueDate: inv.due_date,
+    });
+    await sendEmail({
+      to: inv.email,
+      templateId: `rent_reminder_${stage}`,
+      subject: rentReminderSubject(stage, inv.unit_label, balance),
+      ...tpl,
+    });
+  }
+
+  if (inv.tenant_user_id) {
+    const { notifyUser } = await import("@/lib/notifications/notify-user");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await notifyUser(supabaseAdmin, {
+      userId: inv.tenant_user_id,
+      type: "rent",
+      title: rentReminderSubject(stage, inv.unit_label, balance),
+      body: `${inv.property_name} · Unit ${inv.unit_label}`,
+      href: "/tenant/rent",
+      entityType: "rent_invoice",
+      entityId: inv.id,
+    });
+  }
+
+  const { error } = await admin.from("pm_rent_reminder_log").insert({
+    invoice_id: inv.id,
+    reminder_type: stage,
+  });
+  if (!error) return true;
+  if (!/duplicate|unique/i.test(error.message ?? "")) {
+    console.warn("[pm-reminders]", error.message);
+  }
+  return false;
 }
 
 export async function sendPmRentReminders(admin: PmDb): Promise<{ sent: number }> {
@@ -175,33 +231,7 @@ export async function sendPmRentReminders(admin: PmDb): Promise<{ sent: number }
 
     for (const inv of invoices) {
       if (sentIds.has(inv.id)) continue;
-
-      const balance = inv.amount_due + inv.late_fee - inv.amount_paid;
-      if (inv.email) {
-        const tpl = rentReminderEmail({
-          type: stage.type,
-          tenantName: inv.full_name,
-          propertyName: inv.property_name,
-          unitLabel: inv.unit_label,
-          balanceKes: Math.max(0, balance),
-          dueDate: inv.due_date,
-        });
-        await sendEmail({
-          to: inv.email,
-          templateId: `rent_reminder_${stage.type}`,
-          subject: rentReminderSubject(stage.type, inv.unit_label, Math.max(0, balance)),
-          ...tpl,
-        });
-      }
-
-      const { error } = await admin.from("pm_rent_reminder_log").insert({
-        invoice_id: inv.id,
-        reminder_type: stage.type,
-      });
-      if (!error) sent += 1;
-      else if (!/duplicate|unique/i.test(error.message ?? "")) {
-        console.warn("[pm-reminders]", error.message);
-      }
+      if (await deliverRentReminder(admin, stage.type, inv)) sent += 1;
     }
   }
 

@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
+import { NotificationBellMenu } from "@/components/NotificationBellMenu";
+import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { portalNavTourAttr } from "@/lib/onboarding/portal-nav-tour";
 
 type PortalNavItem = Readonly<{
@@ -26,7 +28,11 @@ export function PortalMobileHeader({ portalLabel, nav }: PortalMobileHeaderProps
             {portalLabel}
           </p>
         </div>
-        <DashboardSettingsLink variant="icon" />
+        <div className="flex items-center gap-2">
+          <RoleSwitcher variant="hero" />
+          <NotificationBellMenu bellClassName="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white" />
+          <DashboardSettingsLink variant="icon" />
+        </div>
       </div>
       <nav
         className="flex gap-1 overflow-x-auto border-t border-white/10 px-3 py-2 text-xs"
@@ -50,7 +56,10 @@ export function PortalMobileHeader({ portalLabel, nav }: PortalMobileHeaderProps
         <Link
           to="/settings"
           className="shrink-0 rounded-full px-3 py-1.5 font-medium text-gold transition hover:bg-white/10"
-          activeProps={{ className: "shrink-0 rounded-full bg-white/15 px-3 py-1.5 font-semibold text-gold" }}
+          activeProps={{
+            className:
+              "shrink-0 rounded-full bg-white/15 px-3 py-1.5 font-semibold text-gold",
+          }}
         >
           Settings
         </Link>

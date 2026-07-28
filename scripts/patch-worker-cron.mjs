@@ -15,7 +15,13 @@ const presenceSource = join(root, "src", "worker", "presence-do.mjs");
 const presenceDest = join(serverDir, "presence-do.mjs");
 
 /** Cloudflare cron: day-of-week is 1–7 (1 = Sunday) or SUN–SAT — not 0. */
-const CRON_SCHEDULES = ["0 6 * * *", "0 8 * * 1", "0 7 1 * *"];
+const CRON_SCHEDULES = [
+  "0 6 * * *", // billing / renewals
+  "15 6 * * *", // PM overdue + payouts
+  "30 6 * * *", // marketing / sales
+  "0 8 * * 1", // weekly digest
+  "0 7 1 * *", // monthly invoices + teaser
+];
 
 const WRAPPER_SOURCE = `import app from "./index.mjs";
 import { PresenceDurableObject } from "./presence-do.mjs";
@@ -24,6 +30,8 @@ export { PresenceDurableObject };
 
 const CRON_PATHS = {
   "0 6 * * *": "/api/cron/daily",
+  "15 6 * * *": "/api/cron/daily-pm",
+  "30 6 * * *": "/api/cron/daily-marketing",
   "0 8 * * 1": "/api/cron/weekly",
   "0 7 1 * *": "/api/cron/monthly",
 };

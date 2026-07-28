@@ -30,8 +30,10 @@ import { submitPortalApplication } from "@/lib/api/portal.functions";
 import { PromoBadge } from "@/components/auth/PromoBadge";
 import { RoleSelector } from "@/components/auth/RoleSelector";
 import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
+import { SignupPolicyDialog } from "@/components/auth/SignupPolicyDialog";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { PasswordResetFlow } from "@/components/auth/PasswordResetFlow";
+import { SIGNUP_POLICY_VERSION } from "@/lib/auth/signup-policy";
 import { buildPageHead } from "@/lib/seo/head";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
 import { normalizeAuthCredentials } from "@/lib/auth/credentials";
@@ -133,6 +135,11 @@ function TenantAuth() {
   const [organizationName, setOrganizationName] = useState("");
   const [role, setRole] = useState<AccountRole>(signupFor ?? "tenant");
   const [loading, setLoading] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [policyAcceptedAt, setPolicyAcceptedAt] = useState<string | null>(null);
+  const [policyAcceptedRole, setPolicyAcceptedRole] = useState<AccountRole | null>(null);
+  const [pendingAction, setPendingAction] = useState<"email" | "google" | null>(null);
+  const [googleStartSignal, setGoogleStartSignal] = useState(0);
 
   useEffect(() => {
     if (modeParam === "reset") setMode("reset");
@@ -162,6 +169,8 @@ function TenantAuth() {
         phone: phone.trim(),
         role,
         organizationName: organizationName.trim() || undefined,
+        acceptedPolicyVersion: SIGNUP_POLICY_VERSION,
+        acceptedPolicyAt: policyAcceptedAt ?? new Date().toISOString(),
       },
     });
 
@@ -256,6 +265,11 @@ function TenantAuth() {
 
   function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "signup" && (policyAcceptedRole !== role || !policyAcceptedAt)) {
+      setPendingAction("email");
+      setPolicyOpen(true);
+      return;
+    }
     setLoading(true);
     const hardStop = globalThis.setTimeout(() => {
       setLoading(false);
@@ -271,6 +285,40 @@ function TenantAuth() {
 
   const submitLabel = authSubmitLabel(loading, mode === "reset" ? "signin" : mode);
   const showGoogle = mode === "signin" || role === "tenant";
+
+  function closePolicy() {
+    if (loading) return;
+    setPolicyOpen(false);
+    setPendingAction(null);
+  }
+
+  function acceptPolicy() {
+    const acceptedAt = new Date().toISOString();
+    setPolicyAcceptedAt(acceptedAt);
+    setPolicyAcceptedRole(role);
+    setPolicyOpen(false);
+
+    if (pendingAction === "google") {
+      setPendingAction(null);
+      setGoogleStartSignal((value) => value + 1);
+      return;
+    }
+
+    if (pendingAction === "email") {
+      setPendingAction(null);
+      setLoading(true);
+      const hardStop = globalThis.setTimeout(() => {
+        setLoading(false);
+        toast.error("Sign-up is taking too long. Check your connection and try again.");
+      }, 25_000);
+      void handleSignup()
+        .catch((err) => toast.error(errorMessage(err)))
+        .finally(() => {
+          globalThis.clearTimeout(hardStop);
+          setLoading(false);
+        });
+    }
+  }
 
   if (mode === "reset") {
     return (
@@ -325,6 +373,23 @@ function TenantAuth() {
             nextPath={redirect?.startsWith("/") ? redirect : "/tenant"}
             label={mode === "signup" ? "Sign up with Google" : "Sign in with Google"}
             disabled={loading}
+            onBeforeStart={() => {
+              if (mode !== "signup") return true;
+              if (policyAcceptedRole === "tenant" && policyAcceptedAt) return true;
+              setPendingAction("google");
+              setPolicyOpen(true);
+              return false;
+            }}
+            startSignal={googleStartSignal}
+            policyAcceptance={
+              mode === "signup" && policyAcceptedRole === "tenant" && policyAcceptedAt
+                ? {
+                    role: "tenant",
+                    version: SIGNUP_POLICY_VERSION,
+                    acceptedAt: policyAcceptedAt,
+                  }
+                : undefined
+            }
           />
           <div className="flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground">
             <span className="h-px flex-1 bg-border" aria-hidden />
@@ -431,6 +496,13 @@ function TenantAuth() {
           Caretaker PIN sign in
         </Link>
       </p>
+      <SignupPolicyDialog
+        open={policyOpen}
+        role={role}
+        busy={loading}
+        onClose={closePolicy}
+        onAccept={acceptPolicy}
+      />
     </AuthPageShell>
   );
 }

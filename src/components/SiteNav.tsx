@@ -6,7 +6,10 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { useTheme } from "@/hooks/use-theme";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { CustomerCareInfo } from "@/components/CustomerCareInfo";
+import { NotificationBellMenu } from "@/components/NotificationBellMenu";
+import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { ChevronDown, Moon, Sun } from "lucide-react";
+import { PORTAL_HOME, resolveListerDashboardPath } from "@/lib/portal-guard";
 
 const SERVICE_LINKS = [
   { to: "/verify", label: "Property verification" },
@@ -43,7 +46,8 @@ function heroOutlineClass(isHero: boolean): string {
 }
 
 export function SiteNav({ variant = "light" }: Readonly<Props>) {
-  const { user, signOut, isLandlord } = useAuth();
+  const { user, signOut, isLandlord, isManager, isAgency, roles, activePortal, pendingApplications } =
+    useAuth();
   const { isPlus } = useEntitlements();
   const { isDark, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,6 +56,15 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const isHero = variant === "hero";
   const textClass = isHero ? "text-white" : "text-foreground";
   const mutedClass = isHero ? "text-white/85" : "text-muted-foreground";
+
+  const hasListerPortal = isLandlord || isManager || isAgency;
+  const dashboardHref = hasListerPortal
+    ? resolveListerDashboardPath({
+        roles,
+        activePortal,
+        applications: pendingApplications,
+      })
+    : PORTAL_HOME.tenant;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -124,9 +137,9 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
               Settings
             </Link>
           )}
-          {isLandlord && (
+          {hasListerPortal && (
             <Link
-              to="/landlord/dashboard"
+              to={dashboardHref as "/landlord/dashboard"}
               className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
             >
               Dashboard
@@ -135,17 +148,27 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
         </nav>
 
         {user ? (
-          <Link
-            to="/settings"
-            className={`hidden items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${heroOutlineClass(isHero)}`}
-          >
-            Settings
-            {isPlus && (
-              <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
-                Plus
-              </span>
-            )}
-          </Link>
+          <div className="hidden items-center gap-2 md:flex">
+            <RoleSwitcher variant={isHero ? "hero" : "default"} />
+            <NotificationBellMenu
+              bellClassName={
+                isHero
+                  ? "border-white/30 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                  : undefined
+              }
+            />
+            <Link
+              to="/settings"
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${heroOutlineClass(isHero)}`}
+            >
+              Settings
+              {isPlus && (
+                <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
+                  Plus
+                </span>
+              )}
+            </Link>
+          </div>
         ) : (
           <Link
             to="/auth"
@@ -168,13 +191,16 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </motion.button>
 
-        <button
-          type="button"
-          className={`rounded-lg border px-3 py-2 text-sm md:hidden ${isHero ? "border-white/30 text-white" : ""}`}
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          Menu
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {user ? <NotificationBellMenu /> : null}
+          <button
+            type="button"
+            className={`rounded-lg border px-3 py-2 text-sm ${isHero ? "border-white/30 text-white" : ""}`}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            Menu
+          </button>
+        </div>
       </div>
       {menuOpen && (
         <div

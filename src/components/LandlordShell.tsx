@@ -34,6 +34,7 @@ const nav = [
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/landlord/dashboard/plan", label: "Plan", icon: Crown },
   { to: "/landlord/dashboard/billing", label: "Billing", icon: CreditCard },
+  { to: "/landlord/dashboard/payouts", label: "Rent payouts", icon: CreditCard },
 ] as const;
 
 const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));

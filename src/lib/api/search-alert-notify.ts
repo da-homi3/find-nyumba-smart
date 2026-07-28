@@ -73,5 +73,17 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
         .update({ last_notified_at: now })
         .eq("id", search.id);
     }
+
+    const { notifyUser } = await import("@/lib/notifications/notify-user");
+    await notifyUser(supabaseAdmin, {
+      userId: search.user_id,
+      type: "listing_match",
+      title: `New match: ${property.title}`,
+      body: `${property.neighborhood ?? "Nairobi"} · KES ${property.rent_kes.toLocaleString()}`,
+      href: `/tenant/property/${property.id}`,
+      entityType: "property",
+      entityId: property.id,
+      metadata: { searchId: search.id },
+    });
   }
 }

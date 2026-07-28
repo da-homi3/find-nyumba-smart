@@ -152,7 +152,7 @@ export const confirmTenantMaintenance = createServerFn({ method: "POST" })
 
     const { data: request } = await admin
       .from("pm_maintenance_requests")
-      .select("id, status, tenant_id")
+      .select("id, status, tenant_id, assigned_provider_id")
       .eq("id", data.requestId)
       .maybeSingle();
     if (!request) throw new Error("Request not found");
@@ -163,7 +163,7 @@ export const confirmTenantMaintenance = createServerFn({ method: "POST" })
       .eq("id", request.tenant_id)
       .maybeSingle();
 
-    if (!tenant || tenant.tenant_user_id !== userId || tenant.portal_status !== "accepted") {
+    if (tenant?.tenant_user_id !== userId || tenant?.portal_status !== "accepted") {
       throw new Error("Not authorised");
     }
 
@@ -179,6 +179,14 @@ export const confirmTenantMaintenance = createServerFn({ method: "POST" })
         .from("pm_maintenance_requests")
         .update({ status: "confirmed" })
         .eq("id", data.requestId);
+
+      const { onMaintenanceConfirmed } = await import("@/lib/trust/hooks");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await onMaintenanceConfirmed(supabaseAdmin, {
+        requestId: data.requestId,
+        assignedProviderId: (request.assigned_provider_id as string | null) ?? null,
+      });
+
       return { success: true, status: "confirmed" as const };
     }
 

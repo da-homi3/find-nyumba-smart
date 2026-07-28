@@ -192,6 +192,17 @@ export async function sendPaymentLifecycleEmails(admin: Admin, payment: PaymentR
   });
   await sendEmail({ to: user.email, templateId: "payment-confirmation", ...generic });
 
+  const { notifyUser } = await import("@/lib/notifications/notify-user");
+  await notifyUser(admin, {
+    userId: payment.user_id,
+    type: "payment",
+    title: "Payment received",
+    body: `${productName} · KES ${payment.amount_kes.toLocaleString()}`,
+    href: dashboardUrl.replace(getSiteUrl(), "") || "/settings",
+    entityType: "payment",
+    entityId: payment.id,
+  });
+
   switch (payment.payment_type) {
     case "contact_unlock":
       await notifyContactUnlock(admin, payment, user);

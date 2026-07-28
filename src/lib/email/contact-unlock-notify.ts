@@ -99,6 +99,19 @@ export async function notifyContactUnlockEmails(
       ...tpl,
       metadata: { userId: opts.userId, listingId: opts.listingId, method: opts.method },
     });
+
+    const { notifyUser } = await import("@/lib/notifications/notify-user");
+    await notifyUser(admin, {
+      userId: opts.userId,
+      type: "lead",
+      title: "Contact unlocked",
+      body: contactPhone
+        ? `You unlocked ${property.title} — ${contactPhone}`
+        : `You unlocked ${property.title}`,
+      href: `/tenant/property/${property.id}`,
+      entityType: "property",
+      entityId: property.id,
+    });
   }
 
   if (property.owner_id && property.owner_id !== opts.userId) {
@@ -117,6 +130,16 @@ export async function notifyContactUnlockEmails(
         templateId: "new-lead",
         ...tpl,
         metadata: { landlordId: property.owner_id, listingId: opts.listingId },
+      });
+      const { notifyUser } = await import("@/lib/notifications/notify-user");
+      await notifyUser(admin, {
+        userId: property.owner_id,
+        type: "lead",
+        title: "New lead",
+        body: `${user.firstName} unlocked contact on ${property.title}`,
+        href: "/landlord/leads",
+        entityType: "property",
+        entityId: property.id,
       });
     }
   }

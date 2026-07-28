@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { formatKes } from "@/lib/properties";
 import { listTenantPmInvoices, payPmRent } from "@/lib/api/pm-tenant-rent.functions";
 import { verifyPaymentStatus } from "@/lib/api/payment.functions";
+import { SubmitOffAppPayment } from "@/components/pm/SubmitOffAppPayment";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/tenant/rent")({
@@ -22,6 +23,7 @@ function TenantRentPage() {
   const qc = useQueryClient();
   const [phone, setPhone] = useState("");
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   const invoicesQ = useQuery({
     queryKey: ["tenant-pm-invoices", user?.id],
@@ -62,7 +64,7 @@ function TenantRentPage() {
     <div className={cn("mx-auto max-w-lg px-4 py-8")}>
       <h1 className={cn("font-display text-2xl font-semibold")}>Your rent</h1>
       <p className={cn("mt-1 text-sm text-muted-foreground")}>
-        Pay with M-Pesa after your landlord links your tenancy.{" "}
+        Pay with M-Pesa in the app, or record a payment you already made outside the app.{" "}
         <Link to="/tenant/maintenance" className="font-semibold text-primary">
           Report a maintenance issue →
         </Link>
@@ -73,15 +75,26 @@ function TenantRentPage() {
         invoices={invoices}
         current={current}
         payingId={payingId}
+        claimingId={claimingId}
         phone={phone}
         payPending={pay.isPending}
         onPhoneChange={setPhone}
         onStartPay={(inv) => {
+          setClaimingId(null);
           setPayingId(inv.id);
           setPhone(inv.default_mpesa_phone ?? "");
         }}
         onCancelPay={() => setPayingId(null)}
         onSubmitPay={(id) => pay.mutate(id)}
+        onStartClaim={(inv) => {
+          setPayingId(null);
+          setClaimingId(inv.id);
+        }}
+        onCancelClaim={() => setClaimingId(null)}
+        onClaimDone={() => {
+          setClaimingId(null);
+          qc.invalidateQueries({ queryKey: ["tenant-pm-invoices"] });
+        }}
       />
 
       <button
@@ -155,12 +168,16 @@ function RentBody(
     invoices: TenantInvoice[];
     current: TenantInvoice | undefined;
     payingId: string | null;
+    claimingId: string | null;
     phone: string;
     payPending: boolean;
     onPhoneChange: (v: string) => void;
     onStartPay: (inv: TenantInvoice) => void;
     onCancelPay: () => void;
     onSubmitPay: (id: string) => void;
+    onStartClaim: (inv: TenantInvoice) => void;
+    onCancelClaim: () => void;
+    onClaimDone: () => void;
   }>,
 ) {
   if (props.isLoading) {
@@ -191,12 +208,16 @@ function RentBody(
         <CurrentInvoiceCard
           invoice={current}
           paying={props.payingId === current.id}
+          claiming={props.claimingId === current.id}
           phone={props.phone}
           payPending={props.payPending}
           onPhoneChange={props.onPhoneChange}
           onStartPay={() => props.onStartPay(current)}
           onCancelPay={props.onCancelPay}
           onSubmitPay={() => props.onSubmitPay(current.id)}
+          onStartClaim={() => props.onStartClaim(current)}
+          onCancelClaim={props.onCancelClaim}
+          onClaimDone={props.onClaimDone}
         />
       ) : (
         <p className={cn("mt-6 text-sm text-muted-foreground")}>All invoices are paid. Nice work.</p>
@@ -218,12 +239,16 @@ function CurrentInvoiceCard(
   props: Readonly<{
     invoice: TenantInvoice;
     paying: boolean;
+    claiming: boolean;
     phone: string;
     payPending: boolean;
     onPhoneChange: (v: string) => void;
     onStartPay: () => void;
     onCancelPay: () => void;
     onSubmitPay: () => void;
+    onStartClaim: () => void;
+    onCancelClaim: () => void;
+    onClaimDone: () => void;
   }>,
 ) {
   const { invoice } = props;
@@ -259,17 +284,39 @@ function CurrentInvoiceCard(
           onCancel={props.onCancelPay}
           onSubmit={props.onSubmitPay}
         />
-      ) : (
-        <button
-          type="button"
-          className={cn(
-            "mt-4 w-full rounded-lg bg-foreground py-2.5 text-sm font-semibold text-background",
-          )}
-          onClick={props.onStartPay}
-        >
-          Pay rent
-        </button>
-      )}
+      ) : null}
+
+      {props.claiming ? (
+        <SubmitOffAppPayment
+          invoiceId={invoice.id}
+          defaultAmount={invoice.balance_remaining}
+          onDone={props.onClaimDone}
+          onCancel={props.onCancelClaim}
+        />
+      ) : null}
+
+      {!props.paying && !props.claiming ? (
+        <div className={cn("mt-4 space-y-2")}>
+          <button
+            type="button"
+            className={cn(
+              "w-full rounded-lg bg-foreground py-2.5 text-sm font-semibold text-background",
+            )}
+            onClick={props.onStartPay}
+          >
+            Pay with M-Pesa
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "w-full rounded-lg border border-border py-2.5 text-sm font-semibold hover:bg-muted",
+            )}
+            onClick={props.onStartClaim}
+          >
+            I already paid outside the app
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

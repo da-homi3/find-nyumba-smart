@@ -38,6 +38,7 @@ const ownerNav = [
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/agency/dashboard/plan", label: "Plan", icon: Crown },
   { to: "/agency/dashboard/billing", label: "Billing", icon: CreditCard },
+  { to: "/agency/dashboard/payouts", label: "Rent payouts", icon: CreditCard },
 ] as const;
 
 const memberNav = [

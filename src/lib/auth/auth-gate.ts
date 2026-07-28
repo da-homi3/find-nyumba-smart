@@ -2,6 +2,7 @@ import { getSiteUrl } from "@/lib/site";
 
 const OAUTH_ROLE_KEY = "ns_oauth_role";
 const OAUTH_NEXT_KEY = "ns_oauth_next";
+const OAUTH_SIGNUP_POLICY_KEY = "ns_oauth_signup_policy";
 const AUTH_GATE_DISMISS_KEY = "ns_auth_gate_dismissed";
 
 export function oauthCallbackUrl(nextPath = "/tenant"): string {
@@ -20,6 +21,43 @@ export function rememberOAuthIntent(role: "tenant" = "tenant", nextPath = "/tena
   } catch {
     // ignore
   }
+}
+
+export type PendingSignupPolicyAcceptance = {
+  version: string;
+  acceptedAt: string;
+  role: "tenant";
+};
+
+export function rememberPendingSignupPolicy(acceptance: PendingSignupPolicyAcceptance) {
+  try {
+    sessionStorage.setItem(OAUTH_SIGNUP_POLICY_KEY, JSON.stringify(acceptance));
+  } catch {
+    // ignore
+  }
+}
+
+export function consumePendingSignupPolicy(): PendingSignupPolicyAcceptance | null {
+  try {
+    const raw = sessionStorage.getItem(OAUTH_SIGNUP_POLICY_KEY);
+    sessionStorage.removeItem(OAUTH_SIGNUP_POLICY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PendingSignupPolicyAcceptance>;
+    if (
+      parsed?.role === "tenant" &&
+      typeof parsed.version === "string" &&
+      typeof parsed.acceptedAt === "string"
+    ) {
+      return {
+        role: parsed.role,
+        version: parsed.version,
+        acceptedAt: parsed.acceptedAt,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 export function consumeOAuthIntent(): { role: "tenant"; next: string } {

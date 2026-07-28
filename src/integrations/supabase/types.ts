@@ -776,6 +776,7 @@ export type Database = {
           created_at: string;
           grace_period_end: string | null;
           id: string;
+          module: string;
           next_billing_date: string;
           payment_method: string;
           plan: string;
@@ -790,6 +791,7 @@ export type Database = {
           created_at?: string;
           grace_period_end?: string | null;
           id?: string;
+          module?: string;
           next_billing_date: string;
           payment_method?: string;
           plan: string;
@@ -804,6 +806,7 @@ export type Database = {
           created_at?: string;
           grace_period_end?: string | null;
           id?: string;
+          module?: string;
           next_billing_date?: string;
           payment_method?: string;
           plan?: string;
@@ -1812,6 +1815,225 @@ export type Database = {
             columns: ["property_id"];
             isOneToOne: false;
             referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notification_preferences: {
+        Row: {
+          user_id: string;
+          announcements: boolean;
+          listings: boolean;
+          messages: boolean;
+          maintenance: boolean;
+          payments: boolean;
+          account: boolean;
+          push_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          announcements?: boolean;
+          listings?: boolean;
+          messages?: boolean;
+          maintenance?: boolean;
+          payments?: boolean;
+          account?: boolean;
+          push_enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          announcements?: boolean;
+          listings?: boolean;
+          messages?: boolean;
+          maintenance?: boolean;
+          payments?: boolean;
+          account?: boolean;
+          push_enabled?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body: string;
+          href: string | null;
+          entity_type: string | null;
+          entity_id: string | null;
+          metadata: Record<string, unknown>;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          title: string;
+          body?: string;
+          href?: string | null;
+          entity_type?: string | null;
+          entity_id?: string | null;
+          metadata?: Record<string, unknown>;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          type?: string;
+          title?: string;
+          body?: string;
+          href?: string | null;
+          entity_type?: string | null;
+          entity_id?: string | null;
+          metadata?: Record<string, unknown>;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      loyalty_points: {
+        Row: {
+          user_id: string;
+          total_points: number;
+          current_level: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          total_points?: number;
+          current_level?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          total_points?: number;
+          current_level?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_points_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      loyalty_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          points: number;
+          reason: string;
+          related_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          points: number;
+          reason: string;
+          related_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          points?: number;
+          reason?: string;
+          related_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reputation_factors: {
+        Row: {
+          id: string;
+          user_id: string;
+          factor_type: string;
+          weight: number;
+          related_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          factor_type: string;
+          weight: number;
+          related_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          factor_type?: string;
+          weight?: number;
+          related_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reputation_factors_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reputation_scores: {
+        Row: {
+          user_id: string;
+          score: number;
+          factors_computed_at: string;
+        };
+        Insert: {
+          user_id: string;
+          score?: number;
+          factors_computed_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          score?: number;
+          factors_computed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reputation_scores_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
         ];

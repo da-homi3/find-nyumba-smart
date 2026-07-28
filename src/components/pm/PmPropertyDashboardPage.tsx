@@ -1,8 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { formatKes } from "@/lib/properties";
-import { getPmProperty, getPmPropertyDashboard } from "@/lib/api/pm.functions";
+import {
+  getPmProperty,
+  getPmPropertyDashboard,
+  getPmFinancialReport,
+} from "@/lib/api/pm.functions";
+import { downloadFinancialReport, type ReportFormat } from "@/lib/pm/download-report";
 import { PmPropertySubnav, type PmPortal } from "@/components/pm/pm-nav";
 
 const MAINTENANCE_TO = {
@@ -27,6 +33,20 @@ export function PmPropertyDashboardPage({
     queryFn: () => getPmPropertyDashboard({ data: { propertyId } }),
   });
 
+  async function exportReport(format: ReportFormat) {
+    try {
+      const report = await getPmFinancialReport({ data: { propertyId } });
+      downloadFinancialReport(format, report.summary, report.rows);
+      toast.success(
+        format === "pdf"
+          ? "Opened printable report — use Print → Save as PDF"
+          : "Report downloaded",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    }
+  }
+
   if (detail.isLoading || dash.isLoading) {
     return (
       <div className="flex justify-center py-20">
@@ -45,18 +65,44 @@ export function PmPropertyDashboardPage({
 
   const { property } = detail.data;
   const d = dash.data;
+  const health = d?.health;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="font-display text-2xl font-semibold">{property.name}</h1>
-      <p className="text-sm text-muted-foreground">
-        {property.neighborhood} · {property.address}
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">{property.name}</h1>
+          <p className="text-sm text-muted-foreground">
+            {property.neighborhood} · {property.address}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ExportBtn label="CSV" onClick={() => void exportReport("csv")} />
+          <ExportBtn label="Excel" onClick={() => void exportReport("excel")} />
+          <ExportBtn label="PDF" onClick={() => void exportReport("pdf")} />
+        </div>
+      </div>
       <div className="mt-6">
         <PmPropertySubnav portal={portal} propertyId={propertyId} active="overview" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {health ? (
+        <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Property health
+          </p>
+          <div className="mt-1 flex flex-wrap items-baseline gap-3">
+            <span className="font-display text-3xl font-semibold tabular-nums">{health.score}</span>
+            <span className="text-sm font-semibold text-primary">{health.label}</span>
+            <span className="text-xs text-muted-foreground">
+              Collection {health.collectionRate}% this month
+              {d?.avgMaintenanceDays != null ? ` · avg maintenance ${d.avgMaintenanceDays}d` : ""}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat
           label="Occupancy"
           value={`${d?.occupancyRate ?? 0}%`}
@@ -100,6 +146,18 @@ export function PmPropertyDashboardPage({
         )}
       </section>
     </div>
+  );
+}
+
+function ExportBtn({ label, onClick }: Readonly<{ label: string; onClick: () => void }>) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent"
+    >
+      Export {label}
+    </button>
   );
 }
 

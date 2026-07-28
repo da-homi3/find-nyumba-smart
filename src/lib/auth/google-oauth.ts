@@ -1,5 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
-import { oauthCallbackUrl, rememberOAuthIntent } from "@/lib/auth/auth-gate";
+import {
+  oauthCallbackUrl,
+  rememberOAuthIntent,
+  rememberPendingSignupPolicy,
+  type PendingSignupPolicyAcceptance,
+} from "@/lib/auth/auth-gate";
 
 /**
  * Start Google OAuth. New Google accounts become tenants via handle_new_user
@@ -9,10 +14,14 @@ export async function startGoogleAuth(options?: {
   nextPath?: string;
   /** Always tenant for popup / consumer Google signup. */
   role?: "tenant";
+  policyAcceptance?: PendingSignupPolicyAcceptance;
 }): Promise<{ error: string | null }> {
   const nextPath = options?.nextPath ?? "/tenant";
   const role = options?.role ?? "tenant";
   rememberOAuthIntent(role, nextPath);
+  if (options?.policyAcceptance) {
+    rememberPendingSignupPolicy(options.policyAcceptance);
+  }
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",

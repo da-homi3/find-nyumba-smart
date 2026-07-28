@@ -99,6 +99,20 @@ export async function notifyOwnerNewMaintenance(admin: PmDb, requestId: string):
     }`,
     metadata: { requestId, propertyId: details.property_id },
   });
+
+  const { notifyUser } = await import("@/lib/notifications/notify-user");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await notifyUser(supabaseAdmin, {
+    userId: details.owner_user_id,
+    type: "maintenance_new",
+    title: urgent
+      ? `Urgent: ${details.category} — ${details.unit_label}`
+      : `New ${details.category} issue — ${details.unit_label}`,
+    body: `${details.tenant_name}: ${excerpt}`,
+    href: `/landlord/manage/${details.property_id}/maintenance`,
+    entityType: "maintenance_request",
+    entityId: requestId,
+  });
 }
 
 export async function notifyOwnerProviderDecision(
@@ -128,6 +142,18 @@ export async function notifyOwnerProviderDecision(
       : `<p>A provider <strong>declined</strong> the ${details.category} job for unit <strong>${details.unit_label}</strong>. The request is back to <em>reported</em> — please reassign.</p><p><a href="${link}">View queue</a></p>`,
     metadata: { requestId },
   });
+
+  const { notifyUser } = await import("@/lib/notifications/notify-user");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await notifyUser(supabaseAdmin, {
+    userId: details.owner_user_id,
+    type: "maintenance_update",
+    title: accepted ? "Provider accepted job" : "Provider declined job",
+    body: `${details.category} · Unit ${details.unit_label}`,
+    href: `/landlord/manage/${details.property_id}/maintenance`,
+    entityType: "maintenance_request",
+    entityId: requestId,
+  });
 }
 
 export async function promptTenantConfirmation(admin: PmDb, requestId: string): Promise<void> {
@@ -146,6 +172,18 @@ export async function promptTenantConfirmation(admin: PmDb, requestId: string): 
     text: `Your ${details.category} issue at ${details.property_name} (unit ${details.unit_label}) was marked fixed. Confirm or reopen: ${link}`,
     html: `<p>Your <strong>${details.category}</strong> issue at <strong>${details.property_name}</strong> (unit ${details.unit_label}) was marked fixed.</p><p>Please <a href="${link}">confirm it is resolved</a>, or reopen it if the problem remains.</p>`,
     metadata: { requestId },
+  });
+
+  const { notifyUser } = await import("@/lib/notifications/notify-user");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await notifyUser(supabaseAdmin, {
+    userId: details.tenant_user_id,
+    type: "maintenance_confirm",
+    title: `Confirm ${details.category} fix`,
+    body: `${details.property_name} · Unit ${details.unit_label}`,
+    href: "/tenant/maintenance",
+    entityType: "maintenance_request",
+    entityId: requestId,
   });
 }
 
