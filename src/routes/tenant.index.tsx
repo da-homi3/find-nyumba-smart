@@ -92,11 +92,26 @@ function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFi
   };
 }
 
+const BEDROOM_COUNT_BY_TYPE: Partial<Record<PropertyType, number>> = {
+  one_bedroom: 1,
+  two_bedroom: 2,
+  three_bedroom: 3,
+  four_bedroom: 4,
+};
+
+function matchesSelectedType(property: Property, types: PropertyType[]): boolean {
+  if (types.length === 0) return true;
+  if (types.includes(property.property_type)) return true;
+  // Bedroom chips also match by bedroom count (same rule as the listings API).
+  if (types.length !== 1) return false;
+  const beds = BEDROOM_COUNT_BY_TYPE[types[0]];
+  return beds != null && property.bedrooms === beds;
+}
+
 function applyClientFilters(items: Property[], filters: TenantFilters): Property[] {
   let next = items;
   if (filters.types.length > 0) {
-    const typeSet = new Set(filters.types);
-    next = next.filter((p) => typeSet.has(p.property_type));
+    next = next.filter((p) => matchesSelectedType(p, filters.types));
   }
   if (filters.listingPurpose === "rent" || filters.listingPurpose === "sale") {
     next = next.filter((p) => (p.pricing_mode ?? "rent") === filters.listingPurpose);

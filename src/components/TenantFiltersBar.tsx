@@ -267,19 +267,22 @@ export function TenantFiltersBar({
       </div>
 
       <div className="mx-auto mt-2 flex max-w-2xl gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+        <motion.button
+          type="button"
+          onClick={() => onChange({ types: [] })}
+          animate={{ scale: filters.types.length === 0 ? 1.04 : 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          className={`filter-chip ${filters.types.length === 0 ? "is-active" : ""}`}
+        >
+          All types
+        </motion.button>
         {ALL_TYPES.map((typeOption) => {
-          const selectedTypes = new Set(filters.types);
-          const active = selectedTypes.has(typeOption.id);
+          const active = filters.types.length === 1 && filters.types[0] === typeOption.id;
           return (
             <motion.button
               key={typeOption.id}
               type="button"
-              onClick={() => {
-                const next = selectedTypes.has(typeOption.id)
-                  ? filters.types.filter((x) => x !== typeOption.id)
-                  : [...filters.types, typeOption.id];
-                onChange({ types: next });
-              }}
+              onClick={() => onChange({ types: [typeOption.id] })}
               animate={{ scale: active ? 1.04 : 1 }}
               transition={{ type: "spring", stiffness: 400, damping: 20 }}
               className={`filter-chip capitalize ${active ? "is-active" : ""}`}

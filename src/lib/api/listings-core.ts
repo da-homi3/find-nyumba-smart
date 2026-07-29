@@ -139,14 +139,31 @@ function applyListingSort(query: PropertyQuery, sortBy: PropertySearchFilters["s
   }
 }
 
+/** Bedroom chips also match by `bedrooms` so mistyped rows still appear. */
+const BEDROOM_COUNT_BY_TYPE: Partial<Record<string, number>> = {
+  one_bedroom: 1,
+  two_bedroom: 2,
+  three_bedroom: 3,
+  four_bedroom: 4,
+};
+
+function applyPropertyTypeFilter(query: PropertyQuery, data: PropertySearchFilters | undefined) {
+  if (data?.propertyTypes && data.propertyTypes.length > 0) {
+    return query.in("property_type", data.propertyTypes);
+  }
+  const type = data?.propertyType;
+  if (!type) return query;
+  const beds = BEDROOM_COUNT_BY_TYPE[type];
+  if (beds != null) {
+    return query.or(`property_type.eq.${type},bedrooms.eq.${beds}`);
+  }
+  return query.eq("property_type", type);
+}
+
 function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters | undefined) {
   let next = query.eq("is_active", true);
   next = applyNeighborhoodFilter(next, data?.neighborhood);
-  if (data?.propertyTypes && data.propertyTypes.length > 0) {
-    next = next.in("property_type", data.propertyTypes);
-  } else if (data?.propertyType) {
-    next = next.eq("property_type", data.propertyType);
-  }
+  next = applyPropertyTypeFilter(next, data);
   if (data?.pricingMode === "sale") {
     next = next.eq("pricing_mode", "sale");
   } else if (data?.pricingMode === "rent") {
