@@ -263,6 +263,22 @@ export const createAdminProperty = createServerFn({ method: "POST" })
     return property;
   });
 
+export type { AdminContactSuggestion } from "@/lib/api/nyumba/admin-contact-suggestions";
+
+/** Frequent contact name + phone pairs from prior admin listings (for form suggestions). */
+export const getAdminContactSuggestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId: adminId } = authContext(context);
+    await requireRole(supabase, adminId, "admin");
+    const { loadAdminContactRows, aggregateContactSuggestions } = await import(
+      "@/lib/api/nyumba/admin-contact-suggestions"
+    );
+    const admin = await adminClient();
+    const rows = await loadAdminContactRows(admin, adminId);
+    return aggregateContactSuggestions(rows);
+  });
+
 export const listProperties = createServerFn({ method: "POST" })
   .inputValidator(listPropertiesSchema)
   .handler(async ({ data }) => {

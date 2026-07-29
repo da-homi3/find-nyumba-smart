@@ -21,14 +21,18 @@ import {
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
   const f = data ?? {};
-  // v3: slimmer list projection + estimated counts.
+  // v4: full browse pools + multi-type filters.
+  const typesKey =
+    f.propertyTypes && f.propertyTypes.length > 0
+      ? [...f.propertyTypes].sort().join(",")
+      : (f.propertyType ?? "");
   const parts = [
-    "v3",
+    "v4",
     `l${f.limit ?? 50}`,
     `o${f.offset ?? 0}`,
     f.sortBy ?? "newest",
     f.neighborhood ?? "",
-    f.propertyType ?? "",
+    typesKey,
     f.query ?? "",
     f.minRent != null ? String(f.minRent) : "",
     f.maxRent != null ? String(f.maxRent) : "",
@@ -138,7 +142,11 @@ function applyListingSort(query: PropertyQuery, sortBy: PropertySearchFilters["s
 function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters | undefined) {
   let next = query.eq("is_active", true);
   next = applyNeighborhoodFilter(next, data?.neighborhood);
-  if (data?.propertyType) next = next.eq("property_type", data.propertyType);
+  if (data?.propertyTypes && data.propertyTypes.length > 0) {
+    next = next.in("property_type", data.propertyTypes);
+  } else if (data?.propertyType) {
+    next = next.eq("property_type", data.propertyType);
+  }
   if (data?.pricingMode === "sale") {
     next = next.eq("pricing_mode", "sale");
   } else if (data?.pricingMode === "rent") {
@@ -171,7 +179,7 @@ function isCurrentlyBoosted(featuredUntil: string | null | undefined, now: numbe
 /** Hard cap for any public listings request — protects Worker CPU + payload size. */
 export const MAX_LISTINGS_LIMIT = 300;
 /** Nearby/map pool before distance slice — keep below hard cap for faster responses. */
-const NEARBY_POOL_LIMIT = 80;
+const NEARBY_POOL_LIMIT = 150;
 
 async function runListingsSelect(
   supabase: Db,

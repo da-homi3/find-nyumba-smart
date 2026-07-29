@@ -15,6 +15,7 @@ import {
   defaultTenantFilters,
   effectiveMaxRent,
   TENANT_MAX_RENT,
+  BROWSE_LISTINGS_LIMIT,
 } from "@/lib/tenant-filter-defaults";
 import { getListingIntel, verificationLevel } from "@/lib/listing-intel";
 import { useAuth } from "@/hooks/use-auth";
@@ -211,20 +212,24 @@ function TenantHome() {
     const browseAllInScope = typeFilterActive || areaFilterActive;
     const nearbySort = filters.sort === "nearby";
     const pageLimit = PAGE_SIZE * page;
-    // Nearby needs a modest pool for distance sort; avoid re-downloading 200+ on every page.
-    let limit = pageLimit;
+    // Fetch the full public pool so default browse and type/area chips show every match.
+    // Client still pages the UI with PAGE_SIZE; Load more reveals more of the fetched set.
+    let limit = Math.max(pageLimit, BROWSE_LISTINGS_LIMIT);
     if (nearbySort) {
-      limit = Math.min(Math.max(pageLimit, 48), 80);
-    } else if (browseAllInScope) {
-      limit = Math.min(pageLimit, 48);
+      limit = Math.min(Math.max(pageLimit, 80), 150);
     }
+    // Type/area chips always use the full price range. Otherwise apply rent only when
+    // the user has moved the budget slider away from "show everything".
+    const rentFilterActive =
+      !browseAllInScope &&
+      (filters.minRent > 0 || filters.maxRent < TENANT_MAX_RENT);
     return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
-      // Type/area chips show every matching listing across the full price range.
-      maxRent: browseAllInScope ? undefined : effectiveMaxRent(filters.maxRent),
-      minRent: browseAllInScope ? undefined : filters.minRent,
+      maxRent: rentFilterActive ? effectiveMaxRent(filters.maxRent) : undefined,
+      minRent: rentFilterActive && filters.minRent > 0 ? filters.minRent : undefined,
       propertyType: filters.types.length === 1 ? filters.types[0] : undefined,
+      propertyTypes: filters.types.length > 1 ? filters.types : undefined,
       pricingMode: filters.listingPurpose === "all" ? undefined : filters.listingPurpose,
       sortBy: filters.sort,
       originLat: nearbySort ? browseOrigin.lat : undefined,

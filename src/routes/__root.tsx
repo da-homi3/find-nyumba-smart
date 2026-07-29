@@ -16,6 +16,7 @@ import "@/lib/random-uuid";
 import { reportClientError } from "@/lib/error-reporting";
 import {
   clearChunkReloadGuard,
+  installVitePreloadRecovery,
   isChunkLoadError,
   reloadOnceForStaleChunk,
 } from "@/lib/chunk-load-recovery";
@@ -261,6 +262,7 @@ function RootComponent() {
   useSmoothScroll(pathname);
 
   useEffect(() => {
+    installVitePreloadRecovery();
     clearChunkReloadGuard();
     registerPwaServiceWorker();
   }, []);

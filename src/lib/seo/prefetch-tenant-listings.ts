@@ -12,7 +12,7 @@ export const TENANT_LISTINGS_PAGE_SIZE = 12;
 export function defaultTenantListingFilters() {
   return {
     maxRent: effectiveMaxRent(defaultTenantFilters.maxRent),
-    minRent: defaultTenantFilters.minRent,
+    minRent: defaultTenantFilters.minRent > 0 ? defaultTenantFilters.minRent : undefined,
     sortBy: "newest" as const,
     limit: TENANT_LISTINGS_PAGE_SIZE,
     offset: 0,

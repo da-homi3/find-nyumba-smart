@@ -9,7 +9,9 @@ export function isChunkLoadError(error: unknown): boolean {
     /Failed to fetch dynamically imported module/i.test(message) ||
     /Importing a module script failed/i.test(message) ||
     /error loading dynamically imported module/i.test(message) ||
-    /Loading chunk [\d]+ failed/i.test(message)
+    /Loading chunk [\d]+ failed/i.test(message) ||
+    /Unable to preload CSS/i.test(message) ||
+    /Unable to preload module/i.test(message)
   );
 }
 
@@ -45,4 +47,19 @@ export function clearChunkReloadGuard(): void {
   } catch {
     /* ignore */
   }
+}
+
+let preloadListenerInstalled = false;
+
+/**
+ * Vite fires `vite:preloadError` when a CSS/JS chunk preload fails after a deploy.
+ * Recover with a one-shot reload instead of leaving users on a dead error screen.
+ */
+export function installVitePreloadRecovery(): void {
+  if (preloadListenerInstalled || typeof globalThis.window === "undefined") return;
+  preloadListenerInstalled = true;
+  globalThis.window.addEventListener("vite:preloadError", (event) => {
+    event.preventDefault();
+    reloadOnceForStaleChunk();
+  });
 }

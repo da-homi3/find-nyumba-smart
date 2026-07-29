@@ -96,6 +96,8 @@ export type PropertySearchFilters = {
   query?: string;
   neighborhood?: string;
   propertyType?: PropertyType;
+  /** Multi-type filter (chips). Prefer over propertyType when length > 1. */
+  propertyTypes?: PropertyType[];
   /** Filter listings by purpose: rent or sale (booking only appears when unset). */
   pricingMode?: "rent" | "sale";
   minRent?: number;

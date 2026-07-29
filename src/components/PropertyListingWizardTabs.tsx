@@ -21,6 +21,11 @@ import type { ListingFormState, TabId } from "@/components/PropertyListingWizard
 import { ContactPhonesFields } from "@/components/ContactPhonesFields";
 import { ListingDescriptionAmenitiesFields } from "@/components/ListingDescriptionAmenitiesFields";
 import { normalizeContactPhones } from "@/lib/contact-phones";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getAdminContactSuggestions,
+  type AdminContactSuggestion,
+} from "@/lib/api/nyumba.functions";
 
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -41,6 +46,41 @@ function Field({
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+function ContactSuggestionChips({
+  contacts,
+  onPick,
+}: Readonly<{
+  contacts: AdminContactSuggestion[];
+  onPick: (contact: AdminContactSuggestion) => void;
+}>) {
+  if (contacts.length === 0) return null;
+  return (
+    <div className="col-span-full space-y-1.5">
+      <span className="block text-[11px] text-muted-foreground">
+        Frequent contacts — tap to fill name and numbers
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {contacts.map((c) => (
+          <button
+            key={`${c.name}-${c.phones[0] ?? ""}`}
+            type="button"
+            onClick={() => onPick(c)}
+            className="max-w-full rounded-full border border-border bg-muted/40 px-2.5 py-1 text-left text-[11px] font-medium text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+          >
+            <span className="text-foreground">{c.name}</span>
+            {c.phones[0] ? (
+              <span className="text-muted-foreground"> · {c.phones[0]}</span>
+            ) : null}
+            {c.count > 1 ? (
+              <span className="ml-1 text-muted-foreground/70">×{c.count}</span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -72,6 +112,29 @@ function ListingWizardDetailsTab({
   imageFiles?: File[];
   busy?: boolean;
 }>) {
+  const suggestionsQ = useQuery({
+    queryKey: ["admin-contact-suggestions"],
+    queryFn: () => getAdminContactSuggestions(),
+    enabled: Boolean(requireContactPhone),
+    staleTime: 5 * 60_000,
+  });
+  const contactSuggestions = suggestionsQ.data?.contacts ?? [];
+  const phoneSuggestions = [
+    ...contactSuggestions.flatMap((c) => c.phones),
+    ...(suggestionsQ.data?.phones ?? []),
+  ].filter(
+    (v, i, arr) =>
+      arr.findIndex((x) => x.replaceAll(/\s+/g, "") === v.replaceAll(/\s+/g, "")) === i,
+  );
+  const nameSuggestions = contactSuggestions.map((c) => c.name);
+
+  function applyContact(contact: AdminContactSuggestion) {
+    update("contact_name", contact.name);
+    if (contact.phones.length > 0) {
+      update("contact_phones", contact.phones);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <Field label="Listing title" full>
@@ -132,6 +195,9 @@ function ListingWizardDetailsTab({
           className={inputCls}
         />
       </Field>
+      {requireContactPhone ? (
+        <ContactSuggestionChips contacts={contactSuggestions} onPick={applyContact} />
+      ) : null}
       <Field
         label={
           requireContactPhone
@@ -143,10 +209,19 @@ function ListingWizardDetailsTab({
         <input
           required={requireContactPhone}
           value={form.contact_name}
+          list={nameSuggestions.length > 0 ? "admin-contact-name-suggestions" : undefined}
           onChange={(e) => update("contact_name", e.target.value)}
           placeholder="e.g. Jane Wanjiku"
           className={inputCls}
+          autoComplete="name"
         />
+        {nameSuggestions.length > 0 ? (
+          <datalist id="admin-contact-name-suggestions">
+            {nameSuggestions.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        ) : null}
       </Field>
       <div className="col-span-full space-y-1.5">
         <span className="block text-xs font-medium text-muted-foreground">
@@ -157,6 +232,7 @@ function ListingWizardDetailsTab({
         <ContactPhonesFields
           phones={form.contact_phones}
           required={requireContactPhone}
+          suggestions={requireContactPhone ? phoneSuggestions : undefined}
           onChange={(phones) => update("contact_phones", phones)}
         />
       </div>

@@ -2,8 +2,11 @@ import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import "@/lib/random-uuid";
+import { installVitePreloadRecovery } from "@/lib/chunk-load-recovery";
 
 export const getRouter = () => {
+  installVitePreloadRecovery();
+
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {

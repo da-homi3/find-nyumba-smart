@@ -1,8 +1,10 @@
 import type { TenantFilters } from "@/components/TenantFiltersBar";
 
-export const TENANT_MIN_RENT = 5_000;
+export const TENANT_MIN_RENT = 0;
 export const TENANT_MAX_RENT = 59_000_000;
 export const TENANT_RENT_STEP = 500_000;
+/** Full browse/type-chip pool — matches public listings hard cap. */
+export const BROWSE_LISTINGS_LIMIT = 300;
 
 export const defaultTenantFilters: TenantFilters = {
   minRent: TENANT_MIN_RENT,

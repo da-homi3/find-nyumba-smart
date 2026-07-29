@@ -3,6 +3,10 @@ import type { PropertySearchFilters } from "@/lib/properties";
 import { fetchListingsApi } from "@/lib/listings-client";
 
 export function listingsQueryKey(filters: PropertySearchFilters) {
+  const typesKey =
+    filters.propertyTypes && filters.propertyTypes.length > 0
+      ? [...filters.propertyTypes].sort().join(",")
+      : (filters.propertyType ?? null);
   return [
     "listings",
     filters.query ?? "",
@@ -12,7 +16,7 @@ export function listingsQueryKey(filters: PropertySearchFilters) {
     filters.sortBy ?? "newest",
     filters.limit ?? 50,
     filters.offset ?? 0,
-    filters.propertyType ?? null,
+    typesKey,
     filters.pricingMode ?? null,
     filters.minBedrooms ?? null,
     filters.verifiedOnly ? 1 : 0,

@@ -63,7 +63,11 @@ function appendFilterParams(params: URLSearchParams, f: PropertySearchFilters) {
   if (f.offset != null) params.set("offset", String(f.offset));
   if (f.query) params.set("q", f.query);
   if (f.neighborhood && f.neighborhood !== "All") params.set("neighborhood", f.neighborhood);
-  if (f.propertyType) params.set("type", f.propertyType);
+  if (f.propertyTypes && f.propertyTypes.length > 0) {
+    params.set("types", f.propertyTypes.join(","));
+  } else if (f.propertyType) {
+    params.set("type", f.propertyType);
+  }
   if (f.pricingMode) params.set("pricingMode", f.pricingMode);
   if (f.minRent != null) params.set("minRent", String(f.minRent));
   if (f.maxRent != null) params.set("maxRent", String(f.maxRent));

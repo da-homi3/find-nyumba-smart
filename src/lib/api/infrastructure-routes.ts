@@ -158,7 +158,15 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
     const { propertyTypeSchema } = await import("@/lib/api/nyumba/nyumba-shared");
 
     const typeRaw = url.searchParams.get("type");
+    const typesRaw = url.searchParams.get("types");
     const parsedType = typeRaw ? propertyTypeSchema.safeParse(typeRaw) : null;
+    const propertyTypes = typesRaw
+      ? typesRaw
+          .split(",")
+          .map((t) => t.trim())
+          .map((t) => propertyTypeSchema.safeParse(t))
+          .flatMap((r) => (r.success ? [r.data] : []))
+      : undefined;
 
     const pricingModeRaw = url.searchParams.get("pricingMode");
     const pricingMode: "rent" | "sale" | undefined =
@@ -190,6 +198,7 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
       query: url.searchParams.get("q") ?? undefined,
       neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
       propertyType: parsedType?.success ? parsedType.data : undefined,
+      propertyTypes: propertyTypes && propertyTypes.length > 0 ? propertyTypes : undefined,
       pricingMode,
       minRent: url.searchParams.get("minRent") ? Number(url.searchParams.get("minRent")) : undefined,
       maxRent: url.searchParams.get("maxRent") ? Number(url.searchParams.get("maxRent")) : undefined,
