@@ -112,6 +112,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const { data: isSaved } = useQuery({
     queryKey: ["saved", id, user?.id],
     enabled: !!user,
+    staleTime: 60_000,
     queryFn: async () => {
       const saved = await listSavedProperties();
       return saved.some((property) => property.id === id);
@@ -121,7 +122,15 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const { data: similar = [] } = useQuery({
     queryKey: ["similar", id, p?.neighborhood],
     enabled: !!p,
+    staleTime: 120_000,
     queryFn: async () => {
+      await new Promise<void>((resolve) => {
+        if (typeof globalThis.requestIdleCallback === "function") {
+          globalThis.requestIdleCallback(() => resolve(), { timeout: 2500 });
+        } else {
+          globalThis.setTimeout(() => resolve(), 800);
+        }
+      });
       const result = await searchProperties({ neighborhood: p!.neighborhood, limit: 4 });
       return result.items.filter((item) => item.id !== id).slice(0, 3);
     },
@@ -130,6 +139,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const { data: landlordContact } = useQuery({
     queryKey: ["landlord-contact", p?.owner_id, id, user?.id],
     enabled: !!p?.owner_id && !!user,
+    staleTime: 60_000,
     queryFn: () => getPropertyOwnerContact({ data: { propertyId: id } }),
   });
 
@@ -141,7 +151,18 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
 
   const { data: valuation, isLoading: valLoading } = useQuery({
     queryKey: ["valuation", id],
-    queryFn: () => getAIValuation({ data: { propertyId: id } }),
+    enabled: !!p,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      await new Promise<void>((resolve) => {
+        if (typeof globalThis.requestIdleCallback === "function") {
+          globalThis.requestIdleCallback(() => resolve(), { timeout: 4000 });
+        } else {
+          globalThis.setTimeout(() => resolve(), 1500);
+        }
+      });
+      return getAIValuation({ data: { propertyId: id } });
+    },
   });
 
   const toggleSave = useMutation({

@@ -75,9 +75,9 @@ function resolveAmbientBudget(): AmbientBudget {
   const saveData = Boolean(nav.connection?.saveData);
   const narrow = globalThis.window.innerWidth < 768;
   const lowEnd = lowMemory || saveData;
-  if (lowEnd) return { lowEnd: true, count: 18 };
-  if (narrow) return { lowEnd: false, count: 30 };
-  return { lowEnd: false, count: 44 };
+  if (lowEnd) return { lowEnd: true, count: 10 };
+  if (narrow) return { lowEnd: true, count: 14 };
+  return { lowEnd: false, count: 22 };
 }
 
 function createParticles(count: number, w: number, h: number, lowEnd: boolean): Particle[] {

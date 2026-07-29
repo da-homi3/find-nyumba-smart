@@ -15,6 +15,7 @@ import {
   Plug,
   Crown,
   Briefcase,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogoLink } from "@/components/BrandLogo";
@@ -39,6 +40,7 @@ const ownerNav = [
   { to: "/manager/dashboard/plan", label: "Plan", icon: Crown },
   { to: "/manager/dashboard/billing", label: "Billing", icon: CreditCard },
   { to: "/manager/dashboard/payouts", label: "Rent payouts", icon: CreditCard },
+  { to: "/referrals", label: "Invite & earn", icon: Gift },
 ] as const;
 
 const memberNav = [

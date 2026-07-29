@@ -35,7 +35,10 @@ export function NotificationBellMenu({
     queryKey: ["notifications-unread", user?.id],
     enabled: Boolean(user),
     queryFn: () => getUnreadNotificationCount(),
-    refetchInterval: 60_000,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 
   const listQ = useQuery({

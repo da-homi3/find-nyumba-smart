@@ -21,9 +21,9 @@ import {
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
   const f = data ?? {};
-  // v2 busts any isolate/KV keys poisoned by hung singleflight (e.g. historic l16|newest).
+  // v3: slimmer list projection + estimated counts.
   const parts = [
-    "v2",
+    "v3",
     `l${f.limit ?? 50}`,
     `o${f.offset ?? 0}`,
     f.sortBy ?? "newest",
@@ -171,7 +171,7 @@ function isCurrentlyBoosted(featuredUntil: string | null | undefined, now: numbe
 /** Hard cap for any public listings request — protects Worker CPU + payload size. */
 export const MAX_LISTINGS_LIMIT = 300;
 /** Nearby/map pool before distance slice — keep below hard cap for faster responses. */
-const NEARBY_POOL_LIMIT = 150;
+const NEARBY_POOL_LIMIT = 80;
 
 async function runListingsSelect(
   supabase: Db,
@@ -191,7 +191,7 @@ async function runListingsSelect(
       ? Math.min(Math.max(requestedLimit, NEARBY_POOL_LIMIT), NEARBY_POOL_LIMIT)
       : requestedLimit;
   const fetchOffset = data?.sortBy === "nearby" ? 0 : offset;
-  const countMode = fetchLimit >= 100 ? ("estimated" as const) : ("exact" as const);
+  const countMode = fetchLimit >= 24 ? ("estimated" as const) : ("exact" as const);
   const query = applyListingFilters(
     buildPropertySelect(supabase, columns, { countMode }),
     data,

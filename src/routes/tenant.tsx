@@ -11,20 +11,12 @@ const AiAssistant = lazy(() =>
   import("@/components/AiAssistant").then((m) => ({ default: m.AiAssistant })),
 );
 
-const MAP_ARMED_KEY = "nyumba-map-armed";
+/** Keep Mapbox mounted briefly when leaving the map tab, then unmount to free WebGL. */
+const MAP_KEEPALIVE_MS = 45_000;
 
 export const Route = createFileRoute("/tenant")({
   component: TenantLayout,
 });
-
-function readMapArmed(): boolean {
-  if (globalThis.sessionStorage === undefined) return false;
-  try {
-    return sessionStorage.getItem(MAP_ARMED_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
 
 function TenantLayout() {
   const matchRoute = useMatchRoute();
@@ -32,33 +24,33 @@ function TenantLayout() {
   const queryClient = useQueryClient();
   const isMessageThread = Boolean(matchRoute({ to: "/tenant/messages/$id", fuzzy: false }));
   const onMap = pathname.startsWith("/tenant/map");
-  const [mapArmed, setMapArmed] = useState(readMapArmed);
+  const [mapMounted, setMapMounted] = useState(onMap);
 
   useEffect(() => {
-    // Warm browse only — map's 500-listing fetch waits for Map tab intent.
+    // Warm browse only — map's listing fetch waits for Map tab intent.
     prefetchTenantSection(queryClient, "/tenant");
   }, [queryClient]);
 
   useEffect(() => {
-    if (!onMap) return;
-    setMapArmed(true);
-    try {
-      sessionStorage.setItem(MAP_ARMED_KEY, "1");
-    } catch {
-      // ignore
+    if (onMap) {
+      setMapMounted(true);
+      return;
     }
-  }, [onMap]);
+    if (!mapMounted) return;
+    const timer = globalThis.setTimeout(() => setMapMounted(false), MAP_KEEPALIVE_MS);
+    return () => globalThis.clearTimeout(timer);
+  }, [onMap, mapMounted]);
 
   useEffect(() => {
-    if (!onMap || !mapArmed) return;
+    if (!onMap || !mapMounted) return;
     requestAnimationFrame(() => {
       globalThis.dispatchEvent(new Event("resize"));
     });
-  }, [onMap, mapArmed]);
+  }, [onMap, mapMounted]);
 
   return (
     <div className={cn("min-h-screen overflow-x-clip bg-background", !isMessageThread && "pb-24")}>
-      {mapArmed ? (
+      {mapMounted ? (
         <div
           className={cn(
             "fixed inset-0 z-1",

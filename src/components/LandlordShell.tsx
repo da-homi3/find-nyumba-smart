@@ -13,6 +13,7 @@ import {
   Plug,
   Crown,
   Briefcase,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, type ReactNode } from "react";
@@ -35,6 +36,7 @@ const nav = [
   { to: "/landlord/dashboard/plan", label: "Plan", icon: Crown },
   { to: "/landlord/dashboard/billing", label: "Billing", icon: CreditCard },
   { to: "/landlord/dashboard/payouts", label: "Rent payouts", icon: CreditCard },
+  { to: "/referrals", label: "Invite & earn", icon: Gift },
 ] as const;
 
 const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));

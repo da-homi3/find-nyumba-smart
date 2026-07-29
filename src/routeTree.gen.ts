@@ -16,7 +16,9 @@ import { Route as TenantRouteImport } from './routes/tenant'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
+import { Route as ReferralsRouteImport } from './routes/referrals'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -188,9 +190,19 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RefundPolicyRoute = RefundPolicyRouteImport.update({
   id: '/refund-policy',
   path: '/refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReferralsRoute = ReferralsRouteImport.update({
+  id: '/referrals',
+  path: '/referrals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -909,7 +921,9 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof NotificationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/referrals': typeof ReferralsRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
@@ -1047,7 +1061,9 @@ export interface FileRoutesByTo {
   '/notifications': typeof NotificationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/referrals': typeof ReferralsRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
@@ -1177,7 +1193,9 @@ export interface FileRoutesById {
   '/notifications': typeof NotificationsRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
+  '/referrals': typeof ReferralsRoute
   '/refund-policy': typeof RefundPolicyRoute
+  '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/services': typeof ServicesRouteWithChildren
   '/settings': typeof SettingsRoute
@@ -1324,7 +1342,9 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/pricing'
     | '/privacy'
+    | '/referrals'
     | '/refund-policy'
+    | '/register'
     | '/reports'
     | '/services'
     | '/settings'
@@ -1462,7 +1482,9 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/pricing'
     | '/privacy'
+    | '/referrals'
     | '/refund-policy'
+    | '/register'
     | '/reports'
     | '/settings'
     | '/terms-of-service'
@@ -1591,7 +1613,9 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/pricing'
     | '/privacy'
+    | '/referrals'
     | '/refund-policy'
+    | '/register'
     | '/reports'
     | '/services'
     | '/settings'
@@ -1737,7 +1761,9 @@ export interface RootRouteChildren {
   NotificationsRoute: typeof NotificationsRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
+  ReferralsRoute: typeof ReferralsRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
+  RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   SettingsRoute: typeof SettingsRoute
@@ -1798,11 +1824,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/refund-policy': {
       id: '/refund-policy'
       path: '/refund-policy'
       fullPath: '/refund-policy'
       preLoaderRoute: typeof RefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/referrals': {
+      id: '/referrals'
+      path: '/referrals'
+      fullPath: '/referrals'
+      preLoaderRoute: typeof ReferralsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -3231,7 +3271,9 @@ const rootRouteChildren: RootRouteChildren = {
   NotificationsRoute: NotificationsRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
+  ReferralsRoute: ReferralsRoute,
   RefundPolicyRoute: RefundPolicyRoute,
+  RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ServicesRoute: ServicesRouteWithChildren,
   SettingsRoute: SettingsRoute,

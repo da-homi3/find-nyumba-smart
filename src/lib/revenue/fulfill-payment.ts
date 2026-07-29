@@ -207,6 +207,11 @@ async function fulfillRenewalSubscription(
   if (wasTrialing) {
     const { onFirstSuccessfulRenewal } = await import("@/lib/promo/founding-member-lifecycle");
     await onFirstSuccessfulRenewal(supabaseAdmin, sub.user_id);
+
+    // Referral conversion: first paid subscription month
+    void import("@/lib/referrals/conversion")
+      .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, sub.user_id, "first_paid_subscription_month"))
+      .catch(() => undefined);
   }
 }
 
@@ -364,6 +369,11 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
     next_billing_date: addBillingDays(days),
     module: "marketplace",
   });
+
+  // Referral conversion: first paid subscription
+  void import("@/lib/referrals/conversion")
+    .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, userId, "first_paid_subscription_month"))
+    .catch(() => undefined);
 }
 
 async function fulfillPmModule(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -385,6 +395,11 @@ async function fulfillPmModule(supabaseAdmin: SupabaseAdmin, payment: PaymentFul
   const { asPmDb } = await import("@/lib/pm/access");
   const { activatePmModuleForAccount } = await import("@/lib/pm/module-gate");
   await activatePmModuleForAccount(asPmDb(supabaseAdmin), userId);
+
+  // Referral conversion: first PM module month
+  void import("@/lib/referrals/conversion")
+    .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, userId, "first_pm_module_month"))
+    .catch(() => undefined);
 }
 
 async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -490,6 +505,11 @@ async function fulfillContactUnlock(supabaseAdmin: SupabaseAdmin, payment: Payme
     feeKes: amountKes,
     paidMethod: "M-Pesa",
   });
+
+  // Referral conversion: first contact unlock
+  void import("@/lib/referrals/conversion")
+    .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, userId, "first_contact_unlock"))
+    .catch(() => undefined);
 }
 
 async function fulfillProviderSubscription(

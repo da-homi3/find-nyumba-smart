@@ -43,6 +43,7 @@ const authSearchSchema = z.object({
   /** Client-only UX hint — never used for authorization; role is chosen in the signup form. */
   signupFor: z.enum(["tenant", "landlord", "manager", "agency"]).optional(),
   mode: z.enum(["signin", "signup", "reset"]).optional(),
+  ref: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth/")({
@@ -122,7 +123,7 @@ async function completePrivilegedSignup(opts: {
 }
 
 function TenantAuth() {
-  const { redirect, signupFor, mode: modeParam } = Route.useSearch();
+  const { redirect, signupFor, mode: modeParam, ref: refCode } = Route.useSearch();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup" | "reset">(
     modeParam === "reset" ? "reset" : (modeParam ?? "signin"),
@@ -171,6 +172,7 @@ function TenantAuth() {
         organizationName: organizationName.trim() || undefined,
         acceptedPolicyVersion: SIGNUP_POLICY_VERSION,
         acceptedPolicyAt: policyAcceptedAt ?? new Date().toISOString(),
+        referralCode: refCode?.trim() || undefined,
       },
     });
 

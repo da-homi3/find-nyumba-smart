@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Compass, Film } from "lucide-react";
 import type { Property } from "@/lib/properties";
 import { Panorama360Viewer } from "./Panorama360Viewer";
+import {
+  externalVideoEmbedUrl,
+  isExternalVideoEmbed,
+} from "@/lib/media/video-embed";
 
 type PropertyDetailMediaProps = Readonly<{
   property: Property;
@@ -16,6 +21,57 @@ function matterportEmbedUrl(url: string) {
   const match = /[?&]m=([A-Za-z0-9]+)/.exec(url) ?? /show\/\?m=([A-Za-z0-9]+)/.exec(url);
   if (match?.[1]) return `https://my.matterport.com/show/?m=${match[1]}&play=1`;
   return url;
+}
+
+function WalkthroughVideo({
+  videoUrl,
+  title,
+}: Readonly<{ videoUrl: string; title: string }>) {
+  const [failed, setFailed] = useState(false);
+  const embedSrc = isExternalVideoEmbed(videoUrl) ? externalVideoEmbedUrl(videoUrl) : null;
+
+  if (embedSrc) {
+    return (
+      <iframe
+        src={embedSrc}
+        title={`Walkthrough video for ${title}`}
+        className="aspect-video w-full border-0 bg-black"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+        loading="lazy"
+      />
+    );
+  }
+
+  if (failed) {
+    return (
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 bg-black px-6 text-center">
+        <p className="text-sm text-white/80">This walkthrough couldn’t play in your browser.</p>
+        <a
+          href={videoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Open video
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      key={videoUrl}
+      src={videoUrl}
+      controls
+      playsInline
+      preload="metadata"
+      className="aspect-video w-full bg-black object-contain"
+      onError={() => setFailed(true)}
+    >
+      <track kind="captions" />
+    </video>
+  );
 }
 
 export function PropertyDetailMedia({ property }: PropertyDetailMediaProps) {
@@ -35,15 +91,7 @@ export function PropertyDetailMedia({ property }: PropertyDetailMediaProps) {
             <Film className="h-4 w-4 text-primary" aria-hidden />
             <h2 className="font-display text-sm font-semibold">Walkthrough video</h2>
           </div>
-          <video
-            src={videoUrl}
-            controls
-            playsInline
-            preload="metadata"
-            className="aspect-video w-full bg-black object-contain"
-          >
-            <track kind="captions" />
-          </video>
+          <WalkthroughVideo videoUrl={videoUrl} title={property.title} />
         </section>
       )}
 

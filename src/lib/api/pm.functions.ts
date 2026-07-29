@@ -481,21 +481,26 @@ export const publishPmUnitToMarketplace = createServerFn({ method: "POST" })
 
 // ── Tenants / leases ──────────────────────────────────────────────────────
 
+const tenantFieldsSchema = z.object({
+  fullName: z.string().trim().min(1).max(200),
+  phone: z.string().trim().min(5).max(40),
+  email: z.string().email().optional().nullable(),
+  nationalId: z.string().optional().nullable(),
+  emergencyContactName: z.string().optional().nullable(),
+  emergencyContactPhone: z.string().optional().nullable(),
+  occupation: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  photoUrl: z.string().url().optional().nullable(),
+  customFields: z
+    .array(z.object({ label: z.string().max(100), value: z.string().max(500) }))
+    .max(20)
+    .optional()
+    .nullable(),
+});
+
 export const addPmTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    z.object({
-      propertyId: z.string().uuid(),
-      fullName: z.string().trim().min(1).max(200),
-      phone: z.string().trim().min(5).max(40),
-      email: z.string().email().optional().nullable(),
-      nationalId: z.string().optional().nullable(),
-      emergencyContactName: z.string().optional().nullable(),
-      emergencyContactPhone: z.string().optional().nullable(),
-      occupation: z.string().optional().nullable(),
-      notes: z.string().optional().nullable(),
-    }),
-  )
+  .inputValidator(tenantFieldsSchema.extend({ propertyId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = authContext(context);
     await requirePortalRole(supabase, userId);
@@ -515,12 +520,53 @@ export const addPmTenant = createServerFn({ method: "POST" })
         emergency_contact_phone: data.emergencyContactPhone ?? null,
         occupation: data.occupation ?? null,
         notes: data.notes ?? null,
+        photo_url: data.photoUrl ?? null,
+        custom_fields: JSON.stringify(data.customFields ?? []),
         portal_status: "not_invited",
       })
       .select("*")
       .single();
     if (error) throw error;
     return row;
+  });
+
+export const updatePmTenant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(tenantFieldsSchema.extend({ tenantId: z.string().uuid() }))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await requirePortalRole(supabase, userId);
+    const admin = asPmDb(await adminClient());
+
+    const { data: tenant } = await admin
+      .from("pm_tenants")
+      .select("id, property_id")
+      .eq("id", data.tenantId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!tenant) throw new Error("Tenant not found");
+
+    const { staffRole } = await assertPmPropertyAccess(admin, userId, tenant.property_id);
+    assertStaffCan(staffRole, "tenants:create");
+
+    const { error } = await admin
+      .from("pm_tenants")
+      .update({
+        full_name: data.fullName,
+        phone: data.phone,
+        email: data.email ?? null,
+        national_id: data.nationalId ?? null,
+        emergency_contact_name: data.emergencyContactName ?? null,
+        emergency_contact_phone: data.emergencyContactPhone ?? null,
+        occupation: data.occupation ?? null,
+        notes: data.notes ?? null,
+        photo_url: data.photoUrl ?? null,
+        custom_fields: JSON.stringify(data.customFields ?? []),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.tenantId);
+    if (error) throw error;
+    return { success: true };
   });
 
 export const createPmLease = createServerFn({ method: "POST" })

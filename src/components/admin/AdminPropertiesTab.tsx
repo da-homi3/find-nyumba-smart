@@ -273,30 +273,32 @@ export function AdminPropertiesTab({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border bg-card">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-xs uppercase text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 text-left">Property</th>
-              <th className="px-4 py-3 text-left">Location</th>
-              <th className="px-4 py-3 text-left">Verification</th>
-              <th className="px-4 py-3 text-left">Auth Score</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {sorted.map((property) => (
-              <AdminPropertyRow
-                key={property.id}
-                property={property}
-                toggleVerification={toggleVerification}
-                adjustAuthenticityScore={adjustAuthenticityScore}
-                setPropertyActive={setPropertyActive}
-              />
-            ))}
-          </tbody>
-        </table>
+      <div className="-mx-4 overflow-x-auto overscroll-x-contain px-4 sm:mx-0 sm:px-0">
+        <div className="min-w-208 overflow-hidden rounded-2xl border bg-card">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 text-left">Property</th>
+                <th className="px-4 py-3 text-left">Location</th>
+                <th className="px-4 py-3 text-left">Verification</th>
+                <th className="px-4 py-3 text-left">Auth Score</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {sorted.map((property) => (
+                <AdminPropertyRow
+                  key={property.id}
+                  property={property}
+                  toggleVerification={toggleVerification}
+                  adjustAuthenticityScore={adjustAuthenticityScore}
+                  setPropertyActive={setPropertyActive}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

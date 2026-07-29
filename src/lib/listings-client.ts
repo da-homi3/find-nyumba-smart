@@ -2,7 +2,7 @@ import type { PropertySearchFilters } from "@/lib/properties";
 import type { ListingsResult } from "@/lib/api/listings-core";
 import { reportClientError } from "@/lib/client-error-report";
 
-const FETCH_TIMEOUT_MS = 28_000;
+const FETCH_TIMEOUT_MS = 12_000;
 const RETRY_DELAY_MS = 450;
 
 type FetchOk = { ok: true; result: ListingsResult };

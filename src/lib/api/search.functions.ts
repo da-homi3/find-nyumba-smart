@@ -103,15 +103,16 @@ export const updateSavedSearch = createServerFn({ method: "POST" })
 export const compareProperties = createServerFn({ method: "POST" })
   .inputValidator(z.object({ ids: z.array(z.string().uuid()).min(2).max(4) }))
   .handler(async ({ data }) => {
-    const { createPublicClient, PUBLIC_PROPERTY_COLUMNS } = await import("@/lib/api/public-client");
+    const { createPublicClient, PROPERTY_DETAIL_COLUMNS } = await import("@/lib/api/public-client");
+    const { mapPropertyRows } = await import("@/lib/api/nyumba/nyumba-shared");
     const supabase = createPublicClient();
     const { data: rows, error } = await supabase
       .from("properties")
-      .select(PUBLIC_PROPERTY_COLUMNS)
+      .select(PROPERTY_DETAIL_COLUMNS)
       .in("id", data.ids)
       .eq("is_active", true);
     if (error) throw error;
-    return rows ?? [];
+    return mapPropertyRows(rows ?? []);
   });
 
 export const setSavedSearchAlertsEnabled = createServerFn({ method: "POST" })

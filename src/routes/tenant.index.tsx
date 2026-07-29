@@ -210,6 +210,14 @@ function TenantHome() {
     const areaFilterActive = filters.neighborhood !== "All";
     const browseAllInScope = typeFilterActive || areaFilterActive;
     const nearbySort = filters.sort === "nearby";
+    const pageLimit = PAGE_SIZE * page;
+    // Nearby needs a modest pool for distance sort; avoid re-downloading 200+ on every page.
+    let limit = pageLimit;
+    if (nearbySort) {
+      limit = Math.min(Math.max(pageLimit, 48), 80);
+    } else if (browseAllInScope) {
+      limit = Math.min(pageLimit, 48);
+    }
     return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
@@ -221,9 +229,7 @@ function TenantHome() {
       sortBy: filters.sort,
       originLat: nearbySort ? browseOrigin.lat : undefined,
       originLng: nearbySort ? browseOrigin.lng : undefined,
-      // Nearby ranking needs a wide pool; type/area chips already fetch broadly.
-      // Cap at 200 so Worker + CDN stay healthy under concurrent tenants.
-      limit: nearbySort || browseAllInScope ? Math.max(PAGE_SIZE * page, 200) : PAGE_SIZE * page,
+      limit,
       offset: 0,
     };
   }, [

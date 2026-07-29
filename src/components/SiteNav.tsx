@@ -45,6 +45,18 @@ function heroOutlineClass(isHero: boolean): string {
   return isHero ? "border-white/30 bg-white/10 text-white" : "border-border";
 }
 
+function buildMobileNavLinks(loggedIn: boolean) {
+  const links = [
+    ...SERVICE_LINKS,
+    { to: "/pricing", label: "Pricing" },
+    { to: "/tenant", label: "Browse" },
+    { to: "/tenant/map", label: "Map" },
+    { to: "/referrals", label: "Invite & earn", auth: true },
+    { to: "/settings", label: "Settings" },
+  ];
+  return loggedIn ? links : links.filter((l) => !("auth" in l));
+}
+
 export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const { user, signOut, isLandlord, isManager, isAgency, roles, activePortal, pendingApplications } =
     useAuth();
@@ -74,6 +86,8 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
   }, []);
 
   const glassClass = resolveGlassClass(isHero, scrolled);
+
+  const mobileNavLinks = buildMobileNavLinks(!!user);
 
   return (
     <motion.header
@@ -130,12 +144,20 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             Pricing
           </Link>
           {user && (
-            <Link
-              to="/settings"
-              className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-            >
-              Settings
-            </Link>
+            <>
+              <Link
+                to="/referrals"
+                className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+              >
+                Invite & earn
+              </Link>
+              <Link
+                to="/settings"
+                className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+              >
+                Settings
+              </Link>
+            </>
           )}
           {hasListerPortal && (
             <Link
@@ -206,13 +228,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
         <div
           className={`border-t px-5 py-3 md:hidden ${isHero ? "border-background/20 bg-foreground/95 text-background" : "bg-background"}`}
         >
-          {[
-            ...SERVICE_LINKS,
-            { to: "/pricing", label: "Pricing" },
-            { to: "/tenant", label: "Browse" },
-            { to: "/tenant/map", label: "Map" },
-            { to: "/settings", label: "Settings" },
-          ].map((l) => (
+          {mobileNavLinks.map((l) => (
             <Link
               key={l.to}
               to={l.to}

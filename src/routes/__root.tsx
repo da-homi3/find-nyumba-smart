@@ -50,6 +50,13 @@ const AmbientBackdrop = lazy(() =>
 );
 
 function shouldShowAmbientBackdrop(pathname: string): boolean {
+  if (typeof globalThis.window !== "undefined") {
+    const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+    if (nav.connection?.saveData) return false;
+    if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return false;
+    // Skip continuous canvas RAF on phones — competes with scroll + listings.
+    if (globalThis.window.innerWidth < 768) return false;
+  }
   if (pathname === "/") return true;
   return (
     pathname.startsWith("/about") ||
@@ -250,7 +257,8 @@ function AmbientBackdropHost() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useSmoothScroll();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useSmoothScroll(pathname);
 
   useEffect(() => {
     clearChunkReloadGuard();

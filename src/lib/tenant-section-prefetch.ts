@@ -6,7 +6,7 @@ import { defaultTenantFilters } from "@/lib/tenant-filter-defaults";
 import { listSavedProperties, listTenantInquiries } from "@/lib/api/nyumba.functions";
 
 /** Map pin pool — sized for fast client fetch; full browse still paginates separately. */
-export const MAP_LISTINGS_LIMIT = 150;
+export const MAP_LISTINGS_LIMIT = 80;
 export const MAP_LISTINGS_FILTERS = { limit: MAP_LISTINGS_LIMIT, sortBy: "newest" as const };
 
 /** Client browse warm — matches tenant.index nearby default without SSR over-fetch. */

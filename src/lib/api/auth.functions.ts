@@ -125,6 +125,7 @@ const signupSchema = z.object({
   organizationName: z.string().trim().max(200).optional(),
   acceptedPolicyVersion: z.string().min(1),
   acceptedPolicyAt: z.string().datetime(),
+  referralCode: z.string().trim().max(20).optional(),
 });
 
 function isDuplicateAuthUserError(message: string): boolean {
@@ -370,6 +371,11 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
         created.user.id,
         data,
       );
+
+      if (data.referralCode) {
+        void trackReferralSignup(supabaseAdmin, created.user.id, data.role, data.referralCode);
+      }
+
       return { userId: created.user.id, recovered: false as const, foundingMember };
     }
 
@@ -411,4 +417,55 @@ async function claimFoundingMemberIfEligible(
     role,
     bonusListings: campaign.bonusListings,
   };
+}
+
+async function trackReferralSignup(
+  supabaseAdmin: Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"],
+  newUserId: string,
+  newUserRole: string,
+  referralCode: string,
+): Promise<void> {
+  try {
+    const db = supabaseAdmin as any;
+    const { data: referrer } = await db
+      .from("profiles")
+      .select("id, referral_code")
+      .eq("referral_code", referralCode.toUpperCase())
+      .maybeSingle();
+
+    if (!referrer || referrer.id === newUserId) return;
+
+    // Determine referrer's role
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", referrer.id)
+      .limit(1);
+    const referrerRole = roles?.[0]?.role ?? "tenant";
+
+    // Find matching reward rule
+    const { data: rule } = await db
+      .from("referral_reward_rules")
+      .select("id")
+      .eq("referrer_role", referrerRole)
+      .eq("referred_role", newUserRole)
+      .eq("active", 1)
+      .maybeSingle();
+
+    await db.from("referrals").insert({
+      referrer_user_id: referrer.id,
+      referred_user_id: newUserId,
+      referrer_role_at_referral: referrerRole,
+      referred_role_at_referral: newUserRole,
+      rule_id: rule?.id ?? null,
+      status: "pending",
+    });
+
+    await db
+      .from("profiles")
+      .update({ referred_by_user_id: referrer.id })
+      .eq("id", newUserId);
+  } catch (err) {
+    console.warn("[referral] track signup failed:", err);
+  }
 }

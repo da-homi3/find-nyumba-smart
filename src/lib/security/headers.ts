@@ -17,7 +17,10 @@ export function addSecurityHeaders(response: Response): Response {
       "worker-src 'self' blob:",
       "child-src 'self' blob:",
       "img-src 'self' data: blob: https://*.supabase.co https://api.mapbox.com https://*.mapbox.com https://images.unsplash.com https://maps.gstatic.com https://*.googleusercontent.com https://*.ggpht.com",
+      // Walkthrough <video> loads from Supabase signed URLs; without media-src this falls back to default-src and blocks playback.
+      "media-src 'self' blob: https://*.supabase.co",
       "connect-src 'self' https://*.supabase.co https://api.mapbox.com https://*.mapbox.com https://events.mapbox.com https://graph.facebook.com https://maps.googleapis.com https://maps.gstatic.com",
+      "frame-src 'self' https://www.youtube.com https://youtube.com https://player.vimeo.com https://my.matterport.com https://*.matterport.com https://kuula.co https://roundme.com",
       "frame-ancestors 'none'",
     ].join("; "),
   );

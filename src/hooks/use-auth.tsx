@@ -137,8 +137,11 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, s) => {
+      // Token refresh must not re-hit roles/portal APIs — that freezes the UI periodically.
       if (event === "TOKEN_REFRESHED") {
-        void syncSession(s);
+        if (!active) return;
+        setSession(s);
+        setUser(s?.user ?? null);
         return;
       }
       const showLoading =

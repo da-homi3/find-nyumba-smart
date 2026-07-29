@@ -13,9 +13,13 @@ import {
   uploadLimitLabel,
 } from "@/lib/media/upload-limits";
 import { uploadStorageBatchWithProgress } from "@/lib/media/storage-upload";
-import { enhanceMediaFilesForUpload } from "@/lib/media/enhance-upload";
+import {
+  enhanceMediaFilesForUpload,
+  needsWebSafeVideoReencode,
+} from "@/lib/media/enhance-upload";
 import { randomUuid } from "@/lib/random-uuid";
 import { FileDropZone } from "@/components/FileDropZone";
+import { isExternalVideoEmbed } from "@/lib/media/video-embed";
 
 type UpdateMediaResult = Awaited<ReturnType<typeof updatePropertyMedia>>;
 type MediaKind = "image" | "video" | "tour";
@@ -83,6 +87,15 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
 
       const prefixByKind = { image: "img", video: "video", tour: "tour360" } as const;
       const enhanced = await enhanceMediaFilesForUpload(files, kind === "tour" ? "image" : kind);
+      if (kind === "video") {
+        if (enhanced.some((file) => needsWebSafeVideoReencode(file))) {
+          toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
+            description:
+              "MOV/QuickTime files don’t play on most phones. Export as MP4 from your phone or camera app, then upload again.",
+          });
+          return;
+        }
+      }
       const uploads = enhanced.map((file) => {
         const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
         const prefix = prefixByKind[kind];
@@ -235,7 +248,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
             type="url"
             value={videoUrl ?? ""}
             onChange={(e) => setVideoUrl(e.target.value || null)}
-            placeholder="Video link (YouTube, etc.)"
+            placeholder="Video link (YouTube / Vimeo / MP4)"
             className="w-full rounded-lg border py-1.5 pl-8 pr-2 text-xs"
           />
         </div>
@@ -254,7 +267,18 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
         <button
           type="button"
           disabled={busy}
-          onClick={() => save.mutate({ images, video_url: videoUrl, tour_url: tourUrl ?? null })}
+          onClick={() => {
+            const link = videoUrl?.trim() ?? "";
+            if (
+              link &&
+              !isExternalVideoEmbed(link) &&
+              /\.mov(\?|$)/i.test(link.split("?")[0] ?? "")
+            ) {
+              toast.error("Replace the MOV walkthrough with MP4/WebM or a YouTube/Vimeo link");
+              return;
+            }
+            save.mutate({ images, video_url: videoUrl, tour_url: tourUrl ?? null });
+          }}
           className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
         >
           <Sparkles className="h-3 w-3" />

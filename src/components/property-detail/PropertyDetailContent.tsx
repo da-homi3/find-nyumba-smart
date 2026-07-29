@@ -1,11 +1,10 @@
+import { lazy, Suspense, type SubmitEvent } from "react";
 import { Bath, BedDouble, Calendar, MapPin, Sparkles, Square } from "lucide-react";
 import { formatKes, prettyType, type Property } from "@/lib/properties";
 import { formatListingArea, formatListingPrice } from "@/lib/commercial-ranges";
 import { listingPricingNote } from "@/lib/property-types";
 import { getListingIntel, propertyVerifiedLabel, verificationLevel } from "@/lib/listing-intel";
 import { PropertyIntelligencePanel } from "@/components/PropertyIntelligencePanel";
-import { AdminPropertyVerifyButton } from "@/components/admin/AdminPropertyVerifyButton";
-import { AdminPropertyAuthenticityPanel } from "@/components/admin/AdminPropertyAuthenticityPanel";
 import { PropertyCard } from "@/components/PropertyCard";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { PropertyRevenueBlocks } from "@/components/PropertyRevenueBlocks";
@@ -15,7 +14,18 @@ import { PropertyStat } from "./PropertyStat";
 import { PropertyAiAssistant } from "./PropertyAiAssistant";
 import { PropertyReportSection } from "./PropertyReportSection";
 import { ContactUnlockCard } from "@/components/ContactUnlockCard";
-import type { SubmitEvent } from "react";
+import { useAuth } from "@/hooks/use-auth";
+
+const AdminPropertyVerifyButton = lazy(() =>
+  import("@/components/admin/AdminPropertyVerifyButton").then((m) => ({
+    default: m.AdminPropertyVerifyButton,
+  })),
+);
+const AdminPropertyAuthenticityPanel = lazy(() =>
+  import("@/components/admin/AdminPropertyAuthenticityPanel").then((m) => ({
+    default: m.AdminPropertyAuthenticityPanel,
+  })),
+);
 
 type Valuation = {
   estimatedRentRange: string;
@@ -105,6 +115,7 @@ export function PropertyDetailContent({
   onReportSubmit,
   onContactUnlocked,
 }: PropertyDetailContentProps) {
+  const { isAdmin } = useAuth();
   const vLevel = verificationLevel(p);
   const intel = getListingIntel(p);
   const verifiedLabel = propertyVerifiedLabel(p);
@@ -134,10 +145,14 @@ export function PropertyDetailContent({
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end">
-        <AdminPropertyVerifyButton property={p} />
-      </div>
-      <AdminPropertyAuthenticityPanel property={p} />
+      {isAdmin ? (
+        <Suspense fallback={null}>
+          <div className="mt-3 flex justify-end">
+            <AdminPropertyVerifyButton property={p} />
+          </div>
+          <AdminPropertyAuthenticityPanel property={p} />
+        </Suspense>
+      ) : null}
 
       <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border bg-card p-3">
         <PropertyStat icon={BedDouble} label="Beds" value={String(p.bedrooms)} />

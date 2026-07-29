@@ -289,20 +289,24 @@ export const getProperty = createServerFn({ method: "POST" })
       return null;
     }
 
-    // View recording requires service role (SECURITY DEFINER RPC) — non-fatal
-    try {
-      const admin = await adminClient();
-      const { error: viewError } = await admin.rpc("record_property_view", {
-        _property_id: property.id,
-        _session_id: data.sessionId ?? undefined,
-        _source: data.source ?? "property-detail",
-      });
-      if (viewError) console.warn("record_property_view:", viewError.message);
-    } catch (viewErr) {
-      console.warn("record_property_view failed:", viewErr);
-    }
+    const mapped = mapPropertyRow(property);
 
-    return mapPropertyRow(property);
+    // Don't block detail TTFB on view recording — fire and forget.
+    void (async () => {
+      try {
+        const admin = await adminClient();
+        const { error: viewError } = await admin.rpc("record_property_view", {
+          _property_id: property.id,
+          _session_id: data.sessionId ?? undefined,
+          _source: data.source ?? "property-detail",
+        });
+        if (viewError) console.warn("record_property_view:", viewError.message);
+      } catch (viewErr) {
+        console.warn("record_property_view failed:", viewErr);
+      }
+    })();
+
+    return mapped;
   });
 
 export const listSavedProperties = createServerFn({ method: "GET" })

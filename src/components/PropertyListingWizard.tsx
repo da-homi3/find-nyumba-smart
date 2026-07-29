@@ -23,7 +23,8 @@ import {
   listingPriceAmountLabel,
 } from "@/lib/property-types";
 import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
-import { enhanceImageForUpload, enhanceVideoForUpload } from "@/lib/media/enhance-upload";
+import { enhanceImageForUpload, enhanceVideoForUpload, needsWebSafeVideoReencode } from "@/lib/media/enhance-upload";
+import { isExternalVideoEmbed } from "@/lib/media/video-embed";
 import { useAuth } from "@/hooks/use-auth";
 import {
   uploadStorageObjectViaSignedUrl,
@@ -230,6 +231,11 @@ async function prepareEnhancedMediaFiles(
     videoFile ? enhanceVideoForUpload(videoFile) : Promise.resolve(null),
     tourFile ? enhanceImageForUpload(tourFile) : Promise.resolve(null),
   ]);
+  if (enhancedVideo && needsWebSafeVideoReencode(enhancedVideo)) {
+    throw new Error(
+      "Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link). MOV/QuickTime files don’t play on most phones.",
+    );
+  }
   return { enhancedImages, enhancedVideo, enhancedTour };
 }
 
@@ -249,6 +255,16 @@ async function signUploadedMediaPaths(
   let video_url: string | null = externalVideoUrl.trim() || null;
   let tour_url: string | null = externalTourUrl.trim() || null;
   let images: string[] = [];
+
+  if (
+    video_url &&
+    !isExternalVideoEmbed(video_url) &&
+    /\.mov(\?|$)/i.test((video_url.split("?")[0] ?? "").toLowerCase())
+  ) {
+    throw new Error(
+      "Use an MP4/WebM file or a YouTube/Vimeo link. MOV walkthroughs don’t play on most phones.",
+    );
+  }
 
   if (allPaths.length === 0) {
     return { images, video_url, tour_url };

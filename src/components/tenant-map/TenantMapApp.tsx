@@ -9,7 +9,6 @@ import {
   filterPropertiesNearPlace,
 } from "@/components/tenant-map/map-constants";
 import { TenantMapChrome } from "@/components/tenant-map/TenantMapChrome";
-import { LazyRadar } from "@/components/LazyRadar";
 import { useTenantGoogleMap } from "@/hooks/use-tenant-google-map";
 import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks/use-tenant-mapbox";
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
@@ -37,23 +36,6 @@ function resolveInitialProvider(): MapProvider {
 function MapLoadingState({ message }: Readonly<{ message: string }>) {
   return (
     <div className="tenant-map-viewport relative overflow-hidden bg-[#0c1a12]">
-      <LazyRadar
-        speed={0.7}
-        scale={1.2}
-        ringCount={12}
-        spokeCount={14}
-        ringThickness={0.04}
-        spokeThickness={0.01}
-        sweepSpeed={0.8}
-        sweepWidth={3}
-        sweepLobes={1}
-        color="#1eb88a"
-        backgroundColor="#0c1a12"
-        falloff={2.2}
-        brightness={1}
-        enableMouseInteraction
-        mouseInfluence={0.12}
-      />
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
         <motion.span
           initial={SSR_SAFE_MOTION_INITIAL}
@@ -333,27 +315,8 @@ function TenantMapShell({
 
       {showBootLoader ? (
         <MapOverlay>
-          <div className="relative h-48 w-full max-w-md overflow-hidden rounded-2xl">
-            <LazyRadar
-              speed={0.7}
-              scale={1}
-              ringCount={10}
-              spokeCount={12}
-              ringThickness={0.04}
-              spokeThickness={0.01}
-              sweepSpeed={0.9}
-              sweepWidth={3}
-              sweepLobes={1}
-              color="#1eb88a"
-              backgroundColor="#0c1a12"
-              falloff={2.2}
-              brightness={1}
-              enableMouseInteraction={false}
-              mouseInfluence={0}
-            />
-            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
-              <span className="text-center text-sm text-white/75">{loadingMessage}</span>
-            </div>
+          <div className="relative flex h-48 w-full max-w-md items-center justify-center overflow-hidden rounded-2xl bg-[#0c1a12] px-4">
+            <span className="text-center text-sm text-white/75">{loadingMessage}</span>
           </div>
         </MapOverlay>
       ) : null}

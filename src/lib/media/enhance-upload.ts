@@ -148,19 +148,60 @@ function readVideoMeta(file: File): Promise<VideoMeta | null> {
   });
 }
 
+const MAX_REENCODE_DURATION_SEC = 600;
+
 function preferredVideoMimeType(): string {
-  if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+  // Prefer MP4 for widest HTML5 playback (Chrome + Safari + Android).
+  if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("video/mp4")) {
+    return "video/mp4";
+  }
+  if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
     return "video/webm;codecs=vp9";
   }
-  if (MediaRecorder.isTypeSupported("video/webm")) {
+  if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("video/webm")) {
     return "video/webm";
   }
   return "";
 }
 
-async function reencodeVideoAtHighBitrate(file: File, meta: VideoMeta): Promise<File | null> {
+/** True when the container/codec often fails in Chrome/Android <video>. */
+export function needsWebSafeVideoReencode(file: File): boolean {
+  const name = file.name.toLowerCase();
+  const type = (file.type || "").toLowerCase();
+  if (name.endsWith(".mov") || name.endsWith(".avi") || name.endsWith(".wmv") || name.endsWith(".m4v")) {
+    return true;
+  }
+  if (
+    type.includes("quicktime") ||
+    type === "video/avi" ||
+    type === "video/x-msvideo" ||
+    type === "video/x-ms-wmv" ||
+    type === "video/3gpp"
+  ) {
+    return true;
+  }
+  // Already web-safe containers
+  if (type === "video/mp4" || type === "video/webm" || name.endsWith(".mp4") || name.endsWith(".webm")) {
+    return false;
+  }
+  // Unknown video types — try to normalize
+  return type.startsWith("video/");
+}
+
+type ReencodeOptions = {
+  /** When true, accept smaller outputs (format conversion). */
+  forCompatibility?: boolean;
+  maxDurationSec?: number;
+};
+
+async function reencodeVideoAtHighBitrate(
+  file: File,
+  meta: VideoMeta,
+  options: ReencodeOptions = {},
+): Promise<File | null> {
   if (globalThis.document === undefined) return null;
-  if (meta.durationSec <= 0 || meta.durationSec > 180) return null;
+  const maxDuration = options.maxDurationSec ?? MAX_REENCODE_DURATION_SEC;
+  if (meta.durationSec <= 0 || meta.durationSec > maxDuration) return null;
 
   const url = URL.createObjectURL(file);
   const video = document.createElement("video");
@@ -225,31 +266,48 @@ async function reencodeVideoAtHighBitrate(file: File, meta: VideoMeta): Promise<
 
   const ext = mimeType.includes("webm") ? "webm" : "mp4";
   const enhanced = new File([blob], file.name.replace(/\.[^.]+$/, `.${ext}`), {
-    type: blob.type,
+    type: blob.type || (ext === "webm" ? "video/webm" : "video/mp4"),
     lastModified: Date.now(),
   });
 
   const limit = maxUploadBytesForKind("video");
-  if (enhanced.size > limit || enhanced.size < file.size * 0.5) return null;
+  if (enhanced.size > limit || enhanced.size < 10_000) return null;
+  // Quality-boost path: reject drastic size drops that usually mean a bad encode.
+  if (!options.forCompatibility && enhanced.size < file.size * 0.5) return null;
   return enhanced;
 }
 
 /**
- * Boost walkthrough videos when they are heavily compressed; otherwise keep the original file.
+ * Normalize walkthrough videos to a browser-safe format when needed,
+ * and boost heavily compressed clips when the browser can re-encode them.
  */
 export async function enhanceVideoForUpload(file: File): Promise<File> {
-  if (!file.type.startsWith("video/")) return file;
+  if (!file.type.startsWith("video/") && !/\.(mov|mp4|webm|m4v|avi)$/i.test(file.name)) {
+    return file;
+  }
 
   const meta = await readVideoMeta(file);
   if (!meta || meta.durationSec <= 0) return file;
 
+  const needsCompat = needsWebSafeVideoReencode(file);
+  if (needsCompat) {
+    try {
+      const reencoded = await reencodeVideoAtHighBitrate(file, meta, {
+        forCompatibility: true,
+      });
+      if (reencoded) return reencoded;
+    } catch {
+      // Fall through — caller may still upload original on platforms that can play it.
+    }
+    return file;
+  }
+
   const estimatedBitrate = (file.size * 8) / meta.durationSec;
   const looksCompressed = estimatedBitrate < 2_500_000 || meta.width < 960;
-
   if (!looksCompressed) return file;
 
   try {
-    const reencoded = await reencodeVideoAtHighBitrate(file, meta);
+    const reencoded = await reencodeVideoAtHighBitrate(file, meta, { forCompatibility: false });
     return reencoded ?? file;
   } catch {
     return file;
