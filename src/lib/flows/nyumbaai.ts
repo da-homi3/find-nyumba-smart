@@ -241,3 +241,43 @@ Prefer completeness over brevity — list all distinct amenities, not a short sa
 
   return clampAmenities(mergeAmenities(existing, heuristic, fromAi));
 }
+
+/**
+ * NyumbaAI picks the best Kenya neighborhood label from coordinates / address,
+ * constrained to a short candidate list when provided.
+ */
+export async function suggestNeighborhoodWithNyumbaAI(input: {
+  lat?: number | null;
+  lng?: number | null;
+  address?: string | null;
+  candidates?: string[];
+}): Promise<string | null> {
+  const candidates =
+    input.candidates && input.candidates.length > 0
+      ? input.candidates.slice(0, 12)
+      : [];
+  const coords =
+    Number.isFinite(input.lat) && Number.isFinite(input.lng)
+      ? `${input.lat}, ${input.lng}`
+      : "unknown";
+  const address = (input.address ?? "").trim() || "not provided";
+
+  const system = `You are NyumbaAI for NyumbaSearch. Pick the single best Kenya neighbourhood / area name for a property listing.
+Rules:
+- Reply with ONLY the neighbourhood name — no sentences, no quotes, no markdown
+- Prefer well-known Kenya rental areas (e.g. Kilimani, Westlands, Nyali, Bamburi)
+- If a candidate list is provided, you MUST pick one of those candidates exactly
+- If unsure, pick the closest major area rather than inventing a tiny estate name`;
+
+  const user = [
+    `Coordinates: ${coords}`,
+    `Address / place hint: ${address}`,
+    candidates.length > 0
+      ? `Candidates (pick one exactly):\n${candidates.map((c) => `- ${c}`).join("\n")}`
+      : "No candidates — return the best Kenya area name.",
+  ].join("\n");
+
+  const reply = await callGeminiChat(system, user, LISTING_AI_OPTS);
+  const picked = reply?.trim().split("\n")[0]?.replaceAll(/^["']|["']$/g, "").trim();
+  return picked || null;
+}

@@ -1,7 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfilePhone } from "@/hooks/use-profile-phone";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LEAD_PACKS,
   PORTAL_PLANS,
@@ -9,6 +11,11 @@ import {
   planMonthlyPrice,
   resolvePortalPlan,
 } from "@/lib/revenue/plans";
+import {
+  EARLY_PARTNER_SUBSCRIPTION_DISCOUNT,
+  isEarlyPartnerStatus,
+} from "@/lib/promo/constants";
+import { formatKes } from "@/lib/properties";
 import { PORTAL_PATHS, type ListingPortal } from "@/lib/portal-paths";
 import { useEffect } from "react";
 
@@ -28,6 +35,24 @@ export function PortalCheckoutPage({
   const { phone: profilePhone } = useProfilePhone();
   const navigate = useNavigate();
   const { plan, product, qty, reportType } = search;
+
+  const foundingQ = useQuery({
+    queryKey: ["founding-member-status", user?.id],
+    enabled: Boolean(user?.id),
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("founding_member_status")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.founding_member_status ?? "none";
+    },
+  });
+
+  const earlyPartner = isEarlyPartnerStatus(foundingQ.data);
+  const discountPct = Math.round(EARLY_PARTNER_SUBSCRIPTION_DISCOUNT * 100);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -114,17 +139,28 @@ export function PortalCheckoutPage({
   const planDef = portalPlans.find((p) => p.id === planId) ?? portalPlans[1] ?? portalPlans[0];
   if (!planDef) return null;
 
+  const listPrice = planMonthlyPrice(planId, "monthly");
+  const amountKes = planMonthlyPrice(planId, "monthly", { earlyPartner });
+
   return (
     <div className="mx-auto max-w-lg px-6 py-10">
       <h1 className="font-display text-2xl font-semibold">Upgrade your plan</h1>
       <p className="mt-1 text-sm text-muted-foreground">{planDef.name}</p>
+      {earlyPartner ? (
+        <div className="mt-4 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
+          <span className="font-semibold text-primary">Early partner discount:</span> {discountPct}%
+          off subscriptions ({formatKes(listPrice)} → {formatKes(amountKes)} / month).
+        </div>
+      ) : null}
       <div className="mt-8">
         <CheckoutFlow
           checkoutPath={`${paths.checkout}?plan=${planId}`}
           lineItem={{
             title: planDef.name,
-            subtitle: planDef.desc,
-            amountKes: planMonthlyPrice(planId, "monthly"),
+            subtitle: earlyPartner
+              ? `${planDef.desc} · Early partner ${discountPct}% off`
+              : planDef.desc,
+            amountKes,
             features: planDef.features,
           }}
           metadata={{

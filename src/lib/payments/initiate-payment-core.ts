@@ -184,6 +184,40 @@ async function assertBoostOwnershipAndPrice(
   }
 }
 
+async function assertLandlordPlanPrice(
+  supabaseAdmin: AdminDb,
+  userId: string,
+  data: InitiatePaymentInput,
+) {
+  if (data.paymentType !== "landlord_plan" && data.paymentType !== "premium_subscription") {
+    return;
+  }
+  if (!data.plan) throw new Error("Select a subscription plan");
+
+  const { data: profile, error } = await supabaseAdmin
+    .from("profiles")
+    .select("founding_member_status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+
+  const { isEarlyPartnerStatus } = await import("@/lib/promo/constants");
+  const { planMonthlyPrice, resolveLandlordPlan } = await import("@/lib/revenue/plans");
+  const planId = resolveLandlordPlan(data.plan);
+  const earlyPartner = isEarlyPartnerStatus(profile?.founding_member_status);
+  const monthly = planMonthlyPrice(planId, "monthly", { earlyPartner });
+  // Match CheckoutFlow: quarterly is 10% off three discounted months.
+  const expected =
+    data.billingCycle === "quarterly" ? Math.round(monthly * 3 * 0.9) : monthly;
+  if (data.amountKes !== expected) {
+    throw new Error(
+      earlyPartner
+        ? `Early partner price mismatch — expected KES ${expected} (20% founding discount)`
+        : `Plan price mismatch — expected KES ${expected}`,
+    );
+  }
+}
+
 async function assertPaymentAuthorization(userId: string, data: InitiatePaymentInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -193,6 +227,10 @@ async function assertPaymentAuthorization(userId: string, data: InitiatePaymentI
     data.paymentType === "lead_pack"
   ) {
     await assertListerPurchaseRole(supabaseAdmin, userId);
+  }
+
+  if (data.paymentType === "landlord_plan" || data.paymentType === "premium_subscription") {
+    await assertLandlordPlanPrice(supabaseAdmin, userId, data);
   }
 
   if (data.paymentType === "property_boost" || data.paymentType === "featured_listing") {

@@ -1,6 +1,7 @@
 import { formatKes } from "@/lib/properties";
 import type { BoostPackage, LandlordPlan, VerificationTier } from "@/lib/revenue/types";
 import type { ListingPortal } from "@/lib/portal-paths";
+import { applyEarlyPartnerDiscount } from "@/lib/promo/constants";
 
 export type PlanCardDef = {
   id: string;
@@ -330,12 +331,16 @@ export function resolveLandlordPlan(planId: string | undefined): LandlordPlan {
   return valid.includes(planId as LandlordPlan) ? (planId as LandlordPlan) : "pro";
 }
 
-export function planMonthlyPrice(planId: LandlordPlan, cycle: "monthly" | "quarterly"): number {
+export function planMonthlyPrice(
+  planId: LandlordPlan,
+  cycle: "monthly" | "quarterly",
+  options?: { earlyPartner?: boolean },
+): number {
   const all = [...LANDLORD_PLANS, ...MANAGER_PLANS, ...AGENCY_PLANS];
   const plan = all.find((p) => p.id === planId);
   const base = plan?.priceKes ?? 999;
-  if (cycle === "quarterly") return Math.round(base * 3 * 0.9);
-  return base;
+  const cycleAmount = cycle === "quarterly" ? Math.round(base * 3 * 0.9) : base;
+  return applyEarlyPartnerDiscount(cycleAmount, Boolean(options?.earlyPartner));
 }
 
 export function boostPrice(packageId: BoostPackage, _customCampaignKes?: number): number {

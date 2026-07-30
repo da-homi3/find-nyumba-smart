@@ -6,8 +6,14 @@ import { withTimeoutOrThrow } from "@/lib/auth/with-timeout";
 import {
   extractAmenitiesFromText,
   polishListingDescriptionAndAmenities,
+  suggestNeighborhoodWithNyumbaAI,
 } from "@/lib/flows/nyumbaai";
 import { formatAmenityString } from "@/lib/listings/amenities";
+import {
+  resolveSuggestedNeighborhoodLabel,
+  suggestNeighborhoodFromCoords,
+} from "@/lib/listings/suggest-neighborhood";
+import { nearbyKenyaLocations } from "@/lib/geo/location-search";
 
 const ENHANCE_SERVER_TIMEOUT_MS = 28_000;
 const EXTRACT_SERVER_TIMEOUT_MS = 18_000;
@@ -114,5 +120,81 @@ export const enhanceListingCopy = createServerFn({ method: "POST" })
       description: polished.description,
       amenities: polished.amenities,
       amenitiesCsv: formatAmenityString(polished.amenities),
+    };
+  });
+
+/** Auto-detect listing neighborhood from pin / address via catalog + NyumbaAI. */
+export const suggestListingNeighborhood = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      latitude: optionalNullableCoercedNumber(),
+      longitude: optionalNullableCoercedNumber(),
+      address: z.string().trim().max(200).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { userId } = getAuthContext(context);
+    await rateLimitAi(userId, "neighborhood");
+
+    const lat = data.latitude ?? null;
+    const lng = data.longitude ?? null;
+    const local =
+      lat != null && lng != null ? suggestNeighborhoodFromCoords(lat, lng) : null;
+
+    const candidates = [
+      ...(local ? [local.neighborhood, ...local.alternatives] : []),
+      ...(lat != null && lng != null
+        ? nearbyKenyaLocations(lat, lng, { limit: 6, maxKm: 20 })
+            .map((n) => n.neighborhood)
+            .filter((v): v is string => Boolean(v))
+        : []),
+    ].filter((v, i, arr) => arr.indexOf(v) === i);
+
+    // High-confidence catalog hit: skip AI for speed.
+    if (local && local.confidence === "high") {
+      return {
+        neighborhood: local.neighborhood,
+        source: local.source,
+        confidence: local.confidence,
+        alternatives: local.alternatives,
+      };
+    }
+
+    const aiRaw = await withTimeoutOrThrow(
+      suggestNeighborhoodWithNyumbaAI({
+        lat,
+        lng,
+        address: data.address,
+        candidates: candidates.length > 0 ? candidates : undefined,
+      }),
+      EXTRACT_SERVER_TIMEOUT_MS,
+      "Neighborhood suggestion timed out. Try again in a moment.",
+    );
+
+    const aiNeighborhood = aiRaw ? resolveSuggestedNeighborhoodLabel(aiRaw) : null;
+    if (aiNeighborhood) {
+      return {
+        neighborhood: aiNeighborhood,
+        source: "ai" as const,
+        confidence: local?.confidence ?? "medium",
+        alternatives: local?.alternatives ?? [],
+      };
+    }
+
+    if (local) {
+      return {
+        neighborhood: local.neighborhood,
+        source: local.source,
+        confidence: local.confidence,
+        alternatives: local.alternatives,
+      };
+    }
+
+    return {
+      neighborhood: null as string | null,
+      source: "none" as const,
+      confidence: "low" as const,
+      alternatives: [] as string[],
     };
   });

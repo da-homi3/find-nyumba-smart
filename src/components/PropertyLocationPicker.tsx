@@ -11,13 +11,16 @@ import {
   syncPropertyLocationPin,
 } from "@/lib/mapbox/property-location-map";
 import { fitMapboxToKenya } from "@/lib/mapbox/mapbox-3d";
-import { Loader2, MapPin, Navigation } from "lucide-react";
+import { suggestNeighborhoodFromCoords } from "@/lib/listings/suggest-neighborhood";
+import { suggestListingNeighborhood } from "@/lib/api/listing-ai.functions";
+import { Loader2, MapPin, Navigation, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type PropertyLocationPickerProps = Readonly<{
   latitude: number | null;
   longitude: number | null;
   neighborhood?: string;
+  address?: string;
   onChange: (lat: number, lng: number) => void;
   onNeighborhoodSelect?: (neighborhood: string) => void;
   className?: string;
@@ -27,6 +30,7 @@ export function PropertyLocationPicker({
   latitude,
   longitude,
   neighborhood,
+  address,
   onChange,
   onNeighborhoodSelect,
   className,
@@ -39,8 +43,15 @@ export function PropertyLocationPicker({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(neighborhood ?? "");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [autoNote, setAutoNote] = useState<string | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onNeighborhoodSelectRef = useRef(onNeighborhoodSelect);
+  onNeighborhoodSelectRef.current = onNeighborhoodSelect;
+  const lastAutoNeighborhoodRef = useRef<string>("");
+  const neighborhoodManualRef = useRef(Boolean(neighborhood?.trim()));
+  const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +99,7 @@ export function PropertyLocationPicker({
       markerRef.current = null;
       mapInstance.current?.remove();
       mapInstance.current = null;
+      if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
     };
     // Mount-only map init; lat/lng updates handled in separate effects.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
@@ -119,9 +131,70 @@ export function PropertyLocationPicker({
     }
   }, [neighborhood, searchQuery]);
 
+  /** Auto-fill neighborhood from pin via catalog, then NyumbaAI if needed. */
+  useEffect(() => {
+    if (latitude == null || longitude == null || !onNeighborhoodSelectRef.current) return;
+    const current = neighborhood?.trim() ?? "";
+    const canOverwrite =
+      !current || current === lastAutoNeighborhoodRef.current || !neighborhoodManualRef.current;
+    if (!canOverwrite) return;
+
+    const local = suggestNeighborhoodFromCoords(latitude, longitude);
+    if (!local) return;
+
+    lastAutoNeighborhoodRef.current = local.neighborhood;
+    neighborhoodManualRef.current = false;
+    setSearchQuery(local.neighborhood);
+    onNeighborhoodSelectRef.current(local.neighborhood);
+    setAutoNote(
+      local.confidence === "high"
+        ? `Matched ${local.neighborhood} from the map pin`
+        : `Suggested ${local.neighborhood} — refining with NyumbaAI…`,
+    );
+
+    if (local.confidence === "high") return;
+
+    if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    const pinLat = latitude;
+    const pinLng = longitude;
+    aiTimerRef.current = setTimeout(() => {
+      void (async () => {
+        setAiBusy(true);
+        try {
+          const res = await suggestListingNeighborhood({
+            data: {
+              latitude: pinLat,
+              longitude: pinLng,
+              address: address || undefined,
+            },
+          });
+          if (!res.neighborhood) return;
+          const stillOk =
+            !neighborhoodManualRef.current ||
+            (neighborhood?.trim() ?? "") === lastAutoNeighborhoodRef.current;
+          if (!stillOk) return;
+          lastAutoNeighborhoodRef.current = res.neighborhood;
+          setSearchQuery(res.neighborhood);
+          onNeighborhoodSelectRef.current?.(res.neighborhood);
+          setAutoNote(`NyumbaAI set neighborhood to ${res.neighborhood}`);
+        } catch {
+          setAutoNote(`Using ${local.neighborhood} from map pin`);
+        } finally {
+          setAiBusy(false);
+        }
+      })();
+    }, 650);
+
+    return () => {
+      if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    };
+  }, [latitude, longitude, address, neighborhood]);
+
   function selectSearchResult(result: LocationSearchResult) {
     setError(null);
     setSearchQuery(result.neighborhood ?? result.label);
+    neighborhoodManualRef.current = true;
+    setAutoNote(null);
     onChange(result.lat, result.lng);
     if (result.neighborhood) {
       onNeighborhoodSelect?.(result.neighborhood);
@@ -138,10 +211,44 @@ export function PropertyLocationPicker({
   function locateMe() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => onChange(pos.coords.latitude, pos.coords.longitude),
+      (pos) => {
+        neighborhoodManualRef.current = false;
+        onChange(pos.coords.latitude, pos.coords.longitude);
+      },
       () => setError("Could not access your location."),
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  }
+
+  async function detectWithNyumbaAI() {
+    if (latitude == null || longitude == null) {
+      setError("Drop a map pin first, then detect the neighborhood.");
+      return;
+    }
+    setAiBusy(true);
+    setError(null);
+    try {
+      const res = await suggestListingNeighborhood({
+        data: {
+          latitude,
+          longitude,
+          address: address || searchQuery || undefined,
+        },
+      });
+      if (!res.neighborhood) {
+        setError("NyumbaAI could not detect a neighborhood for this pin.");
+        return;
+      }
+      neighborhoodManualRef.current = false;
+      lastAutoNeighborhoodRef.current = res.neighborhood;
+      setSearchQuery(res.neighborhood);
+      onNeighborhoodSelect?.(res.neighborhood);
+      setAutoNote(`NyumbaAI set neighborhood to ${res.neighborhood}`);
+    } catch {
+      setError("NyumbaAI neighborhood detection failed. Try again.");
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   function useNeighborhoodCenter() {
@@ -171,7 +278,11 @@ export function PropertyLocationPicker({
           <span className="font-medium">Search location</span>
           <PlaceSearchField
             value={searchQuery}
-            onValueChange={setSearchQuery}
+            onValueChange={(value) => {
+              neighborhoodManualRef.current = true;
+              setSearchQuery(value);
+              setAutoNote(null);
+            }}
             onSelectPlace={selectSearchResult}
             onClear={() => setSearchQuery("")}
             placeholder="Search landmark, road, or area — e.g. Junction Mall, Ngong Rd, Karen"
@@ -185,9 +296,19 @@ export function PropertyLocationPicker({
           />
         </label>
         <p className="mt-2 text-xs text-muted-foreground">
-          Pick a place like Google Maps, then drag the pin to the exact building. Nearby areas
-          appear after you select.
+          Pick a place like Google Maps, then drag the pin to the exact building. NyumbaAI fills
+          the neighborhood from the pin automatically.
         </p>
+        {autoNote ? (
+          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-primary">
+            {aiBusy ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {autoNote}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -195,6 +316,19 @@ export function PropertyLocationPicker({
           Search above, click the map to drop a pin, or drag to refine the exact spot.
         </p>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void detectWithNyumbaAI()}
+            disabled={aiBusy || latitude == null || longitude == null}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-40"
+          >
+            {aiBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            Detect with NyumbaAI
+          </button>
           <button
             type="button"
             onClick={showKenyaOverview}
@@ -245,6 +379,7 @@ export function PropertyLocationPicker({
             step="any"
             value={latitude ?? ""}
             onChange={(e) => {
+              neighborhoodManualRef.current = false;
               const lat = Number(e.target.value);
               const lng = longitude ?? NAIROBI_CENTER.lng;
               if (Number.isFinite(lat)) onChange(lat, lng);
@@ -260,6 +395,7 @@ export function PropertyLocationPicker({
             step="any"
             value={longitude ?? ""}
             onChange={(e) => {
+              neighborhoodManualRef.current = false;
               const lng = Number(e.target.value);
               const lat = latitude ?? NAIROBI_CENTER.lat;
               if (Number.isFinite(lng)) onChange(lat, lng);

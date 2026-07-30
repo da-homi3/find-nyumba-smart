@@ -472,6 +472,7 @@ function ListingWizardLocationTab({
       latitude={form.latitude}
       longitude={form.longitude}
       neighborhood={form.neighborhood}
+      address={form.address}
       onChange={(lat, lng) => {
         update("latitude", lat);
         update("longitude", lng);
