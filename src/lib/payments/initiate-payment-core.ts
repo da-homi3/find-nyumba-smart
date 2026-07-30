@@ -136,7 +136,14 @@ async function insertPayment(userId: string, data: InitiatePaymentInput, idempot
   return { row, supabaseAdmin };
 }
 
+function isProductionHost(): boolean {
+  const appUrl = (getServerEnv("PUBLIC_APP_URL") || getServerEnv("SITE_URL") || "").toLowerCase();
+  return appUrl.includes("nyumbasearch.com") || (getServerEnv("MPESA_ENV") || "").toLowerCase() === "production";
+}
+
 function allowDemoMpesaCompletion(): boolean {
+  // Never auto-complete payments on production hosts, even if ALLOW_DEMO_PAYMENTS is mis-set.
+  if (isProductionHost()) return false;
   if (getServerEnv("ALLOW_DEMO_PAYMENTS") === "true") return true;
   if (getServerEnv("ALLOW_DEMO_PAYMENTS") === "false") return false;
   return getServerEnv("MPESA_ENV") === "sandbox" && getServerEnv("NODE_ENV") === "development";
@@ -218,13 +225,76 @@ async function assertLandlordPlanPrice(
   }
 }
 
+async function assertRentPaymentAuthorization(
+  supabaseAdmin: AdminDb,
+  userId: string,
+  data: InitiatePaymentInput,
+) {
+  if (!data.invoiceId) throw new Error("Rent payment requires an invoice");
+
+  const { asPmDb } = await import("@/lib/pm/access");
+  const { rentBalanceRemaining } = await import("@/lib/pm/invoice-status");
+  const admin = asPmDb(supabaseAdmin);
+
+  const { data: invoice } = await admin
+    .from("pm_rent_invoices")
+    .select("id, lease_id, amount_due, amount_paid, late_fee, status")
+    .eq("id", data.invoiceId)
+    .maybeSingle();
+  if (!invoice) throw new Error("Rent invoice not found");
+  if (invoice.status === "paid") throw new Error("This invoice is already fully paid");
+
+  const { data: lease } = await admin
+    .from("pm_leases")
+    .select("id, tenant_id")
+    .eq("id", invoice.lease_id)
+    .maybeSingle();
+  if (!lease) throw new Error("Lease not found");
+
+  const { data: tenant } = await admin
+    .from("pm_tenants")
+    .select("id, tenant_user_id, portal_status")
+    .eq("id", lease.tenant_id)
+    .eq("tenant_user_id", userId)
+    .eq("portal_status", "accepted")
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!tenant) throw new Error("Not authorised for this rent invoice");
+
+  const balance = rentBalanceRemaining(
+    Number(invoice.amount_due),
+    Number(invoice.amount_paid),
+    Number(invoice.late_fee ?? 0),
+  );
+  if (balance <= 0) throw new Error("Nothing left to pay on this invoice");
+  if (data.amountKes !== balance) {
+    throw new Error(`Rent amount mismatch — expected KES ${balance}`);
+  }
+}
+
+async function assertPmModulePaymentAuthorization(
+  supabaseAdmin: AdminDb,
+  userId: string,
+  data: InitiatePaymentInput,
+) {
+  await assertListerPurchaseRole(supabaseAdmin, userId);
+  const { asPmDb } = await import("@/lib/pm/access");
+  const { recommendedPmTier } = await import("@/lib/pm/pricing");
+
+  const recommended = await recommendedPmTier(asPmDb(supabaseAdmin), userId);
+  if (data.amountKes !== recommended.priceKes) {
+    throw new Error(`PM module price mismatch — expected KES ${recommended.priceKes}`);
+  }
+}
+
 async function assertPaymentAuthorization(userId: string, data: InitiatePaymentInput) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   if (
     data.paymentType === "landlord_plan" ||
     data.paymentType === "premium_subscription" ||
-    data.paymentType === "lead_pack"
+    data.paymentType === "lead_pack" ||
+    data.paymentType === "pm_module"
   ) {
     await assertListerPurchaseRole(supabaseAdmin, userId);
   }
@@ -235,6 +305,14 @@ async function assertPaymentAuthorization(userId: string, data: InitiatePaymentI
 
   if (data.paymentType === "property_boost" || data.paymentType === "featured_listing") {
     await assertBoostOwnershipAndPrice(supabaseAdmin, userId, data);
+  }
+
+  if (data.paymentType === "rent_payment") {
+    await assertRentPaymentAuthorization(supabaseAdmin, userId, data);
+  }
+
+  if (data.paymentType === "pm_module") {
+    await assertPmModulePaymentAuthorization(supabaseAdmin, userId, data);
   }
 }
 

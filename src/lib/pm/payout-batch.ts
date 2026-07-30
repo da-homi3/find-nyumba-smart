@@ -1,12 +1,19 @@
 /**
- * Daily batched rent payouts — group unbatched fee ledger rows by owner + destination.
- * Bank disbursement via IntaSend PesaLink; M-Pesa B2C stubbed until Safaricom product approval.
+ * Rent payouts — group fee ledger rows by owner + destination, then disburse via IntaSend
+ * (bank PesaLink, M-Pesa B2C phone, M-Pesa B2B paybill/till). Instant after collection;
+ * daily cron remains as catch-up for failures / missing destinations.
  */
 import type { PmDb } from "@/lib/pm/access";
-import { createIntasendBankTransfer, isIntasendConfigured } from "@/lib/pm/intasend-payout";
+import {
+  createIntasendBankTransfer,
+  createIntasendMpesaB2B,
+  createIntasendMpesaB2C,
+  isIntasendConfigured,
+} from "@/lib/pm/intasend-payout";
 import {
   pickPayoutDestination,
   prefetchPayoutDestinations,
+  resolvePayoutDestination,
   type PayoutDestinationRow,
 } from "@/lib/pm/payout-destinations";
 import { notifyUser } from "@/lib/notifications/notify-user";
@@ -28,10 +35,6 @@ type PayoutGroup = {
   destination: PayoutDestinationRow;
   fees: UnbatchedFee[];
 };
-
-function isLiveBankDestination(destination: PayoutDestinationRow | null): destination is PayoutDestinationRow {
-  return destination?.destination_type === "bank_account";
-}
 
 function appendFeeToGroup(groups: Map<string, PayoutGroup>, fee: UnbatchedFee, destination: PayoutDestinationRow) {
   const key = `${fee.owner_user_id}:${destination.id}`;
@@ -68,7 +71,6 @@ export async function runDailyPayoutBatch(admin: PmDb): Promise<{
     return { batchesCreated: 0, completed: 0, failed: 0, skipped: 0 };
   }
 
-  // Group by owner + resolved destination id (one destinations query for all owners)
   const groups = new Map<string, PayoutGroup>();
   const destMap = await prefetchPayoutDestinations(
     admin,
@@ -78,8 +80,7 @@ export async function runDailyPayoutBatch(admin: PmDb): Promise<{
   let skipped = 0;
   for (const fee of rows) {
     const dest = pickPayoutDestination(destMap, fee.owner_user_id, fee.property_id);
-    // Only bank payouts are live until Safaricom B2C/B2B is approved
-    if (!isLiveBankDestination(dest)) {
+    if (!dest) {
       skipped += 1;
       continue;
     }
@@ -91,44 +92,97 @@ export async function runDailyPayoutBatch(admin: PmDb): Promise<{
   let failed = 0;
 
   for (const group of groups.values()) {
-    const totalGross = group.fees.reduce((s, f) => s + f.gross_amount, 0);
-    const totalFee = group.fees.reduce((s, f) => s + f.platform_fee, 0);
-    const totalNet = group.fees.reduce((s, f) => s + f.net_payout_amount, 0);
-    const paymentIds = group.fees.map((f) => f.rent_payment_id);
-    const ledgerIds = group.fees.map((f) => f.id);
-
-    const { data: batch, error: batchErr } = await admin
-      .from("pm_payout_batches")
-      .insert({
-        owner_user_id: group.ownerUserId,
-        payout_destination_id: group.destination.id,
-        total_gross: totalGross,
-        total_platform_fee: totalFee,
-        total_net_payout: totalNet,
-        rent_payment_ids: paymentIds,
-        status: "pending",
-      })
-      .select("id")
-      .single();
-
-    if (batchErr || !batch) {
-      console.warn("[payout] batch insert failed:", batchErr?.message);
+    const result = await createAndProcessBatch(admin, group);
+    if (result === "created_failed") {
       failed += 1;
       continue;
     }
-
     batchesCreated += 1;
-    await admin
-      .from("pm_platform_fee_ledger")
-      .update({ payout_batch_id: batch.id })
-      .in("id", ledgerIds);
-
-    const result = await processPayoutBatch(admin, batch.id as string);
     if (result === "completed") completed += 1;
     else failed += 1;
   }
 
   return { batchesCreated, completed, failed, skipped };
+}
+
+/**
+ * Immediately pay out a single rent payment's net amount to the owner's destination.
+ * Safe to call after recordPlatformFee — no-ops if already batched or destination missing.
+ */
+export async function disburseUnbatchedFeeNow(
+  admin: PmDb,
+  opts: {
+    rentPaymentId: string;
+    ownerUserId: string;
+    propertyId: string;
+  },
+): Promise<"completed" | "failed" | "skipped"> {
+  const { data: fee, error } = await admin
+    .from("pm_platform_fee_ledger")
+    .select(
+      "id, rent_payment_id, owner_user_id, property_id, gross_amount, platform_fee, net_payout_amount, payout_batch_id",
+    )
+    .eq("rent_payment_id", opts.rentPaymentId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("[payout] fee lookup failed:", error.message);
+    return "failed";
+  }
+  if (!fee || fee.payout_batch_id) return "skipped";
+  if (Number(fee.net_payout_amount) <= 0) return "skipped";
+
+  const destination = await resolvePayoutDestination(admin, opts.ownerUserId, opts.propertyId);
+  if (!destination) {
+    console.warn("[payout] no verified destination for owner", opts.ownerUserId);
+    return "skipped";
+  }
+
+  const result = await createAndProcessBatch(admin, {
+    ownerUserId: opts.ownerUserId,
+    destination,
+    fees: [fee as UnbatchedFee],
+  });
+
+  if (result === "created_failed") return "failed";
+  return result;
+}
+
+async function createAndProcessBatch(
+  admin: PmDb,
+  group: PayoutGroup,
+): Promise<"completed" | "failed" | "created_failed"> {
+  const totalGross = group.fees.reduce((s, f) => s + Number(f.gross_amount), 0);
+  const totalFee = group.fees.reduce((s, f) => s + Number(f.platform_fee), 0);
+  const totalNet = group.fees.reduce((s, f) => s + Number(f.net_payout_amount), 0);
+  const paymentIds = group.fees.map((f) => f.rent_payment_id);
+  const ledgerIds = group.fees.map((f) => f.id);
+
+  const { data: batch, error: batchErr } = await admin
+    .from("pm_payout_batches")
+    .insert({
+      owner_user_id: group.ownerUserId,
+      payout_destination_id: group.destination.id,
+      total_gross: totalGross,
+      total_platform_fee: totalFee,
+      total_net_payout: totalNet,
+      rent_payment_ids: paymentIds,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (batchErr || !batch) {
+    console.warn("[payout] batch insert failed:", batchErr?.message);
+    return "created_failed";
+  }
+
+  await admin
+    .from("pm_platform_fee_ledger")
+    .update({ payout_batch_id: batch.id })
+    .in("id", ledgerIds);
+
+  return processPayoutBatch(admin, batch.id as string);
 }
 
 export async function processPayoutBatch(
@@ -190,6 +244,12 @@ export async function processPayoutBatch(
       .update({ status: "failed", failure_reason: message })
       .eq("id", batchId);
 
+    // Unlink ledger so daily catch-up can create a fresh batch (admin retry still works too).
+    await admin
+      .from("pm_platform_fee_ledger")
+      .update({ payout_batch_id: null })
+      .eq("payout_batch_id", batchId);
+
     try {
       await admin.from("admin_audit_logs").insert({
         admin_id: null,
@@ -206,41 +266,116 @@ export async function processPayoutBatch(
   }
 }
 
+async function disburseBank(
+  destination: PayoutDestinationRow,
+  amountKes: number,
+  batchReference: string,
+  narration: string,
+): Promise<string> {
+  if (
+    !destination.bank_code ||
+    !destination.bank_account_number ||
+    !destination.bank_account_name
+  ) {
+    throw new Error("Bank destination is incomplete");
+  }
+  const result = await createIntasendBankTransfer({
+    accountName: destination.bank_account_name,
+    accountNumber: destination.bank_account_number,
+    bankCode: destination.bank_code,
+    amountKes,
+    narration,
+    batchReference,
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.transferId;
+}
+
+async function disburseMpesaPhone(
+  destination: PayoutDestinationRow,
+  amountKes: number,
+  batchReference: string,
+  narration: string,
+): Promise<string> {
+  if (!destination.mpesa_phone) throw new Error("M-Pesa phone destination is incomplete");
+  const result = await createIntasendMpesaB2C({
+    phone254: destination.mpesa_phone,
+    amountKes,
+    name: destination.bank_account_name || undefined,
+    narration,
+    batchReference,
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.transferId;
+}
+
+async function disburseMpesaPaybill(
+  destination: PayoutDestinationRow,
+  amountKes: number,
+  batchReference: string,
+  narration: string,
+): Promise<string> {
+  if (!destination.mpesa_paybill_number || !destination.mpesa_account_number) {
+    throw new Error("Paybill destination is incomplete");
+  }
+  const result = await createIntasendMpesaB2B({
+    accountType: "PayBill",
+    account: destination.mpesa_paybill_number,
+    accountReference: destination.mpesa_account_number,
+    amountKes,
+    narration,
+    batchReference,
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.transferId;
+}
+
+async function disburseMpesaTill(
+  destination: PayoutDestinationRow,
+  amountKes: number,
+  batchReference: string,
+  narration: string,
+): Promise<string> {
+  if (!destination.mpesa_till_number) throw new Error("Till destination is incomplete");
+  const result = await createIntasendMpesaB2B({
+    accountType: "TillNumber",
+    account: destination.mpesa_till_number,
+    amountKes,
+    narration,
+    batchReference,
+  });
+  if (!result.ok) throw new Error(result.message);
+  return result.transferId;
+}
+
 async function disburseToDestination(
   destination: PayoutDestinationRow,
   amountKes: number,
   batchId: string,
 ): Promise<string> {
-  if (destination.destination_type === "bank_account") {
-    if (!isIntasendConfigured()) {
-      throw new Error("IntaSend is not configured for bank payouts");
-    }
-    if (
-      !destination.bank_code ||
-      !destination.bank_account_number ||
-      !destination.bank_account_name
-    ) {
-      throw new Error("Bank destination is incomplete");
-    }
-    const result = await createIntasendBankTransfer({
-      accountName: destination.bank_account_name,
-      accountNumber: destination.bank_account_number,
-      bankCode: destination.bank_code,
-      amountKes,
-      narration: "NyumbaSearch rent payout",
-      batchReference: `nyumba-payout-${batchId.slice(0, 8)}-${randomUuid().slice(0, 8)}`,
-    });
-    if (!result.ok) throw new Error(result.message);
-    return result.transferId;
+  if (!isIntasendConfigured()) {
+    throw new Error("IntaSend is not configured for payouts");
   }
 
-  throw new Error(
-    "M-Pesa payouts require Safaricom B2C/B2B approval — bank payouts are available now",
-  );
+  const batchReference = `nyumba-payout-${batchId.slice(0, 8)}-${randomUuid().slice(0, 8)}`;
+  const narration = "NyumbaSearch rent payout";
+
+  switch (destination.destination_type) {
+    case "bank_account":
+      return disburseBank(destination, amountKes, batchReference, narration);
+    case "mpesa_phone":
+      return disburseMpesaPhone(destination, amountKes, batchReference, narration);
+    case "mpesa_paybill":
+      return disburseMpesaPaybill(destination, amountKes, batchReference, narration);
+    case "mpesa_till":
+      return disburseMpesaTill(destination, amountKes, batchReference, narration);
+    default:
+      throw new Error(`Unsupported payout destination type: ${destination.destination_type}`);
+  }
 }
 
 async function notifyLandlordPayoutComplete(
-  admin: PmDb,
+  _admin: PmDb,
   opts: {
     ownerUserId: string;
     net: number;

@@ -597,11 +597,27 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
 
     const { data: updated, error } = await admin
       .from("properties")
-      .update({ is_vacant: data.isVacant, updated_at: new Date().toISOString() })
+      .update(
+        data.isVacant
+          ? {
+              is_vacant: true,
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            }
+          : {
+              is_vacant: false,
+              updated_at: new Date().toISOString(),
+            },
+      )
       .eq("id", data.propertyId)
       .select("*")
       .single();
     if (error) throw error;
+
+    void import("@/lib/cache/manager")
+      .then(({ invalidateListingCaches }) => invalidateListingCaches())
+      .catch(() => undefined);
+
     return mapPropertyRow(updated);
   });
 

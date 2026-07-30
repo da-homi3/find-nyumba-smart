@@ -26,6 +26,7 @@ type SavedDestination = {
   bank_account_number: string | null;
   mpesa_phone: string | null;
   mpesa_paybill_number: string | null;
+  mpesa_till_number: string | null;
   property_id: string | null;
 };
 
@@ -39,16 +40,25 @@ type PayoutBatch = {
   created_at: string;
 };
 
-const TYPE_OPTIONS: Array<{ id: DestType; label: string; comingSoon?: boolean }> = [
+const TYPE_OPTIONS: Array<{ id: DestType; label: string }> = [
   { id: "bank_account", label: "Bank account" },
+  { id: "mpesa_phone", label: "M-Pesa phone" },
+  { id: "mpesa_paybill", label: "Paybill" },
+  { id: "mpesa_till", label: "Till number" },
 ];
-// M-Pesa phone / paybill / till payouts stay hidden until Safaricom B2C is live.
 
 function destinationDetails(destination: SavedDestination): string {
   if (destination.bank_name) {
     return `${destination.bank_name} · ${destination.bank_account_number}`;
   }
-  return destination.mpesa_phone || destination.mpesa_paybill_number || "—";
+  if (destination.mpesa_phone) return destination.mpesa_phone;
+  if (destination.mpesa_paybill_number) {
+    return `Paybill ${destination.mpesa_paybill_number}`;
+  }
+  if (destination.mpesa_till_number) {
+    return `Till ${destination.mpesa_till_number}`;
+  }
+  return "—";
 }
 
 function payoutDateLabel(batch: PayoutBatch): string {
@@ -276,10 +286,10 @@ export function PortalPayoutSettingsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="font-display text-2xl font-semibold">Rent payouts</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        NyumbaSearch collects rent from tenants, then pays it out to you here — minus a 1% platform
-        fee. Example: KES 15,000 rent → you receive {formatKes(exampleFee.netPayoutAmount)} (fee{" "}
-        {formatKes(exampleFee.platformFee)}). Payouts run in daily batches to keep transfer costs
-        low.
+        Add the bank account, M-Pesa number, paybill, or till where rent should land. When a tenant
+        pays through NyumbaSearch, we deduct 1% and send the rest to your destination within minutes.
+        Example: KES 15,000 rent → you receive {formatKes(exampleFee.netPayoutAmount)} (fee{" "}
+        {formatKes(exampleFee.platformFee)}).
       </p>
 
       <section className="mt-8 rounded-2xl border border-border p-5">
@@ -299,7 +309,6 @@ export function PortalPayoutSettingsPage() {
               }`}
             >
               {opt.label}
-              {opt.comingSoon ? " · soon" : ""}
             </button>
           ))}
         </div>
@@ -358,10 +367,6 @@ export function PortalPayoutSettingsPage() {
 
         {type === "mpesa_phone" ? (
           <div className="mt-4 space-y-3">
-            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-              M-Pesa payouts need Safaricom B2C approval. You can verify and save a number now; bank
-              payouts are what run today.
-            </p>
             <label className="block text-xs">
               <span className="font-medium">M-Pesa phone</span>
               <input
@@ -403,9 +408,6 @@ export function PortalPayoutSettingsPage() {
 
         {type === "mpesa_paybill" ? (
           <div className="mt-4 space-y-3">
-            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-              Paybill payouts need Safaricom B2B — coming soon. Prefer bank account for live payouts.
-            </p>
             <label className="block text-xs">
               <span className="font-medium">Paybill number</span>
               <input
@@ -427,9 +429,6 @@ export function PortalPayoutSettingsPage() {
 
         {type === "mpesa_till" ? (
           <div className="mt-4 space-y-3">
-            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-              Till payouts need Safaricom B2C — coming soon.
-            </p>
             <label className="block text-xs">
               <span className="font-medium">Till number</span>
               <input

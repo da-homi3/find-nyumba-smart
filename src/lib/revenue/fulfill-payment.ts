@@ -174,6 +174,9 @@ async function fulfillRenewalSubscription(
   const wasTrialing = sub.status === "trialing";
   const cycle = billingCycle(payment.metadata);
   const days = cycle === "quarterly" ? 90 : 30;
+  const { isPmPlanId } = await import("@/lib/pm/pricing");
+  const isPmRenewal =
+    sub.module === "property_management" || isPmPlanId(String(sub.plan ?? ""));
 
   await upsertActiveSubscription(supabaseAdmin, {
     user_id: sub.user_id,
@@ -183,9 +186,14 @@ async function fulfillRenewalSubscription(
     payment_method: paymentMethod(payment.metadata),
     next_billing_date: addBillingDays(days),
     status: "active",
+    module: isPmRenewal ? "property_management" : "marketplace",
   });
 
-  if (sub.plan === "plus") {
+  if (isPmRenewal) {
+    const { asPmDb } = await import("@/lib/pm/access");
+    const { activatePmModuleForAccount } = await import("@/lib/pm/module-gate");
+    await activatePmModuleForAccount(asPmDb(supabaseAdmin), sub.user_id);
+  } else if (sub.plan === "plus") {
     await supabaseAdmin
       .from("profiles")
       .update({ tenant_plan: "plus", plus_expires_at: addBillingDays(days) })

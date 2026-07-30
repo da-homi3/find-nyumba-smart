@@ -14,7 +14,7 @@ export function PortalBillingPage({ portal }: Readonly<{ portal: ListingPortal }
     queryFn: () => listTransactions(),
   });
 
-  const totalDue = payments
+  const recentPaid = payments
     .filter((p) => p.status === "completed")
     .slice(0, 3)
     .reduce((s, p) => s + p.amount_kes, 0);
@@ -27,21 +27,21 @@ export function PortalBillingPage({ portal }: Readonly<{ portal: ListingPortal }
       </p>
 
       <div className="mt-8 rounded-2xl border bg-card p-6">
-        <p className="text-sm text-muted-foreground">Recent charges</p>
-        <p className="mt-1 font-display text-2xl font-semibold">{formatKes(totalDue || 0)}</p>
+        <p className="text-sm text-muted-foreground">Paid recently (last 3 completed)</p>
+        <p className="mt-1 font-display text-2xl font-semibold">{formatKes(recentPaid || 0)}</p>
         <button
           type="button"
           onClick={() => globalThis.print()}
           className="mt-4 rounded-xl border px-4 py-2 text-sm font-semibold"
         >
-          Download invoice (print)
+          Print statement
         </button>
         <Link
           to={paths.checkout}
           search={{ product: "leads", qty: 25 }}
           className="ml-2 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
-          Pay now
+          Buy lead pack
         </Link>
       </div>
 

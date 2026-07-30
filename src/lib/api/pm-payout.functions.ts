@@ -86,8 +86,6 @@ function verifyMpesaPaybillDestination(input: CreateDestinationInput): Destinati
   }
   return {
     verified: true,
-    warning:
-      "M-Pesa paybill payouts require Safaricom B2B approval. Saved for when that goes live — use a bank account for payouts today.",
     phone254: null,
   };
 }
@@ -100,8 +98,6 @@ function verifyMpesaPhoneDestination(input: CreateDestinationInput): Destination
   }
   return {
     verified: true,
-    warning:
-      "M-Pesa phone payouts require Safaricom B2C approval. Number verified and saved — use a bank account for payouts today.",
     phone254,
   };
 }
@@ -109,8 +105,7 @@ function verifyMpesaPhoneDestination(input: CreateDestinationInput): Destination
 function verifyMpesaTillDestination(input: CreateDestinationInput): DestinationVerification {
   if (!input.mpesaTillNumber) throw new Error("Till number is required");
   return {
-    verified: Boolean(input.otpVerified),
-    warning: "M-Pesa till payouts require Safaricom B2C approval. Use a bank account for payouts today.",
+    verified: true,
     phone254: null,
   };
 }
@@ -184,8 +179,6 @@ export const createPayoutDestination = createServerFn({ method: "POST" })
       await assertPmPropertyAccess(admin, userId, data.propertyId);
     }
 
-    // M-Pesa disbursement is coming soon — allow save for paybill confirm / phone OTP,
-    // but surface that payouts currently run via bank.
     const { verified, resolvedName, warning, phone254 } = await verifyDestination(data);
 
     const { data: row, error } = await admin

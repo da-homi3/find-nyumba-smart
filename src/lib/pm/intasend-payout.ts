@@ -1,7 +1,6 @@
 /**
- * IntaSend Send Money — bank (PesaLink) payouts + account name validation.
+ * IntaSend Send Money — bank (PesaLink), M-Pesa B2C (phone), and M-Pesa B2B (paybill/till).
  * Env: INTASEND_SECRET_KEY (required), INTASEND_ENV=sandbox|live (default live).
- * M-Pesa B2C destinations remain coming-soon until we enable that provider path.
  */
 import { getServerEnv } from "@/lib/server-env";
 
@@ -43,21 +42,23 @@ async function intasendFetch<T>(
         ...init.headers,
       },
     });
-      const data = (await res.json().catch(() => null)) as (T & {
-        detail?: string;
-        message?: string;
-        error?: string | { message?: string };
-      }) | null;
-      if (!res.ok) {
-        const msg =
-          (data && typeof data.error === "object" && data.error?.message) ||
-          (data && typeof data.error === "string" ? data.error : null) ||
-          data?.detail ||
-          data?.message ||
-          `IntaSend error ${res.status}`;
-        return { ok: false, message: String(msg), status: res.status };
-      }
-      return { ok: true, data: (data ?? {}) as T };
+    const data = (await res.json().catch(() => null)) as
+      | (T & {
+          detail?: string;
+          message?: string;
+          error?: string | { message?: string };
+        })
+      | null;
+    if (!res.ok) {
+      const msg =
+        (data && typeof data.error === "object" && data.error?.message) ||
+        (data && typeof data.error === "string" ? data.error : null) ||
+        data?.detail ||
+        data?.message ||
+        `IntaSend error ${res.status}`;
+      return { ok: false, message: String(msg), status: res.status };
+    }
+    return { ok: true, data: (data ?? {}) as T };
   } catch (e) {
     return {
       ok: false,
@@ -92,7 +93,10 @@ export async function resolveBankAccountName(opts: {
   bankCode: string;
 }): Promise<{ ok: true; accountName: string } | { ok: false; message: string }> {
   if (!isIntasendConfigured()) {
-    return { ok: false, message: "Bank name verification is not configured yet (set INTASEND_SECRET_KEY)" };
+    return {
+      ok: false,
+      message: "Bank name verification is not configured yet (set INTASEND_SECRET_KEY)",
+    };
   }
 
   const result = await intasendFetch<ValidateAccountResponse>("/send-money/validate-accounts/", {
@@ -122,6 +126,16 @@ type InitiateResponse = {
   message?: string;
   transactions?: Array<{ tracking_id?: string; status?: string }>;
 };
+
+function trackingIdFromResponse(data: InitiateResponse): string | null {
+  return (
+    data.tracking_id ||
+    data.batch_reference ||
+    (data.id != null ? String(data.id) : null) ||
+    data.transactions?.[0]?.tracking_id ||
+    null
+  );
+}
 
 /**
  * Disburse KES to a Kenyan bank account via PesaLink.
@@ -165,12 +179,7 @@ export async function createIntasendBankTransfer(opts: {
 
   if (!result.ok) return { ok: false, message: result.message };
 
-  const transferId =
-    result.data.tracking_id ||
-    result.data.batch_reference ||
-    (result.data.id != null ? String(result.data.id) : null) ||
-    result.data.transactions?.[0]?.tracking_id;
-
+  const transferId = trackingIdFromResponse(result.data);
   if (!transferId) {
     return {
       ok: false,
@@ -178,5 +187,106 @@ export async function createIntasendBankTransfer(opts: {
     };
   }
 
+  return { ok: true, transferId: String(transferId) };
+}
+
+/** Send KES to a personal M-Pesa number (B2C). Phone must be 2547… / 2541…. */
+export async function createIntasendMpesaB2C(opts: {
+  phone254: string;
+  amountKes: number;
+  name?: string;
+  narration: string;
+  batchReference: string;
+}): Promise<{ ok: true; transferId: string } | { ok: false; message: string }> {
+  if (!isIntasendConfigured()) {
+    return { ok: false, message: "IntaSend is not configured for M-Pesa payouts" };
+  }
+  if (opts.amountKes < 10) {
+    return { ok: false, message: "M-Pesa payouts require at least KES 10" };
+  }
+
+  const account = opts.phone254.replaceAll(/\D/g, "");
+  if (!/^254[71]\d{8}$/.test(account)) {
+    return { ok: false, message: "M-Pesa phone must be a Safaricom number in 254 format" };
+  }
+
+  const result = await intasendFetch<InitiateResponse>("/send-money/initiate/", {
+    method: "POST",
+    body: JSON.stringify({
+      currency: "KES",
+      provider: "MPESA-B2C",
+      country: "KE",
+      requires_approval: "NO",
+      batch_reference: opts.batchReference,
+      transactions: [
+        {
+          name: (opts.name || "Landlord").slice(0, 50),
+          account: Number(account),
+          amount: opts.amountKes,
+          narrative: opts.narration.slice(0, 100),
+        },
+      ],
+    }),
+  });
+
+  if (!result.ok) return { ok: false, message: result.message };
+  const transferId = trackingIdFromResponse(result.data);
+  if (!transferId) {
+    return { ok: false, message: result.data.message || "IntaSend did not return a tracking id" };
+  }
+  return { ok: true, transferId: String(transferId) };
+}
+
+/** Send KES to a Paybill or Till (B2B). */
+export async function createIntasendMpesaB2B(opts: {
+  accountType: "PayBill" | "TillNumber";
+  account: string;
+  accountReference?: string | null;
+  amountKes: number;
+  name?: string;
+  narration: string;
+  batchReference: string;
+}): Promise<{ ok: true; transferId: string } | { ok: false; message: string }> {
+  if (!isIntasendConfigured()) {
+    return { ok: false, message: "IntaSend is not configured for M-Pesa payouts" };
+  }
+  if (opts.amountKes < 10) {
+    return { ok: false, message: "M-Pesa payouts require at least KES 10" };
+  }
+
+  const account = opts.account.replaceAll(/\D/g, "");
+  if (!account) return { ok: false, message: "Paybill / Till number is required" };
+  if (opts.accountType === "PayBill" && !opts.accountReference?.trim()) {
+    return { ok: false, message: "Paybill account reference is required" };
+  }
+
+  const txn: Record<string, string | number> = {
+    name: (opts.name || "Landlord business").slice(0, 50),
+    account: Number(account) || account,
+    account_type: opts.accountType,
+    amount: opts.amountKes,
+    narrative: opts.narration.slice(0, 100),
+  };
+  if (opts.accountType === "PayBill" && opts.accountReference) {
+    txn.account_reference = opts.accountReference.trim();
+  }
+
+  const result = await intasendFetch<InitiateResponse>("/send-money/initiate/", {
+    method: "POST",
+    body: JSON.stringify({
+      currency: "KES",
+      provider: "MPESA-B2B",
+      country: "KE",
+      requires_approval: "NO",
+      batch_reference: opts.batchReference,
+      transactions: [txn],
+    }),
+  });
+
+  if (!result.ok) return { ok: false, message: result.message };
+  const transferId = trackingIdFromResponse(result.data);
+  if (!transferId) {
+    return { ok: false, message: result.data.message || "IntaSend did not return a tracking id" };
+  }
   return { ok: true, transferId: String(transferId) };
 }

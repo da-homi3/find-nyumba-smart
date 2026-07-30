@@ -680,7 +680,7 @@ export const endPmLease = createServerFn({ method: "POST" })
 
     const { data: unit } = await admin
       .from("pm_units")
-      .select("id, property_id")
+      .select("id, property_id, linked_listing_id")
       .eq("id", lease.unit_id)
       .maybeSingle();
     if (!unit) throw new Error("Unit not found");
@@ -702,6 +702,20 @@ export const endPmLease = createServerFn({ method: "POST" })
       .from("pm_units")
       .update({ status: "vacant", updated_at: new Date().toISOString() })
       .eq("id", lease.unit_id);
+
+    if (unit.linked_listing_id) {
+      await admin
+        .from("properties")
+        .update({
+          is_vacant: true,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", unit.linked_listing_id);
+      void import("@/lib/cache/manager")
+        .then(({ invalidateListingCaches }) => invalidateListingCaches())
+        .catch(() => undefined);
+    }
 
     return { ok: true as const, leaseId: data.leaseId, unitId: lease.unit_id };
   });
@@ -1122,6 +1136,12 @@ export const recordPmPayment = createServerFn({ method: "POST" })
         propertyId: property.id,
         grossAmount: data.amount,
       });
+      const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
+      void disburseUnbatchedFeeNow(admin, {
+        rentPaymentId: payRow.id,
+        ownerUserId: property.owner_user_id,
+        propertyId: property.id,
+      }).catch((e) => console.warn("[pm] instant payout failed:", e));
     } catch (e) {
       console.warn("[pm] platform fee record failed:", e);
     }

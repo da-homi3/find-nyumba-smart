@@ -2,12 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LandlordShell } from "@/components/LandlordShell";
 import { useAuth } from "@/hooks/use-auth";
-import { listLandlordProperties } from "@/lib/api/nyumba.functions";
+import { listLandlordProperties, updatePropertyVacancy } from "@/lib/api/nyumba.functions";
 import { markPropertyRented } from "@/lib/api/revenue.functions";
 import { analyzePropertyQuality } from "@/lib/api/media.functions";
 import { formatKes, prettyType } from "@/lib/properties";
 import { PropertyMediaManager } from "@/components/PropertyMediaManager";
-import { Plus, Building2, Sparkles, Loader2, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Plus, Building2, Sparkles, Loader2, TrendingUp, CheckCircle2, Home } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ListingGridSkeleton } from "@/components/skeletons/ListingCardSkeleton";
@@ -77,9 +77,24 @@ function Page() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const markVacant = useMutation({
+    mutationFn: (propertyId: string) =>
+      updatePropertyVacancy({ data: { propertyId, isVacant: true } }),
+    onSuccess: () => {
+      toast.success("Marked as vacant — listing is active again");
+      qc.invalidateQueries({ queryKey: ["my-properties-list", user?.id] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const handleMarkRented = (propertyId: string, rentKes: number) => {
     if (!globalThis.confirm("Mark this listing as rented? It will be deactivated.")) return;
     markRented.mutate({ propertyId, rentAmountKes: rentKes });
+  };
+
+  const handleMarkVacant = (propertyId: string) => {
+    if (!globalThis.confirm("Mark this property as vacant and list it again?")) return;
+    markVacant.mutate(propertyId);
   };
 
   const renderPropertiesContent = () => {
@@ -125,11 +140,22 @@ function Page() {
                 </p>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="font-semibold text-primary">{formatKes(p.rent_kes)}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${p.is_active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
-                  >
-                    {p.is_active ? "Active" : "Inactive"}
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        p.is_vacant !== false
+                          ? "bg-amber-500/15 text-amber-700"
+                          : "bg-success/15 text-success"
+                      }`}
+                    >
+                      {p.is_vacant !== false ? "Vacant" : "Rented"}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${p.is_active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {p.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -164,7 +190,7 @@ function Page() {
                   >
                     <TrendingUp className="h-3 w-3" /> Boost
                   </Link>
-                  {p.is_active && (
+                  {p.is_active && p.is_vacant !== false ? (
                     <button
                       type="button"
                       disabled={markRented.isPending}
@@ -173,7 +199,17 @@ function Page() {
                     >
                       <CheckCircle2 className="h-3 w-3" /> Rented
                     </button>
-                  )}
+                  ) : null}
+                  {p.is_vacant === false || !p.is_active ? (
+                    <button
+                      type="button"
+                      disabled={markVacant.isPending}
+                      onClick={() => handleMarkVacant(p.id)}
+                      className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-50"
+                    >
+                      <Home className="h-3 w-3" /> Vacant
+                    </button>
+                  ) : null}
                 </div>
                 <PropertyMediaManager property={p} />
               </div>

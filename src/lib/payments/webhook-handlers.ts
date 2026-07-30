@@ -55,11 +55,12 @@ async function parseJsonBody(request: Request): Promise<unknown> {
 }
 
 export async function handleMpesaWebhook(request: Request): Promise<Response> {
-  const webhookSecret = process.env.MPESA_WEBHOOK_SECRET;
-  if (!webhookSecret && process.env.MPESA_ENV === "production") {
-    console.warn(
-      "[mpesa-webhook] MPESA_WEBHOOK_SECRET unset — set it and register callback with ?secret=…",
-    );
+  const webhookSecret = process.env.MPESA_WEBHOOK_SECRET?.trim();
+  const isProduction = (process.env.MPESA_ENV || "").toLowerCase() === "production";
+  // Never process unsigned STK callbacks in production — forged ResultCode 0 would fulfill rent.
+  if (!webhookSecret && isProduction) {
+    console.error("[mpesa-webhook] MPESA_WEBHOOK_SECRET is required in production");
+    return new Response("Unauthorized", { status: 401 });
   }
   if (webhookSecret) {
     const auth = request.headers.get("authorization");

@@ -109,6 +109,12 @@ async function confirmClaimAfterDispute(opts: {
         propertyId: property.id,
         grossAmount: Number(claim.amount_claimed),
       });
+      const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
+      void disburseUnbatchedFeeNow(admin, {
+        rentPaymentId: payRow.id,
+        ownerUserId: property.owner_user_id,
+        propertyId: property.id,
+      }).catch((e) => console.warn("[pm] instant payout failed:", e));
     } catch (e) {
       console.warn("[pm] platform fee record failed:", e);
     }

@@ -61,7 +61,7 @@ Phase 4 reputation/loyalty reads rent + maintenance signals.
 | **PM module separation + independent billing** | Shipped | `20260726140000_pm_module_separation_payment_integrity.sql`, `pm-module.functions.ts`, manage upsell/subscribe |
 | **Off-app rent claims + append-only ledger** | Shipped | `pm_rent_payment_claims`, reversals via `invoice-integrity.ts`, tenant rent UI |
 | **Admin PM oversight** | Shipped | Admin tab “Property Mgmt” — subs, disputes, reversals |
-| **Rent payouts + 1% platform fee** | Shipped | `20260726150000_pm_payout_destinations_fees.sql`, daily batch in `handleDailyCron`, bank via IntaSend PesaLink; M-Pesa B2C/B2B UI marked coming soon |
+| **Rent payouts + 1% platform fee** | Shipped | Instant IntaSend payout after rent collection (bank / M-Pesa phone / paybill / till); daily cron as catch-up |
 
 ---
 

@@ -744,7 +744,12 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/health/connections" && method === "GET",
-    run: async () => {
+    run: async (req) => {
+      const secret = process.env.CRON_SECRET;
+      const auth = req.headers.get("authorization");
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
       try {
         return await handleHealthConnections();
       } catch (err) {
@@ -758,7 +763,12 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/ai/probe" && method === "GET",
-    run: async () => {
+    run: async (req) => {
+      const secret = process.env.CRON_SECRET;
+      const auth = req.headers.get("authorization");
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
       try {
         return await handleAiProbe();
       } catch (err) {

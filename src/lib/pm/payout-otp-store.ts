@@ -75,5 +75,19 @@ export async function verifyPayoutPhoneOtp(opts: {
   if (!rec) return false;
   if (rec.userId !== opts.userId) return false;
   if (Date.now() > rec.expiresAt) return false;
-  return rec.code === opts.code.trim();
+
+  const expected = rec.code.trim();
+  const provided = opts.code.trim();
+  if (expected.length !== provided.length) return false;
+
+  const enc = new TextEncoder();
+  const a = enc.encode(expected);
+  const b = enc.encode(provided);
+  // timingSafeEqual requires equal-length buffers (checked above).
+  if (typeof crypto !== "undefined" && "subtle" in crypto) {
+    let diff = 0;
+    for (let i = 0; i < a.length; i += 1) diff |= a[i]! ^ b[i]!;
+    return diff === 0;
+  }
+  return expected === provided;
 }

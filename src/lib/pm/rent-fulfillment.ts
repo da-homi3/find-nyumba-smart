@@ -111,6 +111,12 @@ export async function fulfillPmRentPayment(
       propertyId: ctx.property.id,
       grossAmount: opts.amountKes,
     });
+    const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
+    void disburseUnbatchedFeeNow(db, {
+      rentPaymentId: payRow.id,
+      ownerUserId: ctx.property.owner_user_id,
+      propertyId: ctx.property.id,
+    }).catch((e) => console.warn("[pm] instant payout failed:", e));
   } catch (e) {
     console.warn("[pm] platform fee record failed:", e);
   }
