@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   addPmTenant,
   createPmLease,
+  endPmLease,
   getPmProperty,
   invitePmTenantPortal,
   listPmTenants,
@@ -75,6 +76,17 @@ export function PmTenantsPage({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const endLease = useMutation({
+    mutationFn: (leaseId: string) => endPmLease({ data: { leaseId } }),
+    onSuccess: () => {
+      toast.success("Lease ended — unit marked vacant");
+      qc.invalidateQueries({ queryKey: ["pm-tenants", propertyId] });
+      qc.invalidateQueries({ queryKey: ["pm-property", propertyId] });
+      qc.invalidateQueries({ queryKey: ["pm-dashboard", propertyId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const invite = useMutation({
     mutationFn: (id: string) => invitePmTenantPortal({ data: { tenantId: id } }),
     onSuccess: (res) => {
@@ -97,7 +109,11 @@ export function PmTenantsPage({
 
   const { property, units } = detail.data;
   const tenants = tenantsQ.data?.tenants ?? [];
+  const leases = tenantsQ.data?.leases ?? [];
   const vacantUnits = units.filter((u: { status: string }) => u.status === "vacant");
+  const tenantName = new Map(
+    tenants.map((t: { id: string; full_name: string }) => [t.id, t.full_name]),
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -171,7 +187,13 @@ export function PmTenantsPage({
           <select
             required
             value={unitId}
-            onChange={(e) => setUnitId(e.target.value)}
+            onChange={(e) => {
+              setUnitId(e.target.value);
+              const unit = vacantUnits.find((u: { id: string }) => u.id === e.target.value) as
+                | { monthly_rent?: number }
+                | undefined;
+              if (unit?.monthly_rent) setMonthlyRent(unit.monthly_rent);
+            }}
             className="rounded-lg border border-border px-3 py-2 text-sm"
           >
             <option value="">Select vacant unit</option>
@@ -214,6 +236,55 @@ export function PmTenantsPage({
           </button>
         </form>
       </section>
+
+      {leases.length > 0 ? (
+        <section className="mb-8 rounded-xl border border-border p-4">
+          <h2 className="text-sm font-semibold">Active leases</h2>
+          <ul className="mt-3 space-y-2">
+            {leases.map(
+              (l: {
+                id: string;
+                tenant_id: string;
+                monthly_rent: number;
+                start_date: string;
+                end_date: string;
+                pm_units?: { unit_label?: string };
+              }) => (
+                <li
+                  key={l.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5"
+                >
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {tenantName.get(l.tenant_id) ?? "Tenant"} ·{" "}
+                      {l.pm_units?.unit_label ?? "Unit"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      KES {l.monthly_rent.toLocaleString()} · {l.start_date} → {l.end_date}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={endLease.isPending}
+                    onClick={() => {
+                      if (
+                        globalThis.confirm(
+                          "End this lease and mark the unit vacant? This cannot be undone.",
+                        )
+                      ) {
+                        endLease.mutate(l.id);
+                      }
+                    }}
+                    className="rounded-lg border border-destructive/40 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                  >
+                    End lease
+                  </button>
+                </li>
+              ),
+            )}
+          </ul>
+        </section>
+      ) : null}
 
       <ul className="space-y-2">
         {tenants.map(

@@ -7,10 +7,17 @@ import {
   providerTierPrice,
   resolveLandlordPlan,
 } from "@/lib/revenue/plans";
+import { isPmPlanId } from "@/lib/pm/pricing";
 
 type Admin = SupabaseClient<Database>;
 
 type SubscriptionRow = Database["public"]["Tables"]["subscriptions"]["Row"];
+
+const PM_CATALOG_MONTHLY: Record<string, number> = {
+  "pm-starter": 1500,
+  "pm-growth": 4000,
+  "pm-scale": 9000,
+};
 
 function planAmountKes(sub: SubscriptionRow): number {
   if (sub.plan === "plus") {
@@ -18,6 +25,11 @@ function planAmountKes(sub: SubscriptionRow): number {
   }
   if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
     const base = providerTierPrice(sub.plan);
+    return sub.billing_cycle === "quarterly" ? Math.round(base * 3 * 0.9) : base;
+  }
+  if (isPmPlanId(sub.plan) || sub.module === "property_management") {
+    if (sub.amount_kes > 0) return sub.amount_kes;
+    const base = PM_CATALOG_MONTHLY[sub.plan] ?? 1500;
     return sub.billing_cycle === "quarterly" ? Math.round(base * 3 * 0.9) : base;
   }
   const planId = resolveLandlordPlan(sub.plan);
@@ -30,6 +42,7 @@ function renewalPaymentType(sub: SubscriptionRow): string {
   if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
     return "provider_subscription";
   }
+  if (isPmPlanId(sub.plan) || sub.module === "property_management") return "pm_module";
   return "landlord_plan";
 }
 
@@ -60,6 +73,10 @@ async function downgradeUser(supabaseAdmin: Admin, sub: SubscriptionRow) {
       .from("service_providers")
       .update({ status: "suspended" })
       .eq("user_id", sub.user_id);
+  } else if (isPmPlanId(sub.plan) || sub.module === "property_management") {
+    const { asPmDb } = await import("@/lib/pm/access");
+    const { deactivatePmModuleForAccount } = await import("@/lib/pm/module-gate");
+    await deactivatePmModuleForAccount(asPmDb(supabaseAdmin), sub.user_id);
   } else {
     await supabaseAdmin.from("profiles").update({ landlord_plan: "free" }).eq("id", sub.user_id);
   }
@@ -106,11 +123,15 @@ async function sendRenewalStk(
         mpesa_phone: phone254,
         idempotency_key: idempotencyKey,
         metadata: {
-          title: "NyumbaSearch renewal",
+          title:
+            isPmPlanId(sub.plan) || sub.module === "property_management"
+              ? "PM module renewal"
+              : "NyumbaSearch renewal",
           plan: sub.plan,
           billingCycle: sub.billing_cycle,
           paymentMethod: "mpesa",
           renewalSubscriptionId: sub.id,
+          module: sub.module,
         },
       })
       .select("id")

@@ -41,10 +41,8 @@ type PayoutBatch = {
 
 const TYPE_OPTIONS: Array<{ id: DestType; label: string; comingSoon?: boolean }> = [
   { id: "bank_account", label: "Bank account" },
-  { id: "mpesa_phone", label: "M-Pesa (personal)", comingSoon: true },
-  { id: "mpesa_paybill", label: "M-Pesa Paybill", comingSoon: true },
-  { id: "mpesa_till", label: "M-Pesa Till", comingSoon: true },
 ];
+// M-Pesa phone / paybill / till payouts stay hidden until Safaricom B2C is live.
 
 function destinationDetails(destination: SavedDestination): string {
   if (destination.bank_name) {

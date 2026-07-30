@@ -19,25 +19,35 @@ export type PmSubscriptionRow = {
   amount_kes: number;
   trial_end: string | null;
   next_billing_date: string;
+  grace_period_end: string | null;
 };
 
-/** Active or trialing PM module subscription with a future billing date. */
+/** Active, trialing, or in-grace PM module subscription. */
 export async function getActivePmSubscription(
   admin: PmDb,
   userId: string,
 ): Promise<PmSubscriptionRow | null> {
   const { data } = await admin
     .from("subscriptions")
-    .select("id, plan, status, amount_kes, trial_end, next_billing_date")
+    .select("id, plan, status, amount_kes, trial_end, next_billing_date, grace_period_end")
     .eq("user_id", userId)
     .eq("module", "property_management")
-    .in("status", ["active", "trialing"])
+    .in("status", ["active", "trialing", "past_due"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!data) return null;
-  if (new Date(data.next_billing_date).getTime() <= Date.now()) return null;
+
+  const now = Date.now();
+  if (data.status === "past_due") {
+    if (!data.grace_period_end || new Date(data.grace_period_end).getTime() <= now) {
+      return null;
+    }
+    return data as PmSubscriptionRow;
+  }
+
+  if (new Date(data.next_billing_date).getTime() <= now) return null;
   return data as PmSubscriptionRow;
 }
 
@@ -60,34 +70,38 @@ export async function activatePmModuleForAccount(admin: PmDb, userId: string): P
   await admin.from("pm_properties").update({ pm_module_active: true }).eq("owner_user_id", userId);
 }
 
-export async function requirePmModule(
-  admin: PmDb,
-  propertyId: string,
-): Promise<void> {
+/** Revoke PM access after cancel / failed renewal. */
+export async function deactivatePmModuleForAccount(admin: PmDb, userId: string): Promise<void> {
+  await admin.from("pm_properties").update({ pm_module_active: false }).eq("owner_user_id", userId);
+}
+
+export async function requirePmModule(admin: PmDb, propertyId: string): Promise<void> {
   const { data: property } = await admin
     .from("pm_properties")
-    .select("pm_module_active")
+    .select("pm_module_active, owner_user_id")
     .eq("id", propertyId)
     .maybeSingle();
 
-  if (!property?.pm_module_active) {
+  if (!property) {
     throw new PmModuleRequiredError();
   }
+
+  // Prefer live subscription; property flag alone is not enough (prevents forever-free trials).
+  const sub = await getActivePmSubscription(admin, property.owner_user_id);
+  if (sub) {
+    if (!property.pm_module_active) {
+      await admin.from("pm_properties").update({ pm_module_active: true }).eq("id", propertyId);
+    }
+    return;
+  }
+
+  throw new PmModuleRequiredError();
 }
 
 /** Account-level gate for create / list-upsell flows. */
 export async function requirePmModuleSubscription(admin: PmDb, userId: string): Promise<void> {
   const sub = await getActivePmSubscription(admin, userId);
   if (sub) return;
-
-  const { count } = await admin
-    .from("pm_properties")
-    .select("id", { count: "exact", head: true })
-    .eq("owner_user_id", userId)
-    .eq("pm_module_active", true)
-    .is("deleted_at", null);
-
-  if ((count ?? 0) > 0) return;
 
   throw new PmModuleRequiredError(
     "Property Management is not active on this account. Subscribe to unlock the module.",

@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   assignPmMaintenanceProvider,
+  createPmMaintenanceRequest,
   listPmMaintenanceRequests,
   listProvidersForMaintenance,
   updatePmMaintenanceStatus,
 } from "@/lib/api/pm-maintenance.functions";
+import { getPmProperty } from "@/lib/api/pm.functions";
 import {
   MAINTENANCE_CATEGORIES,
   STATUS_LABELS,
@@ -36,10 +38,18 @@ export function PmMaintenancePage({
 }: Readonly<{ portal: PmPortal; propertyId: string }>) {
   const qc = useQueryClient();
   const [assignFor, setAssignFor] = useState<RequestRow | null>(null);
+  const [unitId, setUnitId] = useState("");
+  const [category, setCategory] = useState<MaintenanceCategory>("plumbing");
+  const [priority, setPriority] = useState<"low" | "normal" | "urgent">("normal");
+  const [description, setDescription] = useState("");
 
   const listQ = useQuery({
     queryKey: ["pm-maintenance", propertyId],
     queryFn: () => listPmMaintenanceRequests({ data: { propertyId } }),
+  });
+  const propertyQ = useQuery({
+    queryKey: ["pm-property", propertyId],
+    queryFn: () => getPmProperty({ data: { propertyId } }),
   });
 
   const statusMut = useMutation({
@@ -53,7 +63,29 @@ export function PmMaintenancePage({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createMut = useMutation({
+    mutationFn: () =>
+      createPmMaintenanceRequest({
+        data: {
+          propertyId,
+          unitId,
+          category,
+          priority,
+          description,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Maintenance request created");
+      setDescription("");
+      setUnitId("");
+      qc.invalidateQueries({ queryKey: ["pm-maintenance", propertyId] });
+      qc.invalidateQueries({ queryKey: ["pm-dashboard", propertyId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const requests = listQ.data?.requests ?? [];
+  const units = propertyQ.data?.units ?? [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -62,11 +94,71 @@ export function PmMaintenancePage({
         <h1 className="font-display text-2xl font-semibold">Maintenance</h1>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Assign jobs to verified providers from the NyumbaSearch directory.
+        Log issues yourself or assign tenant-reported jobs to verified providers.
       </p>
       <div className="mt-6">
         <PmPropertySubnav portal={portal} propertyId={propertyId} active="maintenance" />
       </div>
+
+      <section className="mt-6 rounded-xl border border-border p-4">
+        <h2 className="text-sm font-semibold">Report an issue</h2>
+        <form
+          className="mt-3 grid gap-2 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            createMut.mutate();
+          }}
+        >
+          <select
+            required
+            value={unitId}
+            onChange={(e) => setUnitId(e.target.value)}
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          >
+            <option value="">Select unit</option>
+            {units.map((u: { id: string; unit_label: string }) => (
+              <option key={u.id} value={u.id}>
+                {u.unit_label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as MaintenanceCategory)}
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          >
+            {MAINTENANCE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as "low" | "normal" | "urgent")}
+            className="rounded-lg border border-border px-3 py-2 text-sm"
+          >
+            <option value="low">Low</option>
+            <option value="normal">Normal</option>
+            <option value="urgent">Urgent</option>
+          </select>
+          <textarea
+            required
+            minLength={8}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the issue…"
+            className="sm:col-span-2 min-h-20 rounded-lg border border-border px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={createMut.isPending}
+            className="sm:col-span-2 rounded-lg bg-foreground px-3 py-2 text-sm font-semibold text-background"
+          >
+            Create request
+          </button>
+        </form>
+      </section>
 
       <MaintenanceQueueBody
         loading={listQ.isLoading}
@@ -117,7 +209,7 @@ function MaintenanceQueueBody({
   if (requests.length === 0) {
     return (
       <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-        No maintenance requests yet. Tenants report issues from their portal.
+        No maintenance requests yet. Report an issue above or wait for tenant reports.
       </p>
     );
   }

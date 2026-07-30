@@ -654,6 +654,58 @@ export const createPmLease = createServerFn({ method: "POST" })
     return row;
   });
 
+export const endPmLease = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      leaseId: z.string().uuid(),
+      endDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await requirePortalRole(supabase, userId);
+    const admin = asPmDb(await adminClient());
+
+    const { data: lease } = await admin
+      .from("pm_leases")
+      .select("id, unit_id, status")
+      .eq("id", data.leaseId)
+      .maybeSingle();
+    if (!lease) throw new Error("Lease not found");
+    if (lease.status !== "active") throw new Error("Lease is not active");
+
+    const { data: unit } = await admin
+      .from("pm_units")
+      .select("id, property_id")
+      .eq("id", lease.unit_id)
+      .maybeSingle();
+    if (!unit) throw new Error("Unit not found");
+
+    const { staffRole } = await assertPmPropertyAccess(admin, userId, unit.property_id);
+    assertStaffCan(staffRole, "leases:create");
+
+    const endedOn = data.endDate ?? new Date().toISOString().slice(0, 10);
+    const { error } = await admin
+      .from("pm_leases")
+      .update({
+        status: "ended",
+        end_date: endedOn,
+      })
+      .eq("id", data.leaseId);
+    if (error) throw error;
+
+    await admin
+      .from("pm_units")
+      .update({ status: "vacant", updated_at: new Date().toISOString() })
+      .eq("id", lease.unit_id);
+
+    return { ok: true as const, leaseId: data.leaseId, unitId: lease.unit_id };
+  });
+
 export const listPmTenants = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ propertyId: z.string().uuid() }))

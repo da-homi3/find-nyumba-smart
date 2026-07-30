@@ -183,6 +183,66 @@ export const listProvidersForMaintenance = createServerFn({ method: "POST" })
     };
   });
 
+/** Landlord / agency / manager files a maintenance request on behalf of a unit. */
+export const createPmMaintenanceRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      propertyId: z.string().uuid(),
+      unitId: z.string().uuid(),
+      category: categorySchema,
+      priority: prioritySchema.default("normal"),
+      description: z.string().trim().min(8).max(2000),
+      tenantId: z.string().uuid().optional().nullable(),
+      photos: z.array(z.string().url()).max(5).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { userId, supabase } = authContext(context);
+    await requirePortalRole(supabase, userId);
+    const admin = asPmDb(await adminClient());
+    const { staffRole } = await assertPmPropertyAccess(admin, userId, data.propertyId);
+    assertStaffCan(staffRole, "maintenance:*");
+
+    const { data: unit } = await admin
+      .from("pm_units")
+      .select("id, property_id")
+      .eq("id", data.unitId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!unit || unit.property_id !== data.propertyId) {
+      throw new Error("Unit not found on this property");
+    }
+
+    let tenantId = data.tenantId ?? null;
+    if (!tenantId) {
+      const { data: lease } = await admin
+        .from("pm_leases")
+        .select("tenant_id")
+        .eq("unit_id", data.unitId)
+        .eq("status", "active")
+        .maybeSingle();
+      tenantId = lease?.tenant_id ?? null;
+    }
+
+    const { data: inserted, error } = await admin
+      .from("pm_maintenance_requests")
+      .insert({
+        unit_id: data.unitId,
+        tenant_id: tenantId,
+        category: data.category,
+        priority: data.priority,
+        description: data.description,
+        photos: data.photos ?? [],
+        status: "reported",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    return { requestId: inserted.id as string };
+  });
+
 export const assignPmMaintenanceProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(

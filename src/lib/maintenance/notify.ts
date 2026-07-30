@@ -74,6 +74,22 @@ async function profileEmail(_admin: PmDb, userId: string): Promise<string | null
   return data.user?.email?.trim() || null;
 }
 
+async function managePathForOwner(
+  admin: PmDb,
+  ownerUserId: string,
+  propertyId: string,
+): Promise<string> {
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("active_portal")
+    .eq("id", ownerUserId)
+    .maybeSingle();
+  const portal = profile?.active_portal;
+  const base =
+    portal === "agency" ? "agency" : portal === "manager" ? "manager" : "landlord";
+  return `/${base}/manage/${propertyId}/maintenance`;
+}
+
 export async function notifyOwnerNewMaintenance(admin: PmDb, requestId: string): Promise<void> {
   const details = await loadMaintenanceNotifyContext(admin, requestId);
   if (!details) return;
@@ -84,7 +100,8 @@ export async function notifyOwnerNewMaintenance(admin: PmDb, requestId: string):
   const subject = urgent
     ? `Urgent maintenance — ${details.property_name}, Unit ${details.unit_label}`
     : `New ${details.category} issue — ${details.property_name}`;
-  const link = `${getSiteUrl()}/landlord/manage/${details.property_id}/maintenance`;
+  const path = await managePathForOwner(admin, details.owner_user_id, details.property_id);
+  const link = `${getSiteUrl()}${path}`;
   const excerpt = details.description.slice(0, 160);
 
   await sendEmail({
@@ -109,7 +126,7 @@ export async function notifyOwnerNewMaintenance(admin: PmDb, requestId: string):
       ? `Urgent: ${details.category} — ${details.unit_label}`
       : `New ${details.category} issue — ${details.unit_label}`,
     body: `${details.tenant_name}: ${excerpt}`,
-    href: `/landlord/manage/${details.property_id}/maintenance`,
+    href: path,
     entityType: "maintenance_request",
     entityId: requestId,
   });
@@ -125,7 +142,8 @@ export async function notifyOwnerProviderDecision(
   const email = await profileEmail(admin, details.owner_user_id);
   if (!email) return;
 
-  const link = `${getSiteUrl()}/landlord/manage/${details.property_id}/maintenance`;
+  const path = await managePathForOwner(admin, details.owner_user_id, details.property_id);
+  const link = `${getSiteUrl()}${path}`;
   const subject = accepted
     ? `Provider accepted — ${details.category} · ${details.unit_label}`
     : `Provider declined — ${details.category} · ${details.unit_label}`;
@@ -150,7 +168,7 @@ export async function notifyOwnerProviderDecision(
     type: "maintenance_update",
     title: accepted ? "Provider accepted job" : "Provider declined job",
     body: `${details.category} · Unit ${details.unit_label}`,
-    href: `/landlord/manage/${details.property_id}/maintenance`,
+    href: path,
     entityType: "maintenance_request",
     entityId: requestId,
   });
