@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, useId, type SubmitEvent, type ReactNode } from "react";
 import {
@@ -26,6 +26,11 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
 } from "@/lib/api/notifications.functions";
+import { submitPortalApplication } from "@/lib/api/portal.functions";
+import {
+  organizationFieldLabel,
+  organizationFieldPlaceholder,
+} from "@/lib/account-roles";
 import {
   readNotificationPrefs,
   writeNotificationPrefs,
@@ -40,12 +45,34 @@ import { getMyTrustRewards } from "@/lib/api/trust-rewards.functions";
 import { ReputationBadge } from "@/components/ReputationBadge";
 import { LEVEL_BENEFITS } from "@/lib/loyalty/benefits";
 
+type SettingsTab = "profile" | "notifications" | "security" | "portals" | "trust";
+type ListerApplyRole = "landlord" | "manager" | "agency";
+
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — NyumbaSearch" }] }),
   component: SettingsPage,
 });
 
-type Tab = "profile" | "notifications" | "security" | "portals" | "trust";
+type Tab = SettingsTab;
+
+function readSettingsSearch(search: Record<string, unknown>): {
+  tab?: SettingsTab;
+  apply?: ListerApplyRole;
+} {
+  const tab =
+    search.tab === "profile" ||
+    search.tab === "notifications" ||
+    search.tab === "security" ||
+    search.tab === "portals" ||
+    search.tab === "trust"
+      ? (search.tab as SettingsTab)
+      : undefined;
+  const apply =
+    search.apply === "landlord" || search.apply === "manager" || search.apply === "agency"
+      ? (search.apply as ListerApplyRole)
+      : undefined;
+  return { tab, apply };
+}
 
 const PORTALS: {
   id: PortalId;
@@ -58,25 +85,51 @@ const PORTALS: {
   {
     id: "landlord",
     label: "Landlord",
-    description: "Manage your listings",
+    description: "List and manage your homes",
     icon: Building2,
     role: "landlord",
   },
   {
     id: "manager",
     label: "Property manager",
-    description: "Portfolio and leads",
+    description: "Run portfolios and collect rent",
     icon: Briefcase,
     role: "manager",
   },
   {
     id: "agency",
     label: "Real estate agency",
-    description: "Bulk listings and team",
+    description: "Team listings and agency tools",
     icon: Users,
     role: "agency",
   },
   { id: "caretaker", label: "Caretaker", description: "PIN sign-in from landlord", icon: KeyRound },
+];
+
+const APPLY_ROLES: {
+  id: ListerApplyRole;
+  label: string;
+  description: string;
+  icon: typeof Home;
+}[] = [
+  {
+    id: "landlord",
+    label: "Landlord",
+    description: "List your own properties and manage tenant leads",
+    icon: Building2,
+  },
+  {
+    id: "manager",
+    label: "Property manager",
+    description: "Manage buildings, units, rent, and maintenance",
+    icon: Briefcase,
+  },
+  {
+    id: "agency",
+    label: "Real estate agency",
+    description: "Agency portfolio, team seats, and bulk listings",
+    icon: Users,
+  },
 ];
 
 const TABS: { id: Tab; label: string; icon: typeof User }[] = [
@@ -90,6 +143,8 @@ const TABS: { id: Tab; label: string; icon: typeof User }[] = [
 function SettingsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const rawSearch = useRouterState({ select: (s) => s.location.search as Record<string, unknown> });
+  const search = readSettingsSearch(rawSearch ?? {});
   const {
     user,
     loading,
@@ -97,12 +152,13 @@ function SettingsPage() {
     activePortal,
     hasApprovedRole,
     setActivePortalChoice,
+    refreshPortalState,
     signOut,
   } = useAuth();
   const { isPlus, entitlements } = useEntitlements();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
-  const [tab, setTab] = useState<Tab>("profile");
+  const [tab, setTab] = useState<Tab>(search.tab ?? "profile");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -111,6 +167,10 @@ function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [applyRole, setApplyRole] = useState<ListerApplyRole | null>(search.apply ?? null);
+  const [applyOrgName, setApplyOrgName] = useState("");
+  const [applyPhone, setApplyPhone] = useState("");
+  const [submittingApply, setSubmittingApply] = useState(false);
 
   const strength = useMemo(() => scorePassword(newPassword), [newPassword]);
 
@@ -146,12 +206,25 @@ function SettingsPage() {
 
   useEffect(() => {
     setFullName(profile?.full_name ?? user?.user_metadata?.full_name ?? "");
-    setPhone(profile?.phone ?? user?.user_metadata?.phone ?? "");
+    const nextPhone = profile?.phone ?? user?.user_metadata?.phone ?? "";
+    setPhone(nextPhone);
+    setApplyPhone((prev) => prev || nextPhone);
   }, [profile, user?.user_metadata?.full_name, user?.user_metadata?.phone]);
 
   useEffect(() => {
     if (user?.id) setPrefs(readNotificationPrefs(user.id));
   }, [user?.id]);
+
+  useEffect(() => {
+    if (search.tab) setTab(search.tab);
+  }, [search.tab]);
+
+  useEffect(() => {
+    if (search.apply) {
+      setTab("portals");
+      setApplyRole(search.apply);
+    }
+  }, [search.apply]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -172,6 +245,10 @@ function SettingsPage() {
 
   const pending = pendingApplications.filter((a) => a.status === "pending");
   const rejected = pendingApplications.filter((a) => a.status === "rejected");
+  const pendingRoleSet = useMemo(
+    () => new Set(pending.map((a) => a.requested_role)),
+    [pending],
+  );
 
   async function enterPortal(portal: PortalId) {
     if (portal === "caretaker") {
@@ -183,21 +260,58 @@ function SettingsPage() {
       return;
     }
     const def = PORTALS.find((p) => p.id === portal);
-    if (def?.role && !hasApprovedRole(def.role)) {
-      const applyRoutes: Partial<Record<PortalId, "/landlord" | "/manager" | "/agency">> = {
-        landlord: "/landlord",
-        manager: "/manager",
-        agency: "/agency",
-      };
-      const applyRoute = applyRoutes[portal];
-      if (applyRoute) navigate({ to: applyRoute });
-      return;
+    if (def?.role === "landlord" || def?.role === "manager" || def?.role === "agency") {
+      if (!hasApprovedRole(def.role)) {
+        setTab("portals");
+        setApplyRole(def.role);
+        return;
+      }
     }
     try {
       await setActivePortalChoice(portal);
       navigate({ to: PORTAL_HOME[portal] as "/tenant" });
     } catch (err) {
       toast.error(errorMessage(err));
+    }
+  }
+
+  async function submitRoleApplication(e: SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!applyRole) return;
+    if (!applyOrgName.trim()) {
+      toast.error(
+        applyRole === "landlord"
+          ? "Enter your portfolio or business name"
+          : "Enter your organization name",
+      );
+      return;
+    }
+    if (!isKenyanPhone(applyPhone)) {
+      toast.error("Enter a valid Kenyan M-Pesa phone number");
+      return;
+    }
+    setSubmittingApply(true);
+    try {
+      await submitPortalApplication({
+        data: {
+          requestedRole: applyRole,
+          organizationName: applyOrgName.trim(),
+          phone: applyPhone.trim(),
+        },
+      });
+      await refreshPortalState();
+      toast.success("Application submitted — we'll review it shortly");
+      setApplyRole(null);
+      setApplyOrgName("");
+      void navigate({
+        to: "/settings",
+        search: { tab: "portals" } as never,
+        replace: true,
+      });
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSubmittingApply(false);
     }
   }
 
@@ -302,7 +416,17 @@ function SettingsPage() {
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => {
+              setTab(t.id);
+              void navigate({
+                to: "/settings",
+                search: {
+                  tab: t.id,
+                  ...(t.id === "portals" && search.apply ? { apply: search.apply } : {}),
+                } as never,
+                replace: true,
+              });
+            }}
             className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold ${
               tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground"
             }`}
@@ -509,6 +633,96 @@ function SettingsPage() {
         <>
           <section className="mt-6">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Sign up for a listing role
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Already browsing as a tenant? Apply here to list as a landlord, property manager, or
+              real estate agency. Ops reviews applications before portal access is unlocked.
+            </p>
+            <div className="mt-3 space-y-2">
+              {APPLY_ROLES.map((role) => {
+                const approved = hasApprovedRole(role.id);
+                const awaiting = pendingRoleSet.has(role.id);
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    disabled={approved || awaiting}
+                    onClick={() => {
+                      setApplyRole(role.id);
+                      setApplyOrgName("");
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                      applyRole === role.id ? "border-primary bg-primary/5" : "bg-card"
+                    } ${approved || awaiting ? "opacity-60" : "hover:border-primary/40"}`}
+                  >
+                    <role.icon className="h-5 w-5 shrink-0 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-semibold">{role.label}</p>
+                      <p className="text-xs text-muted-foreground">{role.description}</p>
+                    </div>
+                    {approved ? (
+                      <span className="text-[10px] font-bold text-primary">APPROVED</span>
+                    ) : null}
+                    {awaiting ? (
+                      <span className="text-[10px] font-bold text-amber-600">PENDING</span>
+                    ) : null}
+                    {!approved && !awaiting ? (
+                      <span className="text-[10px] font-bold text-foreground">APPLY</span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+
+            {applyRole && !hasApprovedRole(applyRole) && !pendingRoleSet.has(applyRole) ? (
+              <form
+                onSubmit={submitRoleApplication}
+                className="mt-4 space-y-3 rounded-2xl border bg-card p-4"
+              >
+                <h3 className="text-sm font-semibold">
+                  Apply as {APPLY_ROLES.find((r) => r.id === applyRole)?.label}
+                </h3>
+                <Field label={organizationFieldLabel(applyRole)}>
+                  <input
+                    value={applyOrgName}
+                    onChange={(e) => setApplyOrgName(e.target.value)}
+                    placeholder={organizationFieldPlaceholder(applyRole)}
+                    required
+                    className="w-full rounded-xl border px-3 py-2.5 text-sm"
+                  />
+                </Field>
+                <Field label="M-Pesa phone">
+                  <input
+                    value={applyPhone}
+                    onChange={(e) => setApplyPhone(e.target.value)}
+                    placeholder="07XX XXX XXX"
+                    required
+                    className="w-full rounded-xl border px-3 py-2.5 text-sm"
+                  />
+                </Field>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={submittingApply}
+                    className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {submittingApply ? "Submitting…" : "Submit application"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setApplyRole(null)}
+                    className="rounded-xl border px-4 py-2.5 text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : null}
+          </section>
+
+          <section className="mt-8">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Your portals
             </h2>
             <div className="mt-3 space-y-2">
@@ -519,25 +733,22 @@ function SettingsPage() {
                   <button
                     key={p.id}
                     type="button"
-                    disabled={locked}
                     onClick={() => enterPortal(p.id)}
                     className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
                       isActive ? "border-primary bg-primary/5" : "bg-card"
-                    } ${locked ? "opacity-50" : "hover:border-primary/40"}`}
+                    } hover:border-primary/40`}
                   >
                     <p.icon className="h-5 w-5 shrink-0 text-primary" />
                     <div className="flex-1">
                       <p className="font-semibold">{p.label}</p>
                       <p className="text-xs text-muted-foreground">{p.description}</p>
                     </div>
-                    {locked && (
-                      <span className="text-[10px] font-bold text-amber-600">
-                        APPROVAL REQUIRED
-                      </span>
-                    )}
-                    {isActive && !locked && (
+                    {locked ? (
+                      <span className="text-[10px] font-bold text-amber-600">APPLY TO UNLOCK</span>
+                    ) : null}
+                    {isActive && !locked ? (
                       <span className="text-[10px] font-bold text-primary">ACTIVE</span>
-                    )}
+                    ) : null}
                   </button>
                 );
               })}
@@ -582,6 +793,15 @@ function SettingsPage() {
                     </span>{" "}
                     — not approved
                     {app.rejection_reason && <p className="mt-1 text-xs">{app.rejection_reason}</p>}
+                    {APPLY_ROLES.some((r) => r.id === app.requested_role) ? (
+                      <button
+                        type="button"
+                        className="mt-2 text-xs font-semibold text-primary"
+                        onClick={() => setApplyRole(app.requested_role as ListerApplyRole)}
+                      >
+                        Apply again
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>

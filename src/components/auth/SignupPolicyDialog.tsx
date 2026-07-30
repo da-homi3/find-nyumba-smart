@@ -19,29 +19,45 @@ export function SignupPolicyDialog({ open, role, busy = false, onClose, onAccept
     if (open) setChecked(false);
   }, [open, role]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/70 px-4 py-6">
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border bg-card shadow-2xl">
+    <div className="fixed inset-0 z-90 flex items-end justify-center bg-black/70 px-3 py-3 sm:items-center sm:px-4 sm:py-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="signup-policy-title"
+        className="relative flex max-h-[min(100dvh-1.5rem,920px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl"
+      >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
           aria-label="Close policy"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <div className="border-b px-6 py-5">
+        <div className="shrink-0 border-b px-5 py-4 pr-12 sm:px-6 sm:py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             Terms and conditions
           </p>
-          <h2 className="mt-2 text-xl font-semibold text-foreground">{policy.title}</h2>
+          <h2 id="signup-policy-title" className="mt-2 text-xl font-semibold text-foreground">
+            {policy.title}
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">{policy.intro}</p>
         </div>
 
-        <div className="max-h-[65vh] space-y-5 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
           {policy.sections.map((section) => (
             <section key={section.title}>
               <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
@@ -64,7 +80,7 @@ export function SignupPolicyDialog({ open, role, busy = false, onClose, onAccept
           ))}
         </div>
 
-        <div className="border-t bg-background px-6 py-5">
+        <div className="shrink-0 border-t bg-background px-5 py-4 sm:px-6 sm:py-5">
           <label className="flex items-start gap-3 text-sm text-foreground">
             <input
               type="checkbox"
@@ -78,11 +94,11 @@ export function SignupPolicyDialog({ open, role, busy = false, onClose, onAccept
             </span>
           </label>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-input px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary"
+              className="rounded-xl border border-input px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary sm:py-2.5"
             >
               Cancel
             </button>
@@ -90,9 +106,9 @@ export function SignupPolicyDialog({ open, role, busy = false, onClose, onAccept
               type="button"
               disabled={!checked || busy}
               onClick={onAccept}
-              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:py-2.5"
             >
-              {busy ? "Please wait…" : "Accept and continue"}
+              {busy ? "Please wait…" : "Accept & Continue"}
             </button>
           </div>
 

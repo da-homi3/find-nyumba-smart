@@ -124,7 +124,10 @@ export function RoleSwitcher({ variant = "default", className = "" }: RoleSwitch
             type="button"
             onClick={() => {
               setOpen(false);
-              navigate({ to: "/settings" });
+              void navigate({
+                to: "/settings",
+                search: { tab: "portals" } as never,
+              });
             }}
             className="flex w-full px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
           >
