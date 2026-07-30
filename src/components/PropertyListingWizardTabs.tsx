@@ -20,12 +20,14 @@ import { Compass, Film, Image as ImageIcon, Link2, X } from "lucide-react";
 import type { ListingFormState, TabId } from "@/components/PropertyListingWizard";
 import { ContactPhonesFields } from "@/components/ContactPhonesFields";
 import { ListingDescriptionAmenitiesFields } from "@/components/ListingDescriptionAmenitiesFields";
+import { ListingTitleField } from "@/components/ListingTitleField";
 import { normalizeContactPhones } from "@/lib/contact-phones";
 import { useQuery } from "@tanstack/react-query";
 import {
   getAdminContactSuggestions,
   type AdminContactSuggestion,
 } from "@/lib/api/nyumba.functions";
+import type { ListingTitleDetails } from "@/lib/listings/generate-listing-title";
 
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
@@ -135,17 +137,19 @@ function ListingWizardDetailsTab({
     }
   }
 
+  const titleDetails: ListingTitleDetails = {
+    property_type: form.property_type,
+    neighborhood: form.neighborhood,
+    bedrooms: form.bedrooms,
+    bathrooms: form.bathrooms,
+    address: form.address,
+    amenities: form.amenities,
+    area_sqm: form.area_sqm || null,
+    pricing_mode: form.pricing_mode,
+  };
+
   return (
     <div className="space-y-5">
-      <Field label="Listing title" full>
-        <input
-          required
-          value={form.title}
-          onChange={(e) => update("title", e.target.value)}
-          placeholder="e.g. Modern 2BR with City Views"
-          className={inputCls}
-        />
-      </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Property type">
           <select
@@ -289,6 +293,13 @@ function ListingWizardDetailsTab({
           />
         </Field>
       )}
+      <ListingTitleField
+        value={form.title}
+        onChange={(title) => update("title", title)}
+        details={titleDetails}
+        autoGenerate
+        inputClassName={inputCls}
+      />
       <ListingDescriptionAmenitiesFields
         description={form.description}
         amenities={form.amenities}

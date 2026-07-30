@@ -1,5 +1,6 @@
 import { matchNeighborhood } from "@/data/nairobi-neighborhoods";
 import type { Database } from "@/integrations/supabase/types";
+import { generateListingTitle } from "@/lib/listings/generate-listing-title";
 
 export type ImportRowInput = Record<string, string>;
 
@@ -60,14 +61,13 @@ export function validateImportRow(
   row: ImportRowInput,
   rowIndex: number,
 ): ValidatedImportRow | RowValidationError {
-  const title = pick(row, "title", "name", "property_title");
+  let title = pick(row, "title", "name", "property_title");
   const priceRaw = pick(row, "price", "rent", "rent_kes", "monthly_rent");
   const hoodRaw = pick(row, "neighborhood", "location", "area", "estate");
   const bedsRaw = pick(row, "bedrooms", "beds", "bedroom");
   const bathsRaw = pick(row, "bathrooms", "baths", "bathroom");
   const typeRaw = pick(row, "property_type", "type", "unit_type").toLowerCase();
-
-  if (!title) return { rowIndex, reason: "Title is required" };
+  const address = pick(row, "address", "street", "building");
 
   const rent = Number.parseInt(priceRaw.replace(/[^\d]/g, ""), 10);
   if (!Number.isFinite(rent) || rent <= 0)
@@ -83,6 +83,17 @@ export function validateImportRow(
 
   const bathrooms = bathsRaw ? Number.parseInt(bathsRaw, 10) : 1;
   const property_type = TYPE_MAP[typeRaw] ?? (bedrooms === 0 ? "bedsitter" : "one_bedroom");
+
+  if (!title) {
+    title = generateListingTitle({
+      property_type,
+      neighborhood,
+      bedrooms,
+      bathrooms: Number.isFinite(bathrooms) && bathrooms >= 1 ? bathrooms : 1,
+      address: address || null,
+    });
+  }
+  if (!title) return { rowIndex, reason: "Title is required" };
 
   return {
     rowIndex,

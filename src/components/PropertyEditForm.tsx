@@ -27,7 +27,9 @@ import { useEffect, useState } from "react";
 import { FileText, Image as ImageIcon, Loader2, MapPin } from "lucide-react";
 import { ContactPhonesFields } from "@/components/ContactPhonesFields";
 import { ListingDescriptionAmenitiesFields } from "@/components/ListingDescriptionAmenitiesFields";
+import { ListingTitleField } from "@/components/ListingTitleField";
 import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
+import { generateListingTitle } from "@/lib/listings/generate-listing-title";
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -128,7 +130,7 @@ export function PropertyEditForm({
       updateProperty({
         data: {
           propertyId,
-          title: form.title.trim(),
+          title: resolveTitle(),
           property_type: form.property_type,
           neighborhood: form.neighborhood.trim(),
           address: form.address.trim() || null,
@@ -185,8 +187,28 @@ export function PropertyEditForm({
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  function resolveTitle(): string {
+    const existing = form.title.trim();
+    if (existing) return existing;
+    return generateListingTitle({
+      property_type: form.property_type,
+      neighborhood: form.neighborhood,
+      bedrooms: Number(form.bedrooms) || 0,
+      bathrooms: Number(form.bathrooms) || 0,
+      address: form.address,
+      amenities: form.amenities,
+      area_sqm: form.area_sqm ? Number(form.area_sqm) : null,
+      pricing_mode: form.pricing_mode,
+    });
+  }
+
   function validate(): boolean {
-    if (!form.title.trim() || !form.neighborhood.trim()) {
+    if (!form.neighborhood.trim()) {
+      toast.error("Neighborhood is required");
+      setActiveTab("details");
+      return false;
+    }
+    if (!resolveTitle()) {
       toast.error("Title and neighborhood are required");
       setActiveTab("details");
       return false;
@@ -312,15 +334,6 @@ export function PropertyEditForm({
       >
         {activeTab === "details" && (
           <div className="space-y-5">
-            <Field label="Listing title" full>
-              <input
-                required
-                value={form.title}
-                onChange={(e) => update("title", e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Property type">
                 <select
@@ -446,6 +459,23 @@ export function PropertyEditForm({
                 />
               </Field>
             )}
+
+            <ListingTitleField
+              value={form.title}
+              onChange={(title) => update("title", title)}
+              details={{
+                property_type: form.property_type,
+                neighborhood: form.neighborhood,
+                bedrooms: Number(form.bedrooms) || 0,
+                bathrooms: Number(form.bathrooms) || 0,
+                address: form.address,
+                amenities: form.amenities,
+                area_sqm: form.area_sqm ? Number(form.area_sqm) : null,
+                pricing_mode: form.pricing_mode,
+              }}
+              autoGenerate={false}
+              inputClassName={inputCls}
+            />
 
             <ListingDescriptionAmenitiesFields
               description={form.description}

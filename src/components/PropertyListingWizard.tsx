@@ -23,6 +23,7 @@ import {
   listingPriceAmountLabel,
 } from "@/lib/property-types";
 import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
+import { generateListingTitle } from "@/lib/listings/generate-listing-title";
 import { enhanceImageForUpload, enhanceVideoForUpload, needsWebSafeVideoReencode } from "@/lib/media/enhance-upload";
 import { isExternalVideoEmbed } from "@/lib/media/video-embed";
 import { useAuth } from "@/hooks/use-auth";
@@ -368,7 +369,23 @@ export type ListingFormState = {
 };
 
 function validateListingDetailsTab(form: ListingFormState, requireContactPhone: boolean): boolean {
-  if (!form.title.trim() || !form.neighborhood.trim()) {
+  if (!form.neighborhood.trim()) {
+    toast.error("Neighborhood is required");
+    return false;
+  }
+  const title =
+    form.title.trim() ||
+    generateListingTitle({
+      property_type: form.property_type,
+      neighborhood: form.neighborhood,
+      bedrooms: form.bedrooms,
+      bathrooms: form.bathrooms,
+      address: form.address,
+      amenities: form.amenities,
+      area_sqm: form.area_sqm || null,
+      pricing_mode: form.pricing_mode,
+    });
+  if (!title) {
     toast.error("Title and neighborhood are required");
     return false;
   }
@@ -454,8 +471,20 @@ function buildListingPayload(
   form: ListingFormState,
   media: Awaited<ReturnType<typeof uploadListingMedia>>,
 ) {
+  const title =
+    form.title.trim() ||
+    generateListingTitle({
+      property_type: form.property_type,
+      neighborhood: form.neighborhood,
+      bedrooms: form.bedrooms,
+      bathrooms: form.bathrooms,
+      address: form.address,
+      amenities: form.amenities,
+      area_sqm: form.area_sqm || null,
+      pricing_mode: form.pricing_mode,
+    });
   return {
-    title: form.title,
+    title,
     property_type: form.property_type,
     neighborhood: form.neighborhood,
     address: form.address || null,
@@ -888,6 +917,19 @@ export function PropertyListingWizard({
   function goNext(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validateTab(activeTab)) return;
+    if (activeTab === "details" && !form.title.trim()) {
+      const generated = generateListingTitle({
+        property_type: form.property_type,
+        neighborhood: form.neighborhood,
+        bedrooms: form.bedrooms,
+        bathrooms: form.bathrooms,
+        address: form.address,
+        amenities: form.amenities,
+        area_sqm: form.area_sqm || null,
+        pricing_mode: form.pricing_mode,
+      });
+      if (generated) update("title", generated);
+    }
     if (isLastTab) return;
     setActiveTab(TABS[tabIndex + 1].id);
   }
