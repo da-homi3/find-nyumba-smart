@@ -189,6 +189,11 @@ function TenantAuth() {
     }
 
     if (isPrivilegedAccountRole(role)) {
+      try {
+        await ensureTenantAccount();
+      } catch (err) {
+        console.warn("[auth] ensureTenantAccount after privileged signup:", err);
+      }
       await completePrivilegedSignup({
         role: role as "landlord" | "manager" | "agency",
         organizationName,
@@ -230,11 +235,17 @@ function TenantAuth() {
       4000,
       [] as PortalAppRow[],
     );
-    const hasPendingOnly =
-      apps.some((a) => a.status === "pending") &&
-      !roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
 
-    if (hasPendingOnly) {
+    void ensureTenantAccount().catch((err) => {
+      console.warn("[auth] ensureTenantAccount after signin:", err);
+    });
+
+    const hasApprovedDashboardRole = roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
+    const hasTenantRole = roles.includes("tenant");
+    const hasPendingListerApp = apps.some((a) => a.status === "pending");
+    // Only hold brand-new lister applicants (no tenant/dashboard role yet).
+    // Tenants who applied for landlord/manager/agency must still sign in normally.
+    if (hasPendingListerApp && !hasApprovedDashboardRole && !hasTenantRole) {
       navigate({ to: "/auth/pending" });
       return;
     }
@@ -244,10 +255,6 @@ function TenantAuth() {
       3000,
       "tenant" as PortalId,
     );
-
-    void ensureTenantAccount().catch((err) => {
-      console.warn("[auth] ensureTenantAccount after signin:", err);
-    });
 
     globalThis.location.href = resolvePostLoginPath(
       roles as AppRole[],

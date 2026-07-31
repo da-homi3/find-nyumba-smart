@@ -58,7 +58,8 @@ async function ensureTenantRole(
     ["landlord", "manager", "agency", "admin", "caretaker"].includes(role),
   );
 
-  if (!hasPrivileged && !roles.includes("tenant")) {
+  // Always keep a tenant role so applicants / multi-role accounts can still browse and sign in.
+  if (!roles.includes("tenant")) {
     const { error: roleErr } = await supabaseAdmin.from("user_roles").insert({
       user_id: userId,
       role: "tenant",
@@ -66,6 +67,7 @@ async function ensureTenantRole(
     if (roleErr && !/duplicate|unique/i.test(roleErr.message)) {
       throw new Error(roleErr.message);
     }
+    roles.push("tenant");
   }
 
   return { roles, hasPrivileged };

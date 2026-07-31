@@ -82,14 +82,22 @@ function PendingApproval() {
           </ul>
         )}
         <p className="mt-6 text-xs text-muted-foreground">
-          You can still browse listings as a tenant while you wait.
+          You can still browse listings as a tenant while you wait. Listing portals unlock after
+          approval.
         </p>
         <div className="mt-8 flex flex-col gap-3">
           <Link
             to="/tenant"
             className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
           >
-            Browse homes
+            Continue to NyumbaSearch
+          </Link>
+          <Link
+            to="/settings"
+            search={{ tab: "portals" } as never}
+            className="text-sm font-semibold text-primary"
+          >
+            Check application status in Settings
           </Link>
           <button
             type="button"

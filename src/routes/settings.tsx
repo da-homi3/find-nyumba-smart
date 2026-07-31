@@ -53,8 +53,6 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type Tab = SettingsTab;
-
 function readSettingsSearch(search: Record<string, unknown>): {
   tab?: SettingsTab;
   apply?: ListerApplyRole;
@@ -132,7 +130,7 @@ const APPLY_ROLES: {
   },
 ];
 
-const TABS: { id: Tab; label: string; icon: typeof User }[] = [
+const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Profile", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Lock },
@@ -158,7 +156,7 @@ function SettingsPage() {
   const { isPlus, entitlements } = useEntitlements();
   const { mode: themeMode, setMode: setThemeMode } = useTheme();
 
-  const [tab, setTab] = useState<Tab>(search.tab ?? "profile");
+  const [tab, setTab] = useState<SettingsTab>(search.tab ?? "profile");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -173,6 +171,18 @@ function SettingsPage() {
   const [submittingApply, setSubmittingApply] = useState(false);
 
   const strength = useMemo(() => scorePassword(newPassword), [newPassword]);
+  const pending = useMemo(
+    () => pendingApplications.filter((a) => a.status === "pending"),
+    [pendingApplications],
+  );
+  const rejected = useMemo(
+    () => pendingApplications.filter((a) => a.status === "rejected"),
+    [pendingApplications],
+  );
+  const pendingRoleSet = useMemo(
+    () => new Set(pending.map((a) => a.requested_role)),
+    [pending],
+  );
 
   const { data: profile } = useQuery({
     queryKey: ["settings-profile", user?.id],
@@ -242,13 +252,6 @@ function SettingsPage() {
   }
 
   if (!user) return null;
-
-  const pending = pendingApplications.filter((a) => a.status === "pending");
-  const rejected = pendingApplications.filter((a) => a.status === "rejected");
-  const pendingRoleSet = useMemo(
-    () => new Set(pending.map((a) => a.requested_role)),
-    [pending],
-  );
 
   async function enterPortal(portal: PortalId) {
     if (portal === "caretaker") {
@@ -630,184 +633,26 @@ function SettingsPage() {
       )}
 
       {tab === "portals" && (
-        <>
-          <section className="mt-6">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Sign up for a listing role
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Already browsing as a tenant? Apply here to list as a landlord, property manager, or
-              real estate agency. Ops reviews applications before portal access is unlocked.
-            </p>
-            <div className="mt-3 space-y-2">
-              {APPLY_ROLES.map((role) => {
-                const approved = hasApprovedRole(role.id);
-                const awaiting = pendingRoleSet.has(role.id);
-                return (
-                  <button
-                    key={role.id}
-                    type="button"
-                    disabled={approved || awaiting}
-                    onClick={() => {
-                      setApplyRole(role.id);
-                      setApplyOrgName("");
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
-                      applyRole === role.id ? "border-primary bg-primary/5" : "bg-card"
-                    } ${approved || awaiting ? "opacity-60" : "hover:border-primary/40"}`}
-                  >
-                    <role.icon className="h-5 w-5 shrink-0 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-semibold">{role.label}</p>
-                      <p className="text-xs text-muted-foreground">{role.description}</p>
-                    </div>
-                    {approved ? (
-                      <span className="text-[10px] font-bold text-primary">APPROVED</span>
-                    ) : null}
-                    {awaiting ? (
-                      <span className="text-[10px] font-bold text-amber-600">PENDING</span>
-                    ) : null}
-                    {!approved && !awaiting ? (
-                      <span className="text-[10px] font-bold text-foreground">APPLY</span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            {applyRole && !hasApprovedRole(applyRole) && !pendingRoleSet.has(applyRole) ? (
-              <form
-                onSubmit={submitRoleApplication}
-                className="mt-4 space-y-3 rounded-2xl border bg-card p-4"
-              >
-                <h3 className="text-sm font-semibold">
-                  Apply as {APPLY_ROLES.find((r) => r.id === applyRole)?.label}
-                </h3>
-                <Field label={organizationFieldLabel(applyRole)}>
-                  <input
-                    value={applyOrgName}
-                    onChange={(e) => setApplyOrgName(e.target.value)}
-                    placeholder={organizationFieldPlaceholder(applyRole)}
-                    required
-                    className="w-full rounded-xl border px-3 py-2.5 text-sm"
-                  />
-                </Field>
-                <Field label="M-Pesa phone">
-                  <input
-                    value={applyPhone}
-                    onChange={(e) => setApplyPhone(e.target.value)}
-                    placeholder="07XX XXX XXX"
-                    required
-                    className="w-full rounded-xl border px-3 py-2.5 text-sm"
-                  />
-                </Field>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="submit"
-                    disabled={submittingApply}
-                    className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-                  >
-                    {submittingApply ? "Submitting…" : "Submit application"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setApplyRole(null)}
-                    className="rounded-xl border px-4 py-2.5 text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : null}
-          </section>
-
-          <section className="mt-8">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Your portals
-            </h2>
-            <div className="mt-3 space-y-2">
-              {PORTALS.map((p) => {
-                const locked = p.role ? !hasApprovedRole(p.role) : false;
-                const isActive = activePortal === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => enterPortal(p.id)}
-                    className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
-                      isActive ? "border-primary bg-primary/5" : "bg-card"
-                    } hover:border-primary/40`}
-                  >
-                    <p.icon className="h-5 w-5 shrink-0 text-primary" />
-                    <div className="flex-1">
-                      <p className="font-semibold">{p.label}</p>
-                      <p className="text-xs text-muted-foreground">{p.description}</p>
-                    </div>
-                    {locked ? (
-                      <span className="text-[10px] font-bold text-amber-600">APPLY TO UNLOCK</span>
-                    ) : null}
-                    {isActive && !locked ? (
-                      <span className="text-[10px] font-bold text-primary">ACTIVE</span>
-                    ) : null}
-                  </button>
-                );
-              })}
-              {hasApprovedRole("admin") && (
-                <Link
-                  to="/admin"
-                  search={{ tab: "applications" }}
-                  className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left hover:border-primary/40"
-                >
-                  <Shield className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="font-semibold">Admin</p>
-                    <p className="text-xs text-muted-foreground">Verifications and applications</p>
-                  </div>
-                </Link>
-              )}
-            </div>
-          </section>
-
-          {(pending.length > 0 || rejected.length > 0) && (
-            <section className="mt-8">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Applications
-              </h2>
-              <div className="mt-3 space-y-2">
-                {pending.map((app) => (
-                  <div
-                    key={app.id}
-                    className="flex items-center gap-2 rounded-xl border bg-amber-500/10 px-4 py-3 text-sm"
-                  >
-                    <Clock className="h-4 w-4 text-amber-600" />
-                    <span className="capitalize">{app.requested_role}</span> — pending ops review
-                  </div>
-                ))}
-                {rejected.map((app) => (
-                  <div
-                    key={app.id}
-                    className="rounded-xl border px-4 py-3 text-sm text-muted-foreground"
-                  >
-                    <span className="capitalize font-medium text-foreground">
-                      {app.requested_role}
-                    </span>{" "}
-                    — not approved
-                    {app.rejection_reason && <p className="mt-1 text-xs">{app.rejection_reason}</p>}
-                    {APPLY_ROLES.some((r) => r.id === app.requested_role) ? (
-                      <button
-                        type="button"
-                        className="mt-2 text-xs font-semibold text-primary"
-                        onClick={() => setApplyRole(app.requested_role as ListerApplyRole)}
-                      >
-                        Apply again
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </>
+        <SettingsPortalsTab
+          activePortal={activePortal}
+          applyRole={applyRole}
+          applyOrgName={applyOrgName}
+          applyPhone={applyPhone}
+          submittingApply={submittingApply}
+          pending={pending}
+          rejected={rejected}
+          pendingRoleSet={pendingRoleSet}
+          hasApprovedRole={hasApprovedRole}
+          onSelectApplyRole={(role) => {
+            setApplyRole(role);
+            setApplyOrgName("");
+          }}
+          onClearApplyRole={() => setApplyRole(null)}
+          onApplyOrgNameChange={setApplyOrgName}
+          onApplyPhoneChange={setApplyPhone}
+          onSubmitApplication={submitRoleApplication}
+          onEnterPortal={enterPortal}
+        />
       )}
 
       {tab === "trust" && (
@@ -885,6 +730,221 @@ function Field({ label, children }: Readonly<{ label: string; children: ReactNod
       <span className="mb-1.5 block text-xs text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+function SettingsPortalsTab({
+  activePortal,
+  applyRole,
+  applyOrgName,
+  applyPhone,
+  submittingApply,
+  pending,
+  rejected,
+  pendingRoleSet,
+  hasApprovedRole,
+  onSelectApplyRole,
+  onClearApplyRole,
+  onApplyOrgNameChange,
+  onApplyPhoneChange,
+  onSubmitApplication,
+  onEnterPortal,
+}: Readonly<{
+  activePortal: PortalId;
+  applyRole: ListerApplyRole | null;
+  applyOrgName: string;
+  applyPhone: string;
+  submittingApply: boolean;
+  pending: Array<{ id: string; requested_role: string }>;
+  rejected: Array<{ id: string; requested_role: string; rejection_reason: string | null }>;
+  pendingRoleSet: Set<string>;
+  hasApprovedRole: (role: "landlord" | "manager" | "agency" | "admin" | "tenant" | "caretaker") => boolean;
+  onSelectApplyRole: (role: ListerApplyRole) => void;
+  onClearApplyRole: () => void;
+  onApplyOrgNameChange: (value: string) => void;
+  onApplyPhoneChange: (value: string) => void;
+  onSubmitApplication: (e: SubmitEvent<HTMLFormElement>) => void;
+  onEnterPortal: (portal: PortalId) => void;
+}>) {
+  const showApplyForm =
+    applyRole != null && !hasApprovedRole(applyRole) && !pendingRoleSet.has(applyRole);
+
+  return (
+    <>
+      <section className="mt-6">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Sign up for a listing role
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Already browsing as a tenant? Apply here to list as a landlord, property manager, or real
+          estate agency. Ops reviews applications before portal access is unlocked.
+        </p>
+        <div className="mt-3 space-y-2">
+          {APPLY_ROLES.map((role) => {
+            const approved = hasApprovedRole(role.id);
+            const awaiting = pendingRoleSet.has(role.id);
+            return (
+              <button
+                key={role.id}
+                type="button"
+                disabled={approved || awaiting}
+                onClick={() => onSelectApplyRole(role.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                  applyRole === role.id ? "border-primary bg-primary/5" : "bg-card"
+                } ${approved || awaiting ? "opacity-60" : "hover:border-primary/40"}`}
+              >
+                <role.icon className="h-5 w-5 shrink-0 text-primary" />
+                <div className="flex-1">
+                  <p className="font-semibold">{role.label}</p>
+                  <p className="text-xs text-muted-foreground">{role.description}</p>
+                </div>
+                {approved ? (
+                  <span className="text-[10px] font-bold text-primary">APPROVED</span>
+                ) : null}
+                {awaiting ? (
+                  <span className="text-[10px] font-bold text-amber-600">PENDING</span>
+                ) : null}
+                {!approved && !awaiting ? (
+                  <span className="text-[10px] font-bold text-foreground">APPLY</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        {showApplyForm && applyRole ? (
+          <form
+            onSubmit={onSubmitApplication}
+            className="mt-4 space-y-3 rounded-2xl border bg-card p-4"
+          >
+            <h3 className="text-sm font-semibold">
+              Apply as {APPLY_ROLES.find((r) => r.id === applyRole)?.label}
+            </h3>
+            <Field label={organizationFieldLabel(applyRole)}>
+              <input
+                value={applyOrgName}
+                onChange={(e) => onApplyOrgNameChange(e.target.value)}
+                placeholder={organizationFieldPlaceholder(applyRole)}
+                required
+                className="w-full rounded-xl border px-3 py-2.5 text-sm"
+              />
+            </Field>
+            <Field label="M-Pesa phone">
+              <input
+                value={applyPhone}
+                onChange={(e) => onApplyPhoneChange(e.target.value)}
+                placeholder="07XX XXX XXX"
+                required
+                className="w-full rounded-xl border px-3 py-2.5 text-sm"
+              />
+            </Field>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="submit"
+                disabled={submittingApply}
+                className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              >
+                {submittingApply ? "Submitting…" : "Submit application"}
+              </button>
+              <button
+                type="button"
+                onClick={onClearApplyRole}
+                className="rounded-xl border px-4 py-2.5 text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : null}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Your portals
+        </h2>
+        <div className="mt-3 space-y-2">
+          {PORTALS.map((p) => {
+            const locked = p.role ? !hasApprovedRole(p.role) : false;
+            const isActive = activePortal === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onEnterPortal(p.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
+                  isActive ? "border-primary bg-primary/5" : "bg-card"
+                } hover:border-primary/40`}
+              >
+                <p.icon className="h-5 w-5 shrink-0 text-primary" />
+                <div className="flex-1">
+                  <p className="font-semibold">{p.label}</p>
+                  <p className="text-xs text-muted-foreground">{p.description}</p>
+                </div>
+                {locked ? (
+                  <span className="text-[10px] font-bold text-amber-600">APPLY TO UNLOCK</span>
+                ) : null}
+                {isActive && !locked ? (
+                  <span className="text-[10px] font-bold text-primary">ACTIVE</span>
+                ) : null}
+              </button>
+            );
+          })}
+          {hasApprovedRole("admin") ? (
+            <Link
+              to="/admin"
+              search={{ tab: "applications" }}
+              className="flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left hover:border-primary/40"
+            >
+              <Shield className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-semibold">Admin</p>
+                <p className="text-xs text-muted-foreground">Verifications and applications</p>
+              </div>
+            </Link>
+          ) : null}
+        </div>
+      </section>
+
+      {pending.length > 0 || rejected.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Applications
+          </h2>
+          <div className="mt-3 space-y-2">
+            {pending.map((app) => (
+              <div
+                key={app.id}
+                className="flex items-center gap-2 rounded-xl border bg-amber-500/10 px-4 py-3 text-sm"
+              >
+                <Clock className="h-4 w-4 text-amber-600" />
+                <span className="capitalize">{app.requested_role}</span> — pending ops review
+              </div>
+            ))}
+            {rejected.map((app) => (
+              <div
+                key={app.id}
+                className="rounded-xl border px-4 py-3 text-sm text-muted-foreground"
+              >
+                <span className="capitalize font-medium text-foreground">{app.requested_role}</span>{" "}
+                — not approved
+                {app.rejection_reason ? (
+                  <p className="mt-1 text-xs">{app.rejection_reason}</p>
+                ) : null}
+                {APPLY_ROLES.some((r) => r.id === app.requested_role) ? (
+                  <button
+                    type="button"
+                    className="mt-2 text-xs font-semibold text-primary"
+                    onClick={() => onSelectApplyRole(app.requested_role as ListerApplyRole)}
+                  >
+                    Apply again
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </>
   );
 }
 
