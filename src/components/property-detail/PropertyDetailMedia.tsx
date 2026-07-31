@@ -5,6 +5,8 @@ import { Panorama360Viewer } from "./Panorama360Viewer";
 import {
   externalVideoEmbedUrl,
   isExternalVideoEmbed,
+  isLikelyUnsupportedHtml5Video,
+  videoMimeFromUrl,
 } from "@/lib/media/video-embed";
 
 type PropertyDetailMediaProps = Readonly<{
@@ -29,6 +31,8 @@ function WalkthroughVideo({
 }: Readonly<{ videoUrl: string; title: string }>) {
   const [failed, setFailed] = useState(false);
   const embedSrc = isExternalVideoEmbed(videoUrl) ? externalVideoEmbedUrl(videoUrl) : null;
+  const mime = videoMimeFromUrl(videoUrl);
+  const unsupported = !embedSrc && isLikelyUnsupportedHtml5Video(videoUrl);
 
   if (embedSrc) {
     return (
@@ -43,17 +47,21 @@ function WalkthroughVideo({
     );
   }
 
-  if (failed) {
+  if (unsupported || failed) {
     return (
       <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 bg-black px-6 text-center">
-        <p className="text-sm text-white/80">This walkthrough couldn’t play in your browser.</p>
+        <p className="text-sm text-white/80">
+          {unsupported
+            ? "This walkthrough format needs a native player."
+            : "This walkthrough couldn’t play in your browser."}
+        </p>
         <a
           href={videoUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
-          Open video
+          Open full-quality video
         </a>
       </div>
     );
@@ -62,13 +70,14 @@ function WalkthroughVideo({
   return (
     <video
       key={videoUrl}
-      src={videoUrl}
       controls
       playsInline
-      preload="metadata"
+      preload="auto"
+      controlsList="nodownload"
       className="aspect-video w-full bg-black object-contain"
       onError={() => setFailed(true)}
     >
+      <source src={videoUrl} type={mime ?? "video/mp4"} />
       <track kind="captions" />
     </video>
   );
@@ -84,12 +93,17 @@ export function PropertyDetailMedia({ property }: PropertyDetailMediaProps) {
   const videoUrl = property.video_url ?? "";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 px-5 pt-4">
+    <div className="mx-auto w-full max-w-5xl space-y-4 px-4 pt-4 sm:px-5">
       {hasVideo && (
-        <section className="overflow-hidden rounded-2xl border bg-card">
-          <div className="flex items-center gap-2 border-b px-4 py-3">
-            <Film className="h-4 w-4 text-primary" aria-hidden />
-            <h2 className="font-display text-sm font-semibold">Walkthrough video</h2>
+        <section className="overflow-hidden rounded-2xl border bg-card shadow-soft">
+          <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Film className="h-4 w-4 text-primary" aria-hidden />
+              <h2 className="font-display text-sm font-semibold">Walkthrough video</h2>
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Full quality
+            </span>
           </div>
           <WalkthroughVideo videoUrl={videoUrl} title={property.title} />
         </section>

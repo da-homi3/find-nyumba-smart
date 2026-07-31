@@ -394,9 +394,10 @@ function ListingWizardMediaTab({
             accept="video/mp4,video/webm,video/*,.mp4,.webm"
             disabled={busy}
             title="Drop walkthrough video"
-            hint={`MP4 or WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
+            hint={`Original HD MP4/WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
             icon={<Film className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
             onFiles={onPickVideo}
+            footnote="Upload the original camera file (not a compressed share). MOV won’t play — export MP4 from Photos."
           />
           {videoFile ? (
             <p className="truncate text-xs text-muted-foreground">

@@ -17,7 +17,7 @@ export function youtubeEmbedUrl(url: string): string | null {
       id = u.searchParams.get("v") ?? "";
     }
     if (!id) return null;
-    return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
+    return `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&playsinline=1&hd=1`;
   } catch {
     return null;
   }

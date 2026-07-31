@@ -246,7 +246,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           uploadProgress={uploading ? uploadProgress : null}
           uploadLabel={uploadLabel}
           title="Walkthrough video"
-          hint={`MP4 or WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
+          hint={`Original HD MP4/WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
           icon={<Film className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
           onFiles={(files) => pickFiles(files, "video")}
         />
