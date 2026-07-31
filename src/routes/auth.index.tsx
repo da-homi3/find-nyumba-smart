@@ -283,7 +283,7 @@ function TenantAuth() {
     const hardStop = globalThis.setTimeout(() => {
       setLoading(false);
       toast.error("Sign-in is taking too long. Check your connection and try again.");
-    }, 25_000);
+    }, 15_000);
     submitForm()
       .catch((err) => toast.error(errorMessage(err)))
       .finally(() => {
@@ -319,7 +319,7 @@ function TenantAuth() {
       const hardStop = globalThis.setTimeout(() => {
         setLoading(false);
         toast.error("Sign-up is taking too long. Check your connection and try again.");
-      }, 25_000);
+      }, 15_000);
       void handleSignup()
         .catch((err) => toast.error(errorMessage(err)))
         .finally(() => {

@@ -4,7 +4,7 @@ import android.webkit.WebView
 
 class LoadRetryHandler(
     private val webView: WebView,
-    private val maxAttempts: Int = 4,
+    private val maxAttempts: Int = 3,
     private val onExhausted: () -> Unit,
 ) {
     private var attempt = 0
@@ -14,7 +14,8 @@ class LoadRetryHandler(
             onExhausted()
             return
         }
-        val delayMs = (1000L * (1 shl attempt)).coerceAtMost(16_000L)
+        // Faster recovery on flaky Kenyan mobile networks (was up to 16s).
+        val delayMs = (600L * (1 shl attempt)).coerceAtMost(4_000L)
         attempt++
         webView.postDelayed({ webView.loadUrl(url, headers) }, delayMs)
     }

@@ -43,7 +43,8 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-const AUTH_BOOT_TIMEOUT_MS = 12_000;
+/** Fail-open so dashboards never spin forever on slow roles/portal reads. */
+const AUTH_BOOT_TIMEOUT_MS = 6_000;
 
 async function fetchUserRoles(userId: string): Promise<AppRole[]> {
   const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -125,11 +126,14 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
 
       try {
+        // Unblock shells as soon as roles resolve; portal apps can trail in the background.
         const nextRoles = await fetchUserRoles(s.user.id);
         if (!active) return;
         setRoles(nextRoles);
-        await refreshPortalState(s.user.id);
-      } finally {
+        finishLoading();
+        void refreshPortalState(s.user.id);
+      } catch (err) {
+        console.warn("[use-auth] session sync failed:", err);
         finishLoading();
       }
     };

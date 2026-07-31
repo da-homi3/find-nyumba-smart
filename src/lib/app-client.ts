@@ -15,7 +15,8 @@ export function getAppServeContext(request: Request): AppServeContext {
   const networkTier = request.headers.get("X-Network-Tier");
   const saveData = request.headers.get("Save-Data") === "on";
   const isLowBandwidth = networkTier === "POOR_2G_3G" || saveData;
-  const serveMode: ServeMode = isAppClient && isLowBandwidth ? "lite" : "full";
+  // Android WebView always gets lite mode — skips Three.js / heavy hero assets.
+  const serveMode: ServeMode = isAppClient || isLowBandwidth ? "lite" : "full";
 
   return {
     isAppClient,

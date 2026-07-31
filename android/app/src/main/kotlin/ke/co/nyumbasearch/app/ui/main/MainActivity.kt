@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingGeoCallback: android.webkit.GeolocationPermissions.Callback? = null
     private var pendingGeoOrigin: String? = null
     private var pendingWebPermission: PermissionRequest? = null
+    private var pageLoadWatchdog: Runnable? = null
 
     private val fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -155,10 +156,12 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = NyumbaWebViewClient(
             activity = this,
             onPageFinished = {
+                clearPageLoadWatchdog()
                 binding.swipeRefresh.isRefreshing = false
                 retryHandler.reset()
             },
             onMainFrameError = {
+                clearPageLoadWatchdog()
                 binding.swipeRefresh.isRefreshing = false
                 retryHandler.onLoadFailed(pendingUrl, buildRequestHeaders())
             },
@@ -231,13 +234,33 @@ class MainActivity : AppCompatActivity() {
             "X-App-Client" to "android",
             "X-App-Version" to BuildConfig.VERSION_NAME,
             "X-Network-Tier" to tier.name,
-            "Save-Data" to if (tier == NetworkTier.POOR_2G_3G) "on" else "off",
+            // Always hint Save-Data so Worker serves lite assets in the WebView.
+            "Save-Data" to "on",
         )
+    }
+
+    private fun clearPageLoadWatchdog() {
+        pageLoadWatchdog?.let { binding.webView.removeCallbacks(it) }
+        pageLoadWatchdog = null
+    }
+
+    private fun armPageLoadWatchdog() {
+        clearPageLoadWatchdog()
+        val watchdog = Runnable {
+            if (isFinishing || isDestroyed) return@Runnable
+            // Main frame hung — stop and retry with exponential backoff.
+            binding.webView.stopLoading()
+            binding.swipeRefresh.isRefreshing = false
+            retryHandler.onLoadFailed(pendingUrl, buildRequestHeaders())
+        }
+        pageLoadWatchdog = watchdog
+        binding.webView.postDelayed(watchdog, Constants.PAGE_LOAD_WATCHDOG_MS)
     }
 
     private fun loadWithAppHeaders(url: String, useShell: Boolean) {
         pendingUrl = url
         val headers = buildRequestHeaders()
+        armPageLoadWatchdog()
         if (useShell) {
             appShellLoader.showShellThenLoad(url, headers)
         } else {
@@ -348,6 +371,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        clearPageLoadWatchdog()
         networkCallback?.let {
             (getSystemService(CONNECTIVITY_SERVICE) as android.net.ConnectivityManager)
                 .unregisterNetworkCallback(it)

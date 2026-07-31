@@ -11,7 +11,6 @@ const SKIP_PREFIXES = [
   "/agency",
   "/manager",
   "/caretaker",
-  "/tenant",
   "/settings",
   "/checkout",
   "/portal",
@@ -25,17 +24,31 @@ function edgeCache(): Cache | undefined {
   }
 }
 
-function shouldSkipPath(pathname: string): boolean {
-  const path = pathname.toLowerCase();
+/** Supabase session cookies — personalized HTML must not be shared via colo cache. */
+function hasAuthCookie(request: Request): boolean {
+  const cookie = request.headers.get("cookie") ?? "";
+  return /sb-[^=;\s]+-auth-token/i.test(cookie);
+}
+
+function shouldSkipPath(pathname: string, request?: Request): boolean {
+  const path = pathname.toLowerCase().replace(/\/+$/, "") || "/";
+
+  // Anonymous `/tenant` browse is cacheable; signed-in sessions need fresh SSR.
+  if (path === "/tenant") {
+    return request ? hasAuthCookie(request) : true;
+  }
+  if (path.startsWith("/tenant/")) return true;
+
   return SKIP_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
 export function isPublicHtmlCacheable(request: Request, response: Response): boolean {
   if (request.method !== "GET" && request.method !== "HEAD") return false;
   if (response.status !== 200) return false;
+  if (hasAuthCookie(request)) return false;
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("text/html")) return false;
-  return !shouldSkipPath(new URL(request.url).pathname);
+  return !shouldSkipPath(new URL(request.url).pathname, request);
 }
 
 function htmlCacheKey(request: Request): Request {
@@ -49,7 +62,7 @@ function htmlCacheKey(request: Request): Request {
 /** Serve colo-cached public HTML when available (skips SSR on HIT). */
 export async function matchPublicHtmlCache(request: Request): Promise<Response | null> {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
-  if (shouldSkipPath(new URL(request.url).pathname)) return null;
+  if (shouldSkipPath(new URL(request.url).pathname, request)) return null;
 
   const cache = edgeCache();
   if (!cache) return null;

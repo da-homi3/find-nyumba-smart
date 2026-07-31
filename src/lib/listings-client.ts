@@ -2,8 +2,10 @@ import type { PropertySearchFilters } from "@/lib/properties";
 import type { ListingsResult } from "@/lib/api/listings-core";
 import { reportClientError } from "@/lib/client-error-report";
 
-const FETCH_TIMEOUT_MS = 12_000;
-const RETRY_DELAY_MS = 450;
+/** Keep under Worker inflight budget so clients fail over before feeling hung. */
+const FETCH_TIMEOUT_MS = 8_000;
+const FALLBACK_TIMEOUT_MS = 5_000;
+const RETRY_DELAY_MS = 350;
 
 type FetchOk = { ok: true; result: ListingsResult };
 type FetchFail = { ok: false; status: number; message: string };
@@ -44,7 +46,21 @@ async function fetchListingsDirectFallback(
       filters,
     });
   }
-  return queryListingsDirect(filters, supabase);
+  return new Promise<ListingsResult>((resolve, reject) => {
+    const timer = globalThis.setTimeout(() => {
+      reject(new Error("Direct listings fallback timed out"));
+    }, FALLBACK_TIMEOUT_MS);
+    queryListingsDirect(filters, supabase).then(
+      (result) => {
+        globalThis.clearTimeout(timer);
+        resolve(result);
+      },
+      (err) => {
+        globalThis.clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }
 
 async function fallbackOrThrow(

@@ -165,7 +165,7 @@ export function AuthGateModal() {
     const hardStop = globalThis.setTimeout(() => {
       setSubmitting(false);
       toast.error("Sign-in is taking too long. Check your connection and try again.");
-    }, 25_000);
+    }, 15_000);
     const run = mode === "signup" ? handleSignup : handleSignin;
     void run()
       .catch((err) => toast.error(errorMessage(err)))
@@ -198,7 +198,7 @@ export function AuthGateModal() {
       const hardStop = globalThis.setTimeout(() => {
         setSubmitting(false);
         toast.error("Sign-up is taking too long. Check your connection and try again.");
-      }, 25_000);
+      }, 15_000);
       void handleSignup()
         .catch((err) => toast.error(errorMessage(err)))
         .finally(() => {

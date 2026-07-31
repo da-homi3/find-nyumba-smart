@@ -8,7 +8,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
@@ -256,6 +256,34 @@ function AmbientBackdropHost() {
   );
 }
 
+function DeferredChrome() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const win = globalThis.window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof win.requestIdleCallback === "function") {
+      const id = win.requestIdleCallback(() => setReady(true), { timeout: 2_500 });
+      return () => win.cancelIdleCallback?.(id);
+    }
+    const timer = globalThis.setTimeout(() => setReady(true), 1_200);
+    return () => globalThis.clearTimeout(timer);
+  }, []);
+
+  if (!ready) return null;
+
+  return (
+    <>
+      <InstallAppBanner />
+      <FullStoryBootstrap />
+      <PresenceBootstrap />
+      <WebPushBootstrap />
+    </>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -264,7 +292,11 @@ function RootComponent() {
   useEffect(() => {
     installVitePreloadRecovery();
     clearChunkReloadGuard();
-    registerPwaServiceWorker();
+    // Defer SW registration so it never races first paint / listings fetch.
+    const timer = globalThis.setTimeout(() => {
+      registerPwaServiceWorker();
+    }, 2_500);
+    return () => globalThis.clearTimeout(timer);
   }, []);
 
   return (
@@ -278,12 +310,9 @@ function RootComponent() {
           <TenantMobileNav />
           <Toaster />
           <CookieConsentBanner />
-          <InstallAppBanner />
           <AuthGateModal />
           <RequireAccountPhoneModal />
-          <FullStoryBootstrap />
-          <PresenceBootstrap />
-          <WebPushBootstrap />
+          <DeferredChrome />
         </div>
       </AuthProvider>
     </QueryClientProvider>

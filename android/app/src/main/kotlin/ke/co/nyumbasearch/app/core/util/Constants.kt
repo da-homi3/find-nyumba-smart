@@ -6,6 +6,9 @@ object Constants {
     const val APP_SHELL_PATH = "file:///android_asset/app_shell/shell.html"
     const val SHELL_LOAD_DELAY_MS = 80L
 
+    /** If the main frame never finishes, force a retry before the UI feels hung. */
+    const val PAGE_LOAD_WATCHDOG_MS = 18_000L
+
     /** Hosted checkout that must stay inside the WebView (Pesapal card pay). */
     val IN_APP_EXTERNAL_HOSTS = setOf(
         "pay.pesapal.com",
