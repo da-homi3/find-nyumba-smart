@@ -226,15 +226,18 @@ async function prepareEnhancedMediaFiles(
   imageFiles: File[],
   videoFile: File | null,
   tourFile: File | null,
+  onVideoProgress?: (percent: number) => void,
 ) {
   const [enhancedImages, enhancedVideo, enhancedTour] = await Promise.all([
     Promise.all(imageFiles.map((file) => enhanceImageForUpload(file))),
-    videoFile ? enhanceVideoForUpload(videoFile) : Promise.resolve(null),
+    videoFile
+      ? enhanceVideoForUpload(videoFile, { onProgress: onVideoProgress })
+      : Promise.resolve(null),
     tourFile ? enhanceImageForUpload(tourFile) : Promise.resolve(null),
   ]);
   if (enhancedVideo && needsWebSafeVideoReencode(enhancedVideo)) {
     throw new Error(
-      "Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link). MOV/QuickTime files don’t play on most phones — export as MP4 from Photos/camera, then try again.",
+      "Couldn’t convert this video to MP4. Try a shorter clip, or paste a YouTube/Vimeo link.",
     );
   }
   return { enhancedImages, enhancedVideo, enhancedTour };
@@ -307,6 +310,11 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
     imageFiles,
     videoFile,
     tourFile,
+    (percent) => {
+      controller?.setPhase("enhancing");
+      controller?.setProgress(percent);
+      onProgress?.(percent);
+    },
   );
 
   const { uploads, uploadedImagePaths, videoPath, tourPath } = buildMediaUploads({
@@ -593,7 +601,12 @@ function getSubmitLabel(
   uploadPhase?: string | null,
 ): string {
   if (!isLastTab) return "Continue";
-  if (uploading && uploadPhase === "enhancing") return "Preparing media…";
+  if (uploading && uploadPhase === "enhancing") {
+    if (uploadProgress != null && uploadProgress > 0) {
+      return `Converting to MP4… ${uploadProgress}%`;
+    }
+    return "Converting / preparing media…";
+  }
   if (uploading && uploadProgress !== null) return `Uploading media… ${uploadProgress}%`;
   if (uploading) return "Uploading media…";
   if (loading) return "Publishing…";
@@ -621,16 +634,15 @@ function parseVideoUpload(files: File[]): File | null {
     toast.error("Please choose a video file");
     return null;
   }
-  if (needsWebSafeVideoReencode(file)) {
-    toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
-      description:
-        "MOV/QuickTime files don’t play on most phones. Export as MP4 from Photos/camera, then upload again.",
-    });
-    return null;
-  }
   if (!isWithinUploadLimit(file, "video")) {
     toast.error(`Video must be under ${uploadLimitLabel("video")}`);
     return null;
+  }
+  if (needsWebSafeVideoReencode(file)) {
+    toast.message("MOV will convert to MP4 automatically", {
+      description: "Keep this tab open while NyumbaSearch converts your walkthrough.",
+      duration: 5000,
+    });
   }
   return file;
 }

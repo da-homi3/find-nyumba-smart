@@ -10,6 +10,7 @@
     "dev": "npx vite dev",
     "build": "node scripts/generate-sitemap.mjs && node scripts/generate-llms.mjs && node scripts/generate-robots.mjs && npx vite build && node scripts/patch-ssr-createRequestHandler.mjs",
     "build:dev": "npx vite build --mode development && node scripts/patch-ssr-createRequestHandler.mjs",
+    "ffmpeg:copy": "node scripts/copy-ffmpeg-core.mjs",
     "preview": "npx vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -85,6 +86,9 @@
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "^1.0.2",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@googlemaps/js-api-loader": "^2.1.0",
     "@googlemaps/markerclusterer": "^2.6.2",
     "@gsap/react": "^2.1.2",

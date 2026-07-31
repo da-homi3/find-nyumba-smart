@@ -105,9 +105,7 @@ export function isLikelyVideoFile(file: File): boolean {
 }
 
 /**
- * True when the container/codec often fails in Chrome/Android <video>.
- * Landlords should export MP4/WebM instead — we never lossy-re-encode
- * (MediaRecorder would destroy phone camera quality).
+ * True when the container needs conversion to MP4 for reliable HTML5 playback.
  */
 export function needsWebSafeVideoReencode(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -130,20 +128,37 @@ export function needsWebSafeVideoReencode(file: File): boolean {
   return type.startsWith("video/") || isLikelyVideoFile(file);
 }
 
+export type EnhanceVideoOptions = {
+  onProgress?: (percent: number) => void;
+};
+
 /**
- * Preserve original walkthrough bytes at full camera quality.
- * No client re-encode — that path was lossy and slow.
+ * Auto-convert MOV/QuickTime (and similar) to high-quality MP4 via ffmpeg.wasm.
+ * Already-safe MP4/WebM files are uploaded unchanged.
  */
-export async function enhanceVideoForUpload(file: File): Promise<File> {
-  return file;
+export async function enhanceVideoForUpload(
+  file: File,
+  options?: EnhanceVideoOptions,
+): Promise<File> {
+  if (!isLikelyVideoFile(file)) return file;
+  if (!needsWebSafeVideoReencode(file)) return file;
+
+  const { convertVideoToMp4 } = await import("@/lib/media/convert-mov-to-mp4");
+  return convertVideoToMp4(file, options?.onProgress);
 }
 
 export async function enhanceMediaFilesForUpload(
   files: File[],
   kind: MediaUploadKind,
+  options?: EnhanceVideoOptions,
 ): Promise<File[]> {
   if (kind === "video") {
-    return Promise.all(files.map((file) => enhanceVideoForUpload(file)));
+    // Convert sequentially — ffmpeg wasm is heavy; one at a time is safer on phones.
+    const out: File[] = [];
+    for (const file of files) {
+      out.push(await enhanceVideoForUpload(file, options));
+    }
+    return out;
   }
   return Promise.all(files.map((file) => enhanceImageForUpload(file)));
 }

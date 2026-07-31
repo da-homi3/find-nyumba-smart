@@ -11,7 +11,7 @@ export function addSecurityHeaders(response: Response): Response {
     "Content-Security-Policy",
     [
       "default-src 'self' https://nyumbasearch.com",
-      "script-src 'self' 'unsafe-inline' https://api.mapbox.com https://maps.googleapis.com https://maps.google.com",
+      "script-src 'self' 'unsafe-inline' blob: https://api.mapbox.com https://maps.googleapis.com https://maps.google.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com",
       "font-src 'self' https://fonts.gstatic.com",
       "worker-src 'self' blob:",
@@ -19,7 +19,7 @@ export function addSecurityHeaders(response: Response): Response {
       "img-src 'self' data: blob: https://*.supabase.co https://api.mapbox.com https://*.mapbox.com https://images.unsplash.com https://maps.gstatic.com https://*.googleusercontent.com https://*.ggpht.com",
       // Walkthrough <video> loads from Supabase signed URLs; without media-src this falls back to default-src and blocks playback.
       "media-src 'self' blob: https://*.supabase.co",
-      "connect-src 'self' https://*.supabase.co https://api.mapbox.com https://*.mapbox.com https://events.mapbox.com https://graph.facebook.com https://maps.googleapis.com https://maps.gstatic.com",
+      "connect-src 'self' https://*.supabase.co https://api.mapbox.com https://*.mapbox.com https://events.mapbox.com https://graph.facebook.com https://maps.googleapis.com https://maps.gstatic.com https://cdn.jsdelivr.net",
       "frame-src 'self' https://www.youtube.com https://youtube.com https://player.vimeo.com https://my.matterport.com https://*.matterport.com https://kuula.co https://roundme.com",
       "frame-ancestors 'none'",
     ].join("; "),

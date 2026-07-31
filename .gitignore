@@ -36,6 +36,9 @@ dist-ssr
 .env
 sendgrid.env
 
+# ffmpeg.wasm core copied from node_modules on install/build (~32MB)
+public/ffmpeg/
+
 # Vite/TanStack dev artifacts (repo root)
 tmp_*.js
 tmp_*.ts

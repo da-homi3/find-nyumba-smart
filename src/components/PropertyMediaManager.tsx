@@ -27,7 +27,8 @@ type MediaKind = "image" | "video" | "tour";
 
 const BUCKET = "property-media";
 
-function mediaPrepareLabel(kind: MediaKind): string {
+function mediaPrepareLabel(kind: MediaKind, converting = false): string {
+  if (converting) return "Converting to MP4…";
   if (kind === "image") return "Preparing photos…";
   if (kind === "video") return "Preparing video…";
   return "Preparing 360° image…";
@@ -38,9 +39,6 @@ function mediaUploadLabel(kind: MediaKind): string {
   if (kind === "video") return "Uploading video…";
   return "Uploading 360° image…";
 }
-
-const MOV_HINT =
-  "MOV/QuickTime files don’t play on most phones. In Photos/Files, export as MP4, or paste a YouTube/Vimeo link below.";
 
 export function PropertyMediaManager({ property }: Readonly<{ property: Property }>) {
   const { user } = useAuth();
@@ -86,9 +84,10 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
 
   async function uploadFiles(files: File[], kind: MediaKind) {
     if (!user) throw new Error("Sign in required");
+    const needsConvert = kind === "video" && files.some((file) => needsWebSafeVideoReencode(file));
     setUploading(true);
     setUploadProgress(0);
-    setUploadLabel(mediaPrepareLabel(kind));
+    setUploadLabel(mediaPrepareLabel(kind, needsConvert));
 
     try {
       const newUrls: string[] = [];
@@ -96,13 +95,27 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
       let newTour: string | null = tourUrl;
 
       const prefixByKind = { image: "img", video: "video", tour: "tour360" } as const;
-      const enhanced = await enhanceMediaFilesForUpload(files, kind === "tour" ? "image" : kind);
+      const enhanced = await enhanceMediaFilesForUpload(
+        files,
+        kind === "tour" ? "image" : kind,
+        kind === "video"
+          ? {
+              onProgress: (percent) => {
+                setUploadLabel("Converting to MP4…");
+                setUploadProgress(percent);
+              },
+            }
+          : undefined,
+      );
       if (kind === "video") {
         if (enhanced.some((file) => needsWebSafeVideoReencode(file))) {
-          toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
-            description: MOV_HINT,
+          toast.error("Couldn’t convert this video to MP4", {
+            description: "Try a shorter clip, or paste a YouTube/Vimeo link below.",
           });
           return;
+        }
+        if (needsConvert) {
+          toast.success("Converted to MP4 — uploading…");
         }
       }
 
@@ -144,6 +157,8 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
         video_url: newVideo,
         tour_url: newTour,
       });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
       globalThis.setTimeout(() => setUploadProgress(null), 400);
@@ -158,17 +173,9 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           return false;
         }
       }
-      if (kind === "video") {
-        if (!isLikelyVideoFile(f)) {
-          toast.error(`${f.name}: not a video`);
-          return false;
-        }
-        if (needsWebSafeVideoReencode(f)) {
-          toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
-            description: MOV_HINT,
-          });
-          return false;
-        }
+      if (kind === "video" && !isLikelyVideoFile(f)) {
+        toast.error(`${f.name}: not a video`);
+        return false;
       }
       if (!isWithinUploadLimit(f, kind === "tour" ? "image" : kind)) {
         toast.error(`${f.name}: max ${uploadLimitLabel(kind === "tour" ? "image" : kind)}`);
@@ -241,12 +248,12 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           onFiles={(files) => pickFiles(files, "image")}
         />
         <FileDropZone
-          accept="video/mp4,video/webm,video/*,.mp4,.webm"
+          accept="video/mp4,video/webm,video/quicktime,video/*,.mp4,.webm,.mov"
           disabled={busy}
           uploadProgress={uploading ? uploadProgress : null}
           uploadLabel={uploadLabel}
           title="Walkthrough video"
-          hint={`Original HD MP4/WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
+          hint={`MOV auto-converts to MP4 · max ${MAX_VIDEO_UPLOAD_MB}MB`}
           icon={<Film className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
           onFiles={(files) => pickFiles(files, "video")}
         />

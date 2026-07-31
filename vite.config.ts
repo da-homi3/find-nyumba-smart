@@ -15,6 +15,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    optimizeDeps: {
+      exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util", "@ffmpeg/core"],
+    },
     build: {
       chunkSizeWarningLimit: 750,
       rollupOptions: {
@@ -36,13 +39,14 @@ export default defineConfig({
             if (id.includes("recharts")) return "recharts";
             if (id.includes("@supabase")) return "supabase";
             if (id.includes("@tanstack")) return "tanstack";
+            if (id.includes("@ffmpeg")) return "ffmpeg";
           },
         },
       },
     },
     ssr: {
       noExternal: [],
-      external: ["@sendgrid/mail", "mapbox-gl"],
+      external: ["@sendgrid/mail", "mapbox-gl", "@ffmpeg/ffmpeg", "@ffmpeg/util", "@ffmpeg/core"],
     },
   },
 });

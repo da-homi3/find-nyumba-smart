@@ -364,7 +364,11 @@ function ListingWizardMediaTab({
   setTourFile: (file: File | null) => void;
 }>) {
   const progressLabel =
-    uploadPhase === "enhancing" ? "Preparing media…" : "Uploading media…";
+    uploadPhase === "enhancing"
+      ? uploadProgress != null && uploadProgress > 0
+        ? `Converting to MP4… ${uploadProgress}%`
+        : "Preparing media…"
+      : "Uploading media…";
   return (
     <div className="space-y-5">
       <FileDropZone
@@ -391,13 +395,13 @@ function ListingWizardMediaTab({
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
           <FileDropZone
-            accept="video/mp4,video/webm,video/*,.mp4,.webm"
+            accept="video/mp4,video/webm,video/quicktime,video/*,.mp4,.webm,.mov"
             disabled={busy}
             title="Drop walkthrough video"
-            hint={`Original HD MP4/WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
+            hint={`MOV auto-converts to MP4 · max ${MAX_VIDEO_UPLOAD_MB}MB`}
             icon={<Film className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
             onFiles={onPickVideo}
-            footnote="Upload the original camera file (not a compressed share). MOV won’t play — export MP4 from Photos."
+            footnote="iPhone MOV files are converted to MP4 automatically. Keep this tab open during conversion."
           />
           {videoFile ? (
             <p className="truncate text-xs text-muted-foreground">
