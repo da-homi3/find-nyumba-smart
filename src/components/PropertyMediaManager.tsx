@@ -15,6 +15,7 @@ import {
 import { uploadStorageBatchWithProgress } from "@/lib/media/storage-upload";
 import {
   enhanceMediaFilesForUpload,
+  isLikelyVideoFile,
   needsWebSafeVideoReencode,
 } from "@/lib/media/enhance-upload";
 import { randomUuid } from "@/lib/random-uuid";
@@ -26,11 +27,20 @@ type MediaKind = "image" | "video" | "tour";
 
 const BUCKET = "property-media";
 
+function mediaPrepareLabel(kind: MediaKind): string {
+  if (kind === "image") return "Preparing photos…";
+  if (kind === "video") return "Preparing video…";
+  return "Preparing 360° image…";
+}
+
 function mediaUploadLabel(kind: MediaKind): string {
   if (kind === "image") return "Uploading photos…";
   if (kind === "video") return "Uploading video…";
   return "Uploading 360° image…";
 }
+
+const MOV_HINT =
+  "MOV/QuickTime files don’t play on most phones. In Photos/Files, export as MP4, or paste a YouTube/Vimeo link below.";
 
 export function PropertyMediaManager({ property }: Readonly<{ property: Property }>) {
   const { user } = useAuth();
@@ -78,7 +88,7 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
     if (!user) throw new Error("Sign in required");
     setUploading(true);
     setUploadProgress(0);
-    setUploadLabel(mediaUploadLabel(kind));
+    setUploadLabel(mediaPrepareLabel(kind));
 
     try {
       const newUrls: string[] = [];
@@ -90,12 +100,15 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
       if (kind === "video") {
         if (enhanced.some((file) => needsWebSafeVideoReencode(file))) {
           toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
-            description:
-              "MOV/QuickTime files don’t play on most phones. Export as MP4 from your phone or camera app, then upload again.",
+            description: MOV_HINT,
           });
           return;
         }
       }
+
+      setUploadLabel(mediaUploadLabel(kind));
+      setUploadProgress(0);
+
       const uploads = enhanced.map((file) => {
         const ext = file.name.split(".").pop() ?? (kind === "video" ? "mp4" : "jpg");
         const prefix = prefixByKind[kind];
@@ -145,9 +158,17 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           return false;
         }
       }
-      if (kind === "video" && !f.type.startsWith("video/")) {
-        toast.error(`${f.name}: not a video`);
-        return false;
+      if (kind === "video") {
+        if (!isLikelyVideoFile(f)) {
+          toast.error(`${f.name}: not a video`);
+          return false;
+        }
+        if (needsWebSafeVideoReencode(f)) {
+          toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
+            description: MOV_HINT,
+          });
+          return false;
+        }
       }
       if (!isWithinUploadLimit(f, kind === "tour" ? "image" : kind)) {
         toast.error(`${f.name}: max ${uploadLimitLabel(kind === "tour" ? "image" : kind)}`);
@@ -220,12 +241,12 @@ export function PropertyMediaManager({ property }: Readonly<{ property: Property
           onFiles={(files) => pickFiles(files, "image")}
         />
         <FileDropZone
-          accept="video/*"
+          accept="video/mp4,video/webm,video/*,.mp4,.webm"
           disabled={busy}
           uploadProgress={uploading ? uploadProgress : null}
           uploadLabel={uploadLabel}
           title="Walkthrough video"
-          hint={`max ${MAX_VIDEO_UPLOAD_MB}MB`}
+          hint={`MP4 or WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
           icon={<Film className="h-7 w-7 text-primary sm:h-8 sm:w-8" />}
           onFiles={(files) => pickFiles(files, "video")}
         />

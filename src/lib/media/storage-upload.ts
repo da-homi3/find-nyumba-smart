@@ -25,6 +25,22 @@ type UploadOptions = {
   upsert?: boolean;
 };
 
+function reportXhrProgress(
+  event: ProgressEvent<EventTarget>,
+  fileSize: number,
+  onProgress?: StorageUploadProgress,
+) {
+  if (!onProgress) return;
+  if (event.lengthComputable && event.total > 0) {
+    onProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
+    return;
+  }
+  // Safari / some mobile browsers omit lengthComputable — estimate from file size.
+  if (fileSize > 0 && event.loaded > 0) {
+    onProgress(Math.min(99, Math.round((event.loaded / fileSize) * 100)));
+  }
+}
+
 /** Upload a single object with byte-level progress via XHR (Supabase Storage REST API). */
 export async function uploadStorageObjectWithProgress(
   bucket: string,
@@ -46,8 +62,10 @@ export async function uploadStorageObjectWithProgress(
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.upload.addEventListener("progress", (event) => {
-      if (!event.lengthComputable || !onProgress) return;
-      onProgress(Math.round((event.loaded / event.total) * 100));
+      reportXhrProgress(event, file.size, onProgress);
+    });
+    xhr.upload.addEventListener("loadstart", () => {
+      onProgress?.(1);
     });
     xhr.addEventListener("load", () => {
       if (xhr.status >= 200 && xhr.status < 300) {
@@ -87,8 +105,10 @@ export async function uploadStorageObjectViaSignedUrl(
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.upload.addEventListener("progress", (event) => {
-      if (!event.lengthComputable || !onProgress) return;
-      onProgress(Math.round((event.loaded / event.total) * 100));
+      reportXhrProgress(event, file.size, onProgress);
+    });
+    xhr.upload.addEventListener("loadstart", () => {
+      onProgress?.(1);
     });
     xhr.addEventListener("load", () => {
       if (xhr.status >= 200 && xhr.status < 300) {

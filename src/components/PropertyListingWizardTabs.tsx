@@ -340,6 +340,7 @@ function ListingWizardMediaTab({
   videoFile,
   tourFile,
   uploadProgress,
+  uploadPhase,
   onPickImages,
   onPickVideo,
   onPickTour,
@@ -354,6 +355,7 @@ function ListingWizardMediaTab({
   videoFile: File | null;
   tourFile: File | null;
   uploadProgress: number | null;
+  uploadPhase?: string | null;
   onPickImages: (files: File[]) => void;
   onPickVideo: (files: File[]) => void;
   onPickTour: (files: File[]) => void;
@@ -361,6 +363,8 @@ function ListingWizardMediaTab({
   setVideoFile: (file: File | null) => void;
   setTourFile: (file: File | null) => void;
 }>) {
+  const progressLabel =
+    uploadPhase === "enhancing" ? "Preparing media…" : "Uploading media…";
   return (
     <div className="space-y-5">
       <FileDropZone
@@ -387,10 +391,10 @@ function ListingWizardMediaTab({
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">
           <FileDropZone
-            accept="video/*"
+            accept="video/mp4,video/webm,video/*,.mp4,.webm"
             disabled={busy}
             title="Drop walkthrough video"
-            hint={`max ${MAX_VIDEO_UPLOAD_MB}MB`}
+            hint={`MP4 or WebM · max ${MAX_VIDEO_UPLOAD_MB}MB`}
             icon={<Film className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
             onFiles={onPickVideo}
           />
@@ -457,7 +461,7 @@ function ListingWizardMediaTab({
         </div>
       </div>
       {uploadProgress !== null ? (
-        <UploadProgressBar value={uploadProgress} label="Uploading media…" />
+        <UploadProgressBar value={uploadProgress} label={progressLabel} />
       ) : null}
     </div>
   );
@@ -598,6 +602,7 @@ export type ListingWizardTabContentProps = Readonly<{
   videoFile: File | null;
   tourFile: File | null;
   uploadProgress: number | null;
+  uploadPhase?: string | null;
   onPickImages: (files: File[]) => void;
   onPickVideo: (files: File[]) => void;
   onPickTour: (files: File[]) => void;
@@ -616,6 +621,7 @@ export function ListingWizardTabContent({
   videoFile,
   tourFile,
   uploadProgress,
+  uploadPhase,
   onPickImages,
   onPickVideo,
   onPickTour,
@@ -644,6 +650,7 @@ export function ListingWizardTabContent({
           videoFile={videoFile}
           tourFile={tourFile}
           uploadProgress={uploadProgress}
+          uploadPhase={uploadPhase}
           onPickImages={onPickImages}
           onPickVideo={onPickVideo}
           onPickTour={onPickTour}

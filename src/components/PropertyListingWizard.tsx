@@ -24,7 +24,7 @@ import {
 } from "@/lib/property-types";
 import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
 import { generateListingTitle } from "@/lib/listings/generate-listing-title";
-import { enhanceImageForUpload, enhanceVideoForUpload, needsWebSafeVideoReencode } from "@/lib/media/enhance-upload";
+import { enhanceImageForUpload, enhanceVideoForUpload, isLikelyVideoFile, needsWebSafeVideoReencode } from "@/lib/media/enhance-upload";
 import { isExternalVideoEmbed } from "@/lib/media/video-embed";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -234,7 +234,7 @@ async function prepareEnhancedMediaFiles(
   ]);
   if (enhancedVideo && needsWebSafeVideoReencode(enhancedVideo)) {
     throw new Error(
-      "Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link). MOV/QuickTime files don’t play on most phones.",
+      "Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link). MOV/QuickTime files don’t play on most phones — export as MP4 from Photos/camera, then try again.",
     );
   }
   return { enhancedImages, enhancedVideo, enhancedTour };
@@ -590,8 +590,10 @@ function getSubmitLabel(
   uploading: boolean,
   uploadProgress: number | null,
   loading: boolean,
+  uploadPhase?: string | null,
 ): string {
   if (!isLastTab) return "Continue";
+  if (uploading && uploadPhase === "enhancing") return "Preparing media…";
   if (uploading && uploadProgress !== null) return `Uploading media… ${uploadProgress}%`;
   if (uploading) return "Uploading media…";
   if (loading) return "Publishing…";
@@ -615,8 +617,15 @@ function filterValidImageFiles(files: File[]): File[] {
 function parseVideoUpload(files: File[]): File | null {
   const file = files[0];
   if (!file) return null;
-  if (!file.type.startsWith("video/")) {
+  if (!isLikelyVideoFile(file)) {
     toast.error("Please choose a video file");
+    return null;
+  }
+  if (needsWebSafeVideoReencode(file)) {
+    toast.error("Use an MP4 or WebM walkthrough (or a YouTube/Vimeo link)", {
+      description:
+        "MOV/QuickTime files don’t play on most phones. Export as MP4 from Photos/camera, then upload again.",
+    });
     return null;
   }
   if (!isWithinUploadLimit(file, "video")) {
@@ -790,6 +799,7 @@ export function PropertyListingWizard({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadPhase, setUploadPhase] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [tourFile, setTourFile] = useState<File | null>(null);
@@ -800,6 +810,7 @@ export function PropertyListingWizard({
       phase: string;
       progress: number | null;
     }) => {
+      setUploadPhase(snapshot.phase);
       const busyPhase =
         snapshot.phase === "enhancing" ||
         snapshot.phase === "uploading" ||
@@ -815,6 +826,7 @@ export function PropertyListingWizard({
         setLoading(false);
         setUploading(false);
         setUploadProgress(null);
+        setUploadPhase(null);
       }
     },
     [],
@@ -999,6 +1011,7 @@ export function PropertyListingWizard({
           videoFile={videoFile}
           tourFile={tourFile}
           uploadProgress={uploadProgress}
+          uploadPhase={uploadPhase}
           onPickImages={onPickImages}
           onPickVideo={onPickVideo}
           onPickTour={onPickTour}
@@ -1023,7 +1036,7 @@ export function PropertyListingWizard({
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {getSubmitLabel(isLastTab, uploading, uploadProgress, loading)}
+            {getSubmitLabel(isLastTab, uploading, uploadProgress, loading, uploadPhase)}
           </button>
         </div>
       </form>

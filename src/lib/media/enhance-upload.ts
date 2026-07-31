@@ -4,6 +4,28 @@ const MAX_IMAGE_EDGE_PX = 3840;
 const JPEG_QUALITY = 0.93;
 const PNG_QUALITY = 0.95;
 
+/** Bound metadata / canplay waits so mobile Safari never hangs the upload UI. */
+const VIDEO_META_TIMEOUT_MS = 8_000;
+const VIDEO_CANPLAY_TIMEOUT_MS = 10_000;
+/** Client re-encode is realtime playback — only attempt short clips. */
+const MAX_CLIENT_REENCODE_DURATION_SEC = 90;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = globalThis.setTimeout(() => resolve(fallback), ms);
+    promise.then(
+      (value) => {
+        globalThis.clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        globalThis.clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
 function sharpenImageData(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const imageData = ctx.getImageData(0, 0, width, height);
   const { data } = imageData;
@@ -105,6 +127,11 @@ type VideoMeta = {
   height: number;
 };
 
+function isLikelyVideoFile(file: File): boolean {
+  if (file.type.startsWith("video/")) return true;
+  return /\.(mov|mp4|webm|m4v|avi|wmv|3gp)$/i.test(file.name);
+}
+
 function readVideoMeta(file: File): Promise<VideoMeta | null> {
   if (globalThis.document === undefined) return Promise.resolve(null);
 
@@ -148,8 +175,6 @@ function readVideoMeta(file: File): Promise<VideoMeta | null> {
   });
 }
 
-const MAX_REENCODE_DURATION_SEC = 600;
-
 function preferredVideoMimeType(): string {
   // Prefer MP4 for widest HTML5 playback (Chrome + Safari + Android).
   if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("video/mp4")) {
@@ -162,6 +187,17 @@ function preferredVideoMimeType(): string {
     return "video/webm";
   }
   return "";
+}
+
+/** Whether this browser can convert MOV → MP4/WebM in-page (most iPhones cannot). */
+export function canClientReencodeVideo(): boolean {
+  if (globalThis.document === undefined) return false;
+  if (typeof MediaRecorder === "undefined") return false;
+  if (!preferredVideoMimeType()) return false;
+  const probe = document.createElement("video") as HTMLVideoElement & {
+    captureStream?: () => MediaStream;
+  };
+  return typeof probe.captureStream === "function";
 }
 
 /** True when the container/codec often fails in Chrome/Android <video>. */
@@ -185,7 +221,7 @@ export function needsWebSafeVideoReencode(file: File): boolean {
     return false;
   }
   // Unknown video types — try to normalize
-  return type.startsWith("video/");
+  return type.startsWith("video/") || isLikelyVideoFile(file);
 }
 
 type ReencodeOptions = {
@@ -200,39 +236,47 @@ async function reencodeVideoAtHighBitrate(
   options: ReencodeOptions = {},
 ): Promise<File | null> {
   if (globalThis.document === undefined) return null;
-  const maxDuration = options.maxDurationSec ?? MAX_REENCODE_DURATION_SEC;
+  if (!canClientReencodeVideo()) return null;
+  const maxDuration = options.maxDurationSec ?? MAX_CLIENT_REENCODE_DURATION_SEC;
   if (meta.durationSec <= 0 || meta.durationSec > maxDuration) return null;
 
   const url = URL.createObjectURL(file);
-  const video = document.createElement("video");
+  const video = document.createElement("video") as HTMLVideoElement & {
+    captureStream?: () => MediaStream;
+  };
   video.preload = "auto";
   video.muted = true;
   video.playsInline = true;
   video.src = url;
 
-  await new Promise<void>((resolve, reject) => {
-    video.addEventListener("canplay", () => resolve(), { once: true });
-    video.addEventListener("error", () => reject(new Error("video load failed")), { once: true });
-  });
+  const ready = await withTimeout(
+    new Promise<boolean>((resolve) => {
+      video.addEventListener("canplay", () => resolve(true), { once: true });
+      video.addEventListener("error", () => resolve(false), { once: true });
+    }),
+    VIDEO_CANPLAY_TIMEOUT_MS,
+    false,
+  );
+  if (!ready) {
+    URL.revokeObjectURL(url);
+    return null;
+  }
 
-  const stream = (
-    video as HTMLVideoElement & { captureStream?: () => MediaStream }
-  ).captureStream?.();
+  const stream = video.captureStream?.();
   if (!stream) {
     URL.revokeObjectURL(url);
     return null;
   }
 
   const mimeType = preferredVideoMimeType();
-
   if (!mimeType) {
     URL.revokeObjectURL(url);
     return null;
   }
 
   const targetBitrate = Math.min(
-    12_000_000,
-    Math.max(4_000_000, Math.round((meta.width * meta.height) / 1_000)),
+    8_000_000,
+    Math.max(2_500_000, Math.round((meta.width * meta.height) / 1_200)),
   );
 
   const chunks: BlobPart[] = [];
@@ -247,7 +291,13 @@ async function reencodeVideoAtHighBitrate(
   });
 
   recorder.start(250);
-  await video.play();
+  try {
+    await video.play();
+  } catch {
+    recorder.stop();
+    URL.revokeObjectURL(url);
+    return null;
+  }
 
   await new Promise<void>((resolve) => {
     video.addEventListener("ended", () => resolve(), { once: true });
@@ -278,36 +328,37 @@ async function reencodeVideoAtHighBitrate(
 }
 
 /**
- * Normalize walkthrough videos to a browser-safe format when needed,
- * and boost heavily compressed clips when the browser can re-encode them.
+ * Prepare walkthrough videos for upload.
+ * MP4/WebM upload as-is (fast). MOV only converts when the browser can —
+ * never hangs waiting on Safari metadata / canplay.
  */
 export async function enhanceVideoForUpload(file: File): Promise<File> {
-  if (!file.type.startsWith("video/") && !/\.(mov|mp4|webm|m4v|avi)$/i.test(file.name)) {
-    return file;
-  }
+  if (!isLikelyVideoFile(file)) return file;
 
-  const meta = await readVideoMeta(file);
+  // Already web-safe — skip expensive client re-encode (was the main 0% stall).
+  if (!needsWebSafeVideoReencode(file)) return file;
+
+  // iOS Safari / Android WebView usually lack captureStream — fail open immediately.
+  if (!canClientReencodeVideo()) return file;
+
+  const meta = await withTimeout(readVideoMeta(file), VIDEO_META_TIMEOUT_MS, null);
   if (!meta || meta.durationSec <= 0) return file;
+  if (meta.durationSec > MAX_CLIENT_REENCODE_DURATION_SEC) return file;
 
-  const needsCompat = needsWebSafeVideoReencode(file);
-  if (needsCompat) {
-    try {
-      const reencoded = await reencodeVideoAtHighBitrate(file, meta, {
-        forCompatibility: true,
-      });
-      if (reencoded) return reencoded;
-    } catch {
-      // Fall through — caller may still upload original on platforms that can play it.
-    }
-    return file;
-  }
-
-  const estimatedBitrate = (file.size * 8) / meta.durationSec;
-  const looksCompressed = estimatedBitrate < 2_500_000 || meta.width < 960;
-  if (!looksCompressed) return file;
+  const encodeBudgetMs = Math.min(
+    75_000,
+    Math.ceil(meta.durationSec * 1000) + 12_000,
+  );
 
   try {
-    const reencoded = await reencodeVideoAtHighBitrate(file, meta, { forCompatibility: false });
+    const reencoded = await withTimeout(
+      reencodeVideoAtHighBitrate(file, meta, {
+        forCompatibility: true,
+        maxDurationSec: MAX_CLIENT_REENCODE_DURATION_SEC,
+      }),
+      encodeBudgetMs,
+      null,
+    );
     return reencoded ?? file;
   } catch {
     return file;
@@ -323,3 +374,5 @@ export async function enhanceMediaFilesForUpload(
   }
   return Promise.all(files.map((file) => enhanceImageForUpload(file)));
 }
+
+export { isLikelyVideoFile };
