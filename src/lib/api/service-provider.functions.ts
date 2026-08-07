@@ -170,36 +170,40 @@ export const getProviderDashboard = createServerFn({ method: "GET" })
 
     if (!provider) return { provider: null, subscription: null, inquiries: [] };
 
-    const [{ data: subscription }, { data: inquiryRows }, { data: quoteLeads }] = await Promise.all([
-      provider.subscription_id
-        ? supabaseAdmin
-            .from("subscriptions")
-            .select("*")
-            .eq("id", provider.subscription_id)
-            .maybeSingle()
-        : supabaseAdmin
-            .from("subscriptions")
-            .select("*")
-            .eq("user_id", userId)
-            .in("plan", ["basic", "featured", "premium"])
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-      supabaseAdmin
-        .from("provider_inquiries")
-        .select("id, message, created_at, tenant_user_id")
-        .eq("provider_id", provider.id)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabaseAdmin
-        .from("partnership_inquiries")
-        .select("*")
-        .eq("inquiry_type", "service_quote")
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
+    const [{ data: subscription }, { data: inquiryRows }, { data: quoteLeads }] = await Promise.all(
+      [
+        provider.subscription_id
+          ? supabaseAdmin
+              .from("subscriptions")
+              .select("*")
+              .eq("id", provider.subscription_id)
+              .maybeSingle()
+          : supabaseAdmin
+              .from("subscriptions")
+              .select("*")
+              .eq("user_id", userId)
+              .in("plan", ["basic", "featured", "premium"])
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+        supabaseAdmin
+          .from("provider_inquiries")
+          .select("id, message, created_at, tenant_user_id")
+          .eq("provider_id", provider.id)
+          .order("created_at", { ascending: false })
+          .limit(50),
+        supabaseAdmin
+          .from("partnership_inquiries")
+          .select("*")
+          .eq("inquiry_type", "service_quote")
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ],
+    );
 
-    const tenantIds = [...new Set((inquiryRows ?? []).map((row) => row.tenant_user_id).filter(Boolean))];
+    const tenantIds = [
+      ...new Set((inquiryRows ?? []).map((row) => row.tenant_user_id).filter(Boolean)),
+    ];
     const profileMap = new Map<string, { full_name: string | null; phone: string | null }>();
     if (tenantIds.length > 0) {
       const { data: profiles } = await supabaseAdmin
@@ -537,28 +541,32 @@ export const listProviderCounties = createServerFn({ method: "GET" }).handler(as
 
 export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handler(async () => {
   const { withCache } = await import("@/lib/cache/manager");
-  const { data } = await withCache("provider_category_counts_v1", "provider_category_counts", async () => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
-      .from("service_providers")
-      .select("categories")
-      .eq("status", "active");
+  const { data } = await withCache(
+    "provider_category_counts_v1",
+    "provider_category_counts",
+    async () => {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: rows, error } = await supabaseAdmin
+        .from("service_providers")
+        .select("categories")
+        .eq("status", "active");
 
-    if (error) throw error;
+      if (error) throw error;
 
-    const counts = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
-      (typeof categories)[number],
-      number
-    >;
+      const counts = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
+        (typeof categories)[number],
+        number
+      >;
 
-    for (const row of rows ?? []) {
-      for (const cat of normalizeProviderCategories(row.categories)) {
-        if (cat in counts) counts[cat as (typeof categories)[number]]++;
+      for (const row of rows ?? []) {
+        for (const cat of normalizeProviderCategories(row.categories)) {
+          if (cat in counts) counts[cat as (typeof categories)[number]]++;
+        }
       }
-    }
 
-    return counts;
-  });
+      return counts;
+    },
+  );
   return data;
 });
 

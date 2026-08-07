@@ -69,7 +69,10 @@ export async function leasesEndingSoon(
   if (ending.length === 0) return [];
 
   const tenantIds = ending.map((l) => l.tenant_id);
-  const { data: tenants } = await admin.from("pm_tenants").select("id, full_name").in("id", tenantIds);
+  const { data: tenants } = await admin
+    .from("pm_tenants")
+    .select("id, full_name")
+    .in("id", tenantIds);
   const { data: unitRows } = await admin
     .from("pm_units")
     .select("id, unit_label")

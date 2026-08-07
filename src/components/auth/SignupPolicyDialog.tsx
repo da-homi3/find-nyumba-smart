@@ -79,7 +79,10 @@ export function SignupPolicyDialog({ open, role, busy = false, onClose, onAccept
                 <ul className="mt-2 space-y-2 text-sm leading-6 text-muted-foreground">
                   {section.bullets.map((bullet) => (
                     <li key={bullet} className="flex gap-2">
-                      <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span
+                        aria-hidden
+                        className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                      />
                       <span>{bullet}</span>
                     </li>
                   ))}
@@ -98,8 +101,8 @@ export function SignupPolicyDialog({ open, role, busy = false, onClose, onAccept
               className="mt-1 h-4 w-4 rounded border-input"
             />
             <span>
-              I confirm that I have read and agree to these terms, understand how NyumbaSearch
-              works for this account type, and will use the platform in line with these conditions.
+              I confirm that I have read and agree to these terms, understand how NyumbaSearch works
+              for this account type, and will use the platform in line with these conditions.
             </span>
           </label>
 

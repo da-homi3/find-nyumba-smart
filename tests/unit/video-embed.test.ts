@@ -17,8 +17,14 @@ describe("video-embed", () => {
 
   it("builds YouTube embed URLs", () => {
     expect(youtubeEmbedUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(
-      "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1",
+      "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1&playsinline=1&hd=1",
     );
+    // playsinline keeps mobile Safari from hijacking into fullscreen.
+    expect(youtubeEmbedUrl("https://youtu.be/dQw4w9WgXcQ")).toContain("playsinline=1");
+    expect(youtubeEmbedUrl("https://www.youtube.com/shorts/dQw4w9WgXcQ")).toContain(
+      "/embed/dQw4w9WgXcQ",
+    );
+    expect(youtubeEmbedUrl("https://example.com/not-a-video")).toBeNull();
     expect(externalVideoEmbedUrl("https://youtu.be/dQw4w9WgXcQ")).toContain("/embed/dQw4w9WgXcQ");
   });
 

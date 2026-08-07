@@ -120,9 +120,7 @@ async function fetchListingsOnce(
     } catch {
       // keep raw body slice
     }
-    const message = detail
-      ? `Listings API ${res.status}: ${detail}`
-      : `Listings API ${res.status}`;
+    const message = detail ? `Listings API ${res.status}: ${detail}` : `Listings API ${res.status}`;
     return { ok: false, status: res.status, message };
   }
 

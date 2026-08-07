@@ -101,7 +101,11 @@ export const listLandlordLeadsPanel = createServerFn({ method: "GET" })
       await import("@/lib/revenue/lead-access");
     const leadAccess = await resolveLeadContactAccess(supabase, userId);
 
-    const { data, error } = await supabase
+    // Service role: a lead's tenant is not necessarily an inquiry/viewing counterparty, so
+    // the embedded profile would come back null under the profiles RLS policies. The
+    // landlord_id filter authorizes the read, and redactProfilePhone still gates the phone.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("leads")
       .select(
         `

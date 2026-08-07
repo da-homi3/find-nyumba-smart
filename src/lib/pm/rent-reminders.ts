@@ -27,15 +27,14 @@ export async function applyPmLateFees(admin: PmDb): Promise<{ updated: number }>
   const leaseById = new Map((leases ?? []).map((l: { id: string; unit_id: string }) => [l.id, l]));
 
   const unitIds = [...new Set((leases ?? []).map((l: { unit_id: string }) => l.unit_id))];
-  const { data: units } = await admin
-    .from("pm_units")
-    .select("id, property_id")
-    .in("id", unitIds);
+  const { data: units } = await admin.from("pm_units").select("id, property_id").in("id", unitIds);
   const unitById = new Map(
     (units ?? []).map((u: { id: string; property_id: string }) => [u.id, u]),
   );
 
-  const propertyIds = [...new Set((units ?? []).map((u: { property_id: string }) => u.property_id))];
+  const propertyIds = [
+    ...new Set((units ?? []).map((u: { property_id: string }) => u.property_id)),
+  ];
   const { data: properties } = await admin
     .from("pm_properties")
     .select("id, late_fee_percent_per_week")
@@ -117,14 +116,18 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
   );
   const tenantById = new Map(
     (tenants ?? []).map(
-      (t: { id: string; full_name: string; email: string | null; tenant_user_id: string | null }) => [
-        t.id,
-        t,
-      ],
+      (t: {
+        id: string;
+        full_name: string;
+        email: string | null;
+        tenant_user_id: string | null;
+      }) => [t.id, t],
     ),
   );
 
-  const propertyIds = [...new Set((units ?? []).map((u: { property_id: string }) => u.property_id))];
+  const propertyIds = [
+    ...new Set((units ?? []).map((u: { property_id: string }) => u.property_id)),
+  ];
   const { data: properties } = await admin
     .from("pm_properties")
     .select("id, name")

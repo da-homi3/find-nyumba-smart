@@ -29,10 +29,7 @@ export function TenantBottomNav() {
   };
 
   return (
-    <nav
-      data-tour="tenant-bottom-nav"
-      className="fixed inset-x-0 bottom-0 z-30 md:hidden"
-    >
+    <nav data-tour="tenant-bottom-nav" className="fixed inset-x-0 bottom-0 z-30 md:hidden">
       <div className="mx-2 mb-[max(0.35rem,env(safe-area-inset-bottom))] rounded-2xl border border-border/60 bg-background/75 shadow-[0_-8px_32px_rgba(17,24,39,0.12)] backdrop-blur-xl supports-backdrop-filter:bg-background/65">
         <div className="mx-auto flex max-w-2xl items-stretch justify-around px-1 py-1.5">
           {items.map((i) => {

@@ -57,9 +57,7 @@ function AdminCreateProviderPage() {
       const has = prev.categories.includes(slug);
       return {
         ...prev,
-        categories: has
-          ? prev.categories.filter((c) => c !== slug)
-          : [...prev.categories, slug],
+        categories: has ? prev.categories.filter((c) => c !== slug) : [...prev.categories, slug],
       };
     });
   }
@@ -177,9 +175,7 @@ function AdminCreateProviderPage() {
         </fieldset>
 
         <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold">
-            Areas served (comma-separated)
-          </span>
+          <span className="mb-1.5 block text-xs font-semibold">Areas served (comma-separated)</span>
           <input
             required
             value={form.areasServed}

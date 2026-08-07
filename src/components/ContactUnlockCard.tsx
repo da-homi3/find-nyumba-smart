@@ -66,8 +66,7 @@ function SignInUnlockCard() {
     <div className="rounded-2xl border bg-card p-4">
       <p className="font-semibold">Get this landlord&apos;s number</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Sign in for {TENANT_FREE_UNLOCK_ALLOWANCE} free unlocks, then KES 30–150 via M-Pesa per
-        listing — or Plus for unlimited.
+        Sign in for 1 free unlock, then KES 50–500 via M-Pesa per listing — or Plus for unlimited.
       </p>
       <Link
         to="/auth"

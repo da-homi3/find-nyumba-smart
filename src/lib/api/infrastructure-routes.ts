@@ -152,85 +152,94 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
   const cacheUrl = new URL(req.url);
   cacheUrl.searchParams.set("_e", String(epoch));
 
-  return withEdgeCache(req, ctx, async () => {
-    const url = new URL(req.url);
-    const { queryListings } = await import("@/lib/api/listings-core");
-    const { propertyTypeSchema } = await import("@/lib/api/nyumba/nyumba-shared");
+  return withEdgeCache(
+    req,
+    ctx,
+    async () => {
+      const url = new URL(req.url);
+      const { queryListings } = await import("@/lib/api/listings-core");
+      const { propertyTypeSchema } = await import("@/lib/api/nyumba/nyumba-shared");
 
-    const typeRaw = url.searchParams.get("type");
-    const typesRaw = url.searchParams.get("types");
-    const parsedType = typeRaw ? propertyTypeSchema.safeParse(typeRaw) : null;
-    const propertyTypes = typesRaw
-      ? typesRaw
-          .split(",")
-          .map((t) => t.trim())
-          .map((t) => propertyTypeSchema.safeParse(t))
-          .flatMap((r) => (r.success ? [r.data] : []))
-      : undefined;
+      const typeRaw = url.searchParams.get("type");
+      const typesRaw = url.searchParams.get("types");
+      const parsedType = typeRaw ? propertyTypeSchema.safeParse(typeRaw) : null;
+      const propertyTypes = typesRaw
+        ? typesRaw
+            .split(",")
+            .map((t) => t.trim())
+            .map((t) => propertyTypeSchema.safeParse(t))
+            .flatMap((r) => (r.success ? [r.data] : []))
+        : undefined;
 
-    const pricingModeRaw = url.searchParams.get("pricingMode");
-    const pricingMode: "rent" | "sale" | undefined =
-      pricingModeRaw === "rent" || pricingModeRaw === "sale" ? pricingModeRaw : undefined;
+      const pricingModeRaw = url.searchParams.get("pricingMode");
+      const pricingMode: "rent" | "sale" | undefined =
+        pricingModeRaw === "rent" || pricingModeRaw === "sale" ? pricingModeRaw : undefined;
 
-    const originLatRaw = url.searchParams.get("originLat");
-    const originLngRaw = url.searchParams.get("originLng");
-    const originLat = originLatRaw != null ? Number(originLatRaw) : Number.NaN;
-    const originLng = originLngRaw != null ? Number(originLngRaw) : Number.NaN;
-    const sortByRaw = url.searchParams.get("sortBy");
-    const sortBy: PropertySearchFilters["sortBy"] =
-      sortByRaw === "nearby" ||
-      sortByRaw === "newest" ||
-      sortByRaw === "price_asc" ||
-      sortByRaw === "price_desc" ||
-      sortByRaw === "score"
-        ? sortByRaw
-        : "newest";
+      const originLatRaw = url.searchParams.get("originLat");
+      const originLngRaw = url.searchParams.get("originLng");
+      const originLat = originLatRaw != null ? Number(originLatRaw) : Number.NaN;
+      const originLng = originLngRaw != null ? Number(originLngRaw) : Number.NaN;
+      const sortByRaw = url.searchParams.get("sortBy");
+      const sortBy: PropertySearchFilters["sortBy"] =
+        sortByRaw === "nearby" ||
+        sortByRaw === "newest" ||
+        sortByRaw === "price_asc" ||
+        sortByRaw === "price_desc" ||
+        sortByRaw === "score"
+          ? sortByRaw
+          : "newest";
 
-    const filters: PropertySearchFilters = {
-      limit: (() => {
-        const n = Number(url.searchParams.get("limit") ?? "50");
-        return Number.isFinite(n) ? Math.trunc(n) : 50;
-      })(),
-      offset: (() => {
-        const n = Number(url.searchParams.get("offset") ?? "0");
-        return Number.isFinite(n) ? Math.trunc(n) : 0;
-      })(),
-      query: url.searchParams.get("q") ?? undefined,
-      neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
-      propertyType: parsedType?.success ? parsedType.data : undefined,
-      propertyTypes: propertyTypes && propertyTypes.length > 0 ? propertyTypes : undefined,
-      pricingMode,
-      minRent: url.searchParams.get("minRent") ? Number(url.searchParams.get("minRent")) : undefined,
-      maxRent: url.searchParams.get("maxRent") ? Number(url.searchParams.get("maxRent")) : undefined,
-      verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
-      minBedrooms: url.searchParams.get("minBedrooms")
-        ? Number(url.searchParams.get("minBedrooms"))
-        : undefined,
-      sortBy,
-      originLat: Number.isFinite(originLat) ? originLat : undefined,
-      originLng: Number.isFinite(originLng) ? originLng : undefined,
-    };
+      const filters: PropertySearchFilters = {
+        limit: (() => {
+          const n = Number(url.searchParams.get("limit") ?? "50");
+          return Number.isFinite(n) ? Math.trunc(n) : 50;
+        })(),
+        offset: (() => {
+          const n = Number(url.searchParams.get("offset") ?? "0");
+          return Number.isFinite(n) ? Math.trunc(n) : 0;
+        })(),
+        query: url.searchParams.get("q") ?? undefined,
+        neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
+        propertyType: parsedType?.success ? parsedType.data : undefined,
+        propertyTypes: propertyTypes && propertyTypes.length > 0 ? propertyTypes : undefined,
+        pricingMode,
+        minRent: url.searchParams.get("minRent")
+          ? Number(url.searchParams.get("minRent"))
+          : undefined,
+        maxRent: url.searchParams.get("maxRent")
+          ? Number(url.searchParams.get("maxRent"))
+          : undefined,
+        verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
+        minBedrooms: url.searchParams.get("minBedrooms")
+          ? Number(url.searchParams.get("minBedrooms"))
+          : undefined,
+        sortBy,
+        originLat: Number.isFinite(originLat) ? originLat : undefined,
+        originLng: Number.isFinite(originLng) ? originLng : undefined,
+      };
 
-    const started = Date.now();
-    const result = await queryListings(filters);
-    console.log(
-      JSON.stringify({
-        event: "listings_api",
-        items: result.items.length,
-        total: result.total,
-        limit: filters.limit,
-        sortBy: filters.sortBy,
-        ms: Date.now() - started,
-      }),
-    );
-    return new Response(JSON.stringify(result), {
-      headers: {
-        "Content-Type": "application/json",
-        // Edge + browser SWR — cache key includes listings epoch so uploads bust colo cache.
-        "Cache-Control": "public, max-age=30, stale-while-revalidate=120",
-      },
-    });
-  }, { cacheKeyUrl: cacheUrl.toString() });
+      const started = Date.now();
+      const result = await queryListings(filters);
+      console.log(
+        JSON.stringify({
+          event: "listings_api",
+          items: result.items.length,
+          total: result.total,
+          limit: filters.limit,
+          sortBy: filters.sortBy,
+          ms: Date.now() - started,
+        }),
+      );
+      return new Response(JSON.stringify(result), {
+        headers: {
+          "Content-Type": "application/json",
+          // Edge + browser SWR — cache key includes listings epoch so uploads bust colo cache.
+          "Cache-Control": "public, max-age=30, stale-while-revalidate=120",
+        },
+      });
+    },
+    { cacheKeyUrl: cacheUrl.toString() },
+  );
 }
 
 async function handleListingsHealth(): Promise<Response> {
@@ -762,6 +771,82 @@ const ROUTES: RouteDef[] = [
     },
   },
   {
+    match: (url, method) => url.pathname === "/api/health/intasend-stk" && method === "GET",
+    run: async (req) => {
+      const secret = process.env.CRON_SECRET;
+      const auth = req.headers.get("authorization");
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      try {
+        const { probeIntasendFromWorker } = await import("@/lib/pm/intasend-collect");
+        const url = new URL(req.url);
+        const phone = url.searchParams.get("phone") || undefined;
+        const amountRaw = url.searchParams.get("amount");
+        const amountKes = amountRaw ? Number.parseInt(amountRaw, 10) : undefined;
+        const report = await probeIntasendFromWorker({
+          phone254: phone || undefined,
+          amountKes: Number.isFinite(amountKes) ? amountKes : undefined,
+        });
+        return new Response(JSON.stringify(report, null, 2), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        console.error("IntaSend health probe error:", err);
+        return new Response(
+          JSON.stringify({
+            error: err instanceof Error ? err.message : "probe failed",
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    },
+  },
+  {
+    match: (url, method) => url.pathname === "/api/health/intasend-sync-rent" && method === "POST",
+    run: async (req) => {
+      const secret = process.env.CRON_SECRET;
+      const auth = req.headers.get("authorization");
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { syncMpesaPaymentStatus } = await import("@/lib/payments/complete-mpesa-payment");
+        const { data: rows, error } = await supabaseAdmin
+          .from("payments")
+          .select("*")
+          .eq("payment_type", "rent_payment")
+          .eq("status", "pending")
+          .not("mpesa_checkout_id", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(15);
+        if (error) throw error;
+        const results = [];
+        for (const row of rows ?? []) {
+          const synced = await syncMpesaPaymentStatus(supabaseAdmin, row);
+          results.push({
+            id: synced.id,
+            checkout: synced.mpesa_checkout_id,
+            status: synced.status,
+            receipt: synced.mpesa_receipt,
+          });
+        }
+        return new Response(JSON.stringify({ ok: true, results }, null, 2), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        console.error("IntaSend rent sync error:", err);
+        return new Response(
+          JSON.stringify({ error: err instanceof Error ? err.message : "sync failed" }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    },
+  },
+  {
     match: (url, method) => url.pathname === "/api/ai/probe" && method === "GET",
     run: async (req) => {
       const secret = process.env.CRON_SECRET;
@@ -784,14 +869,18 @@ const ROUTES: RouteDef[] = [
     match: (url, method) => url.pathname === "/api/ai/chat" && method === "POST",
     run: (req) =>
       withPublicRateLimit(req, "ai", (r) =>
-        withErrorHandler("AI chat", r, handleAiChat, () =>
-          new Response(
-            JSON.stringify({
-              reply:
-                "Please try that question once more — or contact the landlord using the buttons below.",
-            }),
-            { status: 200, headers: { "Content-Type": "application/json" } },
-          ),
+        withErrorHandler(
+          "AI chat",
+          r,
+          handleAiChat,
+          () =>
+            new Response(
+              JSON.stringify({
+                reply:
+                  "Please try that question once more — or contact the landlord using the buttons below.",
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            ),
         ),
       ),
   },
@@ -804,9 +893,8 @@ const ROUTES: RouteDef[] = [
       url.pathname === "/api/maintenance/respond" && (method === "GET" || method === "POST"),
     run: (req) =>
       withErrorHandler("Maintenance respond", req, async (r) => {
-        const { handleMaintenanceProviderRespond } = await import(
-          "@/lib/api/pm-maintenance.functions"
-        );
+        const { handleMaintenanceProviderRespond } =
+          await import("@/lib/api/pm-maintenance.functions");
         return handleMaintenanceProviderRespond(r);
       }),
   },

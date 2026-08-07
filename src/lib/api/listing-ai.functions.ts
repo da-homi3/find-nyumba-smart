@@ -139,8 +139,7 @@ export const suggestListingNeighborhood = createServerFn({ method: "POST" })
 
     const lat = data.latitude ?? null;
     const lng = data.longitude ?? null;
-    const local =
-      lat != null && lng != null ? suggestNeighborhoodFromCoords(lat, lng) : null;
+    const local = lat != null && lng != null ? suggestNeighborhoodFromCoords(lat, lng) : null;
 
     const candidates = [
       ...(local ? [local.neighborhood, ...local.alternatives] : []),

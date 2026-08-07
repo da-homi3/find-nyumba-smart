@@ -11,8 +11,12 @@ const AiAssistant = lazy(() =>
   import("@/components/AiAssistant").then((m) => ({ default: m.AiAssistant })),
 );
 
-/** Keep Mapbox mounted briefly when leaving the map tab, then unmount to free WebGL. */
-const MAP_KEEPALIVE_MS = 45_000;
+/**
+ * Keep Mapbox mounted briefly when leaving the map tab, then unmount to free WebGL.
+ * Kept short: a live GL context plus tile cache is the single biggest memory holder on
+ * the tenant app, and mobile browsers reclaim backgrounded tabs that hold onto one.
+ */
+const MAP_KEEPALIVE_MS = 15_000;
 
 export const Route = createFileRoute("/tenant")({
   component: TenantLayout,

@@ -29,7 +29,7 @@ import { useEffect, type ReactNode } from "react";
 const ownerNav = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/properties", label: "Properties", icon: Building2 },
-  { to: "/agency/manage", label: "Manage portfolio", icon: Briefcase },
+  { to: "/agency/manage", label: "Tenants & rent", icon: Briefcase },
   { to: "/agency/import", label: "Bulk import", icon: Upload },
   { to: "/agency/integrations", label: "API & integrations", icon: Plug },
   { to: "/agency/leads", label: "Messages", icon: Inbox },
@@ -46,7 +46,7 @@ const ownerNav = [
 const memberNav = [
   { to: "/agency/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agency/properties", label: "Properties", icon: Building2 },
-  { to: "/agency/manage", label: "Manage portfolio", icon: Briefcase },
+  { to: "/agency/manage", label: "Tenants & rent", icon: Briefcase },
   { to: "/agency/leads", label: "Messages", icon: Inbox },
   { to: "/agency/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -71,7 +71,7 @@ export function AgencyShell({ children }: Readonly<{ children: ReactNode }>) {
     if (!authLoading && !user) navigate({ to: "/agency" });
   }, [user, authLoading, navigate]);
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="portal-shell flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

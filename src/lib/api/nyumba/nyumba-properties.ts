@@ -112,14 +112,20 @@ async function insertPropertyListing(
     }
   }
 
-  if (addressEnrichment.addressQuality === "verified" || addressEnrichment.addressQuality === "unsure") {
+  if (
+    addressEnrichment.addressQuality === "verified" ||
+    addressEnrichment.addressQuality === "unsure"
+  ) {
     console.info("[streetlayer] listing address", {
       quality: addressEnrichment.addressQuality,
       neighborhood: listingData.neighborhood,
     });
   }
 
-  const { data: property, error } = await insertClient
+  // The insert stays on the caller's client so RLS and the trust-column trigger still
+  // apply. Only `id` is read back, because the contact columns are not selectable by the
+  // `authenticated` role; the full row is re-read on the service role below.
+  const { data: inserted, error } = await insertClient
     .from("properties")
     .insert({
       ...listingData,
@@ -130,10 +136,18 @@ async function insertPropertyListing(
       property_type: listingData.property_type,
       duplicate_hash: duplicateHash,
     })
-    .select("*")
+    .select("id")
     .single();
 
   if (error) throw error;
+
+  const { data: property, error: readError } = await admin
+    .from("properties")
+    .select("*")
+    .eq("id", inserted.id)
+    .single();
+
+  if (readError) throw readError;
 
   const bustListingCaches = () => {
     void import("@/lib/cache/manager")
@@ -271,9 +285,8 @@ export const getAdminContactSuggestions = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId: adminId } = authContext(context);
     await requireRole(supabase, adminId, "admin");
-    const { loadAdminContactRows, aggregateContactSuggestions } = await import(
-      "@/lib/api/nyumba/admin-contact-suggestions"
-    );
+    const { loadAdminContactRows, aggregateContactSuggestions } =
+      await import("@/lib/api/nyumba/admin-contact-suggestions");
     const admin = await adminClient();
     const rows = await loadAdminContactRows(admin, adminId);
     return aggregateContactSuggestions(rows);
@@ -392,7 +405,10 @@ export const listLandlordProperties = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "landlord");
-    const { data, error } = await supabase
+    // Service role: `select("*")` includes the contact columns, which are no longer
+    // readable by the `authenticated` role. The owner filter below is the authorization.
+    const admin = await adminClient();
+    const { data, error } = await admin
       .from("properties")
       .select("*")
       .eq("owner_id", userId)
@@ -409,7 +425,9 @@ export const listAgencyProperties = createServerFn({ method: "GET" })
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "agency");
     const orgId = await getUserOrganizationId(supabase, userId);
-    let query = supabase.from("properties").select("*").order("created_at", { ascending: false });
+    // Service role for the contact columns; scoped to the caller's org (or own listings).
+    const admin = await adminClient();
+    let query = admin.from("properties").select("*").order("created_at", { ascending: false });
     if (orgId) {
       query = query.eq("organization_id", orgId);
     } else {
@@ -455,8 +473,10 @@ export const listManagerProperties = createServerFn({ method: "GET" })
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "manager");
     const orgId = await getUserOrganizationId(supabase, userId);
+    // Service role for the contact columns; scoped to the caller's org (or own listings).
+    const admin = await adminClient();
     if (orgId) {
-      const { data, error } = await supabase
+      const { data, error } = await admin
         .from("properties")
         .select("*")
         .eq("organization_id", orgId)
@@ -465,7 +485,7 @@ export const listManagerProperties = createServerFn({ method: "GET" })
       if (error) throw error;
       return mapPropertyRows(data ?? []);
     }
-    const { data, error } = await supabase
+    const { data, error } = await admin
       .from("properties")
       .select("*")
       .eq("owner_id", userId)
@@ -483,7 +503,9 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
     const admin = await adminClient();
     const { data: property, error: propertyError } = await admin
       .from("properties")
-      .select("owner_id, is_active, contact_phone, contact_phones, contact_name, whatsapp_inquiries")
+      .select(
+        "owner_id, is_active, contact_phone, contact_phones, contact_name, whatsapp_inquiries",
+      )
       .eq("id", data.propertyId)
       .maybeSingle();
     if (propertyError) throw propertyError;
@@ -738,9 +760,11 @@ export const getLandlordDashboard = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
     await requireRole(supabase, userId, "landlord");
+    // Service role for the contact columns; scoped to the caller's own listings.
+    const admin = await adminClient();
     const [{ data: properties, error: propertiesError }, { data: leads, error: leadsError }] =
       await Promise.all([
-        supabase.from("properties").select("*").eq("owner_id", userId).limit(300),
+        admin.from("properties").select("*").eq("owner_id", userId).limit(300),
         supabase
           .from("inquiries")
           .select("*")

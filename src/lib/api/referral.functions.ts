@@ -2,27 +2,42 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { adminClient, authContext } from "@/lib/api/nyumba/nyumba-shared";
+import { asLooseDb } from "@/lib/db/loose-client";
+
+/** Referral tables aren't in the generated Supabase types yet, so shape the rows here. */
+type ReferralRow = {
+  id: string;
+  referred_user_id: string;
+  referred_role_at_referral: string | null;
+  status: string;
+  converted_at: string | null;
+  created_at: string;
+};
+
+type RewardRow = { reward_type: string; reward_value: number };
 
 export const getMyReferralInfo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = authContext(context);
     const admin = await adminClient();
-    const db = admin as any;
+    const db = asLooseDb(admin);
 
     const { ensureReferralCode } = await import("@/lib/referrals/generate-code");
     const referralCode = await ensureReferralCode(admin, userId);
 
     const { data: referrals } = await db
       .from("referrals")
-      .select("id, referred_user_id, referrer_role_at_referral, referred_role_at_referral, status, converted_at, created_at")
+      .select(
+        "id, referred_user_id, referrer_role_at_referral, referred_role_at_referral, status, converted_at, created_at",
+      )
       .eq("referrer_user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50);
 
-    const rows = referrals ?? [];
-    const referredUserIds = rows.map((r: any) => r.referred_user_id);
-    let nameMap: Record<string, string> = {};
+    const rows = (referrals ?? []) as ReferralRow[];
+    const referredUserIds = rows.map((r) => r.referred_user_id);
+    const nameMap: Record<string, string> = {};
     if (referredUserIds.length > 0) {
       const { data: profiles } = await admin
         .from("profiles")
@@ -33,8 +48,8 @@ export const getMyReferralInfo = createServerFn({ method: "POST" })
       }
     }
 
-    const pendingCount = rows.filter((r: any) => r.status === "pending").length;
-    const convertedCount = rows.filter((r: any) => r.status === "converted").length;
+    const pendingCount = rows.filter((r) => r.status === "pending").length;
+    const convertedCount = rows.filter((r) => r.status === "converted").length;
 
     const { data: rewards } = await db
       .from("referral_reward_ledger")
@@ -42,7 +57,7 @@ export const getMyReferralInfo = createServerFn({ method: "POST" })
       .eq("user_id", userId);
 
     const rewardSummary: Record<string, number> = {};
-    for (const r of rewards ?? []) {
+    for (const r of (rewards ?? []) as RewardRow[]) {
       rewardSummary[r.reward_type] = (rewardSummary[r.reward_type] ?? 0) + r.reward_value;
     }
 
@@ -51,10 +66,10 @@ export const getMyReferralInfo = createServerFn({ method: "POST" })
       pendingCount,
       convertedCount,
       totalRewardsSummary: formatRewardSummary(rewardSummary),
-      referrals: rows.map((r: any) => ({
+      referrals: rows.map((r) => ({
         id: r.id,
         referredName: nameMap[r.referred_user_id] ?? "User",
-        referredRole: r.referred_role_at_referral,
+        referredRole: r.referred_role_at_referral ?? "member",
         status: r.status,
         convertedAt: r.converted_at,
         createdAt: r.created_at,
@@ -68,7 +83,8 @@ function formatRewardSummary(summary: Record<string, number>): string {
   if (summary.listing_slot_bonus) parts.push(`${summary.listing_slot_bonus} bonus slots`);
   if (summary.cash_credit_kes) parts.push(`KES ${summary.cash_credit_kes}`);
   if (summary.free_month_extension) parts.push(`${summary.free_month_extension} free months`);
-  if (summary.subscription_discount_percent) parts.push(`${summary.subscription_discount_percent}% discount`);
+  if (summary.subscription_discount_percent)
+    parts.push(`${summary.subscription_discount_percent}% discount`);
   if (summary.trial_extension_days) parts.push(`${summary.trial_extension_days} trial days`);
   return parts.join(", ") || "—";
 }
@@ -77,15 +93,15 @@ export const resolveReferralCode = createServerFn({ method: "POST" })
   .inputValidator(z.object({ code: z.string().trim().min(1) }))
   .handler(async ({ data }) => {
     const admin = await adminClient();
-    const { data: profile } = await admin
+    const { data: profile } = await asLooseDb(admin)
       .from("profiles")
-      .select("id, full_name, referral_code" as any)
-      .eq("referral_code" as any, data.code.toUpperCase())
+      .select("id, full_name, referral_code")
+      .eq("referral_code", data.code.toUpperCase())
       .maybeSingle();
 
     if (!profile) return { valid: false as const };
     return {
       valid: true as const,
-      referrerName: (profile as any).full_name ?? "NyumbaSearch user",
+      referrerName: (profile as { full_name: string | null }).full_name ?? "NyumbaSearch user",
     };
   });

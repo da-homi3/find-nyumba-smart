@@ -262,8 +262,7 @@ function TenantMapShell({
     return () => globalThis.clearTimeout(timer);
   }, [startInFallback, map.ready, map.error]);
 
-  const showSimplifiedOverlay =
-    startInFallback || Boolean(map.error) || (timedOut && !map.ready);
+  const showSimplifiedOverlay = startInFallback || Boolean(map.error) || (timedOut && !map.ready);
   const loadingMessage = propertiesLoading ? "Loading listings…" : "Loading map…";
   const showBootLoader = !startInFallback && !map.ready && !showSimplifiedOverlay;
   const overlayMessage = (() => {

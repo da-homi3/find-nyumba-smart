@@ -13,7 +13,8 @@ import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import type { Property } from "@/lib/properties";
 import { toast } from "sonner";
 import { Heart } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import type { MouseEvent } from "react";
 
 export const Route = createFileRoute("/tenant/saved")({
   head: () =>
@@ -48,6 +49,15 @@ function SavedPage() {
   });
 
   const displaySaved = useMemo(() => mergeListingsForDisplay(saved), [saved]);
+
+  const { mutateAsync: toggleSaveAsync } = toggleSave;
+  const handleToggleSave = useCallback(
+    (e: MouseEvent, propertyId: string) => {
+      e.preventDefault();
+      void toggleSaveAsync({ propertyId, saved: true });
+    },
+    [toggleSaveAsync],
+  );
 
   if (loading) {
     return (
@@ -106,9 +116,7 @@ function SavedPage() {
             isEmpty={saved.length === 0}
             displaySaved={displaySaved}
             isPlus={isPlus}
-            onToggleSave={(propertyId) => {
-              void toggleSave.mutateAsync({ propertyId, saved: true });
-            }}
+            onToggleSave={handleToggleSave}
           />
         </div>
         <OnboardingTourHost tourId="tenant-saved" />
@@ -128,7 +136,7 @@ function SavedListingsBody({
   isEmpty: boolean;
   displaySaved: Property[];
   isPlus: boolean;
-  onToggleSave: (propertyId: string) => void;
+  onToggleSave: (e: MouseEvent, propertyId: string) => void;
 }>) {
   if (isLoading) {
     return <div className="mt-8 h-40 animate-pulse rounded-2xl bg-muted" />;
@@ -147,10 +155,7 @@ function SavedListingsBody({
           preview={isPreviewListing(p)}
           saved
           plusMember={isPlus}
-          onToggleSave={(e) => {
-            e.preventDefault();
-            onToggleSave(p.id);
-          }}
+          onToggleSave={onToggleSave}
         />
       ))}
     </div>

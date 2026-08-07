@@ -81,7 +81,10 @@ export async function forwardPresenceWebSocket(request: Request): Promise<Respon
   let roles: string[] = [];
   const token =
     url.searchParams.get("token")?.trim() ||
-    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() ||
+    request.headers
+      .get("authorization")
+      ?.replace(/^Bearer\s+/i, "")
+      .trim() ||
     "";
 
   if (token) {

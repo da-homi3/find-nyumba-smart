@@ -49,11 +49,11 @@ export function RequireAccountPhoneModal() {
 
   const open = Boolean(
     user &&
-      !authLoading &&
-      (!phoneLoading || phoneWaitTimedOut) &&
-      !hasPhone &&
-      !savedThisSession &&
-      !shouldSkipPhoneGate(pathname),
+    !authLoading &&
+    (!phoneLoading || phoneWaitTimedOut) &&
+    !hasPhone &&
+    !savedThisSession &&
+    !shouldSkipPhoneGate(pathname),
   );
 
   useEffect(() => {
@@ -116,8 +116,8 @@ export function RequireAccountPhoneModal() {
           Add your phone number
         </h2>
         <p className="mt-2 text-center text-sm text-muted-foreground">
-          We need a Kenyan mobile on your account for M-Pesa payments, landlord contact, and
-          account security - even when you sign in with Google.
+          We need a Kenyan mobile on your account for M-Pesa payments, landlord contact, and account
+          security - even when you sign in with Google.
         </p>
 
         <form onSubmit={onSubmit} className="mt-5 space-y-4">

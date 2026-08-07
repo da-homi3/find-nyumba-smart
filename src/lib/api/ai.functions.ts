@@ -432,9 +432,7 @@ function propertyChatFallback(
       ? "This listing is marked verified on NyumbaSearch."
       : "This listing is not yet marked verified — treat contact and deposits carefully.";
     const score =
-      property.authenticity_score != null
-        ? ` Trust score: ${property.authenticity_score}%.`
-        : "";
+      property.authenticity_score != null ? ` Trust score: ${property.authenticity_score}%.` : "";
     return `${verified}${score} For ${property.neighborhood}, visit in daylight, never pay a deposit before viewing, and use Call/WhatsApp below once unlocked. Ask again for a fuller AI read on this home.`;
   }
   if (property) {

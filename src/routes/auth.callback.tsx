@@ -38,11 +38,10 @@ export const Route = createFileRoute("/auth/callback")({
 });
 
 async function hasSession(): Promise<boolean> {
-  const { data } = await withTimeout(
-    supabase.auth.getSession(),
-    4000,
-    { data: { session: null }, error: null } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
-  );
+  const { data } = await withTimeout(supabase.auth.getSession(), 4000, {
+    data: { session: null },
+    error: null,
+  } as Awaited<ReturnType<typeof supabase.auth.getSession>>);
   return Boolean(data.session?.user);
 }
 
@@ -57,13 +56,10 @@ async function establishSessionFromUrl(): Promise<boolean> {
 
   const code = url.searchParams.get("code");
   if (code) {
-    const { error } = await withTimeout(
-      supabase.auth.exchangeCodeForSession(code),
-      8000,
-      { data: { session: null, user: null }, error: new Error("Google sign-in timed out") } as Awaited<
-        ReturnType<typeof supabase.auth.exchangeCodeForSession>
-      >,
-    );
+    const { error } = await withTimeout(supabase.auth.exchangeCodeForSession(code), 25_000, {
+      data: { session: null, user: null },
+      error: new Error("Google sign-in timed out"),
+    } as Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>);
     if (error && !(await hasSession())) throw error;
   }
 
@@ -127,10 +123,8 @@ function AuthCallbackPage() {
     const hardStop = globalThis.setTimeout(() => {
       if (cancelled) return;
       setMessage("Taking too long — redirecting…");
-      globalThis.location.replace(
-        `/auth?mode=signin&redirect=${encodeURIComponent("/tenant")}`,
-      );
-    }, 15_000);
+      globalThis.location.replace(`/auth?mode=signin&redirect=${encodeURIComponent("/tenant")}`);
+    }, 45_000);
 
     void (async () => {
       try {

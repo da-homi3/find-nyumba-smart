@@ -26,6 +26,10 @@ export type PaymentMetadata = {
   orderTrackingId?: string;
   /** Pesapal hosted checkout URL — reused on idempotent retries. */
   cardRedirectUrl?: string;
+  /** Which STK provider initiated this M-Pesa payment. */
+  mpesaProvider?: "daraja" | "intasend";
+  /** Set when rent STK fell back from IntaSend to Daraja. */
+  intasendFallbackReason?: string;
 };
 
 const STRING_METADATA_KEYS = [
@@ -52,6 +56,8 @@ const STRING_METADATA_KEYS = [
   "fulfilledAt",
   "orderTrackingId",
   "cardRedirectUrl",
+  "mpesaProvider",
+  "intasendFallbackReason",
 ] as const satisfies ReadonlyArray<keyof PaymentMetadata>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,7 +70,16 @@ export function parsePaymentMetadata(raw: unknown): PaymentMetadata {
   const result: PaymentMetadata = {};
   for (const key of STRING_METADATA_KEYS) {
     const value = raw[key];
-    if (typeof value === "string") result[key] = value;
+    if (typeof value !== "string") continue;
+    if (key === "mpesaProvider") {
+      if (value === "daraja" || value === "intasend") result.mpesaProvider = value;
+      continue;
+    }
+    if (key === "intasendFallbackReason") {
+      result.intasendFallbackReason = value;
+      continue;
+    }
+    result[key] = value;
   }
   if (typeof raw.qty === "number") result.qty = raw.qty;
   return result;

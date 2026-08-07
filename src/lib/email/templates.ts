@@ -457,24 +457,59 @@ export function rentReceiptEmail(opts: {
   unitLabel: string;
   periodMonth: string;
   amountKes: number;
+  amountDue: number;
+  amountPaidCumulative: number;
+  balanceRemaining: number;
+  status: string;
   mpesaRef: string | null;
+  nyumbaReceiptNo: string;
+  paidAtIso: string;
+  recipientRole: "tenant" | "landlord";
+  dashboardUrl?: string;
 }) {
+  const paidAt = new Date(opts.paidAtIso).toLocaleString("en-KE", {
+    timeZone: "Africa/Nairobi",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const statusLabel = opts.status.replaceAll("_", " ");
+  const greeting =
+    opts.recipientRole === "landlord"
+      ? `Hi — ${opts.tenantName} paid rent on NyumbaSearch.`
+      : `Hi ${opts.tenantName},`;
+  const ctaLabel = opts.recipientRole === "landlord" ? "Open rent dashboard" : "View in app";
+  let cta = "";
+  if (opts.dashboardUrl != null && opts.dashboardUrl.length > 0) {
+    cta = `<p style="margin-top:20px"><a href="${opts.dashboardUrl}" style="display:inline-block;background:#0A5C47;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600">${ctaLabel}</a></p>`;
+  }
   const body = `
-    <h1>Payment received</h1>
-    <p>Hi ${opts.tenantName},</p>
-    <table style="width:100%;border-collapse:collapse">
+    <h1>NyumbaSearch rent receipt</h1>
+    <p>${greeting}</p>
+    <p style="font-size:13px;color:#64748B">Receipt <strong style="font-family:monospace;color:#0F172A">${opts.nyumbaReceiptNo}</strong></p>
+    <table style="width:100%;border-collapse:collapse;margin-top:12px">
       <tr><td style="padding:8px 0;color:#64748B">Property</td><td style="padding:8px 0;text-align:right;font-weight:600">${opts.propertyName}</td></tr>
       <tr><td style="padding:8px 0;color:#64748B">Unit</td><td style="padding:8px 0;text-align:right;font-weight:600">${opts.unitLabel}</td></tr>
       <tr><td style="padding:8px 0;color:#64748B">Period</td><td style="padding:8px 0;text-align:right;font-weight:600">${opts.periodMonth}</td></tr>
-      <tr><td style="padding:8px 0;color:#64748B">Amount paid</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#0A5C47">${formatKes(opts.amountKes)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Paid at</td><td style="padding:8px 0;text-align:right;font-weight:600">${paidAt}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">This payment</td><td style="padding:8px 0;text-align:right;font-weight:700;color:#0A5C47">${formatKes(opts.amountKes)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Invoice total</td><td style="padding:8px 0;text-align:right;font-weight:600">${formatKes(opts.amountDue)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Total paid so far</td><td style="padding:8px 0;text-align:right;font-weight:600">${formatKes(opts.amountPaidCumulative)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Balance remaining</td><td style="padding:8px 0;text-align:right;font-weight:700">${formatKes(opts.balanceRemaining)}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748B">Status</td><td style="padding:8px 0;text-align:right;font-weight:600;text-transform:capitalize">${statusLabel}</td></tr>
       <tr><td style="padding:8px 0;color:#64748B">M-Pesa Ref</td><td style="padding:8px 0;text-align:right;font-family:monospace">${opts.mpesaRef ?? "—"}</td></tr>
     </table>
-    <p style="color:#8AB5A0;font-size:12px;margin-top:20px">This receipt is generated automatically by NyumbaSearch on behalf of your landlord/property manager.</p>
+    ${cta}
+    <p style="color:#8AB5A0;font-size:12px;margin-top:20px">This NyumbaSearch receipt is generated automatically for both the tenant and the property owner. Keep it for your records alongside the Safaricom M-Pesa SMS.</p>
   `;
+  const subjectPrefix = opts.recipientRole === "landlord" ? "Rent received" : "Rent receipt";
+  const dashboardViewLine = opts.dashboardUrl ? [" View: ", opts.dashboardUrl].join("") : "";
   return {
-    subject: `Rent receipt — ${opts.periodMonth} — ${opts.propertyName}`,
-    html: baseLayout({ preheader: `Rent payment ${formatKes(opts.amountKes)}`, body }),
-    text: `Rent receipt for ${opts.propertyName} unit ${opts.unitLabel} (${opts.periodMonth}): ${formatKes(opts.amountKes)}. Ref: ${opts.mpesaRef ?? "—"}`,
+    subject: `${subjectPrefix} — ${formatKes(opts.amountKes)} — ${opts.propertyName} · ${opts.periodMonth}`,
+    html: baseLayout({
+      preheader: `${formatKes(opts.amountKes)} paid · balance ${formatKes(opts.balanceRemaining)}`,
+      body,
+    }),
+    text: `${subjectPrefix} ${opts.nyumbaReceiptNo}. ${opts.propertyName} unit ${opts.unitLabel} (${opts.periodMonth}): paid ${formatKes(opts.amountKes)}. Total paid ${formatKes(opts.amountPaidCumulative)} of ${formatKes(opts.amountDue)}. Balance ${formatKes(opts.balanceRemaining)}. Status: ${statusLabel}. M-Pesa: ${opts.mpesaRef ?? "—"}.${dashboardViewLine}`,
   };
 }
 
@@ -522,4 +557,3 @@ export function rentReminderEmail(opts: {
     text: `${rentReminderSubject(opts.type, opts.unitLabel, opts.balanceKes)}. Balance ${formatKes(opts.balanceKes)}. Pay: ${payUrl}`,
   };
 }
-

@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  formatKenyanPhoneDisplay,
-  formatKenyanPhoneHint,
-  isKenyanPhone,
-} from "@/lib/phone";
+import { formatKenyanPhoneDisplay, formatKenyanPhoneHint, isKenyanPhone } from "@/lib/phone";
 
 export type MpesaPhoneMode = "linked" | "other";
 
@@ -34,7 +30,12 @@ export function MpesaPhonePicker({
       setMode("other");
       return;
     }
-    if (value && linkedPhone && isKenyanPhone(value) && normalize(value) === normalize(linkedPhone)) {
+    if (
+      value &&
+      linkedPhone &&
+      isKenyanPhone(value) &&
+      normalize(value) === normalize(linkedPhone)
+    ) {
       setMode("linked");
     }
   }, [hasLinked, linkedPhone, value]);

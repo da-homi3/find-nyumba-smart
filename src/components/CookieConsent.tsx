@@ -25,6 +25,11 @@ export function CookieConsentBanner() {
 
   useEffect(() => {
     if (typeof localStorage === "undefined") return;
+    if (globalThis.location !== undefined) {
+      const path = globalThis.location.pathname;
+      // Don't cover auth CTAs on phones.
+      if (path.startsWith("/auth")) return;
+    }
     if (!localStorage.getItem(CONSENT_KEY)) setVisible(true);
   }, []);
 

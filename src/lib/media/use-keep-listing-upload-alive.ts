@@ -10,6 +10,14 @@ import {
 
 const LEAVE_MESSAGE = "Your listing is still uploading. Leave this page and cancel the upload?";
 
+function setAndroidPullToRefresh(enabled: boolean) {
+  try {
+    window.NyumbaAndroid?.setPullToRefreshEnabled?.(enabled);
+  } catch {
+    /* bridge optional outside the Play Store shell */
+  }
+}
+
 /**
  * Keeps listing uploads alive across tab focus changes and blocks navigation
  * while publish is in progress. Subscribe to reconnect UI after remounts.
@@ -19,12 +27,20 @@ export function useKeepListingUploadAlive(
 ): ListingUploadSnapshot {
   useEffect(() => {
     const unsubscribe = subscribeListingUpload((snapshot) => {
+      const busy =
+        snapshot.phase === "enhancing" ||
+        snapshot.phase === "uploading" ||
+        snapshot.phase === "publishing";
+      setAndroidPullToRefresh(!busy);
       onSnapshot?.(snapshot);
     });
     const detachVisibility = attachUploadVisibilityGuard();
+    if (isListingUploadBusy()) setAndroidPullToRefresh(false);
     return () => {
       unsubscribe();
       detachVisibility();
+      // Remount mid-upload must not re-enable Android pull-to-refresh.
+      if (!isListingUploadBusy()) setAndroidPullToRefresh(true);
     };
   }, [onSnapshot]);
 

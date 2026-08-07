@@ -24,16 +24,22 @@ import {
 } from "@/lib/property-types";
 import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
 import { generateListingTitle } from "@/lib/listings/generate-listing-title";
-import { enhanceImageForUpload, enhanceVideoForUpload, isLikelyVideoFile, needsWebSafeVideoReencode } from "@/lib/media/enhance-upload";
-import { isExternalVideoEmbed } from "@/lib/media/video-embed";
+import {
+  enhanceImageForUpload,
+  enhanceVideoForUpload,
+  enhanceMediaFilesForUpload,
+  isLikelyVideoFile,
+} from "@/lib/media/enhance-upload";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  uploadItemsWithConcurrency,
   uploadStorageObjectViaSignedUrl,
   uploadStorageObjectWithProgress,
 } from "@/lib/media/storage-upload";
 import {
   fileUploadIdentity,
   getListingUploadSnapshot,
+  isListingUploadBusy,
   runDurableListingUpload,
   type DurableUploadController,
 } from "@/lib/media/listing-upload-session";
@@ -41,8 +47,11 @@ import { useKeepListingUploadAlive } from "@/lib/media/use-keep-listing-upload-a
 import { Loader2, FileText, MapPin, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { portalLabelForRole } from "@/lib/portal-labels";
 import { isWithinUploadLimit, uploadLimitLabel } from "@/lib/media/upload-limits";
+import { mapProgressRange } from "@/lib/media/progress-range";
 import { randomUuid } from "@/lib/random-uuid";
 import { contactPhoneFields } from "@/lib/contact-phones";
+import { resolveListingPriceFields, type ListingPriceCurrency } from "@/lib/currency/usd-kes";
+import { HIGH_QUALITY_SLIDESHOW } from "@/lib/media/images-to-slideshow";
 
 const TABS = [
   { id: "details", label: "Details", icon: FileText },
@@ -123,10 +132,7 @@ function buildMediaUploads(input: {
   if (videoFile) {
     const ext = videoFile.name.split(".").pop() ?? "mp4";
     const fileId = `video:${videoSourceId ?? fileUploadIdentity(videoFile)}`;
-    videoPath = resolvePath(
-      fileId,
-      () => `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`,
-    );
+    videoPath = resolvePath(fileId, () => `${userId}/${propertyKey}/video-${randomUuid()}.${ext}`);
     uploads.push({ path: videoPath, file: videoFile });
   }
 
@@ -134,10 +140,7 @@ function buildMediaUploads(input: {
   if (tourFile) {
     const ext = tourFile.name.split(".").pop() ?? "jpg";
     const fileId = `tour:${tourSourceId ?? fileUploadIdentity(tourFile)}`;
-    tourPath = resolvePath(
-      fileId,
-      () => `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`,
-    );
+    tourPath = resolvePath(fileId, () => `${userId}/${propertyKey}/tour360-${randomUuid()}.${ext}`);
     uploads.push({ path: tourPath, file: tourFile });
   }
 
@@ -150,30 +153,17 @@ async function runMediaUploads(
   controller?: DurableUploadController,
 ) {
   const pending = uploads.filter((item) => !controller?.completedPaths.has(item.path));
-  const alreadyDoneBytes = uploads
-    .filter((item) => controller?.completedPaths.has(item.path))
-    .reduce((sum, item) => sum + item.file.size, 0);
-  const totalBytes = uploads.reduce((sum, item) => sum + item.file.size, 0) || 1;
-  let completedBytes = alreadyDoneBytes;
-  if (alreadyDoneBytes > 0) {
-    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
-  }
+  const upsert = Boolean(controller);
 
-  for (const item of pending) {
-    await uploadToStorage(
-      item.path,
-      item.file,
-      (filePercent) => {
-        if (!onProgress) return;
-        const loaded = (filePercent / 100) * item.file.size;
-        onProgress(Math.min(100, Math.round(((completedBytes + loaded) / totalBytes) * 100)));
-      },
-      Boolean(controller),
-    );
-    controller?.markPathDone(item.path);
-    completedBytes += item.file.size;
-    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
-  }
+  await uploadItemsWithConcurrency(
+    uploads,
+    pending,
+    async (item, onFileProgress) => {
+      await uploadToStorage(item.path, item.file, onFileProgress, upsert);
+      controller?.markPathDone(item.path);
+    },
+    onProgress,
+  );
 }
 
 async function runAdminMediaUploads(
@@ -193,54 +183,23 @@ async function runAdminMediaUploads(
   });
   const signedByPath = new Map(signed.map((entry) => [entry.path, entry]));
 
-  const alreadyDoneBytes = uploads
-    .filter((item) => controller?.completedPaths.has(item.path))
-    .reduce((sum, item) => sum + item.file.size, 0);
-  const totalBytes = uploads.reduce((sum, item) => sum + item.file.size, 0) || 1;
-  let completedBytes = alreadyDoneBytes;
-  if (alreadyDoneBytes > 0) {
-    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
-  }
-
-  for (const item of pending) {
-    const entry = signedByPath.get(item.path);
-    if (!entry) throw new Error("Missing signed upload URL for media");
-    await uploadStorageObjectViaSignedUrl(
-      entry.signedUrl,
-      entry.token,
-      item.file,
-      (filePercent) => {
-        if (!onProgress) return;
-        const loaded = (filePercent / 100) * item.file.size;
-        onProgress(Math.min(100, Math.round(((completedBytes + loaded) / totalBytes) * 100)));
-      },
-      { upsert: true },
-    );
-    controller?.markPathDone(item.path);
-    completedBytes += item.file.size;
-    onProgress?.(Math.min(100, Math.round((completedBytes / totalBytes) * 100)));
-  }
-}
-
-async function prepareEnhancedMediaFiles(
-  imageFiles: File[],
-  videoFile: File | null,
-  tourFile: File | null,
-  onVideoProgress?: (percent: number) => void,
-) {
-  const [enhancedImages, enhancedVideo, enhancedTour] = await Promise.all([
-    Promise.all(imageFiles.map((file) => enhanceImageForUpload(file))),
-    videoFile
-      ? enhanceVideoForUpload(videoFile, { onProgress: onVideoProgress })
-      : Promise.resolve(null),
-    tourFile ? enhanceImageForUpload(tourFile) : Promise.resolve(null),
-  ]);
-  if (enhancedVideo && needsWebSafeVideoReencode(enhancedVideo)) {
-    throw new Error(
-      "Couldn’t convert this video to MP4. Try a shorter clip, or paste a YouTube/Vimeo link.",
-    );
-  }
-  return { enhancedImages, enhancedVideo, enhancedTour };
+  await uploadItemsWithConcurrency(
+    uploads,
+    pending,
+    async (item, onFileProgress) => {
+      const entry = signedByPath.get(item.path);
+      if (!entry) throw new Error("Missing signed upload URL for media");
+      await uploadStorageObjectViaSignedUrl(
+        entry.signedUrl,
+        entry.token,
+        item.file,
+        onFileProgress,
+        { upsert: true },
+      );
+      controller?.markPathDone(item.path);
+    },
+    onProgress,
+  );
 }
 
 async function signUploadedMediaPaths(
@@ -259,16 +218,6 @@ async function signUploadedMediaPaths(
   let video_url: string | null = externalVideoUrl.trim() || null;
   let tour_url: string | null = externalTourUrl.trim() || null;
   let images: string[] = [];
-
-  if (
-    video_url &&
-    !isExternalVideoEmbed(video_url) &&
-    /\.mov(\?|$)/i.test((video_url.split("?")[0] ?? "").toLowerCase())
-  ) {
-    throw new Error(
-      "Use an MP4/WebM file or a YouTube/Vimeo link. MOV walkthroughs don’t play on most phones.",
-    );
-  }
 
   if (allPaths.length === 0) {
     return { images, video_url, tour_url };
@@ -303,25 +252,90 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
 
   controller?.setPhase("enhancing");
   const imageSourceIds = imageFiles.map((file) => fileUploadIdentity(file));
-  const videoSourceId = videoFile ? fileUploadIdentity(videoFile) : null;
   const tourSourceId = tourFile ? fileUploadIdentity(tourFile) : null;
 
-  const { enhancedImages, enhancedVideo, enhancedTour } = await prepareEnhancedMediaFiles(
-    imageFiles,
-    videoFile,
-    tourFile,
-    (percent) => {
-      controller?.setPhase("enhancing");
-      controller?.setProgress(percent);
-      onProgress?.(percent);
-    },
-  );
+  // Compress photos first, then overlap their upload with video/slideshow prep.
+  const enhancedImages = await enhanceMediaFilesForUpload(imageFiles, "image");
+  controller?.setProgress(12);
+  onProgress?.(12);
 
-  const { uploads, uploadedImagePaths, videoPath, tourPath } = buildMediaUploads({
+  const imageOnly = buildMediaUploads({
     userId,
     propertyKey,
     imageFiles: enhancedImages,
     imageSourceIds,
+    videoFile: null,
+    videoSourceId: null,
+    tourFile: null,
+    tourSourceId: null,
+    controller,
+  });
+
+  const reportImageUpload = (percent: number) => {
+    // Image storage shares 12–55% while video may still be preparing.
+    const mapped = mapProgressRange(percent, 12, 55);
+    controller?.setPhase("uploading");
+    controller?.setProgress(mapped);
+    onProgress?.(mapped);
+  };
+
+  let imageUploadTask: Promise<void> = Promise.resolve();
+  if (imageOnly.uploads.length > 0) {
+    imageUploadTask = adminOnBehalf
+      ? runAdminMediaUploads(userId, imageOnly.uploads, reportImageUpload, controller)
+      : runMediaUploads(imageOnly.uploads, reportImageUpload, controller);
+  }
+
+  const videoPrepTask = (async () => {
+    controller?.setPhase("enhancing");
+    const report = (percent: number) => {
+      // Video prep runs alongside image upload; setProgress is monotonic.
+      const mapped = mapProgressRange(percent, 12, 50);
+      controller?.setProgress(mapped);
+      onProgress?.(mapped);
+    };
+
+    let enhancedVideo: File | null = null;
+    if (videoFile) {
+      enhancedVideo = await enhanceVideoForUpload(videoFile, {
+        onProgress: (p) => report(mapProgressRange(p, 0, 100)),
+      });
+    } else if (!externalVideoUrl.trim() && enhancedImages.length > 0) {
+      try {
+        const { createSlideshowWalkthrough } = await import("@/lib/media/images-to-slideshow");
+        const slideshow = await createSlideshowWalkthrough(
+          imageFiles.length > 0 ? imageFiles : enhancedImages,
+          {
+            ...HIGH_QUALITY_SLIDESHOW,
+            onProgress: (p) => report(mapProgressRange(p, 0, 85)),
+          },
+        );
+        enhancedVideo = await enhanceVideoForUpload(slideshow, {
+          onProgress: (p) => report(mapProgressRange(p, 85, 100)),
+        });
+      } catch (err) {
+        console.warn("[listing-wizard] slideshow generation failed", err);
+      }
+    }
+
+    const enhancedTour = tourFile ? await enhanceImageForUpload(tourFile) : null;
+    return { enhancedVideo, enhancedTour };
+  })();
+
+  const [, { enhancedVideo, enhancedTour }] = await Promise.all([imageUploadTask, videoPrepTask]);
+
+  let videoSourceId: string | null = null;
+  if (videoFile) {
+    videoSourceId = fileUploadIdentity(videoFile);
+  } else if (enhancedVideo) {
+    videoSourceId = `slideshow:${propertyKey}`;
+  }
+
+  const rest = buildMediaUploads({
+    userId,
+    propertyKey,
+    imageFiles: [],
+    imageSourceIds: [],
     videoFile: enhancedVideo,
     videoSourceId,
     tourFile: enhancedTour,
@@ -329,17 +343,27 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
     controller,
   });
 
-  controller?.setPhase("uploading");
-  if (adminOnBehalf) {
-    await runAdminMediaUploads(userId, uploads, onProgress, controller);
-  } else {
-    await runMediaUploads(uploads, onProgress, controller);
+  if (rest.uploads.length > 0) {
+    controller?.setPhase("uploading");
+    const reportRest = (percent: number) => {
+      const mapped = mapProgressRange(percent, 55, 95);
+      controller?.setProgress(mapped);
+      onProgress?.(mapped);
+    };
+    if (adminOnBehalf) {
+      await runAdminMediaUploads(userId, rest.uploads, reportRest, controller);
+    } else {
+      await runMediaUploads(rest.uploads, reportRest, controller);
+    }
   }
 
+  controller?.setProgress(95);
+  onProgress?.(95);
+
   return signUploadedMediaPaths(
-    uploadedImagePaths,
-    videoPath,
-    tourPath,
+    imageOnly.uploadedImagePaths,
+    rest.videoPath,
+    rest.tourPath,
     externalVideoUrl,
     externalTourUrl,
   );
@@ -358,6 +382,7 @@ export type ListingFormState = {
   address: string;
   contact_phones: string[];
   contact_name: string;
+  price_currency: ListingPriceCurrency;
   rent_kes: number;
   rent_kes_max: number | "";
   deposit_kes: number;
@@ -498,15 +523,18 @@ function buildListingPayload(
     address: form.address || null,
     latitude: form.latitude,
     longitude: form.longitude,
-    rent_kes: Number(form.rent_kes),
-    rent_kes_max:
-      supportsListingPriceRange({
-        property_type: form.property_type,
-        pricing_mode: form.pricing_mode,
-      }) && form.rent_kes_max
-        ? Number(form.rent_kes_max)
-        : null,
-    deposit_kes: Number(form.deposit_kes) || null,
+    ...resolveListingPriceFields({
+      price_currency: form.price_currency === "USD" ? "USD" : "KES",
+      amount: Number(form.rent_kes),
+      amount_max:
+        supportsListingPriceRange({
+          property_type: form.property_type,
+          pricing_mode: form.pricing_mode,
+        }) && form.rent_kes_max
+          ? Number(form.rent_kes_max)
+          : null,
+      deposit: Number(form.deposit_kes) || null,
+    }),
     bedrooms: Number(form.bedrooms),
     bathrooms: Number(form.bathrooms),
     area_sqm: Number(form.area_sqm) || null,
@@ -547,10 +575,7 @@ function listingSuccessMessage(
   return `Property listed! Area stats: ${stats}`;
 }
 
-function wizardHeading(
-  onBehalfOf: ListingOnBehalfTarget | undefined,
-  adminOwned: boolean,
-): string {
+function wizardHeading(onBehalfOf: ListingOnBehalfTarget | undefined, adminOwned: boolean): string {
   if (onBehalfOf) return "List on behalf of account";
   if (adminOwned) return "Upload listing as admin";
   return "Add a property";
@@ -603,9 +628,9 @@ function getSubmitLabel(
   if (!isLastTab) return "Continue";
   if (uploading && uploadPhase === "enhancing") {
     if (uploadProgress != null && uploadProgress > 0) {
-      return `Converting to MP4… ${uploadProgress}%`;
+      return `Building walkthrough… ${uploadProgress}%`;
     }
-    return "Converting / preparing media…";
+    return "Preparing media…";
   }
   if (uploading && uploadProgress !== null) return `Uploading media… ${uploadProgress}%`;
   if (uploading) return "Uploading media…";
@@ -637,12 +662,6 @@ function parseVideoUpload(files: File[]): File | null {
   if (!isWithinUploadLimit(file, "video")) {
     toast.error(`Video must be under ${uploadLimitLabel("video")}`);
     return null;
-  }
-  if (needsWebSafeVideoReencode(file)) {
-    toast.message("MOV will convert to MP4 automatically", {
-      description: "Keep this tab open while NyumbaSearch converts your walkthrough.",
-      duration: 5000,
-    });
   }
   return file;
 }
@@ -756,8 +775,9 @@ async function publishListing(input: PublishListingInput) {
         controller,
       });
       setUploading(false);
-      setUploadProgress(null);
+      setUploadProgress(98);
       controller.setPhase("publishing");
+      controller.setProgress(98);
 
       const payload = buildListingPayload(form, media);
       const created = await createListingFromWizard(form, payload, onBehalfOf, adminOwned);
@@ -807,9 +827,12 @@ export function PropertyListingWizard({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAgency, isManager } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>("details");
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    // If an upload is already running (layout remount), land on Review — not Details.
+    return isListingUploadBusy() ? "review" : "details";
+  });
+  const [loading, setLoading] = useState(() => isListingUploadBusy());
+  const [uploading, setUploading] = useState(() => isListingUploadBusy());
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadPhase, setUploadPhase] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -817,32 +840,25 @@ export function PropertyListingWizard({
   const [tourFile, setTourFile] = useState<File | null>(null);
   const propertyKeyRef = useRef<string | null>(null);
 
-  const onUploadSnapshot = useCallback(
-    (snapshot: {
-      phase: string;
-      progress: number | null;
-    }) => {
-      setUploadPhase(snapshot.phase);
-      const busyPhase =
-        snapshot.phase === "enhancing" ||
-        snapshot.phase === "uploading" ||
-        snapshot.phase === "publishing";
-      setLoading(busyPhase);
-      setUploading(snapshot.phase === "enhancing" || snapshot.phase === "uploading");
-      setUploadProgress(
-        snapshot.phase === "uploading" || snapshot.phase === "enhancing"
-          ? snapshot.progress
-          : null,
-      );
-      if (snapshot.phase === "done" || snapshot.phase === "error" || snapshot.phase === "idle") {
-        setLoading(false);
-        setUploading(false);
-        setUploadProgress(null);
-        setUploadPhase(null);
-      }
-    },
-    [],
-  );
+  const onUploadSnapshot = useCallback((snapshot: { phase: string; progress: number | null }) => {
+    setUploadPhase(snapshot.phase);
+    const busyPhase =
+      snapshot.phase === "enhancing" ||
+      snapshot.phase === "uploading" ||
+      snapshot.phase === "publishing";
+    setLoading(busyPhase);
+    setUploading(snapshot.phase === "enhancing" || snapshot.phase === "uploading");
+    if (busyPhase) {
+      setUploadProgress(snapshot.progress);
+      setActiveTab((tab) => (tab === "details" ? "review" : tab));
+    }
+    if (snapshot.phase === "done" || snapshot.phase === "error" || snapshot.phase === "idle") {
+      setLoading(false);
+      setUploading(false);
+      setUploadProgress(null);
+      setUploadPhase(null);
+    }
+  }, []);
   useKeepListingUploadAlive(onUploadSnapshot);
   const [form, setForm] = useState<ListingFormState>({
     title: "",
@@ -854,6 +870,7 @@ export function PropertyListingWizard({
     rent_kes: 0,
     rent_kes_max: "" as number | "",
     deposit_kes: 0,
+    price_currency: "KES" as ListingPriceCurrency,
     bedrooms: 1,
     bathrooms: 1,
     area_sqm: 0,
@@ -994,12 +1011,17 @@ export function PropertyListingWizard({
               type="button"
               role="tab"
               aria-selected={selected}
-              onClick={() => switchTab(tab.id)}
+              disabled={busy}
+              onClick={() => {
+                if (busy) return;
+                switchTab(tab.id);
+              }}
               className={cn(
                 "inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition",
                 selected
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground",
+                busy && "cursor-not-allowed opacity-60",
               )}
             >
               <Icon className="h-4 w-4" />
@@ -1036,8 +1058,12 @@ export function PropertyListingWizard({
           {tabIndex > 0 && (
             <button
               type="button"
-              onClick={() => setActiveTab(TABS[tabIndex - 1].id)}
-              className="flex-1 rounded-xl border py-3 text-sm font-semibold"
+              disabled={busy}
+              onClick={() => {
+                if (busy) return;
+                setActiveTab(TABS[tabIndex - 1].id);
+              }}
+              className="flex-1 rounded-xl border py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
             >
               Back
             </button>

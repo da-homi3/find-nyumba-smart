@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  collectionRatePercent,
-  computePropertyHealthScore,
-} from "@/lib/pm/property-health";
+import { collectionRatePercent, computePropertyHealthScore } from "@/lib/pm/property-health";
 import {
   buildFinancialReportSummary,
   financialReportCsv,

@@ -27,10 +27,16 @@ import { ListingsPreviewOverlay } from "@/components/ListingsPreviewOverlay";
 type Props = {
   readonly p: Property;
   readonly saved?: boolean;
-  readonly onToggleSave?: (e: React.MouseEvent) => void;
+  /**
+   * Receives the property id so callers can pass one stable handler for a whole list.
+   * A per-card closure would change identity every render and defeat the `memo` below.
+   */
+  readonly onToggleSave?: (e: React.MouseEvent, propertyId: string) => void;
   readonly showSave?: boolean;
   readonly plusMember?: boolean;
   readonly preview?: boolean;
+  /** Eager-load + high fetchpriority for the first above-the-fold card (LCP). */
+  readonly priority?: boolean;
 };
 
 function intelColor(label: string) {
@@ -132,6 +138,7 @@ function PropertyCardImage({
   isHovered,
   lightMotion,
   mousePos,
+  priority,
 }: Readonly<{
   property: Property;
   coverImage: string | undefined;
@@ -142,10 +149,11 @@ function PropertyCardImage({
   earlyAccess: boolean;
   saved?: boolean;
   showSave: boolean;
-  onToggleSave?: (e: React.MouseEvent) => void;
+  onToggleSave?: (e: React.MouseEvent, propertyId: string) => void;
   isHovered: boolean;
   lightMotion: boolean;
   mousePos: { x: number; y: number };
+  priority?: boolean;
 }>) {
   const interactive = isHovered && !lightMotion;
 
@@ -165,6 +173,7 @@ function PropertyCardImage({
           seed={property.id}
           alt={property.title}
           className="h-full w-full object-cover"
+          loading={priority ? "eager" : "lazy"}
         />
       </motion.div>
       <div
@@ -182,7 +191,11 @@ function PropertyCardImage({
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 pointer-events-auto">
         <ShareListingButton property={property} variant="card" />
         {showSave && onToggleSave ? (
-          <SaveButton saved={saved} onToggle={onToggleSave} className="static" />
+          <SaveButton
+            saved={saved}
+            onToggle={(e) => onToggleSave(e, property.id)}
+            className="static"
+          />
         ) : null}
       </div>
       <motion.span
@@ -218,9 +231,7 @@ function PropertyCardDetails({
           {property.neighborhood} · {intel.subArea}
         </span>
       </div>
-      {detailNote ? (
-        <p className="mt-1.5 text-[10px] text-muted-foreground">{detailNote}</p>
-      ) : null}
+      {detailNote ? <p className="mt-1.5 text-[10px] text-muted-foreground">{detailNote}</p> : null}
 
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium">
         <span className={`inline-flex items-center gap-0.5 ${intelColor(intel.water)}`}>
@@ -292,6 +303,7 @@ export const PropertyCard = memo(function PropertyCard({
   showSave = true,
   plusMember = false,
   preview = false,
+  priority = false,
 }: Readonly<Props>) {
   const cardRef = useRef<HTMLElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -307,9 +319,7 @@ export const PropertyCard = memo(function PropertyCard({
   const earlyAccess = isListingEarlyAccess(p.created_at, plusMember);
   const coverImage = p.images[0];
   const verifiedLabel = propertyVerifiedLabel(p);
-  const detailNote = [verifiedLabel, leaseNote(p).replace(/^ · /, "")]
-    .filter(Boolean)
-    .join(" · ");
+  const detailNote = [verifiedLabel, leaseNote(p).replace(/^ · /, "")].filter(Boolean).join(" · ");
   const interactive = isHovered && !lightMotion;
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -370,6 +380,7 @@ export const PropertyCard = memo(function PropertyCard({
             isHovered={isHovered}
             lightMotion={lightMotion}
             mousePos={mousePos}
+            priority={priority}
           />
           <PropertyCardDetails property={p} intel={intel} detailNote={detailNote} />
         </div>

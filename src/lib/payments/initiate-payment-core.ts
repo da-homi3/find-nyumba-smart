@@ -9,6 +9,12 @@ import { getServerEnv } from "@/lib/server-env";
 
 type AdminDb = SupabaseClient<Database>;
 
+/**
+ * How long one STK attempt stays live. Within this window a repeat request reuses the
+ * existing prompt; callers building idempotency keys should bucket by the same window.
+ */
+export const STK_ATTEMPT_WINDOW_MS = 2 * 60 * 1000;
+
 export const checkoutMetaSchema = z.object({
   plan: z.string().optional(),
   boostPackage: z.enum(["spotlight", "homepage", "campaign"]).optional(),
@@ -138,7 +144,10 @@ async function insertPayment(userId: string, data: InitiatePaymentInput, idempot
 
 function isProductionHost(): boolean {
   const appUrl = (getServerEnv("PUBLIC_APP_URL") || getServerEnv("SITE_URL") || "").toLowerCase();
-  return appUrl.includes("nyumbasearch.com") || (getServerEnv("MPESA_ENV") || "").toLowerCase() === "production";
+  return (
+    appUrl.includes("nyumbasearch.com") ||
+    (getServerEnv("MPESA_ENV") || "").toLowerCase() === "production"
+  );
 }
 
 function allowDemoMpesaCompletion(): boolean {
@@ -177,7 +186,9 @@ async function assertBoostOwnershipAndPrice(
     throw new Error("You can only purchase boosts for your own listings");
   }
 
-  if (data.paymentType !== "property_boost" || !data.boostPackage) return;
+  if (!data.boostPackage) {
+    throw new Error("Select a boost package");
+  }
 
   const { boostPrice } = await import("@/lib/revenue/plans");
   const { getLoyaltyLevel } = await import("@/lib/loyalty/points");
@@ -214,8 +225,7 @@ async function assertLandlordPlanPrice(
   const earlyPartner = isEarlyPartnerStatus(profile?.founding_member_status);
   const monthly = planMonthlyPrice(planId, "monthly", { earlyPartner });
   // Match CheckoutFlow: quarterly is 10% off three discounted months.
-  const expected =
-    data.billingCycle === "quarterly" ? Math.round(monthly * 3 * 0.9) : monthly;
+  const expected = data.billingCycle === "quarterly" ? Math.round(monthly * 3 * 0.9) : monthly;
   if (data.amountKes !== expected) {
     throw new Error(
       earlyPartner
@@ -267,8 +277,70 @@ async function assertRentPaymentAuthorization(
     Number(invoice.late_fee ?? 0),
   );
   if (balance <= 0) throw new Error("Nothing left to pay on this invoice");
-  if (data.amountKes !== balance) {
-    throw new Error(`Rent amount mismatch — expected KES ${balance}`);
+  // Allow partial rent STK (UI + payPmRent); reject overpay only.
+  if (data.amountKes < 1 || data.amountKes > balance) {
+    throw new Error(
+      data.amountKes > balance
+        ? `Amount cannot exceed the remaining balance (KES ${balance})`
+        : "Enter a valid amount to pay",
+    );
+  }
+}
+
+/**
+ * Contact unlock price is derived from the listing's rent, never from the client.
+ * `unlockListingContact` prices this correctly, but the generic `initiatePayment`
+ * endpoint accepts an arbitrary `amountKes`, so it has to be re-derived here.
+ */
+async function assertContactUnlockPrice(
+  supabaseAdmin: AdminDb,
+  data: InitiatePaymentInput,
+): Promise<void> {
+  if (!data.propertyId) throw new Error("Select a listing to unlock");
+
+  const { data: property, error } = await supabaseAdmin
+    .from("properties")
+    .select("rent_kes")
+    .eq("id", data.propertyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!property) throw new Error("Listing not found");
+
+  const { unlockFeeForRent } = await import("@/lib/payments/unlock-pricing");
+  const expected = unlockFeeForRent(Number(property.rent_kes ?? 0));
+  if (data.amountKes !== expected) {
+    throw new Error(`Unlock price mismatch — expected KES ${expected}`);
+  }
+}
+
+async function assertTenantPlusPrice(data: InitiatePaymentInput): Promise<void> {
+  const { PLUS_PLAN } = await import("@/lib/revenue/plans");
+  const expected =
+    data.billingCycle === "quarterly" ? PLUS_PLAN.quarterlyKes : PLUS_PLAN.monthlyKes;
+  if (data.amountKes !== expected) {
+    throw new Error(`Plus price mismatch — expected KES ${expected}`);
+  }
+}
+
+async function assertLeadPackPrice(data: InitiatePaymentInput): Promise<void> {
+  const { LEAD_PACKS } = await import("@/lib/revenue/plans");
+  const pack = LEAD_PACKS.find((p) => p.qty === data.qty);
+  if (!pack) throw new Error("Select a valid lead pack");
+  if (data.amountKes !== pack.priceKes) {
+    throw new Error(`Lead pack price mismatch — expected KES ${pack.priceKes}`);
+  }
+}
+
+async function assertCatalogPrice(
+  items: ReadonlyArray<{ id: string; priceKes: number }>,
+  selectedId: string | undefined,
+  amountKes: number,
+  label: string,
+): Promise<void> {
+  const item = items.find((i) => i.id === selectedId);
+  if (!item) throw new Error(`Select a valid ${label}`);
+  if (amountKes !== item.priceKes) {
+    throw new Error(`${label} price mismatch — expected KES ${item.priceKes}`);
   }
 }
 
@@ -314,55 +386,126 @@ async function assertPaymentAuthorization(userId: string, data: InitiatePaymentI
   if (data.paymentType === "pm_module") {
     await assertPmModulePaymentAuthorization(supabaseAdmin, userId, data);
   }
+
+  // Every remaining product SKU also needs its price re-derived server-side. Without
+  // this, a caller could pay KES 1 for a contact unlock or a Plus subscription and still
+  // have fulfillment grant the full benefit.
+  if (data.paymentType === "contact_unlock") {
+    await assertContactUnlockPrice(supabaseAdmin, data);
+  }
+
+  if (data.paymentType === "tenant_plus") {
+    await assertTenantPlusPrice(data);
+  }
+
+  if (data.paymentType === "lead_pack") {
+    await assertLeadPackPrice(data);
+  }
+
+  if (data.paymentType === "verification") {
+    const { VERIFICATION_TIERS } = await import("@/lib/revenue/plans");
+    await assertCatalogPrice(
+      VERIFICATION_TIERS,
+      data.verificationTier,
+      data.amountKes,
+      "verification tier",
+    );
+  }
+
+  if (data.paymentType === "report") {
+    const { REPORT_CATALOG } = await import("@/lib/revenue/plans");
+    await assertCatalogPrice(REPORT_CATALOG, data.reportType, data.amountKes, "report");
+  }
 }
 
-async function completeMpesaPayment(
+async function reuseFreshCheckout(row: Awaited<ReturnType<typeof insertPayment>>["row"]) {
+  if (!row.mpesa_checkout_id) return null;
+  const ageMs = Date.now() - new Date(String(row.created_at ?? 0)).getTime();
+  const fresh = Number.isFinite(ageMs) && ageMs >= 0 && ageMs < STK_ATTEMPT_WINDOW_MS;
+  if (!fresh || row.status !== "pending") return null;
+  return {
+    paymentId: row.id,
+    status: "pending" as const,
+    method: "mpesa" as const,
+    checkoutRequestId: row.mpesa_checkout_id,
+    message: "Waiting for M-Pesa confirmation on your phone",
+  };
+}
+
+async function startRentIntasendStk(
   supabaseAdmin: Awaited<ReturnType<typeof insertPayment>>["supabaseAdmin"],
   row: Awaited<ReturnType<typeof insertPayment>>["row"],
   data: InitiatePaymentInput,
+  phone254: string,
 ) {
-  // Idempotent retry: reuse existing STK instead of prompting again.
-  if (row.mpesa_checkout_id) {
-    return {
-      paymentId: row.id,
-      status: "pending" as const,
-      method: "mpesa" as const,
-      checkoutRequestId: row.mpesa_checkout_id,
-      message: "Waiting for M-Pesa confirmation on your phone",
-    };
-  }
+  const { initiateIntasendStkPush, isIntasendCollectionConfigured } =
+    await import("@/lib/pm/intasend-collect");
+  if (!isIntasendCollectionConfigured()) return null;
 
-  if (!data.phoneNumber || !isKenyanPhone(data.phoneNumber)) {
-    throw new Error("Enter a valid M-Pesa phone number");
-  }
+  const stk = await initiateIntasendStkPush({
+    phone254,
+    amountKes: data.amountKes,
+    apiRef: `rent-${row.id.replaceAll("-", "").slice(0, 16)}`,
+    narrative: data.title.slice(0, 40),
+  });
+
+  const meta = parsePaymentMetadata(row.metadata);
+  await supabaseAdmin
+    .from("payments")
+    .update({
+      mpesa_checkout_id: stk.invoiceId,
+      metadata: { ...meta, mpesaProvider: "intasend", paymentMethod: "mpesa" },
+    })
+    .eq("id", row.id);
+
+  return {
+    paymentId: row.id,
+    status: "pending" as const,
+    method: "mpesa" as const,
+    checkoutRequestId: stk.invoiceId,
+    message: stk.customerMessage,
+  };
+}
+
+async function startDarajaStk(
+  supabaseAdmin: Awaited<ReturnType<typeof insertPayment>>["supabaseAdmin"],
+  row: Awaited<ReturnType<typeof insertPayment>>["row"],
+  data: InitiatePaymentInput,
+  phone254: string,
+) {
   const { initiateStkPush, isMpesaConfigured } = await import("@/lib/api/mpesa");
-  if (isMpesaConfigured()) {
-    const phone254 = formatPhone254(data.phoneNumber);
-    const stk = await initiateStkPush({
-      phone254,
-      amountKes: data.amountKes,
-      accountReference: row.id.slice(0, 12),
-      transactionDesc: data.title.slice(0, 13),
-    });
+  if (!isMpesaConfigured()) return null;
 
-    await supabaseAdmin
-      .from("payments")
-      .update({ mpesa_checkout_id: stk.checkoutRequestId })
-      .eq("id", row.id);
+  const stk = await initiateStkPush({
+    phone254,
+    amountKes: data.amountKes,
+    accountReference: row.id.slice(0, 12),
+    transactionDesc: data.title.slice(0, 13),
+  });
 
-    return {
-      paymentId: row.id,
-      status: "pending" as const,
-      method: "mpesa" as const,
-      checkoutRequestId: stk.checkoutRequestId,
-      message: stk.customerMessage,
-    };
-  }
+  const meta = parsePaymentMetadata(row.metadata);
+  await supabaseAdmin
+    .from("payments")
+    .update({
+      mpesa_checkout_id: stk.checkoutRequestId,
+      metadata: { ...meta, mpesaProvider: "daraja", paymentMethod: "mpesa" },
+    })
+    .eq("id", row.id);
 
-  if (!allowDemoMpesaCompletion()) {
-    throw new Error("M-Pesa payments are not configured. Contact support.");
-  }
+  return {
+    paymentId: row.id,
+    status: "pending" as const,
+    method: "mpesa" as const,
+    checkoutRequestId: stk.checkoutRequestId,
+    message: stk.customerMessage,
+  };
+}
 
+async function completeDemoMpesa(
+  supabaseAdmin: Awaited<ReturnType<typeof insertPayment>>["supabaseAdmin"],
+  row: Awaited<ReturnType<typeof insertPayment>>["row"],
+  useIntasendForRent: boolean,
+) {
   const bytes = new Uint8Array(4);
   crypto.getRandomValues(bytes);
   const receiptCode = `DEMO${Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
@@ -385,8 +528,53 @@ async function completeMpesaPayment(
     status: "completed" as const,
     method: "mpesa" as const,
     receiptCode,
-    message: "Demo payment completed (configure MPESA_* env vars for live STK Push).",
+    message: useIntasendForRent
+      ? "Demo rent payment completed (configure INTASEND_SECRET_KEY for live IntaSend STK)."
+      : "Demo payment completed (configure MPESA_* env vars for live Daraja STK).",
   };
+}
+
+async function completeMpesaPayment(
+  supabaseAdmin: Awaited<ReturnType<typeof insertPayment>>["supabaseAdmin"],
+  row: Awaited<ReturnType<typeof insertPayment>>["row"],
+  data: InitiatePaymentInput,
+) {
+  if (row.status === "failed") {
+    throw new Error("This payment attempt failed. Tap Prompt M-Pesa again to send a new request.");
+  }
+
+  // Idempotent retry within ~2 minutes: reuse existing STK instead of double-prompting.
+  const reused = await reuseFreshCheckout(row);
+  if (reused) return reused;
+  if (row.mpesa_checkout_id) {
+    await supabaseAdmin.from("payments").update({ mpesa_checkout_id: null }).eq("id", row.id);
+  }
+
+  if (!data.phoneNumber || !isKenyanPhone(data.phoneNumber)) {
+    throw new Error("Enter a valid M-Pesa phone number");
+  }
+
+  const phone254 = formatPhone254(data.phoneNumber);
+  const useIntasendForRent = data.paymentType === "rent_payment";
+
+  if (useIntasendForRent) {
+    // Rent stays on IntaSend only so collected funds land in the same wallet used for 99% owner payouts.
+    const live = await startRentIntasendStk(supabaseAdmin, row, data, phone254);
+    if (live) return live;
+    if (!allowDemoMpesaCompletion()) {
+      throw new Error(
+        "Rent M-Pesa prompts require IntaSend (INTASEND_SECRET_KEY). Other payments still use Daraja.",
+      );
+    }
+  } else {
+    const live = await startDarajaStk(supabaseAdmin, row, data, phone254);
+    if (live) return live;
+    if (!allowDemoMpesaCompletion()) {
+      throw new Error("M-Pesa payments are not configured. Contact support.");
+    }
+  }
+
+  return completeDemoMpesa(supabaseAdmin, row, useIntasendForRent);
 }
 
 /** Shared payment initiation — call from server handlers with a known userId. */

@@ -87,10 +87,7 @@ function ServicesIndexPage() {
           })}
         </div>
 
-        <section
-          className="glass-card mt-12 rounded-2xl p-6 sm:p-8"
-          data-tour="services-register"
-        >
+        <section className="glass-card mt-12 rounded-2xl p-6 sm:p-8" data-tour="services-register">
           <h2 className="font-display text-xl font-semibold">Are you a service provider?</h2>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             List your business on NyumbaSearch and reach tenants who just found a home. First month

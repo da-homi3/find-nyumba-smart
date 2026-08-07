@@ -106,9 +106,7 @@ export function ContactPhonesFields({
             list={suggestions.length > 0 ? listId : undefined}
             onChange={(e) => setAt(index, e.target.value)}
             placeholder={
-              index === 0
-                ? "e.g. 0712 345 678 or +254712345678"
-                : "Another number (optional)"
+              index === 0 ? "e.g. 0712 345 678 or +254712345678" : "Another number (optional)"
             }
             className={inputCls}
             autoComplete="tel"

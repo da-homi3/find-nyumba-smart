@@ -9,10 +9,14 @@ object Constants {
     /** If the main frame never finishes, force a retry before the UI feels hung. */
     const val PAGE_LOAD_WATCHDOG_MS = 18_000L
 
-    /** Hosted checkout that must stay inside the WebView (Pesapal card pay). */
+    /** Hosted flows that must stay inside the WebView (checkout + OAuth PKCE). */
     val IN_APP_EXTERNAL_HOSTS = setOf(
         "pay.pesapal.com",
         "cybqa.pesapal.com",
+        // Supabase Auth + Google OAuth — leave WebView and PKCE verifier breaks.
+        "accounts.google.com",
+        "accounts.youtube.com",
+        "oauthaccountmanager.googleapis.com",
     )
 
     /** Open in the system browser / WhatsApp (not checkout). */
@@ -26,6 +30,10 @@ object Constants {
 
     fun isInAppExternalHost(host: String): Boolean {
         if (IN_APP_EXTERNAL_HOSTS.any { host == it || host.endsWith(".$it") }) return true
-        return host == "pesapal.com" || host.endsWith(".pesapal.com")
+        if (host == "pesapal.com" || host.endsWith(".pesapal.com")) return true
+        if (host == "supabase.co" || host.endsWith(".supabase.co")) return true
+        if (host == "google.com" || host.endsWith(".google.com")) return true
+        if (host == "googleapis.com" || host.endsWith(".googleapis.com")) return true
+        return false
     }
 }

@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -30,6 +31,8 @@ interface AuthCtx {
   pendingApplications: PortalApplication[];
   activePortal: PortalId;
   loading: boolean;
+  /** False until roles are known for the current session (or signed out). Prevents portal bounce. */
+  rolesReady: boolean;
   isLandlord: boolean;
   isManager: boolean;
   isAgency: boolean;
@@ -43,8 +46,10 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-/** Fail-open so dashboards never spin forever on slow roles/portal reads. */
-const AUTH_BOOT_TIMEOUT_MS = 6_000;
+/** Unblock the shell if session restore hangs — roles still wait separately. */
+const AUTH_BOOT_TIMEOUT_MS = 20_000;
+/** Don't leave portals spinning forever if user_roles is down. */
+const AUTH_ROLES_TIMEOUT_MS = 12_000;
 
 async function fetchUserRoles(userId: string): Promise<AppRole[]> {
   const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -55,6 +60,18 @@ async function fetchUserRoles(userId: string): Promise<AppRole[]> {
   return (data ?? []).map((r) => r.role as AppRole);
 }
 
+async function fetchUserRolesWithTimeout(userId: string, ms: number): Promise<AppRole[]> {
+  return Promise.race([
+    fetchUserRoles(userId),
+    new Promise<AppRole[]>((resolve) => {
+      globalThis.setTimeout(() => {
+        console.warn("[use-auth] Roles fetch timed out — continuing with empty roles");
+        resolve([]);
+      }, ms);
+    }),
+  ]);
+}
+
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -62,6 +79,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [pendingApplications, setPendingApplications] = useState<PortalApplication[]>([]);
   const [activePortal, setActivePortal] = useState<PortalId>("tenant");
   const [loading, setLoading] = useState(true);
+  const [rolesReady, setRolesReady] = useState(false);
+  const sessionReadyRef = useRef(false);
 
   const refreshPortalState = useCallback(async (userId?: string) => {
     if (!userId) {
@@ -108,6 +127,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       bootTimer = setTimeout(() => {
         if (!active) return;
         console.warn("[use-auth] Auth boot timed out — continuing without full portal state");
+        // Unblock public shells only. Keep rolesReady=false while a user is present so
+        // landlord/manager/agency/admin layouts do not bounce to /auth with empty roles.
         setLoading(false);
       }, AUTH_BOOT_TIMEOUT_MS);
     };
@@ -118,22 +139,28 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       setUser(s?.user ?? null);
 
       if (!s?.user) {
+        sessionReadyRef.current = false;
         setRoles([]);
         setPendingApplications([]);
         setActivePortal("tenant");
+        setRolesReady(true);
         finishLoading();
         return;
       }
 
+      setRolesReady(false);
       try {
         // Unblock shells as soon as roles resolve; portal apps can trail in the background.
-        const nextRoles = await fetchUserRoles(s.user.id);
+        const nextRoles = await fetchUserRolesWithTimeout(s.user.id, AUTH_ROLES_TIMEOUT_MS);
         if (!active) return;
         setRoles(nextRoles);
+        sessionReadyRef.current = true;
+        setRolesReady(true);
         finishLoading();
         void refreshPortalState(s.user.id);
       } catch (err) {
         console.warn("[use-auth] session sync failed:", err);
+        if (active) setRolesReady(true);
         finishLoading();
       }
     };
@@ -146,6 +173,18 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
         if (!active) return;
         setSession(s);
         setUser(s?.user ?? null);
+        return;
+      }
+      // Android WebView often re-emits SIGNED_IN / INITIAL_SESSION on focus —
+      // don't tear down dashboards/wizards once the session is already ready.
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
+        sessionReadyRef.current &&
+        s?.user
+      ) {
+        setSession(s);
+        setUser(s.user);
+        void refreshPortalState(s.user.id);
         return;
       }
       const showLoading =
@@ -196,6 +235,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       pendingApplications,
       activePortal,
       loading,
+      rolesReady,
       isLandlord: roleSet.has("landlord"),
       isManager: roleSet.has("manager"),
       isAgency: roleSet.has("agency"),
@@ -213,6 +253,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       pendingApplications,
       activePortal,
       loading,
+      rolesReady,
       roleSet,
       hasApprovedRole,
       setActivePortalChoice,

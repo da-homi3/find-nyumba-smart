@@ -40,8 +40,7 @@ export function buildFinancialReportSummary(
       totalOutstanding += Math.max(0, r.amountDue + r.lateFee - r.amountPaid);
     }
   }
-  const collectionRate =
-    totalDue <= 0 ? 100 : Math.round((totalPaid / totalDue) * 100);
+  const collectionRate = totalDue <= 0 ? 100 : Math.round((totalPaid / totalDue) * 100);
   return {
     propertyName,
     periodMonth,
@@ -100,10 +99,7 @@ export function financialReportExcelXml(
 ): string {
   const { headers, body } = financialReportCsv(summary, rows);
   const escape = (s: string) =>
-    String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
+    String(s).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   const cell = (v: string) => `<Cell><Data ss:Type="String">${escape(v)}</Data></Cell>`;
   const rowXml = (cells: string[]) => `<Row>${cells.map(cell).join("")}</Row>`;
   const tableRows = [rowXml(headers), ...body.filter((r) => r.length).map((r) => rowXml(r))];

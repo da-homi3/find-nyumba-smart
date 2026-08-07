@@ -1,71 +1,235 @@
 /**
  * IntaSend Send Money — bank (PesaLink), M-Pesa B2C (phone), and M-Pesa B2B (paybill/till).
  * Env: INTASEND_SECRET_KEY (required), INTASEND_ENV=sandbox|live (default live).
+ * Production Workers use Supabase edge proxy when IntaSend bans CF egress (error 1106).
  */
 import { getServerEnv } from "@/lib/server-env";
+import { intasendProxyConfigured, intasendProxyFetch } from "@/lib/pm/intasend-proxy";
+
+/** Typical IntaSend M-Pesa B2C/B2B charge for small amounts (from live API errors). */
+export const INTASEND_MPESA_PAYOUT_CHARGE_ESTIMATE_KES = 10;
 
 function secretKey(): string | null {
   return (
-    getServerEnv("INTASEND_SECRET_KEY")?.trim() ||
-    getServerEnv("INTASEND_API_KEY")?.trim() ||
-    null
+    getServerEnv("INTASEND_SECRET_KEY")?.trim() || getServerEnv("INTASEND_API_KEY")?.trim() || null
   );
 }
 
 export function isIntasendConfigured(): boolean {
-  return Boolean(secretKey());
+  return Boolean(secretKey()) || intasendProxyConfigured();
 }
 
-function apiBase(): string {
+function payoutBases(): string[] {
   const env = (getServerEnv("INTASEND_ENV") || "live").toLowerCase();
-  return env === "sandbox"
-    ? "https://sandbox.intasend.com/api/v1"
-    : "https://payment.intasend.com/api/v1";
+  if (env === "sandbox") return ["https://sandbox.intasend.com/api/v1"];
+  return ["https://payment.intasend.com/api/v1", "https://api.intasend.com/api/v1"];
 }
 
-async function intasendFetch<T>(
+function intasendFailureMessage(
+  data: {
+    detail?: string;
+    message?: string;
+    error?: string | { message?: string };
+    errors?: Array<{ detail?: string; code?: string }>;
+  } | null,
+  status: number,
+): string {
+  const fromList = data?.errors
+    ?.map((e) => e.detail || e.code)
+    .filter(Boolean)
+    .join("; ");
+  if (fromList) return fromList;
+  if (data && typeof data.error === "object" && data.error?.message)
+    return String(data.error.message);
+  if (data && typeof data.error === "string") return data.error;
+  if (data?.detail) return data.detail;
+  if (data?.message) return data.message;
+  return `IntaSend error ${status}`;
+}
+
+type IntasendFailBody = Parameters<typeof intasendFailureMessage>[0];
+type IntasendFetchResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; message: string; status: number };
+
+function parseJsonOrNull(text: string): IntasendFailBody {
+  try {
+    return JSON.parse(text) as IntasendFailBody;
+  } catch {
+    return null;
+  }
+}
+
+function parseJsonAs<T>(text: string): T {
+  try {
+    return (JSON.parse(text) ?? {}) as T;
+  } catch {
+    return {} as T;
+  }
+}
+
+async function intasendFetchViaProxy<T>(
   path: string,
-  init: RequestInit & { method?: string } = {},
-): Promise<{ ok: true; data: T } | { ok: false; message: string; status: number }> {
+  method: string,
+  body: unknown,
+): Promise<IntasendFetchResult<T> | null> {
+  if (!intasendProxyConfigured()) return null;
+
+  const proxied = await intasendProxyFetch({ path, method, body });
+  if (proxied.ok) {
+    return { ok: true, data: parseJsonAs<T>(proxied.text) };
+  }
+
+  const data = parseJsonOrNull(proxied.text);
+  const message =
+    intasendFailureMessage(data, proxied.status) ||
+    proxied.text.slice(0, 200) ||
+    `IntaSend proxy error ${proxied.status}`;
+
+  // Retry direct only when proxy itself is down (5xx/0).
+  if (proxied.status > 0 && proxied.status < 500) {
+    return { ok: false, message, status: proxied.status };
+  }
+  return null;
+}
+
+async function intasendFetchViaDirect<T>(
+  path: string,
+  init: RequestInit & { method?: string },
+): Promise<IntasendFetchResult<T>> {
   const key = secretKey();
   if (!key) {
     return { ok: false, message: "IntaSend is not configured", status: 0 };
   }
 
-  try {
-    const res = await fetch(`${apiBase()}${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...init.headers,
-      },
-    });
-    const data = (await res.json().catch(() => null)) as
-      | (T & {
-          detail?: string;
-          message?: string;
-          error?: string | { message?: string };
-        })
-      | null;
-    if (!res.ok) {
-      const msg =
-        (data && typeof data.error === "object" && data.error?.message) ||
-        (data && typeof data.error === "string" ? data.error : null) ||
-        data?.detail ||
-        data?.message ||
-        `IntaSend error ${res.status}`;
-      return { ok: false, message: String(msg), status: res.status };
+  let last: { ok: false; message: string; status: number } | null = null;
+  for (const base of payoutBases()) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...init.headers,
+        },
+      });
+      const data = (await res.json().catch(() => null)) as
+        | (T & {
+            detail?: string;
+            message?: string;
+            error?: string | { message?: string };
+            errors?: Array<{ detail?: string; code?: string }>;
+          })
+        | null;
+      if (!res.ok) {
+        last = { ok: false, message: intasendFailureMessage(data, res.status), status: res.status };
+        if (res.status === 401 || res.status === 403 || res.status >= 500) continue;
+        return last;
+      }
+      return { ok: true, data: (data ?? {}) as T };
+    } catch (e) {
+      last = {
+        ok: false,
+        message: e instanceof Error ? e.message : "IntaSend request failed",
+        status: 0,
+      };
     }
-    return { ok: true, data: (data ?? {}) as T };
-  } catch (e) {
-    return {
-      ok: false,
-      message: e instanceof Error ? e.message : "IntaSend request failed",
-      status: 0,
-    };
   }
+  return last ?? { ok: false, message: "IntaSend request failed", status: 0 };
+}
+
+async function intasendFetch<T>(
+  path: string,
+  init: RequestInit & { method?: string } = {},
+): Promise<IntasendFetchResult<T>> {
+  const method = (init.method || "GET").toUpperCase();
+  let body: unknown;
+  if (typeof init.body === "string" && init.body) {
+    try {
+      body = JSON.parse(init.body);
+    } catch {
+      body = init.body;
+    }
+  }
+
+  const viaProxy = await intasendFetchViaProxy<T>(path, method, body);
+  if (viaProxy) return viaProxy;
+
+  return intasendFetchViaDirect<T>(path, init);
+}
+
+type WalletRow = {
+  wallet_id?: string;
+  id?: string | number;
+  currency?: string;
+  wallet_type?: string;
+  current_balance?: string | number;
+  available_balance?: string | number;
+  can_disburse?: boolean | string;
+  label?: string;
+};
+
+function parseBalance(value: string | number | undefined): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const n = Number.parseFloat(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+/** Available KES balance on the IntaSend wallet used for disbursements. */
+export async function getIntasendKesAvailableBalance(): Promise<{
+  available: number;
+  current: number;
+  walletId: string | null;
+} | null> {
+  if (!isIntasendConfigured()) return null;
+  const result = await intasendFetch<
+    WalletRow[] | { results?: WalletRow[]; wallets?: WalletRow[] }
+  >("/wallets/", { method: "GET" });
+  if (!result.ok) {
+    console.warn("[intasend] wallet list failed:", result.message);
+    return null;
+  }
+  let rows: WalletRow[] = [];
+  if (Array.isArray(result.data)) {
+    rows = result.data;
+  } else if (Array.isArray(result.data.results)) {
+    rows = result.data.results;
+  } else if (Array.isArray(result.data.wallets)) {
+    rows = result.data.wallets;
+  }
+  const kes = rows.find((w) => String(w.currency || "").toUpperCase() === "KES") || null;
+  if (!kes) return { available: 0, current: 0, walletId: null };
+  let walletId: string | null = null;
+  if (kes.wallet_id != null) walletId = String(kes.wallet_id);
+  else if (kes.id != null) walletId = String(kes.id);
+  return {
+    available: parseBalance(kes.available_balance),
+    current: parseBalance(kes.current_balance),
+    walletId,
+  };
+}
+
+/** Net payout + estimated IntaSend charge that must be available before sending. */
+export function intasendPayoutRequiredBalanceKes(netAmountKes: number): number {
+  return Math.ceil(netAmountKes + INTASEND_MPESA_PAYOUT_CHARGE_ESTIMATE_KES);
+}
+
+/**
+ * Throws a clear error if the KES wallet cannot cover net + estimated charge.
+ * Skips the check (returns) if the wallet API is unreachable so we still attempt disburse.
+ */
+export async function assertIntasendWalletForPayout(opts: { netAmountKes: number }): Promise<void> {
+  const required = intasendPayoutRequiredBalanceKes(opts.netAmountKes);
+  const wallet = await getIntasendKesAvailableBalance();
+  if (!wallet) return;
+  if (wallet.available + 0.001 >= required) return;
+  throw new Error(
+    `IntaSend wallet insufficient: need ~KES ${required} (net ${opts.netAmountKes} + charge) but available is KES ${wallet.available.toFixed(2)}. Top up the IntaSend KES wallet.`,
+  );
 }
 
 export type IntasendBankCode = { bank_name: string; bank_code: string };
@@ -221,7 +385,7 @@ export async function createIntasendMpesaB2C(opts: {
       transactions: [
         {
           name: (opts.name || "Landlord").slice(0, 50),
-          account: Number(account),
+          account: account,
           amount: opts.amountKes,
           narrative: opts.narration.slice(0, 100),
         },
@@ -262,7 +426,7 @@ export async function createIntasendMpesaB2B(opts: {
 
   const txn: Record<string, string | number> = {
     name: (opts.name || "Landlord business").slice(0, 50),
-    account: Number(account) || account,
+    account: account,
     account_type: opts.accountType,
     amount: opts.amountKes,
     narrative: opts.narration.slice(0, 100),

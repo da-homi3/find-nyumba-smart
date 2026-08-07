@@ -1,8 +1,4 @@
-import {
-  isCommercialType,
-  prettyPropertyType,
-  type PropertyType,
-} from "@/lib/property-types";
+import { isCommercialType, prettyPropertyType, type PropertyType } from "@/lib/property-types";
 
 export type ListingTitleDetails = {
   property_type: PropertyType;
@@ -66,10 +62,7 @@ function pickAmenityHighlight(amenities: ListingTitleDetails["amenities"]): stri
 
 function addressSnippet(address: string | null | undefined): string | null {
   if (!address?.trim()) return null;
-  const first = address
-    .split(",")[0]
-    ?.replace(/\s+/g, " ")
-    .trim();
+  const first = address.split(",")[0]?.replace(/\s+/g, " ").trim();
   if (!first || first.length < 3) return null;
   if (first.length <= 36) return first;
   return `${first.slice(0, 33).trimEnd()}…`;
@@ -152,10 +145,7 @@ export function generateListingTitle(details: ListingTitleDetails): string {
 }
 
 /** True when the current title looks like one we previously auto-generated. */
-export function isGeneratedListingTitle(
-  title: string,
-  details: ListingTitleDetails,
-): boolean {
+export function isGeneratedListingTitle(title: string, details: ListingTitleDetails): boolean {
   const expected = generateListingTitle(details);
   if (!expected) return false;
   return title.trim() === expected;

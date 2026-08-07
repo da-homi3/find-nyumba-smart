@@ -191,15 +191,27 @@ function TenantHome() {
     } catch {
       // ignore
     }
-    const onScroll = () => {
+    // sessionStorage writes are synchronous and serialize to disk; doing one per scroll
+    // event janks the list on mid-range phones. Coalesce into one write per frame.
+    let queued = false;
+    const persist = () => {
+      queued = false;
       try {
         sessionStorage.setItem(key, String(window.scrollY));
       } catch {
         // ignore
       }
     };
+    const onScroll = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(persist);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      persist();
+    };
   }, []);
 
   useEffect(() => {
@@ -236,8 +248,7 @@ function TenantHome() {
     // Type/area chips always use the full price range. Otherwise apply rent only when
     // the user has moved the budget slider away from "show everything".
     const rentFilterActive =
-      !browseAllInScope &&
-      (filters.minRent > 0 || filters.maxRent < TENANT_MAX_RENT);
+      !browseAllInScope && (filters.minRent > 0 || filters.maxRent < TENANT_MAX_RENT);
     return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
@@ -376,7 +387,7 @@ function TenantHome() {
     setPage(1);
   };
 
-  const handleToggleSave = (propertyId: string) => (e: MouseEvent) => {
+  const handleToggleSave = (e: MouseEvent, propertyId: string) => {
     e.preventDefault();
     if (!user) {
       toast.error("Sign in to save homes");
@@ -539,7 +550,7 @@ function TenantHome() {
                   preview={isPreviewListing(p)}
                   saved={savedIds.has(p.id)}
                   plusMember={isPlus}
-                  onToggleSave={handleToggleSave(p.id)}
+                  onToggleSave={handleToggleSave}
                 />
               </div>
             ))}
@@ -608,7 +619,7 @@ type TenantListingsGridProps = Readonly<{
   isPlus: boolean;
   onRetry: () => void;
   onLoadMore: () => void;
-  onToggleSave: (propertyId: string) => (e: MouseEvent) => void;
+  onToggleSave: (e: MouseEvent, propertyId: string) => void;
   onClearFilters: () => void;
 }>;
 
@@ -672,7 +683,8 @@ function TenantListingsGrid({
                 preview={isPreviewListing(p)}
                 saved={savedIds.has(p.id)}
                 plusMember={isPlus}
-                onToggleSave={onToggleSave(p.id)}
+                onToggleSave={onToggleSave}
+                priority={index < 2}
               />
               {showPromo &&
                 (boosted ? (

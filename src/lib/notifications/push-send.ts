@@ -24,8 +24,8 @@ function fcmEnabled(): boolean {
 function vapidConfigured(): boolean {
   return Boolean(
     process.env.VAPID_PUBLIC_KEY?.trim() &&
-      process.env.VAPID_PRIVATE_KEY?.trim() &&
-      process.env.VAPID_SUBJECT?.trim(),
+    process.env.VAPID_PRIVATE_KEY?.trim() &&
+    process.env.VAPID_SUBJECT?.trim(),
   );
 }
 
@@ -79,36 +79,30 @@ async function getFcmAccessToken(): Promise<string | null> {
   return json.access_token;
 }
 
-async function sendFcm(
-  deviceToken: string,
-  payload: PushPayload,
-): Promise<PushSendResult> {
+async function sendFcm(deviceToken: string, payload: PushPayload): Promise<PushSendResult> {
   const projectId = process.env.FCM_PROJECT_ID?.trim();
   const access = await getFcmAccessToken();
   if (!projectId || !access) return "error";
 
-  const res = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${access}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: {
-          token: deviceToken,
-          notification: { title: payload.title, body: payload.body },
-          data: {
-            href: payload.href ?? "/",
-            type: payload.type,
-            notificationId: payload.notificationId,
-          },
-          android: { priority: "HIGH" },
-        },
-      }),
+  const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${access}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      message: {
+        token: deviceToken,
+        notification: { title: payload.title, body: payload.body },
+        data: {
+          href: payload.href ?? "/",
+          type: payload.type,
+          notificationId: payload.notificationId,
+        },
+        android: { priority: "HIGH" },
+      },
+    }),
+  });
 
   if (res.ok) return "ok";
   const text = await res.text();

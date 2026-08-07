@@ -52,10 +52,7 @@ export async function onRentInvoicePaid(
   }
 }
 
-export async function onInvoicesFlaggedOverdue(
-  admin: Admin,
-  invoiceIds: string[],
-): Promise<void> {
+export async function onInvoicesFlaggedOverdue(admin: Admin, invoiceIds: string[]): Promise<void> {
   if (!invoiceIds.length) return;
   try {
     const { recordFactor } = await import("@/lib/reputation/calculate");
@@ -67,14 +64,9 @@ export async function onInvoicesFlaggedOverdue(
     if (!invoices?.length) return;
 
     const leaseIds = [
-      ...new Set(
-        (invoices as Array<{ id: string; lease_id: string }>).map((i) => i.lease_id),
-      ),
+      ...new Set((invoices as Array<{ id: string; lease_id: string }>).map((i) => i.lease_id)),
     ];
-    const { data: leases } = await pm
-      .from("pm_leases")
-      .select("id, tenant_id")
-      .in("id", leaseIds);
+    const { data: leases } = await pm.from("pm_leases").select("id, tenant_id").in("id", leaseIds);
     const leaseById = new Map(
       ((leases ?? []) as Array<{ id: string; tenant_id: string }>).map((l) => [l.id, l]),
     );
@@ -175,7 +167,11 @@ export async function onVerificationApproved(
   }
 }
 
-export async function onListingUpdated(admin: Admin, userId: string, propertyId: string): Promise<void> {
+export async function onListingUpdated(
+  admin: Admin,
+  userId: string,
+  propertyId: string,
+): Promise<void> {
   try {
     const { awardPoints } = await import("@/lib/loyalty/points");
     await awardPoints(db(admin), {

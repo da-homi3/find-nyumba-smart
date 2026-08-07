@@ -9,14 +9,15 @@ export const Route = createFileRoute("/landlord")({
 });
 
 function LandlordLayout() {
-  const { user, loading, isLandlord, pendingApplications } = useAuth();
+  const { user, loading, rolesReady, isLandlord, pendingApplications } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
   const isPublicEntry = pathname === "/landlord" || pathname === "/landlord/";
+  const authSettled = !loading && rolesReady;
 
   useEffect(() => {
-    if (isPublicEntry || loading) return;
+    if (isPublicEntry || !authSettled) return;
     if (!user) {
       navigate({
         to: "/auth",
@@ -33,14 +34,16 @@ function LandlordLayout() {
         replace: true,
       });
     }
-  }, [loading, user, isLandlord, pendingApplications, isPublicEntry, pathname, navigate]);
+  }, [authSettled, user, isLandlord, pendingApplications, isPublicEntry, pathname, navigate]);
 
-  if (!isPublicEntry && (loading || !user || !isLandlord)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (!isPublicEntry && (!authSettled || !user || !isLandlord)) {
+    if (!(user && isLandlord)) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
   }
 
   return <Outlet />;

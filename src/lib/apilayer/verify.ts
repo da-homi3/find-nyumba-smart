@@ -180,20 +180,23 @@ export function evaluateMailboxlayer(result: MailboxlayerResult): {
     return { ok: false, reason: `Enter a valid email address.${hint}` };
   }
   if (result.disposable) {
-    return { ok: false, reason: "Disposable email addresses are not allowed. Use your real email." };
+    return {
+      ok: false,
+      reason: "Disposable email addresses are not allowed. Use your real email.",
+    };
   }
   if (result.mxFound === false) {
     const hint = result.didYouMean ? ` Did you mean ${result.didYouMean}?` : "";
     return { ok: false, reason: `That email domain cannot receive mail.${hint}` };
   }
+  // Soft signals (score / smtp) are noisy on free providers — warn in logs, don't block signup.
   if (result.score != null && result.score < 0.2) {
-    return { ok: false, reason: "That email looks unreliable. Use a different address." };
+    console.warn("[apilayer] mailboxlayer low score (allowed)", { score: result.score });
   }
   if (result.didYouMean && result.smtpCheck === false) {
-    return {
-      ok: false,
-      reason: `That email looks mistyped. Did you mean ${result.didYouMean}?`,
-    };
+    console.warn("[apilayer] mailboxlayer typo hint (allowed)", {
+      didYouMean: result.didYouMean,
+    });
   }
   return { ok: true };
 }

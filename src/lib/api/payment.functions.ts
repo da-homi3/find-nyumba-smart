@@ -36,7 +36,8 @@ export const verifyPaymentStatus = createServerFn({ method: "POST" })
 
     const ageMs = Date.now() - new Date(row.created_at).getTime();
     let synced = row;
-    if (row.status === "pending" && ageMs > 6_000) {
+    // Sync STK quickly so IntaSend COMPLETE does not leave the rent UI looping.
+    if (row.status === "pending" && ageMs > 2_000) {
       if (row.payment_method === "mpesa") {
         synced = await (
           await import("@/lib/payments/complete-mpesa-payment")

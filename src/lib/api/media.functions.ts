@@ -242,14 +242,15 @@ export const createAdminListingMediaUploadUrls = createServerFn({ method: "POST"
     }
 
     const admin = await adminClient();
-    const uploads = [];
-    for (const path of data.paths) {
-      const { data: signed, error } = await admin.storage
-        .from("property-media")
-        .createSignedUploadUrl(path, { upsert: false });
-      if (error) throw error;
-      uploads.push({ path, token: signed.token, signedUrl: signed.signedUrl });
-    }
+    const uploads = await Promise.all(
+      data.paths.map(async (path) => {
+        const { data: signed, error } = await admin.storage
+          .from("property-media")
+          .createSignedUploadUrl(path, { upsert: false });
+        if (error) throw error;
+        return { path, token: signed.token, signedUrl: signed.signedUrl };
+      }),
+    );
     return uploads;
   });
 

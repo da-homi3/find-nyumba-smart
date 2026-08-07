@@ -13,7 +13,9 @@ export const TRIAL_ELIGIBLE_PAYMENT_TYPES = [
 
 export type TrialEligiblePaymentType = (typeof TRIAL_ELIGIBLE_PAYMENT_TYPES)[number];
 
-export function isTrialEligiblePaymentType(paymentType: string): paymentType is TrialEligiblePaymentType {
+export function isTrialEligiblePaymentType(
+  paymentType: string,
+): paymentType is TrialEligiblePaymentType {
   return (TRIAL_ELIGIBLE_PAYMENT_TYPES as readonly string[]).includes(paymentType);
 }
 

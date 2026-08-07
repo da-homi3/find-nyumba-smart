@@ -27,6 +27,147 @@ type PlaceSearchFieldProps = Readonly<{
   bbox?: [number, number, number, number];
 }>;
 
+function proximityOrUndefined(
+  lat: number | undefined,
+  lng: number | undefined,
+): { lat: number; lng: number } | undefined {
+  if (lat == null || lng == null) return undefined;
+  return { lat, lng };
+}
+
+function PlaceSearchResults({
+  listId,
+  loading,
+  resolvingEnter,
+  results,
+  activeIndex,
+  onActiveIndex,
+  onSelect,
+}: Readonly<{
+  listId: string;
+  loading: boolean;
+  resolvingEnter: boolean;
+  results: LocationSearchResult[];
+  activeIndex: number;
+  onActiveIndex: (index: number) => void;
+  onSelect: (place: LocationSearchResult) => void;
+}>) {
+  const busy = loading || resolvingEnter;
+  return (
+    <div
+      id={listId}
+      className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-30 max-h-72 overflow-y-auto rounded-xl border bg-card shadow-elegant"
+    >
+      {busy ? (
+        <div className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          {resolvingEnter ? "Going to best match…" : "Searching places near the map…"}
+        </div>
+      ) : null}
+      {!busy && results.length === 0 ? (
+        <p className="px-3 py-3 text-xs text-muted-foreground">
+          No places found. Try a landmark, road, or neighbourhood name.
+        </p>
+      ) : null}
+      {!busy && results.length > 0 ? (
+        <ul className="py-1">
+          {results.map((result, index) => {
+            const distanceHint =
+              result.distanceKm != null && result.distanceKm < 80
+                ? ` · ${formatDistanceKm(result.distanceKm)}`
+                : "";
+            return (
+              <li key={result.id}>
+                <button
+                  type="button"
+                  id={`${listId}-opt-${index}`}
+                  aria-current={index === activeIndex ? "true" : undefined}
+                  onMouseEnter={() => onActiveIndex(index)}
+                  onClick={() => onSelect(result)}
+                  className={cn(
+                    "flex w-full items-start gap-2 px-3 py-2.5 text-left",
+                    index === activeIndex ? "bg-secondary/80" : "hover:bg-secondary/60",
+                  )}
+                >
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">{result.label}</span>
+                      <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {placeKindLabel(result.kind)}
+                      </span>
+                    </span>
+                    {result.subtitle ? (
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                        {result.subtitle}
+                        {distanceHint}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function NearbyPlaces({
+  places,
+  onSelect,
+}: Readonly<{
+  places: LocationSearchResult[];
+  onSelect: (place: LocationSearchResult) => void;
+}>) {
+  if (places.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      <span className="self-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Nearby
+      </span>
+      {places.map((place) => (
+        <button
+          key={place.id}
+          type="button"
+          onClick={() => onSelect(place)}
+          className="rounded-full border bg-background/90 px-2.5 py-1 text-[11px] font-medium hover:border-primary/40 hover:bg-secondary"
+        >
+          {place.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function handlePlaceSearchKeyDown(
+  e: KeyboardEvent<HTMLInputElement>,
+  resultsLength: number,
+  onEscape: () => void,
+  onArrow: (delta: 1 | -1) => void,
+  onEnter: () => void,
+) {
+  if (e.key === "Escape") {
+    onEscape();
+    return;
+  }
+  if (e.key === "ArrowDown" && resultsLength > 0) {
+    e.preventDefault();
+    onArrow(1);
+    return;
+  }
+  if (e.key === "ArrowUp" && resultsLength > 0) {
+    e.preventDefault();
+    onArrow(-1);
+    return;
+  }
+  if (e.key === "Enter") {
+    e.preventDefault();
+    onEnter();
+  }
+}
+
 export function PlaceSearchField({
   value,
   onValueChange,
@@ -44,6 +185,7 @@ export function PlaceSearchField({
   const rootRef = useRef<HTMLDivElement>(null);
   const tokenRef = useRef<string | null>(null);
   const resultsRef = useRef<LocationSearchResult[]>([]);
+  const bboxRef = useRef<PlaceSearchFieldProps["bbox"]>(undefined);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<LocationSearchResult[]>([]);
@@ -52,6 +194,7 @@ export function PlaceSearchField({
   const [resolvingEnter, setResolvingEnter] = useState(false);
 
   resultsRef.current = results;
+  bboxRef.current = bbox;
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +205,11 @@ export function PlaceSearchField({
       cancelled = true;
     };
   }, []);
+
+  // Serialized so the effect re-runs on content change, not array identity.
+  const bboxKey = bbox ? bbox.join(",") : "";
+  const proximityLat = proximity?.lat;
+  const proximityLng = proximity?.lng;
 
   useEffect(() => {
     const query = value.trim();
@@ -78,11 +226,8 @@ export function PlaceSearchField({
       void searchLocations(query, {
         mapboxToken: tokenRef.current,
         limit: 10,
-        proximity:
-          proximity?.lat != null && proximity.lng != null
-            ? { lat: proximity.lat, lng: proximity.lng }
-            : undefined,
-        bbox,
+        proximity: proximityOrUndefined(proximityLat, proximityLng),
+        bbox: bboxRef.current,
       }).then((next) => {
         if (cancelled) return;
         setResults(next);
@@ -95,7 +240,7 @@ export function PlaceSearchField({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [value, proximity?.lat, proximity?.lng, bbox?.[0], bbox?.[1], bbox?.[2], bbox?.[3]]);
+  }, [value, proximityLat, proximityLng, bboxKey]);
 
   useEffect(() => {
     function onPointerDown(event: MouseEvent) {
@@ -139,36 +284,12 @@ export function PlaceSearchField({
       if (!tokenRef.current) tokenRef.current = await resolveMapboxToken();
       const best = await resolveBestLocation(query, {
         mapboxToken: tokenRef.current,
-        proximity:
-          proximity?.lat != null && proximity.lng != null
-            ? { lat: proximity.lat, lng: proximity.lng }
-            : undefined,
+        proximity: proximityOrUndefined(proximity?.lat, proximity?.lng),
         bbox,
       });
       if (best) selectPlace(best);
     } finally {
       setResolvingEnter(false);
-    }
-  }
-
-  function onSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Escape") {
-      setOpen(false);
-      return;
-    }
-    if (e.key === "ArrowDown" && results.length > 0) {
-      e.preventDefault();
-      setActiveIndex((i) => (i + 1) % results.length);
-      return;
-    }
-    if (e.key === "ArrowUp" && results.length > 0) {
-      e.preventDefault();
-      setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
-      return;
-    }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      void commitBestMatch();
     }
   }
 
@@ -182,10 +303,7 @@ export function PlaceSearchField({
 
   const showDropdown =
     open &&
-    (loading ||
-      resolvingEnter ||
-      results.length > 0 ||
-      (value.trim().length >= 2 && !loading));
+    (loading || resolvingEnter || results.length > 0 || (value.trim().length >= 2 && !loading));
 
   return (
     <div ref={rootRef} className={cn("relative min-w-0 flex-1", className)}>
@@ -205,7 +323,19 @@ export function PlaceSearchField({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          onKeyDown={onSearchKeyDown}
+          onKeyDown={(e) =>
+            handlePlaceSearchKeyDown(
+              e,
+              results.length,
+              () => setOpen(false),
+              (delta) =>
+                setActiveIndex((i) => {
+                  if (delta === 1) return (i + 1) % results.length;
+                  return i <= 0 ? results.length - 1 : i - 1;
+                }),
+              () => void commitBestMatch(),
+            )
+          }
           placeholder={placeholder}
           autoComplete="off"
           className={cn(
@@ -226,84 +356,18 @@ export function PlaceSearchField({
       </div>
 
       {showDropdown ? (
-        <div
-          id={listId}
-          role="listbox"
-          className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-30 max-h-72 overflow-y-auto rounded-xl border bg-card shadow-elegant"
-        >
-          {loading || resolvingEnter ? (
-            <div className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {resolvingEnter ? "Going to best match…" : "Searching places near the map…"}
-            </div>
-          ) : null}
-          {!loading && !resolvingEnter && results.length === 0 ? (
-            <p className="px-3 py-3 text-xs text-muted-foreground">
-              No places found. Try a landmark, road, or neighbourhood name.
-            </p>
-          ) : null}
-          {!loading && !resolvingEnter && results.length > 0 ? (
-            <ul className="py-1">
-              {results.map((result, index) => {
-                const distanceHint =
-                  result.distanceKm != null && result.distanceKm < 80
-                    ? ` · ${formatDistanceKm(result.distanceKm)}`
-                    : "";
-                return (
-                <li key={result.id}>
-                  <button
-                    type="button"
-                    id={`${listId}-opt-${index}`}
-                    role="option"
-                    aria-selected={index === activeIndex}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => selectPlace(result)}
-                    className={cn(
-                      "flex w-full items-start gap-2 px-3 py-2.5 text-left",
-                      index === activeIndex ? "bg-secondary/80" : "hover:bg-secondary/60",
-                    )}
-                  >
-                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium">{result.label}</span>
-                        <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {placeKindLabel(result.kind)}
-                        </span>
-                      </span>
-                      {result.subtitle ? (
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {result.subtitle}
-                          {distanceHint}
-                        </span>
-                      ) : null}
-                    </span>
-                  </button>
-                </li>
-                );
-              })}
-            </ul>
-          ) : null}
-        </div>
+        <PlaceSearchResults
+          listId={listId}
+          loading={loading}
+          resolvingEnter={resolvingEnter}
+          results={results}
+          activeIndex={activeIndex}
+          onActiveIndex={setActiveIndex}
+          onSelect={selectPlace}
+        />
       ) : null}
 
-      {nearby.length > 0 && !showDropdown ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          <span className="self-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Nearby
-          </span>
-          {nearby.map((place) => (
-            <button
-              key={place.id}
-              type="button"
-              onClick={() => selectPlace(place)}
-              className="rounded-full border bg-background/90 px-2.5 py-1 text-[11px] font-medium hover:border-primary/40 hover:bg-secondary"
-            >
-              {place.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      {!showDropdown ? <NearbyPlaces places={nearby} onSelect={selectPlace} /> : null}
     </div>
   );
 }

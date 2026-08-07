@@ -35,6 +35,11 @@ export function isStandaloneDisplay(): boolean {
 
 declare global {
   interface Window {
-    NyumbaAndroid?: { getPlatform?: () => string };
+    NyumbaAndroid?: {
+      getPlatform?: () => string;
+      setPullToRefreshEnabled?: (enabled: boolean) => void;
+      /** Save remote media into Movies/Pictures (Android app only). */
+      saveMediaToGallery?: (url: string, mimeType: string, filename: string) => void;
+    };
   }
 }

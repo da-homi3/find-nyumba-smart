@@ -28,6 +28,11 @@ export interface Property {
   rent_kes: number;
   rent_kes_max?: number | null;
   deposit_kes: number | null;
+  /** Display currency for the listing price. */
+  price_currency?: "KES" | "USD" | null;
+  rent_usd?: number | null;
+  rent_usd_max?: number | null;
+  deposit_usd?: number | null;
   bedrooms: number;
   bathrooms: number;
   area_sqm: number | null;
@@ -130,4 +135,3 @@ export async function fetchProperty(id: string): Promise<Property | null> {
     },
   });
 }
-

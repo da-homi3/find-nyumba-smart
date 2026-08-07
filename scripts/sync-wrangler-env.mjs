@@ -24,6 +24,8 @@ const CUSTOM_DOMAINS = ["nyumbasearch.com", "www.nyumbasearch.com"];
 const VAR_KEYS = [
   "PUBLIC_APP_URL",
   "SITE_URL",
+  "SUPABASE_URL",
+  "VITE_SUPABASE_URL",
   "MPESA_ENV",
   "MPESA_SHORTCODE",
   "MPESA_CALLBACK_URL",
@@ -43,6 +45,7 @@ const VAR_KEYS = [
   "VAPID_SUBJECT",
   "VAPID_PUBLIC_KEY",
   "INTASEND_ENV",
+  "AT_ENV",
 ];
 
 /** Uploaded as Worker secrets */
@@ -59,6 +62,7 @@ const SECRET_KEYS = [
   "PESAPAL_CONSUMER_SECRET",
   "INTASEND_SECRET_KEY",
   "INTASEND_API_KEY",
+  "INTASEND_PROXY_SECRET",
   "CRON_SECRET",
   "GEMINI_API_KEY",
   "NVIDIA_API_KEY",
@@ -76,6 +80,9 @@ const SECRET_KEYS = [
   "FCM_CLIENT_EMAIL",
   "FCM_PRIVATE_KEY",
   "VAPID_PRIVATE_KEY",
+  "AT_USERNAME",
+  "AT_API_KEY",
+  "AT_SENDER_ID",
 ];
 
 const DEPRECATED_ENV_KEYS = new Set([
@@ -187,7 +194,9 @@ function warnOptionalConfig(env) {
   );
 
   if (!env.GEMINI_API_KEY) {
-    console.log("NyumbaAI: Cloudflare Workers AI on production (GEMINI_API_KEY optional for local dev).");
+    console.log(
+      "NyumbaAI: Cloudflare Workers AI on production (GEMINI_API_KEY optional for local dev).",
+    );
   }
 
   warnMissingEnvGroup(
@@ -207,6 +216,12 @@ function warnOptionalConfig(env) {
       "Mapbox 3D map not configured — add VITE_MAPBOX_TOKEN (pk.ey...) from https://account.mapbox.com/access-tokens/",
     );
   }
+
+  if (!env.AT_USERNAME || !env.AT_API_KEY) {
+    console.warn(
+      "Africa’s Talking SMS off — add AT_USERNAME + AT_API_KEY to .env for phone signup OTP (optional AT_SENDER_ID, AT_ENV=sandbox).",
+    );
+  }
 }
 
 function uploadWorkerSecrets(env) {
@@ -217,7 +232,16 @@ function uploadWorkerSecrets(env) {
       continue;
     }
     console.log(`  put ${key}`);
-    putSecret(key, env[key]);
+    try {
+      putSecret(key, env[key]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/already in use/i.test(msg)) {
+        console.warn(`  skip ${key} (already bound as plain var)`);
+        continue;
+      }
+      throw e;
+    }
   }
 }
 

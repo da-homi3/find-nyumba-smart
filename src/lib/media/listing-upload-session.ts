@@ -139,12 +139,21 @@ export async function runDurableListingUpload<T>(
     pathByFileId: run.pathByFileId,
     setPhase: (phase) => {
       run.phase = phase;
+      // Keep the last percent when moving enhancing → uploading so the bar never
+      // drops from ~100% back to 0% (looked like the upload restarted).
       if (phase === "uploading" && run.progress == null) run.progress = 0;
-      if (phase === "publishing") run.progress = null;
+      if (phase === "publishing") {
+        run.progress = run.progress == null ? 98 : Math.max(run.progress, 98);
+      }
       notify(run);
     },
     setProgress: (progress) => {
-      run.progress = progress;
+      if (progress == null) {
+        run.progress = null;
+      } else {
+        const next = Math.max(0, Math.min(100, Math.round(progress)));
+        run.progress = run.progress == null ? next : Math.max(run.progress, next);
+      }
       notify(run);
     },
     markPathDone: (path) => {

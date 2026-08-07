@@ -57,7 +57,9 @@ async function verifyDestination(input: CreateDestinationInput): Promise<Destina
   }
 }
 
-async function verifyBankDestination(input: CreateDestinationInput): Promise<DestinationVerification> {
+async function verifyBankDestination(
+  input: CreateDestinationInput,
+): Promise<DestinationVerification> {
   if (!input.bankCode || !input.bankAccountNumber || !input.bankAccountName) {
     throw new Error("Bank code, account number, and account name are required");
   }

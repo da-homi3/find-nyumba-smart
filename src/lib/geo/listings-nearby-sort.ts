@@ -50,13 +50,9 @@ export function listingProximityRank(
   return { neighborhoodTier: 1_000 + Math.floor(distanceKm), distanceKm };
 }
 
-export function buildNearbyNeighborhoodRanks(
-  origin: BrowseOrigin,
-): ReadonlyMap<string, number> {
+export function buildNearbyNeighborhoodRanks(origin: BrowseOrigin): ReadonlyMap<string, number> {
   const ranks = new Map<string, number>();
-  const homeMatched = origin.homeNeighborhood
-    ? matchLocation(origin.homeNeighborhood)
-    : null;
+  const homeMatched = origin.homeNeighborhood ? matchLocation(origin.homeNeighborhood) : null;
   const nearby = nearbyKenyaLocations(origin.lat, origin.lng, {
     limit: NEARBY_NEIGHBORHOOD_LIMIT,
     maxKm: NEARBY_NEIGHBORHOOD_KM,

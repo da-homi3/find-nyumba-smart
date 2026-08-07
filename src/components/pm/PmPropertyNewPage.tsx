@@ -17,8 +17,7 @@ export function PmPropertyNewPage({ portal }: Readonly<{ portal: PmPortal }>) {
   const navigate = useNavigate();
   const base = pmBasePath(portal);
   const [name, setName] = useState("");
-  const [propertyType, setPropertyType] =
-    useState<(typeof TYPES)[number]["id"]>("apartment_block");
+  const [propertyType, setPropertyType] = useState<(typeof TYPES)[number]["id"]>("apartment_block");
   const [address, setAddress] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
 

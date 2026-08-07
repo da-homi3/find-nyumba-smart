@@ -51,8 +51,11 @@ const AmbientBackdrop = lazy(() =>
 );
 
 function shouldShowAmbientBackdrop(pathname: string): boolean {
-  if (typeof globalThis.window !== "undefined") {
-    const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+  if (globalThis.window !== undefined) {
+    const nav = navigator as Navigator & {
+      deviceMemory?: number;
+      connection?: { saveData?: boolean };
+    };
     if (nav.connection?.saveData) return false;
     if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return false;
     // Skip continuous canvas RAF on phones — competes with scroll + listings.
@@ -146,7 +149,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
+      },
       { name: "author", content: "NyumbaSearch" },
       { name: "application-name", content: "NyumbaSearch" },
       { name: "mobile-web-app-capable", content: "yes" },

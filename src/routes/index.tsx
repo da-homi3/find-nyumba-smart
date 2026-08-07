@@ -56,8 +56,7 @@ function Landing() {
   const { providerCounts } = Route.useLoaderData();
   const { data: properties = [], isLoading: propertiesLoading } = useQuery({
     queryKey: ["properties", "homepage-featured"],
-    queryFn: () =>
-      fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT, sortBy: "newest" }),
+    queryFn: () => fetchProperties({ limit: HOMEPAGE_LISTINGS_LIMIT, sortBy: "newest" }),
     staleTime: 60_000,
   });
 

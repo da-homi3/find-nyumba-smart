@@ -3,6 +3,12 @@ import { getCacheKv } from "@/lib/kv/bindings";
 const RESET_TTL_SECONDS = 15 * 60;
 const memoryStore = new Map<string, { value: string; expiresAt: number }>();
 
+/**
+ * A 6-digit code has only a million possibilities, so unlimited guesses inside the 15
+ * minute window is an account takeover. Burn the code after this many wrong attempts.
+ */
+export const MAX_RESET_CODE_ATTEMPTS = 5;
+
 export type PasswordResetRecord = {
   /** Exactly 6 digits */
   code: string;
@@ -10,6 +16,8 @@ export type PasswordResetRecord = {
   email: string;
   /** Set after successful OTP verification */
   verified: boolean;
+  /** Wrong guesses so far; the code is invalidated at MAX_RESET_CODE_ATTEMPTS. */
+  attempts: number;
   expiresAt: number;
 };
 
@@ -85,8 +93,33 @@ export async function storePasswordResetCode(opts: {
     userId: opts.userId,
     email,
     verified: false,
+    attempts: 0,
     expiresAt: Date.now() + RESET_TTL_SECONDS * 1000,
   });
+}
+
+/**
+ * Reads the record and checks the supplied code, counting failures.
+ *
+ * Always go through this rather than comparing codes at the call site, so every guess is
+ * counted and the code is destroyed once the attempt budget is spent.
+ */
+export async function consumeResetAttempt(
+  email: string,
+  code: string,
+): Promise<{ ok: true; record: PasswordResetRecord } | { ok: false }> {
+  const record = await readPasswordReset(email);
+  if (!record) return { ok: false };
+
+  if (codesMatch(record.code, code)) return { ok: true, record };
+
+  const attempts = (record.attempts ?? 0) + 1;
+  if (attempts >= MAX_RESET_CODE_ATTEMPTS) {
+    await deleteKey(keyFor(email));
+  } else {
+    await putJson(keyFor(email), { ...record, attempts });
+  }
+  return { ok: false };
 }
 
 export async function readPasswordReset(email: string): Promise<PasswordResetRecord | null> {
@@ -117,7 +150,7 @@ export function codesMatch(expected: string, provided: string): boolean {
   if (a.length !== b.length || a.length !== 6) return false;
   let mismatch = 0;
   for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    mismatch |= (a.codePointAt(i) ?? 0) ^ (b.codePointAt(i) ?? 0);
   }
   return mismatch === 0;
 }

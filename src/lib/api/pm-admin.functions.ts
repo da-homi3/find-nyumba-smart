@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { adminClient, authContext } from "@/lib/api/nyumba/nyumba-shared";
 import { asPmDb } from "@/lib/pm/access";
+import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
 import { recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
 
 export type AdminPmClaimSummary = {
@@ -43,12 +44,6 @@ export type AdminPmOverview = {
   }>;
 };
 
-type AdminDisputeRecord = {
-  id: string;
-  related_id: string;
-  status: string;
-};
-
 type RentPaymentClaimRecord = {
   id: string;
   invoice_id: string;
@@ -63,10 +58,18 @@ async function resolveLinkedProperty(admin: ReturnType<typeof asPmDb>, invoiceId
     .maybeSingle();
   if (!invoice) return null;
 
-  const { data: lease } = await admin.from("pm_leases").select("unit_id").eq("id", invoice.lease_id).maybeSingle();
+  const { data: lease } = await admin
+    .from("pm_leases")
+    .select("unit_id")
+    .eq("id", invoice.lease_id)
+    .maybeSingle();
   if (!lease) return null;
 
-  const { data: unit } = await admin.from("pm_units").select("property_id").eq("id", lease.unit_id).maybeSingle();
+  const { data: unit } = await admin
+    .from("pm_units")
+    .select("property_id")
+    .eq("id", lease.unit_id)
+    .maybeSingle();
   if (!unit) return null;
 
   const { data: property } = await admin
@@ -101,23 +104,12 @@ async function confirmClaimAfterDispute(opts: {
   if (payErr) throw payErr;
 
   if (property) {
-    try {
-      const { recordPlatformFee } = await import("@/lib/pm/platform-fee");
-      await recordPlatformFee(admin, {
-        rentPaymentId: payRow.id,
-        ownerUserId: property.owner_user_id,
-        propertyId: property.id,
-        grossAmount: Number(claim.amount_claimed),
-      });
-      const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
-      void disburseUnbatchedFeeNow(admin, {
-        rentPaymentId: payRow.id,
-        ownerUserId: property.owner_user_id,
-        propertyId: property.id,
-      }).catch((e) => console.warn("[pm] instant payout failed:", e));
-    } catch (e) {
-      console.warn("[pm] platform fee record failed:", e);
-    }
+    await recordFeeAndDisburse(admin, {
+      rentPaymentId: payRow.id,
+      ownerUserId: property.owner_user_id,
+      propertyId: property.id,
+      grossAmount: Number(claim.amount_claimed),
+    });
   }
 
   await recomputeInvoiceStatus(admin, claim.invoice_id);
@@ -131,7 +123,11 @@ async function confirmClaimAfterDispute(opts: {
     .eq("id", claim.id);
 }
 
-async function markClaimDisputed(admin: ReturnType<typeof asPmDb>, claimId: string, userId: string) {
+async function markClaimDisputed(
+  admin: ReturnType<typeof asPmDb>,
+  claimId: string,
+  userId: string,
+) {
   await admin
     .from("pm_rent_payment_claims")
     .update({
@@ -151,7 +147,9 @@ export const getAdminPmOverview = createServerFn({ method: "GET" })
 
     const { data: subRows, error: subErr } = await admin
       .from("subscriptions")
-      .select("id, user_id, plan, status, amount_kes, trial_end, next_billing_date, created_at, module")
+      .select(
+        "id, user_id, plan, status, amount_kes, trial_end, next_billing_date, created_at, module",
+      )
       .eq("module", "property_management")
       .order("created_at", { ascending: false })
       .limit(100);
@@ -176,7 +174,10 @@ export const getAdminPmOverview = createServerFn({ method: "GET" })
     const userIds = [...new Set((subRows ?? []).map((s: { user_id: string }) => s.user_id))];
     const nameById: Record<string, string | null> = {};
     if (userIds.length > 0) {
-      const { data: profiles } = await admin.from("profiles").select("id, full_name").in("id", userIds);
+      const { data: profiles } = await admin
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", userIds);
       for (const p of profiles ?? []) {
         nameById[p.id as string] = (p.full_name as string | null) ?? null;
       }
@@ -224,12 +225,14 @@ export const getAdminPmOverview = createServerFn({ method: "GET" })
           full_name: nameById[s.user_id] ?? null,
         }),
       ),
-      openDisputes: (disputeRows ?? []).map((d: { id: string; related_id: string; reason: string }) => ({
-        id: d.id,
-        related_id: d.related_id,
-        reason: d.reason,
-        claim: claimById[d.related_id] ?? null,
-      })),
+      openDisputes: (disputeRows ?? []).map(
+        (d: { id: string; related_id: string; reason: string }) => ({
+          id: d.id,
+          related_id: d.related_id,
+          reason: d.reason,
+          claim: claimById[d.related_id] ?? null,
+        }),
+      ),
       recentReversals: (reversalRows ?? []).map(
         (r: {
           id: string;

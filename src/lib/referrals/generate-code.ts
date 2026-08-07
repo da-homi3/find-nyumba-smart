@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { asLooseDb } from "@/lib/db/loose-client";
 
 type Admin = SupabaseClient<Database>;
 
@@ -19,23 +20,24 @@ function randomCode(): string {
  * Returns the code.
  */
 export async function ensureReferralCode(admin: Admin, userId: string): Promise<string> {
-  const { data: profile } = await admin
+  const db = asLooseDb(admin);
+  const { data: profile } = await db
     .from("profiles")
-    .select("referral_code" as any)
+    .select("referral_code")
     .eq("id", userId)
     .maybeSingle();
 
-  const existing = (profile as any)?.referral_code;
+  const existing = profile?.referral_code;
   if (existing) return existing as string;
 
   // Generate unique code with retry
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = randomCode();
-    const { error } = await admin
+    const { error } = await db
       .from("profiles")
-      .update({ referral_code: code } as any)
+      .update({ referral_code: code })
       .eq("id", userId)
-      .is("referral_code" as any, null);
+      .is("referral_code", null);
 
     if (!error) return code;
     if (error && /duplicate|unique/i.test(error.message ?? "")) continue;

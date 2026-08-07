@@ -21,7 +21,5 @@ export function ReputationBadge(props: ReputationBadgeProps) {
   if (!label) return null;
 
   const tone = fromScore?.tone ?? "slate";
-  return (
-    <span className={`text-xs font-semibold ${TONE_CLASS[tone]} ${className}`}>{label}</span>
-  );
+  return <span className={`text-xs font-semibold ${TONE_CLASS[tone]} ${className}`}>{label}</span>;
 }

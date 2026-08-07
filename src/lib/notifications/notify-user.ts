@@ -42,10 +42,7 @@ export async function getOrCreateNotificationPreferences(
   return { ...DEFAULT_NOTIFICATION_PREFERENCES };
 }
 
-export function categoryEnabled(
-  prefs: NotificationPreferences,
-  type: NotificationType,
-): boolean {
+export function categoryEnabled(prefs: NotificationPreferences, type: NotificationType): boolean {
   const category = TYPE_TO_CATEGORY[type];
   return prefs[category] !== false;
 }

@@ -3,8 +3,7 @@ import { Download, X } from "lucide-react";
 import { isStandaloneDisplay } from "@/lib/register-pwa";
 
 const DISMISS_KEY = "nyumba-install-banner-dismissed";
-const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=ke.co.nyumbasearch.app";
+const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=ke.co.nyumbasearch.app";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;

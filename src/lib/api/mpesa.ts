@@ -7,7 +7,10 @@ type StkPushApiResponse = {
   CheckoutRequestID?: string;
   MerchantRequestID?: string;
   CustomerMessage?: string;
+  ResponseDescription?: string;
+  ResponseCode?: string;
   errorMessage?: string;
+  errorCode?: string;
 };
 
 type StkPushResult = {
@@ -42,7 +45,10 @@ function parseStkPushResponse(json: unknown): StkPushApiResponse {
     CheckoutRequestID: str("CheckoutRequestID"),
     MerchantRequestID: str("MerchantRequestID"),
     CustomerMessage: str("CustomerMessage"),
+    ResponseDescription: str("ResponseDescription"),
+    ResponseCode: str("ResponseCode"),
     errorMessage: str("errorMessage"),
+    errorCode: str("errorCode"),
   };
 }
 
@@ -61,8 +67,7 @@ export function isMpesaConfigured(): boolean {
 }
 
 export function mpesaCallbackUrl(): string {
-  const base =
-    getServerEnv("MPESA_CALLBACK_URL") ?? `${getSiteUrl()}/api/mpesa/callback`;
+  const base = getServerEnv("MPESA_CALLBACK_URL") ?? `${getSiteUrl()}/api/mpesa/callback`;
   const secret = getServerEnv("MPESA_WEBHOOK_SECRET");
   if (!secret) return base;
   try {
@@ -158,9 +163,16 @@ export async function initiateStkPush(opts: {
   });
 
   const json = parseStkPushResponse(await res.json());
+  const responseOk = !json.ResponseCode || json.ResponseCode === "0";
 
-  if (!res.ok || !json.CheckoutRequestID) {
-    throw new Error(json.errorMessage ?? json.CustomerMessage ?? "STK Push failed");
+  if (!res.ok || !responseOk || !json.CheckoutRequestID) {
+    const detail =
+      json.errorMessage ??
+      json.ResponseDescription ??
+      json.CustomerMessage ??
+      (json.errorCode ? `M-Pesa error ${json.errorCode}` : null) ??
+      `STK Push failed (HTTP ${res.status})`;
+    throw new Error(detail);
   }
 
   return {
@@ -269,4 +281,22 @@ export function parseStkCallback(body: StkCallbackBody) {
     mpesaReceipt: meta.MpesaReceiptNumber ?? null,
     amount: meta.Amount ? Number(meta.Amount) : null,
   };
+}
+
+/**
+ * Whether a callback's paid amount matches the amount the pending payment was created for.
+ * STK Push always charges the exact requested amount, so any divergence means a forged or
+ * malformed callback and the payment must NOT be fulfilled. Both sides are rounded to whole
+ * shillings to absorb provider decimal formatting (e.g. "500.00").
+ *
+ * When the callback omits the amount (`paidAmountKes == null`) the caller cannot compare, so
+ * this returns true and the completion falls back to the atomic status gate — the amount was
+ * already fixed server-side at initiation.
+ */
+export function mpesaCallbackAmountMatches(
+  paidAmountKes: number | null | undefined,
+  expectedAmountKes: number | null | undefined,
+): boolean {
+  if (paidAmountKes == null || expectedAmountKes == null) return true;
+  return Math.round(Number(paidAmountKes)) === Math.round(Number(expectedAmountKes));
 }

@@ -11,12 +11,7 @@ type Props = Readonly<{
   neighborhood?: string;
 }>;
 
-export function ContactRevealAnimation({
-  phone,
-  phones,
-  listingTitle,
-  neighborhood,
-}: Props) {
+export function ContactRevealAnimation({ phone, phones, listingTitle, neighborhood }: Props) {
   const reduceMotion = useReducedMotion();
   const numbers = normalizeContactPhones(phones, phone);
   const waMessage = listingTitle

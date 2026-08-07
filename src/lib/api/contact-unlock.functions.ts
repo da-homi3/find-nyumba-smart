@@ -330,5 +330,11 @@ export const unlockListingContact = createServerFn({ method: "POST" })
       };
     }
 
-    return unlockWithPayment(supabaseAdmin, userId, { ...data, method: data.method }, contactPhones, fee);
+    return unlockWithPayment(
+      supabaseAdmin,
+      userId,
+      { ...data, method: data.method },
+      contactPhones,
+      fee,
+    );
   });

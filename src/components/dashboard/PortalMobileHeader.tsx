@@ -57,8 +57,7 @@ export function PortalMobileHeader({ portalLabel, nav }: PortalMobileHeaderProps
           to="/settings"
           className="shrink-0 rounded-full px-3 py-1.5 font-medium text-gold transition hover:bg-white/10"
           activeProps={{
-            className:
-              "shrink-0 rounded-full bg-white/15 px-3 py-1.5 font-semibold text-gold",
+            className: "shrink-0 rounded-full bg-white/15 px-3 py-1.5 font-semibold text-gold",
           }}
         >
           Settings

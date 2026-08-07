@@ -29,7 +29,7 @@ import { useEffect, type ReactNode } from "react";
 const ownerNav = [
   { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/manager/properties", label: "Properties", icon: Building2 },
-  { to: "/manager/manage", label: "Manage portfolio", icon: Briefcase },
+  { to: "/manager/manage", label: "Tenants & rent", icon: Briefcase },
   { to: "/manager/import", label: "Bulk import", icon: Upload },
   { to: "/manager/integrations", label: "API & integrations", icon: Plug },
   { to: "/manager/leads", label: "Messages", icon: Inbox },
@@ -46,7 +46,7 @@ const ownerNav = [
 const memberNav = [
   { to: "/manager/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/manager/properties", label: "Properties", icon: Building2 },
-  { to: "/manager/manage", label: "Manage portfolio", icon: Briefcase },
+  { to: "/manager/manage", label: "Tenants & rent", icon: Briefcase },
   { to: "/manager/leads", label: "Messages", icon: Inbox },
   { to: "/manager/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -71,7 +71,7 @@ export function ManagerShell({ children }: Readonly<{ children: ReactNode }>) {
     if (!authLoading && !user) navigate({ to: "/manager" });
   }, [user, authLoading, navigate]);
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <div className="portal-shell flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

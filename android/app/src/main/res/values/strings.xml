@@ -7,6 +7,10 @@
     <string name="cancel">Cancel</string>
     <string name="no_internet">No internet connection</string>
     <string name="downloading">Downloading…</string>
+    <string name="saving_to_gallery">Saving to gallery…</string>
+    <string name="saved_to_gallery">Saved to gallery</string>
+    <string name="save_gallery_failed">Could not save to gallery: %1$s</string>
+    <string name="save_gallery_permission_denied">Storage permission is needed to save to gallery</string>
     <string name="offline_title">You\'re offline</string>
     <string name="offline_message">Check your connection and try again.</string>
     <string name="retry">Retry</string>

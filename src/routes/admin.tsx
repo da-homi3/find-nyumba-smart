@@ -8,22 +8,27 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, rolesReady } = useAuth();
   const navigate = useNavigate();
+  const authSettled = !loading && rolesReady;
 
   useEffect(() => {
-    if (loading) return;
+    if (!authSettled) return;
     if (!user || !isAdmin) {
       navigate({ to: "/auth", replace: true });
     }
-  }, [loading, user, isAdmin, navigate]);
+  }, [authSettled, user, isAdmin, navigate]);
 
-  if (loading || !user || !isAdmin) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (!authSettled || !user || !isAdmin) {
+    // Keep the tree mounted once we already know this is an admin — mid-session
+    // auth re-emits (Android WebView) must not unmount upload wizards.
+    if (!(user && isAdmin)) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
   }
 
   return (

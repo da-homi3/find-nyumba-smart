@@ -12,6 +12,8 @@ type PropertyImageProps = Readonly<{
   className?: string;
   seed: string;
   loading?: "lazy" | "eager";
+  /** Set high for the LCP image (e.g. first above-the-fold card / hero). */
+  fetchPriority?: "high" | "low" | "auto";
 }>;
 
 function initialSrc(src: string | null | undefined, seed: string): string {
@@ -29,7 +31,14 @@ function photoClass(loaded: boolean, className?: string): string {
   return className ? `${base} ${className}` : base;
 }
 
-export function PropertyImage({ src, alt, className, seed, loading = "lazy" }: PropertyImageProps) {
+export function PropertyImage({
+  src,
+  alt,
+  className,
+  seed,
+  loading = "lazy",
+  fetchPriority,
+}: PropertyImageProps) {
   const [current, setCurrent] = useState(() => initialSrc(src, seed));
   const [loaded, setLoaded] = useState(false);
 
@@ -37,6 +46,9 @@ export function PropertyImage({ src, alt, className, seed, loading = "lazy" }: P
     setCurrent(initialSrc(src, seed));
     setLoaded(false);
   }, [src, seed]);
+
+  // Eager images are LCP candidates unless the caller overrides.
+  const resolvedFetchPriority = fetchPriority ?? (loading === "eager" ? "high" : undefined);
 
   return (
     <img
@@ -47,6 +59,7 @@ export function PropertyImage({ src, alt, className, seed, loading = "lazy" }: P
       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
       loading={loading}
       decoding="async"
+      fetchPriority={resolvedFetchPriority}
       className={photoClass(loaded, className)}
       onLoad={() => setLoaded(true)}
       onError={() => {

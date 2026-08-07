@@ -80,3 +80,4 @@ export function optimizeImageUrlForServeMode(url: string): string {
     return trimmed;
   }
 }
+

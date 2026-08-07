@@ -23,7 +23,10 @@ export function downloadFinancialReport(
   summary: FinancialReportSummary,
   rows: FinancialReportInvoiceRow[],
 ) {
-  const slug = summary.propertyName.replaceAll(/[^\w]+/g, "-").toLowerCase().slice(0, 40);
+  const slug = summary.propertyName
+    .replaceAll(/[^\w]+/g, "-")
+    .toLowerCase()
+    .slice(0, 40);
   const base = `nyumba-rent-${slug}-${summary.periodMonth}`;
 
   if (format === "csv") {

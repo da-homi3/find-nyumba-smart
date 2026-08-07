@@ -1,13 +1,21 @@
 /** 1% platform fee on credited rent — recorded at collection/confirm time. */
+import type { LooseDb } from "@/lib/db/loose-client";
 
 export const PLATFORM_FEE_RATE = 0.01;
 
+/**
+ * Whole-KES fee: round 1% of gross. For small amounts where 1% rounds to 0,
+ * charge at least KES 1 so the platform fee is never skipped on a real payment.
+ * Example: KES 19 → fee 1, net 18 (≈1% in whole shillings).
+ */
 export function calculatePlatformFee(grossAmount: number): {
   platformFee: number;
   netPayoutAmount: number;
 } {
   const gross = Math.max(0, Math.round(grossAmount));
-  const platformFee = Math.round(gross * PLATFORM_FEE_RATE);
+  if (gross <= 0) return { platformFee: 0, netPayoutAmount: 0 };
+  const rounded = Math.round(gross * PLATFORM_FEE_RATE);
+  const platformFee = Math.min(gross, Math.max(1, rounded));
   return {
     platformFee,
     netPayoutAmount: Math.max(0, gross - platformFee),
@@ -26,7 +34,7 @@ export type RecordPlatformFeeInput = {
  * Call after every credited pm_rent_payments INSERT (M-Pesa, manual, claim confirm).
  */
 export async function recordPlatformFee(
-  admin: { from: (t: string) => any },
+  admin: LooseDb,
   input: RecordPlatformFeeInput,
 ): Promise<{ platformFee: number; netPayoutAmount: number } | null> {
   const gross = Math.round(input.grossAmount);

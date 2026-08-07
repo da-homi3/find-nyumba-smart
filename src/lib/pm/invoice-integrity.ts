@@ -5,7 +5,10 @@
 import type { PmDb } from "@/lib/pm/access";
 import { invoiceStatusAfterPayment } from "@/lib/pm/invoice-status";
 
-export async function recomputeInvoiceStatus(admin: PmDb, invoiceId: string): Promise<{
+export async function recomputeInvoiceStatus(
+  admin: PmDb,
+  invoiceId: string,
+): Promise<{
   status: string;
   amountPaid: number;
 }> {
@@ -37,6 +40,55 @@ export async function recomputeInvoiceStatus(admin: PmDb, invoiceId: string): Pr
   if (error) throw error;
 
   return { status, amountPaid };
+}
+
+/**
+ * Reversing a rent payment must also unwind the landlord's 1% fee row, otherwise the
+ * owner is still paid 99% of rent that was taken back.
+ *
+ * If the fee has not been batched yet we simply mark it reversed so no payout picks it up.
+ * If it has already been sent, the cash is gone and only a human can claw it back — so we
+ * page ops rather than pretending the books are square.
+ */
+async function reverseePlatformFee(admin: PmDb, rentPaymentId: string): Promise<void> {
+  const { data: fee } = await admin
+    .from("pm_platform_fee_ledger")
+    .select("id, owner_user_id, net_payout_amount, payout_batch_id, reversed_at")
+    .eq("rent_payment_id", rentPaymentId)
+    .maybeSingle();
+
+  if (!fee || fee.reversed_at) return;
+
+  // Only cancel while still unbatched — the filter makes this a compare-and-set against a
+  // payout run that may be claiming the same row right now.
+  const { data: cancelled } = await admin
+    .from("pm_platform_fee_ledger")
+    .update({ reversed_at: new Date().toISOString() })
+    .eq("id", fee.id)
+    .is("payout_batch_id", null)
+    .select("id");
+
+  if (cancelled?.length) return;
+
+  console.error("[pm] reversed rent was already paid out — manual clawback required", {
+    rentPaymentId,
+    feeId: fee.id,
+    ownerUserId: fee.owner_user_id,
+  });
+
+  try {
+    const { OPS_EMAIL } = await import("@/lib/api/notify");
+    const { sendEmail } = await import("@/lib/email/send");
+    await sendEmail({
+      to: OPS_EMAIL,
+      templateId: "ops-payout-clawback",
+      subject: `Clawback needed — reversed rent ${rentPaymentId.slice(0, 8)} was already paid out`,
+      text: `A rent payment was reversed after its payout had already been sent.\n\nRent payment: ${rentPaymentId}\nFee ledger row: ${fee.id}\nOwner: ${fee.owner_user_id}\nNet already paid: KES ${Number(fee.net_payout_amount)}\nPayout batch: ${fee.payout_batch_id}\n\nRecover this amount from the landlord (offset against their next payout).`,
+      html: `<p>A rent payment was reversed after its payout had already been sent.</p><p>Rent payment <code>${rentPaymentId}</code> · Fee row <code>${fee.id}</code> · Owner <code>${fee.owner_user_id}</code></p><p>Net already paid: <strong>KES ${Number(fee.net_payout_amount)}</strong> in batch <code>${fee.payout_batch_id}</code>.</p><p>Recover this amount from the landlord (offset against their next payout).</p>`,
+    });
+  } catch (e) {
+    console.warn("[pm] ops clawback email failed:", e);
+  }
 }
 
 export async function createPaymentReversal(
@@ -75,6 +127,8 @@ export async function createPaymentReversal(
     .single();
 
   if (error) throw error;
+
+  await reverseePlatformFee(admin, opts.originalPaymentId);
 
   const reconciled = await recomputeInvoiceStatus(admin, original.invoice_id as string);
 

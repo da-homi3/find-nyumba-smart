@@ -1,14 +1,15 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LooseDb } from "@/lib/db/loose-client";
 import { sendEmail } from "@/lib/email/send";
 import { rentReceiptEmail } from "@/lib/email/templates";
 import { asPmDb, type PmDb } from "@/lib/pm/access";
+import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
 import { recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
 import { getSiteUrl } from "@/lib/site";
 import { formatKes } from "@/lib/properties";
 
 export { rentBalanceRemaining } from "@/lib/pm/invoice-status";
 
-type Admin = SupabaseClient<any>;
+type Admin = LooseDb;
 
 async function loadInvoiceContext(admin: PmDb, invoiceId: string) {
   const { data: invoice } = await admin
@@ -103,28 +104,23 @@ export async function fulfillPmRentPayment(
     throw payErr;
   }
 
-  try {
-    const { recordPlatformFee } = await import("@/lib/pm/platform-fee");
-    await recordPlatformFee(db, {
-      rentPaymentId: payRow.id,
-      ownerUserId: ctx.property.owner_user_id,
-      propertyId: ctx.property.id,
-      grossAmount: opts.amountKes,
-    });
-    const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
-    void disburseUnbatchedFeeNow(db, {
-      rentPaymentId: payRow.id,
-      ownerUserId: ctx.property.owner_user_id,
-      propertyId: ctx.property.id,
-    }).catch((e) => console.warn("[pm] instant payout failed:", e));
-  } catch (e) {
-    console.warn("[pm] platform fee record failed:", e);
-  }
+  await recordFeeAndDisburse(db, {
+    rentPaymentId: payRow.id,
+    ownerUserId: ctx.property.owner_user_id,
+    propertyId: ctx.property.id,
+    grossAmount: opts.amountKes,
+  });
 
   const reconciled = await reconcileInvoiceFromPayments(db, opts.invoiceId);
 
-  await sendRentReceiptEmail(db, opts.invoiceId, opts.amountKes, opts.mpesaReceipt);
-  await notifyLandlordOfRentPayment(db, opts.invoiceId, opts.amountKes, reconciled.status);
+  await dispatchRentReceipts(db, {
+    invoiceId: opts.invoiceId,
+    amountKes: opts.amountKes,
+    mpesaReceipt: opts.mpesaReceipt,
+    paymentRowId: payRow.id as string,
+    amountPaidCumulative: reconciled.amountPaid,
+    status: reconciled.status,
+  });
 
   if (reconciled.status === "paid" && ctx.tenant.tenant_user_id) {
     const { onRentInvoicePaid } = await import("@/lib/trust/hooks");
@@ -141,69 +137,213 @@ export async function fulfillPmRentPayment(
   return reconciled;
 }
 
-export async function sendRentReceiptEmail(
-  admin: PmDb,
-  invoiceId: string,
-  amountKes: number,
-  mpesaReceipt: string | null,
-): Promise<void> {
-  const ctx = await loadInvoiceContext(admin, invoiceId);
-  if (!ctx?.tenant.email) return;
+/**
+ * Auto-record a rent payment from a pasted Safaricom M-Pesa confirmation SMS.
+ * Dedupes on mpesa_receipt_number.
+ */
+export async function fulfillPmRentFromSms(
+  admin: Admin,
+  opts: {
+    invoiceId: string;
+    amountKes: number;
+    userId: string;
+    mpesaReceipt: string;
+    paidAt: Date | null;
+    rawSms: string;
+  },
+): Promise<{ status: string; amountPaid: number; paymentId: string }> {
+  const db = asPmDb(admin);
+  const ctx = await loadInvoiceContext(db, opts.invoiceId);
+  if (!ctx) throw new Error("Rent invoice not found for SMS payment");
 
-  const tpl = rentReceiptEmail({
+  const receipt = opts.mpesaReceipt.trim().toUpperCase();
+  const { data: existing } = await db
+    .from("pm_rent_payments")
+    .select("id, invoice_id")
+    .eq("mpesa_receipt_number", receipt)
+    .maybeSingle();
+  if (existing) {
+    throw new Error("This M-Pesa receipt was already recorded");
+  }
+
+  const paidAtIso = opts.paidAt?.toISOString() ?? new Date().toISOString();
+  const note = `M-Pesa SMS auto-record\nReceipt ${receipt}\n\n${opts.rawSms.slice(0, 800)}`;
+
+  const { data: payRow, error: payErr } = await db
+    .from("pm_rent_payments")
+    .insert({
+      invoice_id: opts.invoiceId,
+      amount: opts.amountKes,
+      method: "mpesa_sms",
+      recorded_by_user_id: opts.userId,
+      mpesa_receipt_number: receipt,
+      paid_at: paidAtIso,
+      note,
+    })
+    .select("id")
+    .single();
+  if (payErr) {
+    if (/duplicate|unique/i.test(payErr.message ?? "")) {
+      throw new Error("This M-Pesa receipt was already recorded");
+    }
+    throw payErr;
+  }
+
+  await recordFeeAndDisburse(db, {
+    rentPaymentId: payRow.id,
+    ownerUserId: ctx.property.owner_user_id,
+    propertyId: ctx.property.id,
+    grossAmount: opts.amountKes,
+  });
+
+  const reconciled = await reconcileInvoiceFromPayments(db, opts.invoiceId);
+  await dispatchRentReceipts(db, {
+    invoiceId: opts.invoiceId,
+    amountKes: opts.amountKes,
+    mpesaReceipt: receipt,
+    paymentRowId: payRow.id as string,
+    amountPaidCumulative: reconciled.amountPaid,
+    status: reconciled.status,
+  });
+
+  if (reconciled.status === "paid" && ctx.tenant.tenant_user_id) {
+    const { onRentInvoicePaid } = await import("@/lib/trust/hooks");
+    const wasOverdue = String(ctx.invoice.status) === "overdue";
+    await onRentInvoicePaid(admin, {
+      tenantUserId: ctx.tenant.tenant_user_id,
+      invoiceId: opts.invoiceId,
+      dueDate: String(ctx.invoice.due_date),
+      wasOverdue,
+      lateFee: Number(ctx.invoice.late_fee ?? 0),
+    });
+  }
+
+  return { ...reconciled, paymentId: payRow.id as string };
+}
+
+export async function dispatchRentReceipts(
+  admin: PmDb,
+  opts: {
+    invoiceId: string;
+    amountKes: number;
+    mpesaReceipt: string | null;
+    paymentRowId: string;
+    amountPaidCumulative: number;
+    status: string;
+  },
+): Promise<void> {
+  const ctx = await loadInvoiceContext(admin, opts.invoiceId);
+  if (!ctx) return;
+
+  const amountDue = Number(ctx.invoice.amount_due) + Number(ctx.invoice.late_fee ?? 0);
+  const balanceRemaining = Math.max(0, amountDue - opts.amountPaidCumulative);
+  const { nyumbaRentReceiptNo } = await import("@/lib/pm/rent-receipt");
+  const nyumbaReceiptNo = nyumbaRentReceiptNo(opts.paymentRowId);
+  const paidAtIso = new Date().toISOString();
+  const shared = {
     tenantName: ctx.tenant.full_name,
     propertyName: ctx.property.name,
     unitLabel: ctx.unit.unit_label,
-    periodMonth: ctx.invoice.period_month,
-    amountKes,
-    mpesaRef: mpesaReceipt,
-  });
-  await sendEmail({
-    to: ctx.tenant.email,
-    templateId: "rent_receipt",
-    ...tpl,
-  });
+    periodMonth: String(ctx.invoice.period_month),
+    amountKes: opts.amountKes,
+    amountDue,
+    amountPaidCumulative: opts.amountPaidCumulative,
+    balanceRemaining,
+    status: opts.status,
+    mpesaRef: opts.mpesaReceipt,
+    nyumbaReceiptNo,
+    paidAtIso,
+  };
+
+  const receiptTag = `NyumbaSearch receipt ${nyumbaReceiptNo}`;
+  try {
+    const { data: pay } = await admin
+      .from("pm_rent_payments")
+      .select("note")
+      .eq("id", opts.paymentRowId)
+      .maybeSingle();
+    const prev = typeof pay?.note === "string" ? pay.note : "";
+    if (!prev.includes(nyumbaReceiptNo)) {
+      await admin
+        .from("pm_rent_payments")
+        .update({ note: prev ? `${receiptTag}\n${prev}` : receiptTag })
+        .eq("id", opts.paymentRowId);
+    }
+  } catch {
+    // non-fatal
+  }
+
+  let tenantEmail = (ctx.tenant.email as string | null)?.trim() || null;
+  if (!tenantEmail && ctx.tenant.tenant_user_id) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(
+        ctx.tenant.tenant_user_id as string,
+      );
+      tenantEmail = userData.user?.email ?? null;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (tenantEmail) {
+    const tpl = rentReceiptEmail({
+      ...shared,
+      recipientRole: "tenant",
+      dashboardUrl: `${getSiteUrl()}/tenant/rent`,
+    });
+    await sendEmail({
+      to: tenantEmail,
+      templateId: "rent_receipt",
+      metadata: {
+        invoiceId: opts.invoiceId,
+        nyumbaReceiptNo,
+        balanceRemaining,
+      },
+      ...tpl,
+    });
+  } else {
+    console.warn("[pm] rent receipt skipped — tenant has no email", opts.invoiceId);
+  }
 
   if (ctx.tenant.tenant_user_id) {
     const { notifyUser } = await import("@/lib/notifications/notify-user");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await notifyUser(supabaseAdmin, {
-      userId: ctx.tenant.tenant_user_id,
+      userId: ctx.tenant.tenant_user_id as string,
       type: "rent",
-      title: "Rent payment received",
-      body: `${formatKes(amountKes)} for ${ctx.property.name} · ${ctx.unit.unit_label}`,
+      title: "NyumbaSearch rent receipt",
+      body: `${formatKes(opts.amountKes)} paid · balance ${formatKes(balanceRemaining)} · ${nyumbaReceiptNo}`,
       href: "/tenant/rent",
       entityType: "rent_invoice",
-      entityId: invoiceId,
+      entityId: opts.invoiceId,
     });
   }
-}
-
-export async function notifyLandlordOfRentPayment(
-  admin: PmDb,
-  invoiceId: string,
-  amountKes: number,
-  status: string,
-): Promise<void> {
-  const ctx = await loadInvoiceContext(admin, invoiceId);
-  if (!ctx) return;
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(ctx.property.owner_user_id);
-  const email = userData.user?.email;
-
-  const title = status === "paid" ? "Rent paid in full" : "Partial rent payment received";
-  const body = `${ctx.tenant.full_name} paid ${formatKes(amountKes)} for unit ${ctx.unit.unit_label}`;
+  const { data: ownerData } = await supabaseAdmin.auth.admin.getUserById(
+    ctx.property.owner_user_id,
+  );
+  const ownerEmail = ownerData.user?.email;
+  const title = opts.status === "paid" ? "Rent paid in full" : "Partial rent payment received";
   const link = `${getSiteUrl()}/landlord/manage/${ctx.property.id}/rent`;
 
-  if (email) {
-    const text = `${title}\n\n${body}\n\nView: ${link}`;
+  if (ownerEmail) {
+    const tpl = rentReceiptEmail({
+      ...shared,
+      recipientRole: "landlord",
+      dashboardUrl: link,
+    });
     await sendEmail({
-      to: email,
+      to: ownerEmail,
       templateId: "rent_payment_landlord",
-      subject: `${title} — ${ctx.property.name}`,
-      text,
-      html: `<p><strong>${title}</strong></p><p>${body}</p><p><a href="${link}">Open rent dashboard</a></p>`,
+      metadata: {
+        invoiceId: opts.invoiceId,
+        nyumbaReceiptNo,
+        balanceRemaining,
+      },
+      ...tpl,
+      subject: `${title} — ${formatKes(opts.amountKes)} — ${ctx.property.name}`,
     });
   }
 
@@ -212,9 +352,9 @@ export async function notifyLandlordOfRentPayment(
     userId: ctx.property.owner_user_id,
     type: "rent",
     title,
-    body,
+    body: `${ctx.tenant.full_name} paid ${formatKes(opts.amountKes)} · balance ${formatKes(balanceRemaining)} · ${nyumbaReceiptNo}`,
     href: `/landlord/manage/${ctx.property.id}/rent`,
     entityType: "rent_invoice",
-    entityId: invoiceId,
+    entityId: opts.invoiceId,
   });
 }

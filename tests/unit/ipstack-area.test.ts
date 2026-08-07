@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildKenyaAreaHint, mapIpstackToKenyaArea, type IpstackLookup } from "@/lib/apilayer/ipstack";
+import {
+  buildKenyaAreaHint,
+  mapIpstackToKenyaArea,
+  type IpstackLookup,
+} from "@/lib/apilayer/ipstack";
 
 function lookup(partial: Partial<IpstackLookup>): IpstackLookup {
   return {

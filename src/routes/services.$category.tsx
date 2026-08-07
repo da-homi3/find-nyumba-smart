@@ -287,7 +287,7 @@ function ProviderCard({
         <button
           type="button"
           onClick={onToggleQuote}
-            className="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-[0_6px_16px_-6px_rgba(10,143,61,0.5)] transition active:scale-[0.97]"
+          className="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-[0_6px_16px_-6px_rgba(10,143,61,0.5)] transition active:scale-[0.97]"
         >
           {quoteOpen ? "Close quote form" : "Get a quote"}
         </button>

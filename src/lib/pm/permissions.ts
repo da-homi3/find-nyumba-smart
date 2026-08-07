@@ -16,14 +16,15 @@ const STAFF_PERMISSIONS: Record<PmStaffRole, string[]> = {
     "invoices:*",
     "payments:*",
     "maintenance:*",
+    "complaints:*",
     "notices:create",
     "staff:view",
   ],
-  caretaker: ["maintenance:*", "units:view", "tenants:view"],
+  caretaker: ["maintenance:*", "complaints:view", "units:view", "tenants:view"],
   security: ["visitors:*", "units:view"],
   accountant: ["invoices:*", "payments:*", "units:view", "tenants:view"],
   maintenance_supervisor: ["maintenance:*", "units:view"],
-  reception: ["tenants:view", "notices:view", "visitors:create"],
+  reception: ["tenants:view", "notices:view", "visitors:create", "complaints:view"],
 };
 
 export function staffCan(staffRole: string, permission: string): boolean {

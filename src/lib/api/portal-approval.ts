@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PortalId } from "@/lib/portal-guard";
 import { autoStartPortalTrial, type PortalListerRole } from "@/lib/payments/portal-trial";
+import { linkAdminListingsByPhone } from "@/lib/listings/link-by-phone";
 
 type Admin = SupabaseClient<Database>;
 
@@ -90,8 +91,17 @@ export async function grantPortalListerAccess(
     requestedRole: PortalListerRole;
     organizationName?: string | null;
     startTrial?: boolean;
+    /** Phone from the portal application — used to auto-link admin-owned listings. */
+    applicationPhone?: string | null;
+    /** Approving admin user id for audit logs. */
+    reviewedByUserId?: string | null;
   },
-): Promise<{ organizationId: string | null; trialStarted: boolean; trialEnd?: string }> {
+): Promise<{
+  organizationId: string | null;
+  trialStarted: boolean;
+  trialEnd?: string;
+  linkedListings: number;
+}> {
   // Free portal month is granted only after the first paid subscription month.
   const startTrial = input.startTrial === true;
 
@@ -130,5 +140,21 @@ export async function grantPortalListerAccess(
     trialEnd = trial.trialEnd;
   }
 
-  return { organizationId, trialStarted, trialEnd };
+  let linkedListings = 0;
+  try {
+    const linked = await linkAdminListingsByPhone(supabaseAdmin, {
+      userId: input.userId,
+      organizationId,
+      applicationPhone: input.applicationPhone,
+      auditAdminId: input.reviewedByUserId,
+    });
+    linkedListings = linked.linkedCount;
+    if (linkedListings > 0) {
+      console.info(`[portal] auto-linked ${linkedListings} listing(s) to ${input.userId} by phone`);
+    }
+  } catch (err) {
+    console.warn("[portal] listing auto-link by phone failed", err);
+  }
+
+  return { organizationId, trialStarted, trialEnd, linkedListings };
 }

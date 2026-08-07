@@ -55,6 +55,7 @@ import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
 import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
 import { Route as TenantMapRouteImport } from './routes/tenant.map'
 import { Route as TenantMaintenanceRouteImport } from './routes/tenant.maintenance'
+import { Route as TenantComplaintsRouteImport } from './routes/tenant.complaints'
 import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
 import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
 import { Route as ServicesRegisterRouteImport } from './routes/services.register'
@@ -143,16 +144,19 @@ import { Route as ManagerManagePropertyIdUnitsRouteImport } from './routes/manag
 import { Route as ManagerManagePropertyIdTenantsRouteImport } from './routes/manager.manage.$propertyId.tenants'
 import { Route as ManagerManagePropertyIdRentRouteImport } from './routes/manager.manage.$propertyId.rent'
 import { Route as ManagerManagePropertyIdMaintenanceRouteImport } from './routes/manager.manage.$propertyId.maintenance'
+import { Route as ManagerManagePropertyIdComplaintsRouteImport } from './routes/manager.manage.$propertyId.complaints'
 import { Route as LandlordPropertiesIdEditRouteImport } from './routes/landlord.properties.$id.edit'
 import { Route as LandlordManagePropertyIdUnitsRouteImport } from './routes/landlord.manage.$propertyId.units'
 import { Route as LandlordManagePropertyIdTenantsRouteImport } from './routes/landlord.manage.$propertyId.tenants'
 import { Route as LandlordManagePropertyIdRentRouteImport } from './routes/landlord.manage.$propertyId.rent'
 import { Route as LandlordManagePropertyIdMaintenanceRouteImport } from './routes/landlord.manage.$propertyId.maintenance'
+import { Route as LandlordManagePropertyIdComplaintsRouteImport } from './routes/landlord.manage.$propertyId.complaints'
 import { Route as AgencyPropertiesIdEditRouteImport } from './routes/agency.properties.$id.edit'
 import { Route as AgencyManagePropertyIdUnitsRouteImport } from './routes/agency.manage.$propertyId.units'
 import { Route as AgencyManagePropertyIdTenantsRouteImport } from './routes/agency.manage.$propertyId.tenants'
 import { Route as AgencyManagePropertyIdRentRouteImport } from './routes/agency.manage.$propertyId.rent'
 import { Route as AgencyManagePropertyIdMaintenanceRouteImport } from './routes/agency.manage.$propertyId.maintenance'
+import { Route as AgencyManagePropertyIdComplaintsRouteImport } from './routes/agency.manage.$propertyId.complaints'
 import { Route as AdminListingsIdEditRouteImport } from './routes/admin.listings.$id.edit'
 
 const WhatsappRoute = WhatsappRouteImport.update({
@@ -383,6 +387,11 @@ const TenantMapRoute = TenantMapRouteImport.update({
 const TenantMaintenanceRoute = TenantMaintenanceRouteImport.update({
   id: '/maintenance',
   path: '/maintenance',
+  getParentRoute: () => TenantRoute,
+} as any)
+const TenantComplaintsRoute = TenantComplaintsRouteImport.update({
+  id: '/complaints',
+  path: '/complaints',
   getParentRoute: () => TenantRoute,
 } as any)
 const TenantCompareRoute = TenantCompareRouteImport.update({
@@ -836,6 +845,12 @@ const ManagerManagePropertyIdMaintenanceRoute =
     path: '/maintenance',
     getParentRoute: () => ManagerManagePropertyIdRoute,
   } as any)
+const ManagerManagePropertyIdComplaintsRoute =
+  ManagerManagePropertyIdComplaintsRouteImport.update({
+    id: '/complaints',
+    path: '/complaints',
+    getParentRoute: () => ManagerManagePropertyIdRoute,
+  } as any)
 const LandlordPropertiesIdEditRoute =
   LandlordPropertiesIdEditRouteImport.update({
     id: '/$id/edit',
@@ -866,6 +881,12 @@ const LandlordManagePropertyIdMaintenanceRoute =
     path: '/maintenance',
     getParentRoute: () => LandlordManagePropertyIdRoute,
   } as any)
+const LandlordManagePropertyIdComplaintsRoute =
+  LandlordManagePropertyIdComplaintsRouteImport.update({
+    id: '/complaints',
+    path: '/complaints',
+    getParentRoute: () => LandlordManagePropertyIdRoute,
+  } as any)
 const AgencyPropertiesIdEditRoute = AgencyPropertiesIdEditRouteImport.update({
   id: '/$id/edit',
   path: '/$id/edit',
@@ -893,6 +914,12 @@ const AgencyManagePropertyIdMaintenanceRoute =
   AgencyManagePropertyIdMaintenanceRouteImport.update({
     id: '/maintenance',
     path: '/maintenance',
+    getParentRoute: () => AgencyManagePropertyIdRoute,
+  } as any)
+const AgencyManagePropertyIdComplaintsRoute =
+  AgencyManagePropertyIdComplaintsRouteImport.update({
+    id: '/complaints',
+    path: '/complaints',
     getParentRoute: () => AgencyManagePropertyIdRoute,
   } as any)
 const AdminListingsIdEditRoute = AdminListingsIdEditRouteImport.update({
@@ -971,6 +998,7 @@ export interface FileRoutesByFullPath {
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
+  '/tenant/complaints': typeof TenantComplaintsRoute
   '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
@@ -1029,16 +1057,19 @@ export interface FileRoutesByFullPath {
   '/manager/properties/': typeof ManagerPropertiesIndexRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
   '/admin/listings/$id/edit': typeof AdminListingsIdEditRoute
+  '/agency/manage/$propertyId/complaints': typeof AgencyManagePropertyIdComplaintsRoute
   '/agency/manage/$propertyId/maintenance': typeof AgencyManagePropertyIdMaintenanceRoute
   '/agency/manage/$propertyId/rent': typeof AgencyManagePropertyIdRentRoute
   '/agency/manage/$propertyId/tenants': typeof AgencyManagePropertyIdTenantsRoute
   '/agency/manage/$propertyId/units': typeof AgencyManagePropertyIdUnitsRoute
   '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/manage/$propertyId/complaints': typeof LandlordManagePropertyIdComplaintsRoute
   '/landlord/manage/$propertyId/maintenance': typeof LandlordManagePropertyIdMaintenanceRoute
   '/landlord/manage/$propertyId/rent': typeof LandlordManagePropertyIdRentRoute
   '/landlord/manage/$propertyId/tenants': typeof LandlordManagePropertyIdTenantsRoute
   '/landlord/manage/$propertyId/units': typeof LandlordManagePropertyIdUnitsRoute
   '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/manage/$propertyId/complaints': typeof ManagerManagePropertyIdComplaintsRoute
   '/manager/manage/$propertyId/maintenance': typeof ManagerManagePropertyIdMaintenanceRoute
   '/manager/manage/$propertyId/rent': typeof ManagerManagePropertyIdRentRoute
   '/manager/manage/$propertyId/tenants': typeof ManagerManagePropertyIdTenantsRoute
@@ -1099,6 +1130,7 @@ export interface FileRoutesByTo {
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
+  '/tenant/complaints': typeof TenantComplaintsRoute
   '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/profile': typeof TenantProfileRoute
@@ -1153,16 +1185,19 @@ export interface FileRoutesByTo {
   '/manager/properties': typeof ManagerPropertiesIndexRoute
   '/tenant/messages': typeof TenantMessagesIndexRoute
   '/admin/listings/$id/edit': typeof AdminListingsIdEditRoute
+  '/agency/manage/$propertyId/complaints': typeof AgencyManagePropertyIdComplaintsRoute
   '/agency/manage/$propertyId/maintenance': typeof AgencyManagePropertyIdMaintenanceRoute
   '/agency/manage/$propertyId/rent': typeof AgencyManagePropertyIdRentRoute
   '/agency/manage/$propertyId/tenants': typeof AgencyManagePropertyIdTenantsRoute
   '/agency/manage/$propertyId/units': typeof AgencyManagePropertyIdUnitsRoute
   '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/manage/$propertyId/complaints': typeof LandlordManagePropertyIdComplaintsRoute
   '/landlord/manage/$propertyId/maintenance': typeof LandlordManagePropertyIdMaintenanceRoute
   '/landlord/manage/$propertyId/rent': typeof LandlordManagePropertyIdRentRoute
   '/landlord/manage/$propertyId/tenants': typeof LandlordManagePropertyIdTenantsRoute
   '/landlord/manage/$propertyId/units': typeof LandlordManagePropertyIdUnitsRoute
   '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/manage/$propertyId/complaints': typeof ManagerManagePropertyIdComplaintsRoute
   '/manager/manage/$propertyId/maintenance': typeof ManagerManagePropertyIdMaintenanceRoute
   '/manager/manage/$propertyId/rent': typeof ManagerManagePropertyIdRentRoute
   '/manager/manage/$propertyId/tenants': typeof ManagerManagePropertyIdTenantsRoute
@@ -1243,6 +1278,7 @@ export interface FileRoutesById {
   '/services/register': typeof ServicesRegisterRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
+  '/tenant/complaints': typeof TenantComplaintsRoute
   '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
@@ -1301,16 +1337,19 @@ export interface FileRoutesById {
   '/manager/properties/': typeof ManagerPropertiesIndexRoute
   '/tenant/messages/': typeof TenantMessagesIndexRoute
   '/admin/listings/$id/edit': typeof AdminListingsIdEditRoute
+  '/agency/manage/$propertyId/complaints': typeof AgencyManagePropertyIdComplaintsRoute
   '/agency/manage/$propertyId/maintenance': typeof AgencyManagePropertyIdMaintenanceRoute
   '/agency/manage/$propertyId/rent': typeof AgencyManagePropertyIdRentRoute
   '/agency/manage/$propertyId/tenants': typeof AgencyManagePropertyIdTenantsRoute
   '/agency/manage/$propertyId/units': typeof AgencyManagePropertyIdUnitsRoute
   '/agency/properties/$id/edit': typeof AgencyPropertiesIdEditRoute
+  '/landlord/manage/$propertyId/complaints': typeof LandlordManagePropertyIdComplaintsRoute
   '/landlord/manage/$propertyId/maintenance': typeof LandlordManagePropertyIdMaintenanceRoute
   '/landlord/manage/$propertyId/rent': typeof LandlordManagePropertyIdRentRoute
   '/landlord/manage/$propertyId/tenants': typeof LandlordManagePropertyIdTenantsRoute
   '/landlord/manage/$propertyId/units': typeof LandlordManagePropertyIdUnitsRoute
   '/landlord/properties/$id/edit': typeof LandlordPropertiesIdEditRoute
+  '/manager/manage/$propertyId/complaints': typeof ManagerManagePropertyIdComplaintsRoute
   '/manager/manage/$propertyId/maintenance': typeof ManagerManagePropertyIdMaintenanceRoute
   '/manager/manage/$propertyId/rent': typeof ManagerManagePropertyIdRentRoute
   '/manager/manage/$propertyId/tenants': typeof ManagerManagePropertyIdTenantsRoute
@@ -1392,6 +1431,7 @@ export interface FileRouteTypes {
     | '/services/register'
     | '/tenant/checkout'
     | '/tenant/compare'
+    | '/tenant/complaints'
     | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/messages'
@@ -1450,16 +1490,19 @@ export interface FileRouteTypes {
     | '/manager/properties/'
     | '/tenant/messages/'
     | '/admin/listings/$id/edit'
+    | '/agency/manage/$propertyId/complaints'
     | '/agency/manage/$propertyId/maintenance'
     | '/agency/manage/$propertyId/rent'
     | '/agency/manage/$propertyId/tenants'
     | '/agency/manage/$propertyId/units'
     | '/agency/properties/$id/edit'
+    | '/landlord/manage/$propertyId/complaints'
     | '/landlord/manage/$propertyId/maintenance'
     | '/landlord/manage/$propertyId/rent'
     | '/landlord/manage/$propertyId/tenants'
     | '/landlord/manage/$propertyId/units'
     | '/landlord/properties/$id/edit'
+    | '/manager/manage/$propertyId/complaints'
     | '/manager/manage/$propertyId/maintenance'
     | '/manager/manage/$propertyId/rent'
     | '/manager/manage/$propertyId/tenants'
@@ -1520,6 +1563,7 @@ export interface FileRouteTypes {
     | '/services/register'
     | '/tenant/checkout'
     | '/tenant/compare'
+    | '/tenant/complaints'
     | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/profile'
@@ -1574,16 +1618,19 @@ export interface FileRouteTypes {
     | '/manager/properties'
     | '/tenant/messages'
     | '/admin/listings/$id/edit'
+    | '/agency/manage/$propertyId/complaints'
     | '/agency/manage/$propertyId/maintenance'
     | '/agency/manage/$propertyId/rent'
     | '/agency/manage/$propertyId/tenants'
     | '/agency/manage/$propertyId/units'
     | '/agency/properties/$id/edit'
+    | '/landlord/manage/$propertyId/complaints'
     | '/landlord/manage/$propertyId/maintenance'
     | '/landlord/manage/$propertyId/rent'
     | '/landlord/manage/$propertyId/tenants'
     | '/landlord/manage/$propertyId/units'
     | '/landlord/properties/$id/edit'
+    | '/manager/manage/$propertyId/complaints'
     | '/manager/manage/$propertyId/maintenance'
     | '/manager/manage/$propertyId/rent'
     | '/manager/manage/$propertyId/tenants'
@@ -1663,6 +1710,7 @@ export interface FileRouteTypes {
     | '/services/register'
     | '/tenant/checkout'
     | '/tenant/compare'
+    | '/tenant/complaints'
     | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/messages'
@@ -1721,16 +1769,19 @@ export interface FileRouteTypes {
     | '/manager/properties/'
     | '/tenant/messages/'
     | '/admin/listings/$id/edit'
+    | '/agency/manage/$propertyId/complaints'
     | '/agency/manage/$propertyId/maintenance'
     | '/agency/manage/$propertyId/rent'
     | '/agency/manage/$propertyId/tenants'
     | '/agency/manage/$propertyId/units'
     | '/agency/properties/$id/edit'
+    | '/landlord/manage/$propertyId/complaints'
     | '/landlord/manage/$propertyId/maintenance'
     | '/landlord/manage/$propertyId/rent'
     | '/landlord/manage/$propertyId/tenants'
     | '/landlord/manage/$propertyId/units'
     | '/landlord/properties/$id/edit'
+    | '/manager/manage/$propertyId/complaints'
     | '/manager/manage/$propertyId/maintenance'
     | '/manager/manage/$propertyId/rent'
     | '/manager/manage/$propertyId/tenants'
@@ -2095,6 +2146,13 @@ declare module '@tanstack/react-router' {
       path: '/maintenance'
       fullPath: '/tenant/maintenance'
       preLoaderRoute: typeof TenantMaintenanceRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/complaints': {
+      id: '/tenant/complaints'
+      path: '/complaints'
+      fullPath: '/tenant/complaints'
+      preLoaderRoute: typeof TenantComplaintsRouteImport
       parentRoute: typeof TenantRoute
     }
     '/tenant/compare': {
@@ -2713,6 +2771,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManagerManagePropertyIdMaintenanceRouteImport
       parentRoute: typeof ManagerManagePropertyIdRoute
     }
+    '/manager/manage/$propertyId/complaints': {
+      id: '/manager/manage/$propertyId/complaints'
+      path: '/complaints'
+      fullPath: '/manager/manage/$propertyId/complaints'
+      preLoaderRoute: typeof ManagerManagePropertyIdComplaintsRouteImport
+      parentRoute: typeof ManagerManagePropertyIdRoute
+    }
     '/landlord/properties/$id/edit': {
       id: '/landlord/properties/$id/edit'
       path: '/$id/edit'
@@ -2748,6 +2813,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandlordManagePropertyIdMaintenanceRouteImport
       parentRoute: typeof LandlordManagePropertyIdRoute
     }
+    '/landlord/manage/$propertyId/complaints': {
+      id: '/landlord/manage/$propertyId/complaints'
+      path: '/complaints'
+      fullPath: '/landlord/manage/$propertyId/complaints'
+      preLoaderRoute: typeof LandlordManagePropertyIdComplaintsRouteImport
+      parentRoute: typeof LandlordManagePropertyIdRoute
+    }
     '/agency/properties/$id/edit': {
       id: '/agency/properties/$id/edit'
       path: '/$id/edit'
@@ -2781,6 +2853,13 @@ declare module '@tanstack/react-router' {
       path: '/maintenance'
       fullPath: '/agency/manage/$propertyId/maintenance'
       preLoaderRoute: typeof AgencyManagePropertyIdMaintenanceRouteImport
+      parentRoute: typeof AgencyManagePropertyIdRoute
+    }
+    '/agency/manage/$propertyId/complaints': {
+      id: '/agency/manage/$propertyId/complaints'
+      path: '/complaints'
+      fullPath: '/agency/manage/$propertyId/complaints'
+      preLoaderRoute: typeof AgencyManagePropertyIdComplaintsRouteImport
       parentRoute: typeof AgencyManagePropertyIdRoute
     }
     '/admin/listings/$id/edit': {
@@ -2844,6 +2923,7 @@ const AgencyDashboardRouteWithChildren = AgencyDashboardRoute._addFileChildren(
 )
 
 interface AgencyManagePropertyIdRouteChildren {
+  AgencyManagePropertyIdComplaintsRoute: typeof AgencyManagePropertyIdComplaintsRoute
   AgencyManagePropertyIdMaintenanceRoute: typeof AgencyManagePropertyIdMaintenanceRoute
   AgencyManagePropertyIdRentRoute: typeof AgencyManagePropertyIdRentRoute
   AgencyManagePropertyIdTenantsRoute: typeof AgencyManagePropertyIdTenantsRoute
@@ -2853,6 +2933,8 @@ interface AgencyManagePropertyIdRouteChildren {
 
 const AgencyManagePropertyIdRouteChildren: AgencyManagePropertyIdRouteChildren =
   {
+    AgencyManagePropertyIdComplaintsRoute:
+      AgencyManagePropertyIdComplaintsRoute,
     AgencyManagePropertyIdMaintenanceRoute:
       AgencyManagePropertyIdMaintenanceRoute,
     AgencyManagePropertyIdRentRoute: AgencyManagePropertyIdRentRoute,
@@ -2978,6 +3060,7 @@ const LandlordDashboardRouteWithChildren =
   LandlordDashboardRoute._addFileChildren(LandlordDashboardRouteChildren)
 
 interface LandlordManagePropertyIdRouteChildren {
+  LandlordManagePropertyIdComplaintsRoute: typeof LandlordManagePropertyIdComplaintsRoute
   LandlordManagePropertyIdMaintenanceRoute: typeof LandlordManagePropertyIdMaintenanceRoute
   LandlordManagePropertyIdRentRoute: typeof LandlordManagePropertyIdRentRoute
   LandlordManagePropertyIdTenantsRoute: typeof LandlordManagePropertyIdTenantsRoute
@@ -2987,6 +3070,8 @@ interface LandlordManagePropertyIdRouteChildren {
 
 const LandlordManagePropertyIdRouteChildren: LandlordManagePropertyIdRouteChildren =
   {
+    LandlordManagePropertyIdComplaintsRoute:
+      LandlordManagePropertyIdComplaintsRoute,
     LandlordManagePropertyIdMaintenanceRoute:
       LandlordManagePropertyIdMaintenanceRoute,
     LandlordManagePropertyIdRentRoute: LandlordManagePropertyIdRentRoute,
@@ -3083,6 +3168,7 @@ const ManagerDashboardRouteWithChildren =
   ManagerDashboardRoute._addFileChildren(ManagerDashboardRouteChildren)
 
 interface ManagerManagePropertyIdRouteChildren {
+  ManagerManagePropertyIdComplaintsRoute: typeof ManagerManagePropertyIdComplaintsRoute
   ManagerManagePropertyIdMaintenanceRoute: typeof ManagerManagePropertyIdMaintenanceRoute
   ManagerManagePropertyIdRentRoute: typeof ManagerManagePropertyIdRentRoute
   ManagerManagePropertyIdTenantsRoute: typeof ManagerManagePropertyIdTenantsRoute
@@ -3092,6 +3178,8 @@ interface ManagerManagePropertyIdRouteChildren {
 
 const ManagerManagePropertyIdRouteChildren: ManagerManagePropertyIdRouteChildren =
   {
+    ManagerManagePropertyIdComplaintsRoute:
+      ManagerManagePropertyIdComplaintsRoute,
     ManagerManagePropertyIdMaintenanceRoute:
       ManagerManagePropertyIdMaintenanceRoute,
     ManagerManagePropertyIdRentRoute: ManagerManagePropertyIdRentRoute,
@@ -3206,6 +3294,7 @@ const TenantMessagesRouteWithChildren = TenantMessagesRoute._addFileChildren(
 interface TenantRouteChildren {
   TenantCheckoutRoute: typeof TenantCheckoutRoute
   TenantCompareRoute: typeof TenantCompareRoute
+  TenantComplaintsRoute: typeof TenantComplaintsRoute
   TenantMaintenanceRoute: typeof TenantMaintenanceRoute
   TenantMapRoute: typeof TenantMapRoute
   TenantMessagesRoute: typeof TenantMessagesRouteWithChildren
@@ -3221,6 +3310,7 @@ interface TenantRouteChildren {
 const TenantRouteChildren: TenantRouteChildren = {
   TenantCheckoutRoute: TenantCheckoutRoute,
   TenantCompareRoute: TenantCompareRoute,
+  TenantComplaintsRoute: TenantComplaintsRoute,
   TenantMaintenanceRoute: TenantMaintenanceRoute,
   TenantMapRoute: TenantMapRoute,
   TenantMessagesRoute: TenantMessagesRouteWithChildren,

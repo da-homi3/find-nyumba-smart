@@ -59,9 +59,7 @@ if (!clientId || !clientSecret) {
   process.exit(1);
 }
 if (!clientId.endsWith(".apps.googleusercontent.com")) {
-  console.error(
-    `Client ID looks wrong: "${clientId}" (expected *.apps.googleusercontent.com)`,
-  );
+  console.error(`Client ID looks wrong: "${clientId}" (expected *.apps.googleusercontent.com)`);
   process.exit(1);
 }
 
@@ -73,17 +71,14 @@ const body = {
   external_google_secret: clientSecret,
 };
 
-const res = await fetch(
-  `https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth`,
-  {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth`, {
+  method: "PATCH",
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   },
-);
+  body: JSON.stringify(body),
+});
 
 if (!res.ok) {
   console.error("PATCH failed", res.status, await res.text());

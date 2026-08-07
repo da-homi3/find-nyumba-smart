@@ -11,10 +11,7 @@ import {
   planMonthlyPrice,
   resolvePortalPlan,
 } from "@/lib/revenue/plans";
-import {
-  EARLY_PARTNER_SUBSCRIPTION_DISCOUNT,
-  isEarlyPartnerStatus,
-} from "@/lib/promo/constants";
+import { EARLY_PARTNER_SUBSCRIPTION_DISCOUNT, isEarlyPartnerStatus } from "@/lib/promo/constants";
 import { formatKes } from "@/lib/properties";
 import { PORTAL_PATHS, type ListingPortal } from "@/lib/portal-paths";
 import { useEffect } from "react";

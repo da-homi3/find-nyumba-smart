@@ -93,14 +93,11 @@ function buildListingContextBlock(draft: ListingCopyDraft, rawDesc: string): str
   const lat = draftField(draft.lat ?? draft.latitude);
   const lng = draftField(draft.lng ?? draft.longitude);
   const amenities = formatAmenityString(
-    Array.isArray(draft.amenities)
-      ? (draft.amenities as string[])
-      : draftField(draft.amenities),
+    Array.isArray(draft.amenities) ? (draft.amenities as string[]) : draftField(draft.amenities),
   );
   const bathsLabel = baths ? `${baths} bath(s)` : "baths n/a";
   const propertyLine = `Property: ${propertyType || "unknown"}, ${bedroomLabel}, ${bathsLabel}`;
-  const coords =
-    lat && lng ? `Coordinates: ${lat}, ${lng}` : "Coordinates: not set";
+  const coords = lat && lng ? `Coordinates: ${lat}, ${lng}` : "Coordinates: not set";
 
   return [
     title ? `Title: ${title}` : null,
@@ -253,9 +250,7 @@ export async function suggestNeighborhoodWithNyumbaAI(input: {
   candidates?: string[];
 }): Promise<string | null> {
   const candidates =
-    input.candidates && input.candidates.length > 0
-      ? input.candidates.slice(0, 12)
-      : [];
+    input.candidates && input.candidates.length > 0 ? input.candidates.slice(0, 12) : [];
   const coords =
     Number.isFinite(input.lat) && Number.isFinite(input.lng)
       ? `${input.lat}, ${input.lng}`
@@ -278,6 +273,10 @@ Rules:
   ].join("\n");
 
   const reply = await callGeminiChat(system, user, LISTING_AI_OPTS);
-  const picked = reply?.trim().split("\n")[0]?.replaceAll(/^["']|["']$/g, "").trim();
+  const picked = reply
+    ?.trim()
+    .split("\n")[0]
+    ?.replaceAll(/^["']|["']$/g, "")
+    .trim();
   return picked || null;
 }

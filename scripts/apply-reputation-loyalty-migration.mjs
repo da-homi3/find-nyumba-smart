@@ -51,7 +51,9 @@ async function main() {
   });
   const body = await res.text();
   if (!res.ok) throw new Error(`Management API ${res.status}: ${body.slice(0, 800)}`);
-  console.log("✓ reputation_scores, reputation_factors, loyalty_points, loyalty_transactions ready.");
+  console.log(
+    "✓ reputation_scores, reputation_factors, loyalty_points, loyalty_transactions ready.",
+  );
 }
 
 try {

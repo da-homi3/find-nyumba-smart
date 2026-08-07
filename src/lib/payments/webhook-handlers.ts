@@ -55,8 +55,9 @@ async function parseJsonBody(request: Request): Promise<unknown> {
 }
 
 export async function handleMpesaWebhook(request: Request): Promise<Response> {
-  const webhookSecret = process.env.MPESA_WEBHOOK_SECRET?.trim();
-  const isProduction = (process.env.MPESA_ENV || "").toLowerCase() === "production";
+  const { getServerEnv } = await import("@/lib/server-env");
+  const webhookSecret = getServerEnv("MPESA_WEBHOOK_SECRET")?.trim();
+  const isProduction = (getServerEnv("MPESA_ENV") || "").toLowerCase() === "production";
   // Never process unsigned STK callbacks in production — forged ResultCode 0 would fulfill rent.
   if (!webhookSecret && isProduction) {
     console.error("[mpesa-webhook] MPESA_WEBHOOK_SECRET is required in production");
@@ -88,6 +89,7 @@ export async function handleMpesaWebhook(request: Request): Promise<Response> {
     parsed.checkoutRequestId,
     parsed.success,
     parsed.mpesaReceipt,
+    parsed.amount,
   );
 
   return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
@@ -116,10 +118,13 @@ export async function handlePesapalWebhook(request: Request): Promise<Response> 
   );
 
   if (!ipn) {
-    return new Response(JSON.stringify({ error: "Missing OrderTrackingId or OrderMerchantReference" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Missing OrderTrackingId or OrderMerchantReference" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
   try {

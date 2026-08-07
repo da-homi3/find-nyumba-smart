@@ -26,7 +26,7 @@ import { portalNavTourAttr } from "@/lib/onboarding/portal-nav-tour";
 const nav = [
   { to: "/landlord/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/landlord/properties", label: "Properties", icon: Building2 },
-  { to: "/landlord/manage", label: "Manage portfolio", icon: Briefcase },
+  { to: "/landlord/manage", label: "Tenants & rent", icon: Briefcase },
   { to: "/landlord/import", label: "Bulk import", icon: Upload },
   { to: "/landlord/integrations", label: "API & integrations", icon: Plug },
   { to: "/landlord/leads", label: "Messages", icon: Inbox },

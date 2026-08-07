@@ -142,7 +142,9 @@ export function TenantMapChrome({
             type="button"
             onClick={onToggleHeat}
             className={`filter-chip inline-flex items-center gap-1.5 py-1.5 text-xs ${
-              showHeat ? "is-active border-gold bg-gradient-gold text-gold-foreground shadow-soft" : ""
+              showHeat
+                ? "is-active border-gold bg-gradient-gold text-gold-foreground shadow-soft"
+                : ""
             }`}
           >
             <Flame className="h-3.5 w-3.5" /> Rent heat

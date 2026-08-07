@@ -24,7 +24,11 @@ function clientBrowseFilters() {
 }
 
 /** Warm React Query caches before the user taps a bottom-nav tab. */
-export function prefetchTenantSection(queryClient: QueryClient, to: string, userId?: string | null) {
+export function prefetchTenantSection(
+  queryClient: QueryClient,
+  to: string,
+  userId?: string | null,
+) {
   if (to === "/tenant" || to === "/") {
     const filters = clientBrowseFilters();
     void queryClient.prefetchQuery({

@@ -9,13 +9,14 @@ export const Route = createFileRoute("/manager")({
 });
 
 function ManagerLayout() {
-  const { user, loading, isManager, pendingApplications } = useAuth();
+  const { user, loading, rolesReady, isManager, pendingApplications } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isPublicEntry = pathname === "/manager" || pathname === "/manager/";
+  const authSettled = !loading && rolesReady;
 
   useEffect(() => {
-    if (isPublicEntry || loading) return;
+    if (isPublicEntry || !authSettled) return;
     if (!user) {
       navigate({
         to: "/auth",
@@ -32,14 +33,16 @@ function ManagerLayout() {
         replace: true,
       });
     }
-  }, [loading, user, isManager, pendingApplications, isPublicEntry, pathname, navigate]);
+  }, [authSettled, user, isManager, pendingApplications, isPublicEntry, pathname, navigate]);
 
-  if (!isPublicEntry && (loading || !user || !isManager)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (!isPublicEntry && (!authSettled || !user || !isManager)) {
+    if (!(user && isManager)) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
   }
 
   return <Outlet />;

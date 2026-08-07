@@ -50,7 +50,13 @@ describe("mailboxlayer policy", () => {
     expect(evaluateMailboxlayer(email({ disposable: true })).ok).toBe(false);
     expect(evaluateMailboxlayer(email({ mxFound: false })).ok).toBe(false);
     expect(evaluateMailboxlayer(email({ formatValid: false })).ok).toBe(false);
-    expect(evaluateMailboxlayer(email({ score: 0.1 })).ok).toBe(false);
+  });
+
+  it("allows low-score addresses — the score is too noisy to block signup", () => {
+    expect(evaluateMailboxlayer(email({ score: 0.1 })).ok).toBe(true);
+    expect(evaluateMailboxlayer(email({ smtpCheck: false, didYouMean: "user@gmail.com" })).ok).toBe(
+      true,
+    );
   });
 
   it("allows free providers like Gmail", () => {

@@ -1,4 +1,5 @@
 import { formatKes } from "@/lib/properties";
+import { formatUsd, type ListingPriceCurrency } from "@/lib/currency/usd-kes";
 import {
   isCommercialType,
   listingPriceSuffix,
@@ -11,6 +12,9 @@ export type CommercialRangeInput = {
   property_type: PropertyType;
   rent_kes: number;
   rent_kes_max?: number | null;
+  rent_usd?: number | null;
+  rent_usd_max?: number | null;
+  price_currency?: ListingPriceCurrency | null;
   area_sqm?: number | null;
   area_sqm_max?: number | null;
   pricing_mode?: PricingMode | null;
@@ -26,11 +30,13 @@ export function supportsListingPriceRange(input: {
 }
 
 export function hasCommercialPriceRange(input: CommercialRangeInput): boolean {
-  return (
-    supportsListingPriceRange(input) &&
-    input.rent_kes_max != null &&
-    input.rent_kes_max > input.rent_kes
-  );
+  if (!supportsListingPriceRange(input)) return false;
+  if (input.price_currency === "USD") {
+    return (
+      input.rent_usd != null && input.rent_usd_max != null && input.rent_usd_max > input.rent_usd
+    );
+  }
+  return input.rent_kes_max != null && input.rent_kes_max > input.rent_kes;
 }
 
 export function hasCommercialAreaRange(input: CommercialRangeInput): boolean {
@@ -44,6 +50,13 @@ export function hasCommercialAreaRange(input: CommercialRangeInput): boolean {
 
 export function formatListingPrice(input: CommercialRangeInput): string {
   const suffix = listingPriceSuffix(input);
+  if (input.price_currency === "USD" && input.rent_usd != null && input.rent_usd > 0) {
+    if (hasCommercialPriceRange(input)) {
+      const max = input.rent_usd_max!;
+      return `USD ${input.rent_usd.toLocaleString("en-US")} – ${max.toLocaleString("en-US")}${suffix}`;
+    }
+    return `${formatUsd(input.rent_usd)}${suffix}`;
+  }
   if (hasCommercialPriceRange(input)) {
     const max = input.rent_kes_max!;
     return `KES ${input.rent_kes.toLocaleString("en-KE")} – ${max.toLocaleString("en-KE")}${suffix}`;

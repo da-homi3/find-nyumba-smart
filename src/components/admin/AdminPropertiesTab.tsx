@@ -1,14 +1,25 @@
 import { Link } from "@tanstack/react-router";
-import { BadgeCheck, Download, Loader2, Pencil, Plus, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
+import {
+  BadgeCheck,
+  Download,
+  Loader2,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  ShieldOff,
+  Trash2,
+} from "lucide-react";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { AdminProperty } from "@/components/admin/admin-types";
 import { AdminPropertyAuthenticityControls } from "@/components/admin/AdminPropertyAuthenticityControls";
 import { ReviewQueueItem } from "@/components/admin/ReviewQueueItem";
 import { reviewPrioritySort, resolveReviewPriority } from "@/lib/design/status";
 import { getAdminPropertyMediaDownloads } from "@/lib/api/admin.functions";
+import { saveMediaToGallery, saveResultToast } from "@/lib/media/save-media-to-gallery";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/utils";
 import { useState } from "react";
+import { videoMimeFromUrl } from "@/lib/media/video-embed";
 
 type ToggleVerification = UseMutationResult<
   { id: string; title: string; is_verified: boolean; nyumba_verified_at: string | null },
@@ -57,18 +68,12 @@ function VerificationToggleIcon({
 }
 
 async function downloadMediaBlob(url: string, filename: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Could not download ${filename}`);
-  const blob = await res.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(objectUrl);
+  const result = await saveMediaToGallery({
+    url,
+    filename,
+    mimeType: videoMimeFromUrl(url),
+  });
+  return result;
 }
 
 function AdminPropertyRow({
@@ -97,10 +102,16 @@ function AdminPropertyRow({
         return;
       }
       toast.message(`Downloading ${pack.items.length} file(s)…`);
+      let lastResult: Awaited<ReturnType<typeof downloadMediaBlob>> = "download";
       for (const item of pack.items) {
-        await downloadMediaBlob(item.url, item.filename);
+        lastResult = await downloadMediaBlob(item.url, item.filename);
       }
-      toast.success("Media download started");
+      if (pack.items.length === 1) {
+        const kindLabel = pack.items[0]?.kind === "video" ? "Walkthrough" : "Media";
+        toast.success(saveResultToast(lastResult, kindLabel));
+      } else {
+        toast.success("Media download started");
+      }
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {

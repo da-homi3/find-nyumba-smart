@@ -1,12 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { queryStkPushStatus } from "@/lib/api/mpesa";
+import { mpesaCallbackAmountMatches, queryStkPushStatus } from "@/lib/api/mpesa";
 import { fulfillPaymentRow } from "@/lib/revenue/fulfill-payment";
+import { parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 
 type Admin = SupabaseClient<Database>;
 type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 
-/** Poll Daraja STK status and fulfill when Safaricom confirms payment. */
+function usesIntasendStk(payment: PaymentRow): boolean {
+  const meta = parsePaymentMetadata(payment.metadata);
+  if (meta.mpesaProvider === "intasend") return true;
+  if (meta.mpesaProvider === "daraja") return false;
+  // Heuristic: rent payments without explicit provider → prefer IntaSend id style
+  return payment.payment_type === "rent_payment";
+}
+
+/** Poll Daraja / IntaSend STK status and fulfill when payment confirms. */
 export async function syncMpesaPaymentStatus(
   supabaseAdmin: Admin,
   payment: PaymentRow,
@@ -18,13 +27,26 @@ export async function syncMpesaPaymentStatus(
   const checkoutId = payment.mpesa_checkout_id;
   if (!checkoutId) return payment;
 
-  const { isMpesaConfigured } = await import("@/lib/api/mpesa");
-  if (!isMpesaConfigured()) return payment;
+  let stkStatus: "success" | "pending" | "failed";
+  let mpesaReceipt: string | undefined;
 
-  const stk = await queryStkPushStatus(checkoutId);
-  if (stk.status === "pending") return payment;
+  if (usesIntasendStk(payment)) {
+    const { queryIntasendPaymentStatus } = await import("@/lib/pm/intasend-collect");
+    const stk = await queryIntasendPaymentStatus(checkoutId);
+    console.info("[mpesa-sync] IntaSend", payment.id, checkoutId, stk.status, stk.resultDesc ?? "");
+    stkStatus = stk.status;
+    mpesaReceipt = stk.mpesaReceipt;
+  } else {
+    const { isMpesaConfigured } = await import("@/lib/api/mpesa");
+    if (!isMpesaConfigured()) return payment;
+    const stk = await queryStkPushStatus(checkoutId);
+    stkStatus = stk.status;
+    mpesaReceipt = stk.mpesaReceipt;
+  }
 
-  if (stk.status === "failed") {
+  if (stkStatus === "pending") return payment;
+
+  if (stkStatus === "failed") {
     const { data: updated } = await supabaseAdmin
       .from("payments")
       .update({ status: "failed" })
@@ -35,7 +57,7 @@ export async function syncMpesaPaymentStatus(
     return updated ?? { ...payment, status: "failed" };
   }
 
-  const receipt = stk.mpesaReceipt ?? checkoutId;
+  const receipt = mpesaReceipt ?? checkoutId;
   const { data: completed } = await supabaseAdmin
     .from("payments")
     .update({
@@ -73,7 +95,33 @@ export async function completeMpesaFromCallback(
   checkoutRequestId: string,
   success: boolean,
   mpesaReceipt: string | null,
+  paidAmountKes?: number | null,
 ) {
+  // Fulfilling on a success flag alone would grant the full order value regardless of what
+  // was actually paid. Confirm the callback amount matches before crediting anything.
+  if (success && paidAmountKes != null) {
+    const { data: pending } = await supabaseAdmin
+      .from("payments")
+      .select("id, amount_kes")
+      .eq("mpesa_checkout_id", checkoutRequestId)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (pending && !mpesaCallbackAmountMatches(paidAmountKes, pending.amount_kes)) {
+      console.error("[mpesa] callback amount mismatch — not fulfilling", {
+        paymentId: pending.id,
+        expected: pending.amount_kes,
+        paid: paidAmountKes,
+      });
+      await supabaseAdmin
+        .from("payments")
+        .update({ status: "failed" })
+        .eq("id", pending.id)
+        .eq("status", "pending");
+      return null;
+    }
+  }
+
   type PaymentUpdate = Database["public"]["Tables"]["payments"]["Update"];
   const patch: PaymentUpdate = {
     status: success ? "completed" : "failed",

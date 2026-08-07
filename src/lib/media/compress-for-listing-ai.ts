@@ -10,7 +10,11 @@ export type AiImagePayload = {
 };
 
 async function fileToAiJpeg(file: File): Promise<AiImagePayload | null> {
-  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
+  if (
+    !file.type.startsWith("image/") ||
+    file.type === "image/gif" ||
+    file.type === "image/svg+xml"
+  ) {
     return null;
   }
   if (globalThis.document === undefined) return null;

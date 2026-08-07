@@ -143,7 +143,7 @@ export const listProvidersForMaintenance = createServerFn({ method: "POST" })
     assertStaffCan(staffRole, "maintenance:*");
 
     const providerCat = providerCategoryForMaintenance(data.category);
-    let query = admin
+    const query = admin
       .from("service_providers")
       .select(
         "id, business_name, categories, counties, price_range, phone, verified, tier, description",

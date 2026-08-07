@@ -148,20 +148,25 @@ export function normalizePricePeriod(
   return period ?? defaultPricePeriod(propertyType, mode);
 }
 
-export function priceAmountLabel(mode: PricingMode, period: PricePeriod | null): string {
-  if (mode === "sale") return "Sale price (KES)";
+export function priceAmountLabel(
+  mode: PricingMode,
+  period: PricePeriod | null,
+  currency: "KES" | "USD" = "KES",
+): string {
+  const unit = currency === "USD" ? "USD" : "KES";
+  if (mode === "sale") return `Sale price (${unit})`;
 
   if (mode === "booking") {
-    if (period === "night") return "Rate (KES/night)";
+    if (period === "night") return `Rate (${unit}/night)`;
 
-    if (period === "week") return "Rate (KES/week)";
+    if (period === "week") return `Rate (${unit}/week)`;
 
-    return "Rate (KES/month)";
+    return `Rate (${unit}/month)`;
   }
 
-  if (period === "week") return "Rent (KES/week)";
+  if (period === "week") return `Rent (${unit}/week)`;
 
-  return "Rent (KES/month)";
+  return `Rent (${unit}/month)`;
 }
 
 export function pricePeriodSuffix(
@@ -216,16 +221,13 @@ export function listingPriceSuffix(input: {
 
 export function listingPriceAmountLabel(input: {
   property_type: PropertyType;
-
   pricing_mode?: PricingMode | null;
-
   price_period?: PricePeriod | null;
+  price_currency?: "KES" | "USD" | null;
 }): string {
   const mode = normalizePricingMode(input.property_type, input.pricing_mode);
-
   const period = normalizePricePeriod(input.property_type, mode, input.price_period);
-
-  return priceAmountLabel(mode, period);
+  return priceAmountLabel(mode, period, input.price_currency === "USD" ? "USD" : "KES");
 }
 
 export function formatMinimumRentPeriod(months: number | null | undefined): string | null {

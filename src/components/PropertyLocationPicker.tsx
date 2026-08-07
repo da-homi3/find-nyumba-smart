@@ -296,8 +296,8 @@ export function PropertyLocationPicker({
           />
         </label>
         <p className="mt-2 text-xs text-muted-foreground">
-          Pick a place like Google Maps, then drag the pin to the exact building. NyumbaAI fills
-          the neighborhood from the pin automatically.
+          Pick a place like Google Maps, then drag the pin to the exact building. NyumbaAI fills the
+          neighborhood from the pin automatically.
         </p>
         {autoNote ? (
           <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-primary">

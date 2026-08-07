@@ -25,7 +25,8 @@ export const Route = createFileRoute("/admin/listings/new")({
   head: () =>
     buildPageHead({
       title: "Upload listing — Admin",
-      description: "Create a property listing as admin or on behalf of a landlord, agency, or manager.",
+      description:
+        "Create a property listing as admin or on behalf of a landlord, agency, or manager.",
       path: "/admin/listings/new",
       noIndex: true,
     }),
@@ -55,7 +56,7 @@ function AdminCreateListingPage() {
 
   return (
     <div className="min-h-screen bg-background pb-12">
-      <header className="border-b bg-card px-4 py-4 sm:px-6">
+      <header className="safe-area-pad-top border-b bg-card px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link

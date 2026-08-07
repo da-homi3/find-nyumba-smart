@@ -536,11 +536,18 @@ export function useTenantMapbox(properties: Property[]) {
       const message = event.error?.message ?? "";
       const status = event.status ?? 0;
       console.error("Mapbox error:", event);
-      if (/token|401|403|unauthorized|Forbidden|InvalidToken/i.test(message) || status === 401 || status === 403) {
+      if (
+        /token|401|403|unauthorized|Forbidden|InvalidToken/i.test(message) ||
+        status === 401 ||
+        status === 403
+      ) {
         setError(message || "Mapbox token rejected. Check MAPBOX_PUBLIC_TOKEN.");
         return;
       }
-      if (/Failed to fetch|NetworkError|offline|ERR_NETWORK|Style/i.test(message) || status >= 500) {
+      if (
+        /Failed to fetch|NetworkError|offline|ERR_NETWORK|Style/i.test(message) ||
+        status >= 500
+      ) {
         setError(message || "Map tiles failed to load. Check your connection and retry.");
       }
     };

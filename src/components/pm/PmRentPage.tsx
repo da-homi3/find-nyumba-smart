@@ -6,10 +6,19 @@ import { formatKes } from "@/lib/properties";
 import { getPmProperty, listPmInvoices, recordPmPayment } from "@/lib/api/pm.functions";
 import { listPmPaymentClaims } from "@/lib/api/pm-module.functions";
 import { rentBalanceRemaining } from "@/lib/pm/invoice-status";
+import { nyumbaRentReceiptNo } from "@/lib/pm/rent-receipt";
 import { PaymentClaimCard, type PmPaymentClaim } from "@/components/pm/PaymentClaimCard";
 import { PmPropertySubnav, type PmPortal } from "@/components/pm/pm-nav";
 
 type PmInvoice = Awaited<ReturnType<typeof listPmInvoices>>[number];
+
+const METHOD_LABEL: Record<string, string> = {
+  manual: "Manual",
+  cash: "Cash",
+  bank: "Bank",
+  mpesa: "M-Pesa (in-app)",
+  mpesa_sms: "M-Pesa SMS",
+};
 
 export function PmRentPage({
   portal,
@@ -66,9 +75,7 @@ export function PmRentPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="font-display text-2xl font-semibold">
-        {detail.data.property.name} · Rent
-      </h1>
+      <h1 className="font-display text-2xl font-semibold">{detail.data.property.name} · Rent</h1>
       <div className="mt-6">
         <PmPropertySubnav portal={portal} propertyId={propertyId} active="rent" />
       </div>
@@ -108,10 +115,29 @@ export function PmRentPage({
                       {inv.unit_label ? ` · Unit ${inv.unit_label}` : ""}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Due {inv.due_date} · {formatKes(inv.amount_paid)} / {formatKes(totalDue)}
-                      {inv.late_fee > 0 ? ` (incl. ${formatKes(inv.late_fee)} late fee)` : ""} ·{" "}
-                      <span className="uppercase">{inv.status}</span>
+                      Due {inv.due_date} · paid {formatKes(inv.amount_paid)} of{" "}
+                      {formatKes(totalDue)}
+                      {balance > 0 ? ` · balance ${formatKes(balance)}` : ""}
+                      {inv.late_fee > 0
+                        ? ` (incl. ${formatKes(inv.late_fee)} late fee)`
+                        : ""} · <span className="uppercase">{inv.status}</span>
                     </div>
+                    {inv.payments && inv.payments.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {inv.payments.map((p) => (
+                          <li key={p.id}>
+                            <span className="font-medium text-foreground">
+                              {formatKes(p.amount)} · {nyumbaRentReceiptNo(p.id)}
+                            </span>
+                            {" · "}
+                            {METHOD_LABEL[p.method] ?? p.method}
+                            {p.mpesa_receipt_number ? ` · M-Pesa ${p.mpesa_receipt_number}` : ""}
+                            {" · "}
+                            {new Date(p.paid_at).toLocaleDateString()}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                   {inv.status !== "paid" ? (
                     <button

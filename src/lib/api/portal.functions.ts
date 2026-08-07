@@ -338,15 +338,15 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
       })
       .eq("id", data.applicationId);
 
-    const { organizationId, trialStarted, trialEnd } = await grantPortalListerAccess(
-      supabaseAdmin,
-      {
+    const { organizationId, trialStarted, trialEnd, linkedListings } =
+      await grantPortalListerAccess(supabaseAdmin, {
         userId: app.user_id,
         requestedRole: app.requested_role as PortalListerRole,
         organizationName: app.organization_name,
         startTrial: false,
-      },
-    );
+        applicationPhone: app.phone,
+        reviewedByUserId: userId,
+      });
 
     await sendApplicantApproved({
       email,
@@ -355,7 +355,13 @@ export const reviewPortalApplication = createServerFn({ method: "POST" })
       userId: app.user_id,
     });
 
-    return { status: "approved" as const, organizationId, trialStarted, trialEnd };
+    return {
+      status: "approved" as const,
+      organizationId,
+      trialStarted,
+      trialEnd,
+      linkedListings,
+    };
   });
 
 export const getMyProfilePortal = createServerFn({ method: "GET" })

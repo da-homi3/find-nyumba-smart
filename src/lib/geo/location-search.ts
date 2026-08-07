@@ -137,8 +137,7 @@ export function searchKenyaLocations(
       ? haversineKm(proximity.lat, proximity.lng, location.lat, location.lng)
       : undefined;
     // Prefer nearer matches when scores are close (Google Maps–style ranking).
-    const proximityBoost =
-      distanceKm == null ? 0 : Math.max(0, 12 - Math.min(12, distanceKm / 2));
+    const proximityBoost = distanceKm == null ? 0 : Math.max(0, 12 - Math.min(12, distanceKm / 2));
     return { location, score: score + (score > 0 ? proximityBoost : 0), distanceKm };
   })
     .filter((entry) => entry.score > 0)
@@ -230,7 +229,8 @@ function mapboxKind(types: string[] | undefined): LocationPlaceKind {
   if (types.includes("address") || types.includes("street")) return "address";
   if (types.includes("neighborhood")) return "neighborhood";
   if (types.includes("locality") || types.includes("city")) return "locality";
-  if (types.includes("place") || types.includes("district") || types.includes("region")) return "area";
+  if (types.includes("place") || types.includes("district") || types.includes("region"))
+    return "area";
   return "area";
 }
 
@@ -254,12 +254,7 @@ function neighborhoodFromMapboxContext(context: MapboxContext[] | undefined): st
 const KENYA_BBOX = "33.9,-4.8,41.9,5.5";
 const NAIROBI_CBD = { lat: -1.286389, lng: 36.817223 };
 
-function applySearchParams(
-  url: URL,
-  token: string,
-  limit: number,
-  viewport?: SearchViewport,
-) {
+function applySearchParams(url: URL, token: string, limit: number, viewport?: SearchViewport) {
   url.searchParams.set("access_token", token);
   url.searchParams.set("country", "KE");
   url.searchParams.set("limit", String(limit));
@@ -398,11 +393,9 @@ function rankMergedResults(
     }
 
     const aDist =
-      a.distanceKm ??
-      (proximity ? haversineKm(proximity.lat, proximity.lng, a.lat, a.lng) : 999);
+      a.distanceKm ?? (proximity ? haversineKm(proximity.lat, proximity.lng, a.lat, a.lng) : 999);
     const bDist =
-      b.distanceKm ??
-      (proximity ? haversineKm(proximity.lat, proximity.lng, b.lat, b.lng) : 999);
+      b.distanceKm ?? (proximity ? haversineKm(proximity.lat, proximity.lng, b.lat, b.lng) : 999);
     return aDist - bDist || a.label.localeCompare(b.label);
   });
 }

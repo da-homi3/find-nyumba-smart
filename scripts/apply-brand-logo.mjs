@@ -12,9 +12,7 @@ import sharp from "sharp";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
-const src =
-  process.argv[2] ??
-  resolve(root, "scripts/brand-source-icon.jpg");
+const src = process.argv[2] ?? resolve(root, "scripts/brand-source-icon.jpg");
 
 const cocoa = { r: 74, g: 39, b: 19, alpha: 1 }; // #4A2713 — brand brown
 
@@ -105,7 +103,10 @@ async function writeAndroidIcons() {
 // Keep a high-res master in public/brand
 const master = await squarePng(1024);
 await writePng("public/brand/nyumbasearch-mark.png", master);
-copyFileSync(resolve(root, "public/brand/nyumbasearch-mark.png"), resolve(root, "public/brand/nyumbasearch-logo.png"));
+copyFileSync(
+  resolve(root, "public/brand/nyumbasearch-mark.png"),
+  resolve(root, "public/brand/nyumbasearch-logo.png"),
+);
 await writeResized("public/brand/nyumbasearch-icon.png", 256);
 
 // Canonical v4 paths (Google requires favicon multiples of 48px)

@@ -5,7 +5,13 @@ import { ORG_REQUIRED_ROLES, isPrivilegedAccountRole, type AccountRole } from "@
 import { SIGNUP_POLICY_VERSION } from "@/lib/auth/signup-policy";
 import { submitPendingPortalApplicationForUser } from "@/lib/api/portal.functions";
 import type { PortalListerRole } from "@/lib/payments/portal-trial";
-import { checkRateLimit, rateLimitKeyFromHeaders, RATE_LIMITS } from "@/lib/api/rate-limit";
+import {
+  checkRateLimit,
+  rateLimitDistributed,
+  rateLimitKeyFromHeaders,
+  RATE_LIMITS,
+} from "@/lib/api/rate-limit";
+import { asLooseDb } from "@/lib/db/loose-client";
 import { passwordResetEmail } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
@@ -72,17 +78,36 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/**
+ * Throttles reset-code guessing per email and per IP.
+ *
+ * Uses the KV-backed limiter because the in-memory one is per Worker isolate, which an
+ * attacker spreads across trivially. Pairs with the per-code attempt counter in the store.
+ */
+async function assertResetOtpAttemptAllowed(email: string): Promise<void> {
+  const ip = rateLimitKeyFromHeaders(getRequest()?.headers);
+  const [byEmail, byIp] = await Promise.all([
+    rateLimitDistributed(`pwreset-verify:email:${email}`, RATE_LIMITS.passwordResetVerify),
+    rateLimitDistributed(`pwreset-verify:ip:${ip}`, RATE_LIMITS.passwordResetVerify),
+  ]);
+  if (byEmail.limited || byIp.limited) {
+    throw new Error("Too many attempts. Request a new reset code and try again shortly.");
+  }
+}
+
 /** Verifies the 6-digit code from email before showing the new-password form. */
 export const verifyPasswordResetCode = createServerFn({ method: "POST" })
   .inputValidator(passwordResetOtpSchema)
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const code = data.code.trim();
-    const { readPasswordReset, codesMatch, markPasswordResetVerified } =
+    await assertResetOtpAttemptAllowed(email);
+
+    const { consumeResetAttempt, markPasswordResetVerified } =
       await import("@/lib/auth/password-reset-store");
 
-    const record = await readPasswordReset(email);
-    if (!record || !codesMatch(record.code, code)) {
+    const attempt = await consumeResetAttempt(email, code);
+    if (!attempt.ok) {
       throw new Error("Invalid or expired reset code. Request a new code.");
     }
     await markPasswordResetVerified(email);
@@ -95,19 +120,21 @@ export const completePasswordReset = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const code = data.code.trim();
-    const { readPasswordReset, codesMatch, consumePasswordReset } =
+    await assertResetOtpAttemptAllowed(email);
+
+    const { consumeResetAttempt, consumePasswordReset } =
       await import("@/lib/auth/password-reset-store");
 
-    const record = await readPasswordReset(email);
-    if (!record || !codesMatch(record.code, code)) {
+    const attempt = await consumeResetAttempt(email, code);
+    if (!attempt.ok) {
       throw new Error("Invalid or expired reset code. Request a new code.");
     }
-    if (!record.verified) {
+    if (!attempt.record.verified) {
       throw new Error("Verify the 6-digit code before setting a new password.");
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(record.userId, {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(attempt.record.userId, {
       password: data.password,
     });
     if (error) throw new Error(error.message);
@@ -171,7 +198,9 @@ async function verifyUserPassword(email: string, password: string): Promise<bool
   });
 
   const { createClient } = await import("@supabase/supabase-js");
-  const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const client = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const { error } = await client.auth.signInWithPassword({
     email: cleanEmail,
     password: cleanPassword,
@@ -245,14 +274,18 @@ function validateSignupInput(data: z.infer<typeof signupSchema>) {
   }
 }
 
-async function validateSignupTrustSignals(data: z.infer<typeof signupSchema>) {
+async function validateSignupTrustSignals(
+  data: z.infer<typeof signupSchema>,
+  opts?: { skipPhoneCheck?: boolean },
+) {
   validateSignupInput(data);
   const { assertCleanEmail, assertCleanKenyanMobile } = await import("@/lib/apilayer/verify");
   const { normalizeAuthEmail } = await import("@/lib/auth/credentials");
-  await Promise.all([
-    assertCleanEmail(normalizeAuthEmail(data.email), "signup"),
-    assertCleanKenyanMobile(data.phone, "signup"),
-  ]);
+  const checks: Promise<unknown>[] = [assertCleanEmail(normalizeAuthEmail(data.email), "signup")];
+  if (!opts?.skipPhoneCheck) {
+    checks.push(assertCleanKenyanMobile(data.phone, "signup"));
+  }
+  await Promise.all(checks);
 }
 
 async function signupIpTrustMetadata(): Promise<Record<string, string>> {
@@ -289,6 +322,9 @@ type SignupMetadata = {
   signup_ip_risk?: string;
   preferred_area?: string;
   signup_ip_country_mismatch?: string;
+  phone_verified?: string;
+  phone_verified_via?: string;
+  phone_e164?: string;
 };
 
 async function handleDuplicateSignup(
@@ -318,7 +354,12 @@ async function handleDuplicateSignup(
       organizationName: data.organizationName,
     });
     const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, existing.id, data);
-    return { userId: existing.id, recovered: false as const, linked: true as const, foundingMember };
+    return {
+      userId: existing.id,
+      recovered: false as const,
+      linked: true as const,
+      foundingMember,
+    };
   }
 
   const { normalizeAuthPassword } = await import("@/lib/auth/credentials");
@@ -338,7 +379,10 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
   .inputValidator(signupSchema)
   .handler(async ({ data }) => {
     checkRateLimit(`signup:${data.email.toLowerCase()}`, RATE_LIMITS.signup);
-    await validateSignupTrustSignals(data);
+    const [, ipMeta] = await Promise.all([
+      validateSignupTrustSignals(data),
+      signupIpTrustMetadata(),
+    ]);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { normalizeAuthCredentials } = await import("@/lib/auth/credentials");
@@ -346,7 +390,6 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
       email: data.email,
       password: data.password,
     });
-    const ipMeta = await signupIpTrustMetadata();
     const metadata: SignupMetadata = {
       full_name: data.fullName.trim(),
       phone: data.phone.trim(),
@@ -381,6 +424,180 @@ export const registerAccountSignup = createServerFn({ method: "POST" })
 
     if (error && isDuplicateAuthUserError(error.message)) {
       return handleDuplicateSignup(supabaseAdmin, email, data, metadata);
+    }
+
+    throw new Error(error?.message ?? "Could not create account");
+  });
+
+const phoneSignupRequestSchema = z.object({
+  phone: z.string().trim().min(9).max(30),
+});
+
+const phoneSignupVerifySchema = z.object({
+  phone: z.string().trim().min(9).max(30),
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
+async function assertPhoneAvailableForSignup(phone: string) {
+  const { normalizeKenyanPhoneLocal, toWhatsAppDigits } = await import("@/lib/phone");
+  const local = normalizeKenyanPhoneLocal(phone);
+  const digits254 = toWhatsAppDigits(phone);
+  if (!local || !digits254) {
+    throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
+  }
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const variants = [local, digits254, `+${digits254}`, phone.trim()];
+  const { data } = await supabaseAdmin.from("profiles").select("id").in("phone", variants).limit(1);
+  if (data && data.length > 0) {
+    throw new Error("An account with this phone already exists. Try signing in with email.");
+  }
+}
+
+/** Send Africa’s Talking SMS OTP for phone-first signup. */
+export const requestPhoneSignupOtp = createServerFn({ method: "POST" })
+  .inputValidator(phoneSignupRequestSchema)
+  .handler(async ({ data }) => {
+    const request = getRequest();
+    const ip = rateLimitKeyFromHeaders(request?.headers);
+    checkRateLimit(`phonesignup:ip:${ip}`, RATE_LIMITS.phoneSignupOtp);
+
+    if (!isKenyanPhone(data.phone)) {
+      throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
+    }
+
+    const { assertCleanKenyanMobile } = await import("@/lib/apilayer/verify");
+    await assertCleanKenyanMobile(data.phone, "signup");
+    await assertPhoneAvailableForSignup(data.phone);
+
+    const { generateSixDigitPhoneOtp, storePhoneSignupOtp } =
+      await import("@/lib/auth/phone-signup-otp-store");
+    const { toWhatsAppDigits } = await import("@/lib/phone");
+    const phone254 = toWhatsAppDigits(data.phone)!;
+    checkRateLimit(`phonesignup:phone:${phone254}`, RATE_LIMITS.phoneSignupOtp);
+
+    const code = generateSixDigitPhoneOtp();
+    const stored = await storePhoneSignupOtp({ phone: data.phone, code });
+    if (stored.resentTooSoon) {
+      const secs = Math.ceil((stored.retryAfterMs ?? 45_000) / 1000);
+      throw new Error(`Wait ${secs}s before requesting another code.`);
+    }
+
+    const { phoneSignupOtpMessage, sendSmsViaAfricasTalking } =
+      await import("@/lib/sms/africas-talking");
+    await sendSmsViaAfricasTalking({
+      to: phone254,
+      message: phoneSignupOtpMessage(code),
+    });
+
+    return { ok: true as const, phone: phone254 };
+  });
+
+/** Verify the SMS OTP before continuing phone signup. */
+export const verifyPhoneSignupOtp = createServerFn({ method: "POST" })
+  .inputValidator(phoneSignupVerifySchema)
+  .handler(async ({ data }) => {
+    const {
+      readPhoneSignupOtp,
+      phoneOtpCodesMatch,
+      markPhoneSignupOtpVerified,
+      bumpPhoneSignupOtpAttempt,
+    } = await import("@/lib/auth/phone-signup-otp-store");
+
+    const record = await readPhoneSignupOtp(data.phone);
+    if (!record) {
+      throw new Error("Invalid or expired code. Request a new code.");
+    }
+    if (record.attempts >= 8) {
+      throw new Error("Too many attempts. Request a new code.");
+    }
+    if (!phoneOtpCodesMatch(record.code, data.code)) {
+      await bumpPhoneSignupOtpAttempt(data.phone);
+      throw new Error("Invalid or expired code. Request a new code.");
+    }
+    await markPhoneSignupOtpVerified(data.phone);
+    return { ok: true as const };
+  });
+
+/**
+ * Finish phone-first signup after OTP verification: requires email + password.
+ * Reuses the same createUser / portal application path as email signup.
+ */
+export const registerPhoneAccountSignup = createServerFn({ method: "POST" })
+  .inputValidator(signupSchema)
+  .handler(async ({ data }) => {
+    const { requireVerifiedPhoneSignup, consumePhoneSignupOtp } =
+      await import("@/lib/auth/phone-signup-otp-store");
+    const { normalizeKenyanPhoneLocal } = await import("@/lib/phone");
+
+    const phone254 = await requireVerifiedPhoneSignup(data.phone);
+    const localPhone = normalizeKenyanPhoneLocal(data.phone) ?? data.phone.trim();
+
+    checkRateLimit(`signup:${data.email.toLowerCase()}`, RATE_LIMITS.signup);
+    // Phone already verified via SMS OTP — skip numverify re-check (common false reject).
+    const [, ipMeta] = await Promise.all([
+      validateSignupTrustSignals({ ...data, phone: localPhone }, { skipPhoneCheck: true }),
+      signupIpTrustMetadata(),
+    ]);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { normalizeAuthCredentials } = await import("@/lib/auth/credentials");
+    const { email, password } = normalizeAuthCredentials({
+      email: data.email,
+      password: data.password,
+    });
+
+    const metadata: SignupMetadata = {
+      full_name: data.fullName.trim(),
+      phone: localPhone,
+      role: data.role,
+      organization_name: data.organizationName?.trim() || undefined,
+      terms_policy_version: data.acceptedPolicyVersion,
+      terms_policy_accepted_at: data.acceptedPolicyAt,
+      terms_policy_role: data.role,
+      phone_verified: "1",
+      phone_verified_via: "africas_talking_sms",
+      phone_e164: phone254,
+      ...ipMeta,
+    };
+
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+
+    if (!error && created.user) {
+      await supabaseAdmin.from("profiles").upsert({
+        id: created.user.id,
+        full_name: data.fullName.trim(),
+        phone: localPhone,
+        updated_at: new Date().toISOString(),
+      });
+
+      const foundingMember = await claimFoundingMemberIfEligible(supabaseAdmin, created.user.id, {
+        ...data,
+        phone: localPhone,
+      });
+
+      if (data.referralCode) {
+        void trackReferralSignup(supabaseAdmin, created.user.id, data.role, data.referralCode);
+      }
+
+      await consumePhoneSignupOtp(data.phone);
+      return { userId: created.user.id, recovered: false as const, foundingMember };
+    }
+
+    if (error && isDuplicateAuthUserError(error.message)) {
+      const result = await handleDuplicateSignup(
+        supabaseAdmin,
+        email,
+        { ...data, phone: localPhone },
+        metadata,
+      );
+      await consumePhoneSignupOtp(data.phone);
+      return result;
     }
 
     throw new Error(error?.message ?? "Could not create account");
@@ -426,7 +643,7 @@ async function trackReferralSignup(
   referralCode: string,
 ): Promise<void> {
   try {
-    const db = supabaseAdmin as any;
+    const db = asLooseDb(supabaseAdmin);
     const { data: referrer } = await db
       .from("profiles")
       .select("id, referral_code")
@@ -461,10 +678,7 @@ async function trackReferralSignup(
       status: "pending",
     });
 
-    await db
-      .from("profiles")
-      .update({ referred_by_user_id: referrer.id })
-      .eq("id", newUserId);
+    await db.from("profiles").update({ referred_by_user_id: referrer.id }).eq("id", newUserId);
   } catch (err) {
     console.warn("[referral] track signup failed:", err);
   }

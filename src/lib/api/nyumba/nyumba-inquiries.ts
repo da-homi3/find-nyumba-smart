@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/api/_authz";
 import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import {
+  adminClient,
   assertInquiryParticipant,
   authContext,
   createInquirySchema,
@@ -238,7 +239,10 @@ export const getInquiryThread = createServerFn({ method: "POST" })
 
     let phone = counterparty?.phone?.trim() ?? null;
     if (!phone && inquiry.property_id) {
-      const { data: property } = await supabase
+      // contact_phone is not readable by the `authenticated` role; the participant check
+      // in `assertInquiryParticipant` above is what authorizes this read.
+      const admin = await adminClient();
+      const { data: property } = await admin
         .from("properties")
         .select("contact_phone")
         .eq("id", inquiry.property_id)

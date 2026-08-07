@@ -533,8 +533,9 @@ async function handleUnlockMpesaStep(
     await sendText(waPhone, "M-Pesa unavailable. Use nyumbasearch.com", admin);
     return;
   }
-  await sendText(waPhone, `Payment: M-Pesa prompt sent to ${mpesaPhone}. Pay KES ${fee}.`, admin);
   try {
+    const { assertStkPromptRateLimit } = await import("@/lib/payments/rate-limit");
+    await assertStkPromptRateLimit({ userId, phone254: mpesaPhone });
     const stk = await initiateStkPush({
       phone254: mpesaPhone,
       amountKes: fee,
@@ -555,6 +556,7 @@ async function handleUnlockMpesaStep(
       idempotency_key: crypto.randomUUID(),
       metadata: { source: "whatsapp", wa_phone: waPhone },
     });
+    await sendText(waPhone, `Payment: M-Pesa prompt sent to ${mpesaPhone}. Pay KES ${fee}.`, admin);
     runInBackground(pollUnlockPayment(admin, waPhone, paymentId, listingId));
   } catch {
     await sendButtons(

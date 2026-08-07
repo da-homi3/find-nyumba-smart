@@ -1,10 +1,6 @@
 import type { PmDb } from "@/lib/pm/access";
 
-export type PayoutDestinationType =
-  | "mpesa_paybill"
-  | "mpesa_till"
-  | "mpesa_phone"
-  | "bank_account";
+export type PayoutDestinationType = "mpesa_paybill" | "mpesa_till" | "mpesa_phone" | "bank_account";
 
 export type PayoutDestinationRow = {
   id: string;

@@ -25,9 +25,9 @@ function AboutPage() {
       <main className="mx-auto max-w-3xl px-5 py-16">
         <h1 className="font-display text-4xl font-semibold">About NyumbaSearch</h1>
         <p className="mt-6 text-muted-foreground leading-relaxed">
-          NyumbaSearch helps Nairobi renters find vacant homes from verified property owners — no scams.
-          We layer property intelligence — water reliability, security, internet, commute — on every
-          listing so you can decide before you visit.
+          NyumbaSearch helps Nairobi renters find vacant homes from verified property owners — no
+          scams. We layer property intelligence — water reliability, security, internet, commute —
+          on every listing so you can decide before you visit.
         </p>
         <p className="mt-4 text-muted-foreground leading-relaxed">
           We started NyumbaSearch after seeing too many young professionals lose deposits to fake

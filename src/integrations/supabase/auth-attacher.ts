@@ -24,13 +24,10 @@ export const attachSupabaseAuth = createMiddleware({ type: "function" }).client(
   async ({ next }) => {
     let token = cachedAccessToken;
     if (!token) {
-      const { data } = await withTimeout(
-        supabase.auth.getSession(),
-        2500,
-        { data: { session: null }, error: null } as Awaited<
-          ReturnType<typeof supabase.auth.getSession>
-        >,
-      );
+      const { data } = await withTimeout(supabase.auth.getSession(), 2500, {
+        data: { session: null },
+        error: null,
+      } as Awaited<ReturnType<typeof supabase.auth.getSession>>);
       token = data.session?.access_token ?? null;
       cachedAccessToken = token;
     }

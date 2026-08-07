@@ -8,12 +8,7 @@ import { asPmDb } from "@/lib/pm/access";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { formatKes } from "@/lib/properties";
 
-const claimMethodSchema = z.enum([
-  "cash",
-  "bank_transfer",
-  "mpesa_direct_to_landlord",
-  "other",
-]);
+const claimMethodSchema = z.enum(["cash", "bank_transfer", "mpesa_direct_to_landlord", "other"]);
 
 export const submitPmPaymentClaim = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { asLooseDb } from "@/lib/db/loose-client";
 
 type Admin = SupabaseClient<Database>;
 
@@ -33,7 +34,7 @@ export async function checkReferralConversion(
   event: string,
 ): Promise<void> {
   try {
-    const { data: referral } = await (admin as SupabaseClient<any>)
+    const { data: referral } = await asLooseDb(admin)
       .from("referrals")
       .select("*")
       .eq("referred_user_id", userId)
@@ -42,7 +43,7 @@ export async function checkReferralConversion(
 
     if (!referral?.rule_id) return;
 
-    const { data: rule } = await (admin as SupabaseClient<any>)
+    const { data: rule } = await asLooseDb(admin)
       .from("referral_reward_rules")
       .select("*")
       .eq("id", referral.rule_id)
@@ -61,7 +62,7 @@ export async function checkReferralConversion(
 
     await grantReferralRewards(admin, referral as ReferralRow, rule as RuleRow);
 
-    await (admin as SupabaseClient<any>)
+    await asLooseDb(admin)
       .from("referrals")
       .update({ status: "converted", converted_at: new Date().toISOString() })
       .eq("id", referral.id);
@@ -115,7 +116,7 @@ async function creditReward(
   rewardType: string,
   value: number,
 ): Promise<void> {
-  const db = admin as SupabaseClient<any>;
+  const db = asLooseDb(admin);
 
   await db.from("referral_reward_ledger").insert({
     referral_id: referralId,
@@ -128,15 +129,15 @@ async function creditReward(
     case "unlock_credit":
     case "cash_credit_kes": {
       const credit = rewardType === "unlock_credit" ? value * 50 : value;
-      const { data: profile } = await admin
+      const { data: profile } = await db
         .from("profiles")
         .select("referral_credit_kes")
         .eq("id", userId)
         .maybeSingle();
-      const current = (profile as any)?.referral_credit_kes ?? 0;
-      await admin
+      const current = profile?.referral_credit_kes ?? 0;
+      await db
         .from("profiles")
-        .update({ referral_credit_kes: current + credit } as any)
+        .update({ referral_credit_kes: current + credit })
         .eq("id", userId);
       break;
     }
@@ -162,10 +163,7 @@ async function creditReward(
         .maybeSingle();
       const base = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : new Date();
       base.setDate(base.getDate() + value);
-      await admin
-        .from("profiles")
-        .update({ trial_ends_at: base.toISOString() } as any)
-        .eq("id", userId);
+      await db.from("profiles").update({ trial_ends_at: base.toISOString() }).eq("id", userId);
       break;
     }
     case "free_month_extension": {
@@ -189,10 +187,9 @@ async function creditReward(
       break;
     }
     case "subscription_discount_percent": {
-      await db.from("pending_renewal_discounts").upsert(
-        { user_id: userId, discount_percent: value },
-        { onConflict: "user_id" },
-      );
+      await db
+        .from("pending_renewal_discounts")
+        .upsert({ user_id: userId, discount_percent: value }, { onConflict: "user_id" });
       break;
     }
   }

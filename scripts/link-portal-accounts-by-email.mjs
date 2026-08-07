@@ -25,10 +25,7 @@ function loadEnv() {
     const eq = t.indexOf("=");
     if (eq === -1) continue;
     let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
     env[t.slice(0, eq).trim()] = val;
@@ -121,7 +118,10 @@ async function mergeUserRecords(admin, fromUserId, toUserId) {
     if (error) continue;
     if (!data?.length) continue;
 
-    const { error: updateErr } = await admin.from(table).update({ user_id: toUserId }).eq("user_id", fromUserId);
+    const { error: updateErr } = await admin
+      .from(table)
+      .update({ user_id: toUserId })
+      .eq("user_id", fromUserId);
     if (!updateErr) moved.push(table);
   }
   return moved;
@@ -174,7 +174,8 @@ async function startTrialIfNeeded(admin, userId, role) {
     .eq("user_id", userId)
     .limit(1)
     .maybeSingle();
-  if (existing) return { started: false, subscriptionId: existing.id, trialEnd: existing.trial_end };
+  if (existing)
+    return { started: false, subscriptionId: existing.id, trialEnd: existing.trial_end };
 
   const trialEnd = addDaysFromNow(30);
   const { data: sub, error } = await admin
@@ -207,7 +208,10 @@ async function grantPortalAccess(admin, { userId, role, organizationName, phone,
     .upsert({ user_id: userId, role }, { onConflict: "user_id,role", ignoreDuplicates: false });
   await admin
     .from("user_roles")
-    .upsert({ user_id: userId, role: "tenant" }, { onConflict: "user_id,role", ignoreDuplicates: true });
+    .upsert(
+      { user_id: userId, role: "tenant" },
+      { onConflict: "user_id,role", ignoreDuplicates: true },
+    );
 
   let organizationId = null;
   if (role === "manager") {
@@ -273,7 +277,7 @@ try {
 
   if (!email) {
     console.error(
-      "Usage: node scripts/link-portal-accounts-by-email.mjs --email <email> --role manager --name \"Full Name\" --phone 07XXXXXXXX [--org \"Org\"]",
+      'Usage: node scripts/link-portal-accounts-by-email.mjs --email <email> --role manager --name "Full Name" --phone 07XXXXXXXX [--org "Org"]',
     );
     process.exit(1);
   }
@@ -311,7 +315,7 @@ try {
 
   const meta = canonical.user_metadata ?? {};
   const resolvedName = fullName ?? meta.full_name ?? canonical.email?.split("@")[0] ?? "User";
-  const resolvedPhone = phone ? formatPhone254(phone) : meta.phone ?? null;
+  const resolvedPhone = phone ? formatPhone254(phone) : (meta.phone ?? null);
   const resolvedOrg =
     org ??
     meta.organization_name ??

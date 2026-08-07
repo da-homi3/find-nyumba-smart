@@ -27,10 +27,7 @@ import {
   updateNotificationPreferences,
 } from "@/lib/api/notifications.functions";
 import { submitPortalApplication } from "@/lib/api/portal.functions";
-import {
-  organizationFieldLabel,
-  organizationFieldPlaceholder,
-} from "@/lib/account-roles";
+import { organizationFieldLabel, organizationFieldPlaceholder } from "@/lib/account-roles";
 import {
   readNotificationPrefs,
   writeNotificationPrefs,
@@ -179,10 +176,7 @@ function SettingsPage() {
     () => pendingApplications.filter((a) => a.status === "rejected"),
     [pendingApplications],
   );
-  const pendingRoleSet = useMemo(
-    () => new Set(pending.map((a) => a.requested_role)),
-    [pending],
-  );
+  const pendingRoleSet = useMemo(() => new Set(pending.map((a) => a.requested_role)), [pending]);
 
   const { data: profile } = useQuery({
     queryKey: ["settings-profile", user?.id],
@@ -758,7 +752,9 @@ function SettingsPortalsTab({
   pending: Array<{ id: string; requested_role: string }>;
   rejected: Array<{ id: string; requested_role: string; rejection_reason: string | null }>;
   pendingRoleSet: Set<string>;
-  hasApprovedRole: (role: "landlord" | "manager" | "agency" | "admin" | "tenant" | "caretaker") => boolean;
+  hasApprovedRole: (
+    role: "landlord" | "manager" | "agency" | "admin" | "tenant" | "caretaker",
+  ) => boolean;
   onSelectApplyRole: (role: ListerApplyRole) => void;
   onClearApplyRole: () => void;
   onApplyOrgNameChange: (value: string) => void;

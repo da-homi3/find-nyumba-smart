@@ -69,10 +69,7 @@ export function TenantProfileForm({
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = `${user.id}/${propertyId}/tenant-${randomUuid()}.${ext}`;
-      await uploadStorageBatchWithProgress(
-        [{ bucket: "property-media", path, file }],
-        () => {},
-      );
+      await uploadStorageBatchWithProgress([{ bucket: "property-media", path, file }], () => {});
       const signed = await createSignedMediaUrls({ data: { paths: [path] } });
       if (signed[0]?.signedUrl) setPhotoUrl(signed[0].signedUrl);
     } catch {
@@ -158,52 +155,102 @@ export function TenantProfileForm({
           <label htmlFor="tp-name" className="mb-1 block text-[13px] font-medium text-white">
             Full name <span className="text-red-400">*</span>
           </label>
-          <input id="tp-name" className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jane Wanjiku" />
+          <input
+            id="tp-name"
+            className={inputCls}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Jane Wanjiku"
+          />
         </div>
         <div>
           <label htmlFor="tp-phone" className="mb-1 block text-[13px] font-medium text-white">
             Phone <span className="text-red-400">*</span>
           </label>
-          <input id="tp-phone" className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0712 345 678" />
+          <input
+            id="tp-phone"
+            className={inputCls}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="0712 345 678"
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="tp-email" className="mb-1 block text-[13px] font-medium text-white">Email</label>
-          <input id="tp-email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
+          <label htmlFor="tp-email" className="mb-1 block text-[13px] font-medium text-white">
+            Email
+          </label>
+          <input
+            id="tp-email"
+            className={inputCls}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="jane@example.com"
+          />
         </div>
         <div>
-          <label htmlFor="tp-nid" className="mb-1 block text-[13px] font-medium text-white">National ID</label>
-          <input id="tp-nid" className={inputCls} value={nationalId} onChange={(e) => setNationalId(e.target.value)} placeholder="12345678" />
+          <label htmlFor="tp-nid" className="mb-1 block text-[13px] font-medium text-white">
+            National ID
+          </label>
+          <input
+            id="tp-nid"
+            className={inputCls}
+            value={nationalId}
+            onChange={(e) => setNationalId(e.target.value)}
+            placeholder="12345678"
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="tp-ecname" className="mb-1 block text-[13px] font-medium text-white">Emergency contact name</label>
-          <input id="tp-ecname" className={inputCls} value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)} />
+          <label htmlFor="tp-ecname" className="mb-1 block text-[13px] font-medium text-white">
+            Emergency contact name
+          </label>
+          <input
+            id="tp-ecname"
+            className={inputCls}
+            value={emergencyName}
+            onChange={(e) => setEmergencyName(e.target.value)}
+          />
         </div>
         <div>
-          <label htmlFor="tp-ecphone" className="mb-1 block text-[13px] font-medium text-white">Emergency contact phone</label>
-          <input id="tp-ecphone" className={inputCls} value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} />
+          <label htmlFor="tp-ecphone" className="mb-1 block text-[13px] font-medium text-white">
+            Emergency contact phone
+          </label>
+          <input
+            id="tp-ecphone"
+            className={inputCls}
+            value={emergencyPhone}
+            onChange={(e) => setEmergencyPhone(e.target.value)}
+          />
         </div>
       </div>
 
       <div>
-        <label htmlFor="tp-occ" className="mb-1 block text-[13px] font-medium text-white">Occupation</label>
-        <input id="tp-occ" className={inputCls} value={occupation} onChange={(e) => setOccupation(e.target.value)} />
+        <label htmlFor="tp-occ" className="mb-1 block text-[13px] font-medium text-white">
+          Occupation
+        </label>
+        <input
+          id="tp-occ"
+          className={inputCls}
+          value={occupation}
+          onChange={(e) => setOccupation(e.target.value)}
+        />
       </div>
 
       {/* Custom fields */}
       <div>
         <span className="text-[13.5px] font-semibold text-white">Custom details</span>
         <p className="mb-2.5 mt-0.5 text-[12px] text-white/40">
-          Add anything specific to this tenant — vehicle plate, pet details, guarantor, whatever's useful to you.
+          Add anything specific to this tenant — vehicle plate, pet details, guarantor, whatever's
+          useful to you.
         </p>
         <p className="mb-3 text-[11px] text-white/35">
-          Avoid recording health information, immigration status, or other sensitive personal details in custom
-          fields unless legally required for your tenancy agreement.
+          Avoid recording health information, immigration status, or other sensitive personal
+          details in custom fields unless legally required for your tenancy agreement.
         </p>
         {customFields.map((field, i) => (
           <div key={`cf-${field.label}-${i}`} className="mb-2 flex gap-2">
@@ -239,8 +286,16 @@ export function TenantProfileForm({
 
       {/* Notes */}
       <div>
-        <label htmlFor="tp-notes" className="mb-1 block text-[13px] font-medium text-white">Notes</label>
-        <textarea id="tp-notes" className={inputCls} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <label htmlFor="tp-notes" className="mb-1 block text-[13px] font-medium text-white">
+          Notes
+        </label>
+        <textarea
+          id="tp-notes"
+          className={inputCls}
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
       </div>
 
       {/* Save */}

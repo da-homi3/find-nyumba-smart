@@ -85,37 +85,22 @@ async function managePathForOwner(
     .eq("id", ownerUserId)
     .maybeSingle();
   const portal = profile?.active_portal;
-  const base =
-    portal === "agency" ? "agency" : portal === "manager" ? "manager" : "landlord";
+  let base = "landlord";
+  if (portal === "agency") base = "agency";
+  else if (portal === "manager") base = "manager";
   return `/${base}/manage/${propertyId}/maintenance`;
 }
 
 export async function notifyOwnerNewMaintenance(admin: PmDb, requestId: string): Promise<void> {
   const details = await loadMaintenanceNotifyContext(admin, requestId);
-  if (!details) return;
-  const email = await profileEmail(admin, details.owner_user_id);
-  if (!email) return;
+  if (!details) {
+    console.warn("[maintenance] notify skipped — request context missing", requestId);
+    return;
+  }
 
   const urgent = details.priority === "urgent";
-  const subject = urgent
-    ? `Urgent maintenance — ${details.property_name}, Unit ${details.unit_label}`
-    : `New ${details.category} issue — ${details.property_name}`;
   const path = await managePathForOwner(admin, details.owner_user_id, details.property_id);
-  const link = `${getSiteUrl()}${path}`;
   const excerpt = details.description.slice(0, 160);
-
-  await sendEmail({
-    to: email,
-    subject,
-    templateId: urgent ? "maintenance_urgent" : "maintenance_new",
-    text: `${details.tenant_name} reported a ${details.category} issue (${details.priority}): ${excerpt}\n\nOpen: ${link}`,
-    html: `<p><strong>${details.tenant_name}</strong> reported a <strong>${details.category}</strong> issue (${details.priority}) for unit <strong>${details.unit_label}</strong>.</p><p>"${excerpt}"</p><p><a href="${link}">Open maintenance queue</a></p>${
-      urgent
-        ? `<p style="color:#dc2626">Urgent — also call your caretaker if this is a safety emergency.</p>`
-        : ""
-    }`,
-    metadata: { requestId, propertyId: details.property_id },
-  });
 
   const { notifyUser } = await import("@/lib/notifications/notify-user");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -129,6 +114,33 @@ export async function notifyOwnerNewMaintenance(admin: PmDb, requestId: string):
     href: path,
     entityType: "maintenance_request",
     entityId: requestId,
+  });
+
+  const email = await profileEmail(admin, details.owner_user_id);
+  if (!email) {
+    console.warn(
+      "[maintenance] owner email missing — in-app notification sent only",
+      details.owner_user_id,
+    );
+    return;
+  }
+
+  const subject = urgent
+    ? `Urgent maintenance — ${details.property_name}, Unit ${details.unit_label}`
+    : `New ${details.category} issue — ${details.property_name}`;
+  const link = `${getSiteUrl()}${path}`;
+
+  await sendEmail({
+    to: email,
+    subject,
+    templateId: urgent ? "maintenance_urgent" : "maintenance_new",
+    text: `${details.tenant_name} reported a ${details.category} issue (${details.priority}): ${excerpt}\n\nOpen: ${link}`,
+    html: `<p><strong>${details.tenant_name}</strong> reported a <strong>${details.category}</strong> issue (${details.priority}) for unit <strong>${details.unit_label}</strong>.</p><p>"${excerpt}"</p><p><a href="${link}">Open maintenance queue</a></p>${
+      urgent
+        ? `<p style="color:#dc2626">Urgent — also call your caretaker if this is a safety emergency.</p>`
+        : ""
+    }`,
+    metadata: { requestId, propertyId: details.property_id },
   });
 }
 

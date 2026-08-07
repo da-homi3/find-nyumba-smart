@@ -104,7 +104,7 @@ export const createTenantMaintenanceRequest = createServerFn({ method: "POST" })
     z.object({
       category: categorySchema,
       priority: prioritySchema.default("normal"),
-      description: z.string().trim().min(8).max(2000),
+      description: z.string().trim().min(5).max(2000),
       photos: z.array(z.string().url()).max(5).optional(),
     }),
   )
@@ -132,9 +132,11 @@ export const createTenantMaintenanceRequest = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
-    notifyOwnerNewMaintenance(admin, inserted.id).catch((err) => {
+    try {
+      await notifyOwnerNewMaintenance(admin, inserted.id);
+    } catch (err) {
       console.warn("[maintenance] owner notify failed", err);
-    });
+    }
     return { requestId: inserted.id as string };
   });
 

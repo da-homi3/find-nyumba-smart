@@ -103,9 +103,7 @@ export function browseOriginFromNeighborhood(neighborhood: string): BrowseOrigin
 
 /** Resolve browse origin without waiting on geolocation. */
 export function resolveBrowseOriginFallback(neighborhoodFilter?: string): BrowseOrigin {
-  const fromFilter = neighborhoodFilter
-    ? browseOriginFromNeighborhood(neighborhoodFilter)
-    : null;
+  const fromFilter = neighborhoodFilter ? browseOriginFromNeighborhood(neighborhoodFilter) : null;
   if (fromFilter) return fromFilter;
 
   const storedGeo = readStoredBrowseOrigin();

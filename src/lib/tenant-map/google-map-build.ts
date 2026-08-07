@@ -1,10 +1,7 @@
 /// <reference types="google.maps" />
 import type { Property } from "@/lib/properties";
 import { resolvePropertyMapCoords } from "@/lib/geo/property-map-coords";
-import {
-  compactKes,
-  priceTagSvg,
-} from "@/components/tenant-map/map-constants";
+import { compactKes, priceTagSvg } from "@/components/tenant-map/map-constants";
 
 type MapsLibrary = typeof google.maps;
 
@@ -130,10 +127,7 @@ function addHeatCellCircles(
   }
 }
 
-export function buildRentHeatCircles(
-  g: MapsLibrary,
-  properties: Property[],
-): google.maps.Circle[] {
+export function buildRentHeatCircles(g: MapsLibrary, properties: Property[]): google.maps.Circle[] {
   if (properties.length === 0) return [];
 
   const maxRent = Math.max(...properties.map((p) => p.rent_kes));

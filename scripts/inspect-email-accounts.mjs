@@ -21,10 +21,7 @@ function loadEnv() {
     const eq = t.indexOf("=");
     if (eq === -1) continue;
     let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
     env[t.slice(0, eq).trim()] = val;

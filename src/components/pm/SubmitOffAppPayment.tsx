@@ -63,8 +63,8 @@ export function SubmitOffAppPayment({
     <div className={cn("mt-4 space-y-3 rounded-xl border border-border bg-muted/30 p-4")}>
       <h3 className={cn("text-sm font-semibold")}>Record a payment made outside the app</h3>
       <p className={cn("text-xs text-muted-foreground")}>
-        Paid by cash, bank transfer, or M-Pesa sent directly to your landlord? Add proof so there
-        is a clear record on both sides.
+        Paid by cash, bank transfer, or M-Pesa sent directly to your landlord? Add proof so there is
+        a clear record on both sides.
       </p>
       <label className={cn("block text-xs")}>
         <span className={cn("font-medium")}>Amount paid (KES)</span>

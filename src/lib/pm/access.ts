@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { asLooseDb, type LooseDb } from "@/lib/db/loose-client";
 import { ForbiddenError } from "@/lib/api/_authz";
 import { getUserOrganizationId } from "@/lib/api/nyumba/nyumba-shared";
 import { staffCan, type PmStaffRole } from "@/lib/pm/permissions";
@@ -27,10 +28,10 @@ export type PmPropertyRow = {
 };
 
 /** Loose client — pm_* tables are not yet in generated Database types. */
-export type PmDb = SupabaseClient<any>;
+export type PmDb = LooseDb;
 
-export function asPmDb(client: SupabaseClient<Database> | SupabaseClient<any>): PmDb {
-  return client as PmDb;
+export function asPmDb(client: SupabaseClient<Database> | LooseDb): PmDb {
+  return asLooseDb(client);
 }
 
 export function assertStaffCan(staffRole: string, permission: string): void {

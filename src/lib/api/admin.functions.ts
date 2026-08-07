@@ -64,7 +64,11 @@ async function loadProfilesByIds(userIds: string[]) {
   return new Map((data ?? []).map((p) => [p.id, p]));
 }
 
-function bumpLatest(map: Map<string, string>, id: string | null | undefined, at: string | null | undefined) {
+function bumpLatest(
+  map: Map<string, string>,
+  id: string | null | undefined,
+  at: string | null | undefined,
+) {
   if (!id || !at) return;
   const current = map.get(id);
   if (!current || new Date(at).getTime() > new Date(current).getTime()) {
@@ -127,16 +131,15 @@ function collectLinkedMediaItems(
     if (!url) continue;
     const path = helpers.propertyMediaPathFromUrl(url);
     const fallbackFilename = kind === "video" ? "video.mp4" : "tour.jpg";
-    const filename = path ? helpers.filenameFromMediaPath(path, fallbackFilename) : fallbackFilename;
+    const filename = path
+      ? helpers.filenameFromMediaPath(path, fallbackFilename)
+      : fallbackFilename;
     items.push({ kind, url, filename, path });
     if (path) pathsToSign.push(path);
   }
 }
 
-async function signPropertyMediaPaths(
-  supabaseAdmin: SupabaseClient,
-  pathsToSign: string[],
-) {
+async function signPropertyMediaPaths(supabaseAdmin: SupabaseClient, pathsToSign: string[]) {
   const uniquePaths = [...new Set(pathsToSign)];
   const signedByPath = new Map<string, string>();
   if (uniquePaths.length === 0) return signedByPath;
@@ -474,8 +477,10 @@ function buildPropertyTrafficRows(args: {
       };
     })
     .sort((a, b) => {
-      const scoreA = a.recentViews30d * 4 + a.leads30d * 8 + a.inquiries30d * 10 + a.viewings30d * 12;
-      const scoreB = b.recentViews30d * 4 + b.leads30d * 8 + b.inquiries30d * 10 + b.viewings30d * 12;
+      const scoreA =
+        a.recentViews30d * 4 + a.leads30d * 8 + a.inquiries30d * 10 + a.viewings30d * 12;
+      const scoreB =
+        b.recentViews30d * 4 + b.leads30d * 8 + b.inquiries30d * 10 + b.viewings30d * 12;
       return scoreB - scoreA || b.lifetimeViews - a.lifetimeViews;
     });
 }
@@ -1284,13 +1289,19 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
     ] = await Promise.all([
       supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("properties").select("id", { count: "exact", head: true }),
-      supabaseAdmin.from("properties").select("id", { count: "exact", head: true }).eq("is_active", true),
+      supabaseAdmin
+        .from("properties")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true),
       supabaseAdmin.from("leads").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("inquiries").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("viewings").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("contact_unlocks").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "tenant"),
-      supabaseAdmin.from("user_roles").select("user_id, role").in("role", ["landlord", "agency", "manager"]),
+      supabaseAdmin
+        .from("user_roles")
+        .select("user_id, role")
+        .in("role", ["landlord", "agency", "manager"]),
       supabaseAdmin
         .from("profiles")
         .select(
@@ -1357,7 +1368,9 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
     ]);
 
     const tenantIds = [...new Set((tenantRoleRowsRes.data ?? []).map((row) => row.user_id))];
-    const listingAccountIds = [...new Set((listingRoleRowsRes.data ?? []).map((row) => row.user_id))];
+    const listingAccountIds = [
+      ...new Set((listingRoleRowsRes.data ?? []).map((row) => row.user_id)),
+    ];
     const tenantIdSet = new Set(tenantIds);
     const listingAccountIdSet = new Set(listingAccountIds);
 
@@ -1462,7 +1475,9 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
     );
     const mediaReadyListings = (propertyRowsRes.data ?? []).filter(
       (property) =>
-        (property.images?.length ?? 0) > 0 || Boolean(property.video_url) || Boolean(property.tour_url),
+        (property.images?.length ?? 0) > 0 ||
+        Boolean(property.video_url) ||
+        Boolean(property.tour_url),
     ).length;
 
     const presence = await fetchPresenceSnapshot();
@@ -1489,8 +1504,10 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
         activeUsersNow: presence?.uniqueUsers ?? activeUserIds.size,
         activeTenantsNow: presence?.uniqueTenants ?? activeTenantIds.size,
         activeSessionsNow: presence?.totalConnections ?? activeSessionIds.size,
-        activePortalAccounts: listingProfileRows.filter((profile) => profile.is_portal_active).length,
-        inactivePortalAccounts: listingProfileRows.filter((profile) => !profile.is_portal_active).length,
+        activePortalAccounts: listingProfileRows.filter((profile) => profile.is_portal_active)
+          .length,
+        inactivePortalAccounts: listingProfileRows.filter((profile) => !profile.is_portal_active)
+          .length,
         totalListings: propertiesCountRes.count ?? 0,
         activeListings: activePropertiesCountRes.count ?? 0,
         inactiveListings: Math.max(

@@ -46,7 +46,9 @@ function TenantStatusBadge({ status }: Readonly<{ status: string }>) {
     tone = "bg-amber-500/10 text-amber-600";
     label = "Active 30d";
   }
-  return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{label}</span>;
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{label}</span>
+  );
 }
 
 function formatLastActivity(value: string | null) {
@@ -134,7 +136,12 @@ export function AdminAnalyticsTab({
                 <XAxis dataKey="label" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Line type="monotone" dataKey="propertyViews" stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="propertyViews"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                />
                 <Line type="monotone" dataKey="leads" stroke="#16a34a" strokeWidth={2} />
                 <Line type="monotone" dataKey="inquiries" stroke="#f59e0b" strokeWidth={2} />
                 <Line type="monotone" dataKey="viewings" stroke="#64748b" strokeWidth={2} />
@@ -171,7 +178,11 @@ export function AdminAnalyticsTab({
                 Shows the listings getting the most attention and lead activity.
               </p>
             </div>
-            <Link to="/admin" search={{ tab: "properties" }} className="text-xs font-semibold text-primary">
+            <Link
+              to="/admin"
+              search={{ tab: "properties" }}
+              className="text-xs font-semibold text-primary"
+            >
               Go to listings
             </Link>
           </div>
@@ -217,7 +228,9 @@ export function AdminAnalyticsTab({
                     <td className="py-3 align-top">
                       <div>{property.mediaCount} file(s)</div>
                       <div className="text-xs text-muted-foreground">
-                        {property.hasDownloadableMedia ? "Downloadable from Moderate listings" : "No uploads"}
+                        {property.hasDownloadableMedia
+                          ? "Downloadable from Moderate listings"
+                          : "No uploads"}
                       </div>
                     </td>
                   </tr>
@@ -229,7 +242,9 @@ export function AdminAnalyticsTab({
 
         <div className="rounded-2xl border bg-card p-4">
           <h3 className="text-sm font-semibold">Lead source mix</h3>
-          <p className="mt-1 text-xs text-muted-foreground">How tenants are entering the funnel in the last 30 days.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            How tenants are entering the funnel in the last 30 days.
+          </p>
           <div className="mt-4 space-y-3">
             {analytics.leadSources30d.length === 0 ? (
               <p className="text-sm text-muted-foreground">No lead activity yet.</p>
@@ -244,7 +259,8 @@ export function AdminAnalyticsTab({
               ))
             )}
             <div className="rounded-xl border border-dashed px-4 py-3 text-xs text-muted-foreground">
-              Media download is already enabled from the `Moderate listings` tab for listings with uploaded photos or videos.
+              Media download is already enabled from the `Moderate listings` tab for listings with
+              uploaded photos or videos.
             </div>
           </div>
         </div>
@@ -260,7 +276,8 @@ export function AdminAnalyticsTab({
               </p>
             </div>
             <div className="text-xs text-muted-foreground">
-              {analytics.presenceRealtime.totalConnections} connected · {analytics.presenceRealtime.uniqueUsers} signed-in
+              {analytics.presenceRealtime.totalConnections} connected ·{" "}
+              {analytics.presenceRealtime.uniqueUsers} signed-in
             </div>
           </div>
           <div className="mt-4 overflow-x-auto">
@@ -278,9 +295,13 @@ export function AdminAnalyticsTab({
                   <tr key={session.sessionId}>
                     <td className="py-3 pr-4 align-top">
                       <div className="font-medium">{session.userId ?? "Anonymous"}</div>
-                      <div className="text-xs text-muted-foreground">{session.sessionId.slice(0, 8)}…</div>
+                      <div className="text-xs text-muted-foreground">
+                        {session.sessionId.slice(0, 8)}…
+                      </div>
                     </td>
-                    <td className="py-3 pr-4 align-top text-muted-foreground">{session.path || "/"}</td>
+                    <td className="py-3 pr-4 align-top text-muted-foreground">
+                      {session.path || "/"}
+                    </td>
                     <td className="py-3 pr-4 align-top">
                       {session.roles.length > 0 ? session.roles.join(", ") : "—"}
                     </td>
@@ -306,7 +327,8 @@ export function AdminAnalyticsTab({
             </p>
           </div>
           <div className="text-xs text-muted-foreground">
-            Listings with media: {analytics.totals.mediaReadyListings} · Active listings: {analytics.totals.activeListings}
+            Listings with media: {analytics.totals.mediaReadyListings} · Active listings:{" "}
+            {analytics.totals.activeListings}
           </div>
         </div>
         <div className="mt-4 overflow-x-auto">
@@ -326,7 +348,9 @@ export function AdminAnalyticsTab({
                     <div className="font-medium">{tenant.fullName || "Unnamed tenant"}</div>
                     <div className="text-xs text-muted-foreground">
                       {tenant.phone || "No phone"} · {tenant.tenantPlan}
-                      {tenant.plusExpiresAt ? ` · Plus until ${new Date(tenant.plusExpiresAt).toLocaleDateString()}` : ""}
+                      {tenant.plusExpiresAt
+                        ? ` · Plus until ${new Date(tenant.plusExpiresAt).toLocaleDateString()}`
+                        : ""}
                     </div>
                   </td>
                   <td className="py-3 pr-4 align-top">
@@ -340,8 +364,8 @@ export function AdminAnalyticsTab({
                       {tenant.metrics.propertyViews30d} views · {tenant.metrics.saves30d} saves
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {tenant.metrics.contactUnlocks30d} unlocks · {tenant.metrics.inquiries30d} inquiries ·{" "}
-                      {tenant.metrics.viewings30d} bookings
+                      {tenant.metrics.contactUnlocks30d} unlocks · {tenant.metrics.inquiries30d}{" "}
+                      inquiries · {tenant.metrics.viewings30d} bookings
                     </div>
                   </td>
                 </tr>

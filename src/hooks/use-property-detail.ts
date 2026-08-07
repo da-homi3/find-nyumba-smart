@@ -189,9 +189,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
       }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
 
-      const preferWhatsApp = Boolean(
-        landlordContact?.preferWhatsApp || p.whatsapp_inquiries,
-      );
+      const preferWhatsApp = Boolean(landlordContact?.preferWhatsApp || p.whatsapp_inquiries);
       if (preferWhatsApp) {
         const phone = unlockedPhone?.trim() || landlordContact?.phone?.trim() || null;
         if (!phone) {
@@ -271,14 +269,21 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ message: userMsg, propertyId: id }),
       });
-      const payload = (await res.json().catch(() => null)) as
-        | { reply?: string; error?: string }
-        | null;
+      const payload = (await res.json().catch(() => null)) as {
+        reply?: string;
+        error?: string;
+      } | null;
       const response =
         payload?.reply?.trim() ||
         (res.ok ? null : payload?.error) ||
         "Please try that question once more.";
-      return { ok: res.ok, response, softFail: /try (your question |that question )?once more|Ask again for a fuller/i.test(response) };
+      return {
+        ok: res.ok,
+        response,
+        softFail: /try (your question |that question )?once more|Ask again for a fuller/i.test(
+          response,
+        ),
+      };
     };
 
     try {

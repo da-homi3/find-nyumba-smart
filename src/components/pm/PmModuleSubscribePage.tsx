@@ -78,9 +78,7 @@ export function PmModuleSubscribePage({ portal }: Readonly<{ portal: PmPortal }>
   }
 
   if (checkout) {
-    const tierLabel = checkout.tier
-      .replace("pm-", "")
-      .replace(/^\w/, (c) => c.toUpperCase());
+    const tierLabel = checkout.tier.replace("pm-", "").replace(/^\w/, (c) => c.toUpperCase());
     return (
       <div className="mx-auto max-w-lg px-4 py-8">
         <h1 className="font-display text-2xl font-semibold">Property Management</h1>
@@ -91,11 +89,7 @@ export function PmModuleSubscribePage({ portal }: Readonly<{ portal: PmPortal }>
               title: `PM ${tierLabel}`,
               subtitle: "Monthly module — independent of marketplace plans",
               amountKes: checkout.priceKes,
-              features: [
-                "Rent tracking & collection",
-                "Tenants & leases",
-                "Maintenance routing",
-              ],
+              features: ["Rent tracking & collection", "Tenants & leases", "Maintenance routing"],
             }}
             metadata={{
               paymentType: "pm_module",
@@ -121,9 +115,9 @@ export function PmModuleSubscribePage({ portal }: Readonly<{ portal: PmPortal }>
     <div className="mx-auto max-w-lg px-4 py-10 text-center">
       <h1 className="font-display text-2xl font-semibold">Add Property Management</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Recommended for your portfolio: <strong>{tierName}</strong> (
-        {statusQ.data?.unitCount ?? 0} units) at {formatKes(price)}/mo. First month free if you
-        have never subscribed to this module.
+        Recommended for your portfolio: <strong>{tierName}</strong> ({statusQ.data?.unitCount ?? 0}{" "}
+        units) at {formatKes(price)}/mo. First month free if you have never subscribed to this
+        module.
       </p>
       <button
         type="button"

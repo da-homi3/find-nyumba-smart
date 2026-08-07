@@ -1,9 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  confirmPmPaymentClaim,
-  disputePmPaymentClaim,
-} from "@/lib/api/pm-module.functions";
+import { confirmPmPaymentClaim, disputePmPaymentClaim } from "@/lib/api/pm-module.functions";
 import { calculatePlatformFee } from "@/lib/pm/platform-fee";
 import { formatKes } from "@/lib/properties";
 
@@ -36,8 +33,7 @@ export function PaymentClaimCard({
   });
 
   const dispute = useMutation({
-    mutationFn: (reason: string) =>
-      disputePmPaymentClaim({ data: { claimId: claim.id, reason } }),
+    mutationFn: (reason: string) => disputePmPaymentClaim({ data: { claimId: claim.id, reason } }),
     onSuccess: () => {
       toast.message("Claim disputed — NyumbaSearch will review");
       qc.invalidateQueries({ queryKey: ["pm-payment-claims", propertyId] });

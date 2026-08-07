@@ -111,29 +111,29 @@ export function NotificationBellMenu({
             {rows.map((n) => {
               const target = n.href?.startsWith("/") ? n.href : "/notifications";
               return (
-              <li key={n.id} className="border-b border-border/50 last:border-0">
-                <a
-                  href={target}
-                  className={cn(
-                    "block px-3 py-2.5 text-left transition hover:bg-secondary/60",
-                    !n.readAt && "bg-primary/5",
-                  )}
-                  onClick={() => {
-                    if (!n.readAt) markOne.mutate(n.id);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold leading-snug">{n.title}</p>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      {timeAgo(n.createdAt)}
-                    </span>
-                  </div>
-                  {n.body ? (
-                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
-                  ) : null}
-                </a>
-              </li>
+                <li key={n.id} className="border-b border-border/50 last:border-0">
+                  <a
+                    href={target}
+                    className={cn(
+                      "block px-3 py-2.5 text-left transition hover:bg-secondary/60",
+                      !n.readAt && "bg-primary/5",
+                    )}
+                    onClick={() => {
+                      if (!n.readAt) markOne.mutate(n.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold leading-snug">{n.title}</p>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {timeAgo(n.createdAt)}
+                      </span>
+                    </div>
+                    {n.body ? (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
+                    ) : null}
+                  </a>
+                </li>
               );
             })}
           </ul>

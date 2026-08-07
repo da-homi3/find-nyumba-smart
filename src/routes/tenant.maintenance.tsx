@@ -112,10 +112,7 @@ function TenantMaintenancePage() {
   );
 }
 
-function ReportForm({
-  userId,
-  onDone,
-}: Readonly<{ userId: string; onDone: () => void }>) {
+function ReportForm({ userId, onDone }: Readonly<{ userId: string; onDone: () => void }>) {
   const descriptionId = useId();
   const [category, setCategory] = useState<MaintenanceCategory | "">("");
   const [priority, setPriority] = useState<MaintenancePriority>("normal");
@@ -286,16 +283,14 @@ function ReportForm({
           <PhotoPreviewGrid
             previews={photoPreviews}
             disabled={busy}
-            onRemove={(index) =>
-              setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
-            }
+            onRemove={(index) => setPhotoFiles((prev) => prev.filter((_, i) => i !== index))}
           />
         ) : null}
       </div>
 
       <button
         type="button"
-        disabled={!category || description.trim().length < 8 || busy}
+        disabled={!category || description.trim().length < 5 || busy}
         onClick={() => create.mutate()}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
       >

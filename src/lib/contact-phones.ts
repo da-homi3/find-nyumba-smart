@@ -37,7 +37,9 @@ export function contactPhoneFields(
 }
 
 /** Sync contact_phone ↔ contact_phones on raw API payloads before Zod parses. */
-export function syncContactPhonePayload<T extends Record<string, unknown>>(data: T): T & {
+export function syncContactPhonePayload<T extends Record<string, unknown>>(
+  data: T,
+): T & {
   contact_phone: string | null;
   contact_phones: string[];
 } {

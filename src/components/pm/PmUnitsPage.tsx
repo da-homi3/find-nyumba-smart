@@ -28,8 +28,7 @@ export function PmUnitsPage({
   const [buildingId, setBuildingId] = useState<string>("");
 
   const addBuilding = useMutation({
-    mutationFn: () =>
-      createPmBuilding({ data: { propertyId, name: buildingName } }),
+    mutationFn: () => createPmBuilding({ data: { propertyId, name: buildingName } }),
     onSuccess: () => {
       toast.success("Building added");
       setBuildingName("");

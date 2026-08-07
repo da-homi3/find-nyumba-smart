@@ -21,6 +21,7 @@ import {
   type PricingMode,
 } from "@/lib/property-types";
 import { validateCommercialRanges, supportsListingPriceRange } from "@/lib/commercial-ranges";
+import { resolveListingPriceFields, type ListingPriceCurrency } from "@/lib/currency/usd-kes";
 import { toast } from "sonner";
 import { errorMessage, cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -39,16 +40,33 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+function optionalAmountString(
+  preferUsd: boolean,
+  usdValue: number | null | undefined,
+  kesValue: number | null | undefined,
+): string {
+  if (preferUsd && usdValue != null) return String(usdValue);
+  if (kesValue != null) return String(kesValue);
+  return "";
+}
+
+function displayRentAmount(property: {
+  price_currency?: string | null;
+  rent_usd?: number | null;
+  rent_kes: number;
+}): string {
+  if (property.price_currency === "USD" && property.rent_usd != null) {
+    return String(property.rent_usd);
+  }
+  return String(property.rent_kes);
+}
+
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring";
 
 type PropertyEditFormProps = Readonly<{
   propertyId: string;
-  backTo:
-    | "/landlord/properties"
-    | "/agency/properties"
-    | "/manager/properties"
-    | "/admin";
+  backTo: "/landlord/properties" | "/agency/properties" | "/manager/properties" | "/admin";
   backSearch?: Record<string, unknown>;
   invalidateQueryKey?: string;
 }>;
@@ -80,6 +98,7 @@ export function PropertyEditForm({
     rent_kes: "",
     rent_kes_max: "",
     deposit_kes: "",
+    price_currency: "KES" as ListingPriceCurrency,
     area_sqm: "",
     area_sqm_max: "",
     bedrooms: "1",
@@ -105,9 +124,18 @@ export function PropertyEditForm({
       contact_name: property.contact_name ?? "",
       latitude: property.latitude,
       longitude: property.longitude,
-      rent_kes: String(property.rent_kes),
-      rent_kes_max: property.rent_kes_max != null ? String(property.rent_kes_max) : "",
-      deposit_kes: property.deposit_kes != null ? String(property.deposit_kes) : "",
+      rent_kes: displayRentAmount(property),
+      rent_kes_max: optionalAmountString(
+        property.price_currency === "USD",
+        property.rent_usd_max,
+        property.rent_kes_max,
+      ),
+      deposit_kes: optionalAmountString(
+        property.price_currency === "USD",
+        property.deposit_usd,
+        property.deposit_kes,
+      ),
+      price_currency: (property.price_currency === "USD" ? "USD" : "KES") as ListingPriceCurrency,
       area_sqm: property.area_sqm != null ? String(property.area_sqm) : "",
       area_sqm_max: property.area_sqm_max != null ? String(property.area_sqm_max) : "",
       bedrooms: String(property.bedrooms),
@@ -136,15 +164,18 @@ export function PropertyEditForm({
           address: form.address.trim() || null,
           latitude: form.latitude,
           longitude: form.longitude,
-          rent_kes: Number.parseInt(form.rent_kes, 10),
-          rent_kes_max:
-            supportsListingPriceRange({
-              property_type: form.property_type,
-              pricing_mode: form.pricing_mode,
-            }) && form.rent_kes_max
-              ? Number.parseInt(String(form.rent_kes_max), 10)
-              : null,
-          deposit_kes: form.deposit_kes ? Number.parseInt(form.deposit_kes, 10) : null,
+          ...resolveListingPriceFields({
+            price_currency: form.price_currency === "USD" ? "USD" : "KES",
+            amount: Number(form.rent_kes),
+            amount_max:
+              supportsListingPriceRange({
+                property_type: form.property_type,
+                pricing_mode: form.pricing_mode,
+              }) && form.rent_kes_max
+                ? Number(form.rent_kes_max)
+                : null,
+            deposit: form.deposit_kes ? Number(form.deposit_kes) : null,
+          }),
           area_sqm: form.area_sqm ? Number.parseInt(String(form.area_sqm), 10) : null,
           area_sqm_max:
             isCommercialType(form.property_type) && form.area_sqm_max
@@ -213,12 +244,13 @@ export function PropertyEditForm({
       setActiveTab("details");
       return false;
     }
-    if (!form.rent_kes || Number.parseInt(form.rent_kes, 10) <= 0) {
+    if (!form.rent_kes || Number(form.rent_kes) <= 0) {
       toast.error(
         `Enter a valid ${listingPriceAmountLabel({
           property_type: form.property_type,
           pricing_mode: form.pricing_mode,
           price_period: form.price_period || null,
+          price_currency: form.price_currency,
         }).toLowerCase()}`,
       );
       setActiveTab("details");

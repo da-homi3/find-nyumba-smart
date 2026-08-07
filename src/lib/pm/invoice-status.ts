@@ -12,11 +12,7 @@ export function invoiceStatusAfterPayment(
   return "partial";
 }
 
-export function rentBalanceRemaining(
-  amountDue: number,
-  amountPaid: number,
-  lateFee = 0,
-): number {
+export function rentBalanceRemaining(amountDue: number, amountPaid: number, lateFee = 0): number {
   return Math.max(0, amountDue + lateFee - amountPaid);
 }
 
@@ -39,13 +35,7 @@ export function calculateLateFeeKes(
 
 export function mapPmUnitTypeToListingType(
   unitType: string | null | undefined,
-):
-  | "bedsitter"
-  | "one_bedroom"
-  | "two_bedroom"
-  | "three_bedroom"
-  | "four_bedroom"
-  | "commercial" {
+): "bedsitter" | "one_bedroom" | "two_bedroom" | "three_bedroom" | "four_bedroom" | "commercial" {
   switch (unitType) {
     case "1br":
       return "one_bedroom";
@@ -63,7 +53,10 @@ export function mapPmUnitTypeToListingType(
   }
 }
 
-export function bedroomsForUnitType(unitType: string | null | undefined, bedrooms?: number | null): number {
+export function bedroomsForUnitType(
+  unitType: string | null | undefined,
+  bedrooms?: number | null,
+): number {
   if (typeof bedrooms === "number" && bedrooms >= 0) return bedrooms;
   switch (unitType) {
     case "1br":

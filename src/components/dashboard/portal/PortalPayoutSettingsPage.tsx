@@ -97,11 +97,13 @@ function payoutDestinationPayload(state: {
   };
 }
 
-function DestinationsSection(props: Readonly<{
-  isLoading: boolean;
-  destinations: SavedDestination[];
-  onRemove: (id: string) => void;
-}>) {
+function DestinationsSection(
+  props: Readonly<{
+    isLoading: boolean;
+    destinations: SavedDestination[];
+    onRemove: (id: string) => void;
+  }>,
+) {
   const { isLoading, destinations, onRemove } = props;
 
   return (
@@ -146,7 +148,9 @@ function DestinationsSection(props: Readonly<{
   );
 }
 
-function PayoutHistorySection(props: Readonly<{ isLoading: boolean; payoutBatches: PayoutBatch[] }>) {
+function PayoutHistorySection(
+  props: Readonly<{ isLoading: boolean; payoutBatches: PayoutBatch[] }>,
+) {
   const { isLoading, payoutBatches } = props;
 
   return (
@@ -169,7 +173,8 @@ function PayoutHistorySection(props: Readonly<{ isLoading: boolean; payoutBatche
                 </span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Gross {formatKes(b.total_gross)} · Platform fee (1%) {formatKes(b.total_platform_fee)}
+                Gross {formatKes(b.total_gross)} · Platform fee (1%){" "}
+                {formatKes(b.total_platform_fee)}
               </p>
               <p className="text-xs text-muted-foreground">{payoutDateLabel(b)}</p>
             </li>
@@ -256,8 +261,7 @@ export function PortalPayoutSettingsPage() {
   });
 
   const deactivate = useMutation({
-    mutationFn: (destinationId: string) =>
-      deactivatePayoutDestination({ data: { destinationId } }),
+    mutationFn: (destinationId: string) => deactivatePayoutDestination({ data: { destinationId } }),
     onSuccess: () => {
       toast.success("Destination removed");
       qc.invalidateQueries({ queryKey: ["pm-payout-destinations"] });
@@ -287,8 +291,8 @@ export function PortalPayoutSettingsPage() {
       <h1 className="font-display text-2xl font-semibold">Rent payouts</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Add the bank account, M-Pesa number, paybill, or till where rent should land. When a tenant
-        pays through NyumbaSearch, we deduct 1% and send the rest to your destination within minutes.
-        Example: KES 15,000 rent → you receive {formatKes(exampleFee.netPayoutAmount)} (fee{" "}
+        pays through NyumbaSearch, we deduct 1% and send the rest to your destination within
+        minutes. Example: KES 15,000 rent → you receive {formatKes(exampleFee.netPayoutAmount)} (fee{" "}
         {formatKes(exampleFee.platformFee)}).
       </p>
 

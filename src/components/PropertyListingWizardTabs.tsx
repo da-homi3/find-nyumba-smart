@@ -14,7 +14,11 @@ import {
   applyPropertyTypePricingDefaults,
   PropertyPricingFields,
 } from "@/components/PropertyPricingFields";
-import { MAX_IMAGE_UPLOAD_MB, MAX_VIDEO_UPLOAD_MB } from "@/lib/media/upload-limits";
+import {
+  MAX_IMAGE_UPLOAD_MB,
+  MAX_VIDEO_UPLOAD_MB,
+  VIDEO_STORAGE_HARD_CAP_MB,
+} from "@/lib/media/upload-limits";
 import { cn } from "@/lib/utils";
 import { Compass, Film, Image as ImageIcon, Link2, X } from "lucide-react";
 import type { ListingFormState, TabId } from "@/components/PropertyListingWizard";
@@ -73,12 +77,8 @@ function ContactSuggestionChips({
             className="max-w-full rounded-full border border-border bg-muted/40 px-2.5 py-1 text-left text-[11px] font-medium text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
           >
             <span className="text-foreground">{c.name}</span>
-            {c.phones[0] ? (
-              <span className="text-muted-foreground"> · {c.phones[0]}</span>
-            ) : null}
-            {c.count > 1 ? (
-              <span className="ml-1 text-muted-foreground/70">×{c.count}</span>
-            ) : null}
+            {c.phones[0] ? <span className="text-muted-foreground"> · {c.phones[0]}</span> : null}
+            {c.count > 1 ? <span className="ml-1 text-muted-foreground/70">×{c.count}</span> : null}
           </button>
         ))}
       </div>
@@ -203,11 +203,7 @@ function ListingWizardDetailsTab({
         <ContactSuggestionChips contacts={contactSuggestions} onPick={applyContact} />
       ) : null}
       <Field
-        label={
-          requireContactPhone
-            ? "Contact name (required)"
-            : "Contact name (optional)"
-        }
+        label={requireContactPhone ? "Contact name (required)" : "Contact name (optional)"}
         full
       >
         <input
@@ -363,12 +359,13 @@ function ListingWizardMediaTab({
   setVideoFile: (file: File | null) => void;
   setTourFile: (file: File | null) => void;
 }>) {
-  const progressLabel =
-    uploadPhase === "enhancing"
-      ? uploadProgress != null && uploadProgress > 0
-        ? `Converting to MP4… ${uploadProgress}%`
-        : "Preparing media…"
-      : "Uploading media…";
+  let progressLabel = "Uploading media…";
+  if (uploadPhase === "enhancing") {
+    progressLabel =
+      uploadProgress != null && uploadProgress > 0
+        ? `Building walkthrough… ${uploadProgress}%`
+        : "Preparing media…";
+  }
   return (
     <div className="space-y-5">
       <FileDropZone
@@ -398,10 +395,10 @@ function ListingWizardMediaTab({
             accept="video/mp4,video/webm,video/quicktime,video/*,.mp4,.webm,.mov"
             disabled={busy}
             title="Drop walkthrough video"
-            hint={`MOV auto-converts to MP4 · max ${MAX_VIDEO_UPLOAD_MB}MB`}
+            hint={`Auto-compresses over ${VIDEO_STORAGE_HARD_CAP_MB}MB · pick up to ${MAX_VIDEO_UPLOAD_MB}MB`}
             icon={<Film className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
             onFiles={onPickVideo}
-            footnote="iPhone MOV files are converted to MP4 automatically. Keep this tab open during conversion."
+            footnote="No video? We’ll build a slow slideshow from your photos on publish."
           />
           {videoFile ? (
             <p className="truncate text-xs text-muted-foreground">
@@ -496,11 +493,21 @@ function reviewPricingSummary(form: ListingFormState): string {
     property_type: form.property_type,
     rent_kes: form.rent_kes,
     rent_kes_max: form.rent_kes_max || null,
+    price_currency: form.price_currency,
+    rent_usd: form.price_currency === "USD" ? Number(form.rent_kes) || null : null,
+    rent_usd_max:
+      form.price_currency === "USD" && form.rent_kes_max ? Number(form.rent_kes_max) : null,
     pricing_mode: form.pricing_mode,
     price_period: form.price_period || null,
   });
   const parts = [price];
-  if (form.deposit_kes) parts.push(`deposit KES ${form.deposit_kes.toLocaleString()}`);
+  if (form.deposit_kes) {
+    const depositLabel =
+      form.price_currency === "USD"
+        ? `deposit USD ${Number(form.deposit_kes).toLocaleString("en-US")}`
+        : `deposit KES ${form.deposit_kes.toLocaleString()}`;
+    parts.push(depositLabel);
+  }
   const note = listingPricingNote({
     property_type: form.property_type,
     pricing_mode: form.pricing_mode,
@@ -530,11 +537,15 @@ function ListingWizardReviewTab({
   imageFiles,
   videoFile,
   tourFile,
+  uploadProgress,
+  uploadPhase,
 }: Readonly<{
   form: ListingFormState;
   imageFiles: File[];
   videoFile: File | null;
   tourFile: File | null;
+  uploadProgress?: number | null;
+  uploadPhase?: string | null;
 }>) {
   const locationParts = [form.neighborhood];
   if (form.address) locationParts.push(form.address);
@@ -542,9 +553,22 @@ function ListingWizardReviewTab({
     locationParts.push(`${form.latitude.toFixed(5)}, ${form.longitude?.toFixed(5)}`);
   }
 
+  let progressLabel = "Uploading media…";
+  if (uploadPhase === "enhancing") {
+    progressLabel =
+      uploadProgress != null && uploadProgress > 0
+        ? "Preparing photos & walkthrough…"
+        : "Preparing media…";
+  } else if (uploadPhase === "publishing") {
+    progressLabel = "Publishing listing…";
+  }
+
   return (
     <div className="space-y-4 text-sm">
       <p className="font-semibold">Review before publishing</p>
+      {uploadProgress != null ? (
+        <UploadProgressBar value={uploadProgress} label={progressLabel} className="max-w-none" />
+      ) : null}
       <dl className="grid gap-2 rounded-xl bg-secondary/40 p-4">
         <div>
           <dt className="text-xs text-muted-foreground">Title & type</dt>
@@ -560,10 +584,7 @@ function ListingWizardReviewTab({
           <div>
             <dt className="text-xs text-muted-foreground">Contact</dt>
             <dd>
-              {[
-                form.contact_name.trim(),
-                ...normalizeContactPhones(form.contact_phones),
-              ]
+              {[form.contact_name.trim(), ...normalizeContactPhones(form.contact_phones)]
                 .filter(Boolean)
                 .join(" · ")}
             </dd>
@@ -673,6 +694,8 @@ export function ListingWizardTabContent({
           imageFiles={imageFiles}
           videoFile={videoFile}
           tourFile={tourFile}
+          uploadProgress={uploadProgress}
+          uploadPhase={uploadPhase}
         />
       );
   }

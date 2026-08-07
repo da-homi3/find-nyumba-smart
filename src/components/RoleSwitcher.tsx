@@ -47,10 +47,7 @@ export function RoleSwitcher({ variant = "default", className = "" }: RoleSwitch
 
   const switchable = roles.filter((r) => ROLE_LABELS[r] && (r !== "admin" || isAdmin));
   // Include tenant implicitly for browse accounts that only have tenant (or empty → tenant)
-  const list =
-    switchable.length > 0
-      ? switchable
-      : (["tenant"] as AppRole[]);
+  const list = switchable.length > 0 ? switchable : (["tenant"] as AppRole[]);
 
   const show = list.length >= 2;
   useEffect(() => {

@@ -27,9 +27,7 @@ export const POINT_VALUES: Record<LoyaltyReason, number> = {
   listing_kept_updated: 5,
 };
 
-const POINT_EARNING_LIMITS: Partial<
-  Record<LoyaltyReason, { max: number; windowDays: number }>
-> = {
+const POINT_EARNING_LIMITS: Partial<Record<LoyaltyReason, { max: number; windowDays: number }>> = {
   listing_kept_updated: { max: 4, windowDays: 30 },
   referral_converted: { max: 10, windowDays: 30 },
 };

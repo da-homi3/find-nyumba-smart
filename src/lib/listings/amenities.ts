@@ -55,13 +55,19 @@ const AMENITY_PATTERNS: Array<{ re: RegExp; label: string }> = [
   { re: /\bborehole\b/i, label: "Borehole" },
   { re: /\b(backup\s*water|water\s*backup|reliable\s*water)\b/i, label: "Backup water" },
   { re: /\b(water\s*tank|tank\s*water|overhead\s*tank)\b/i, label: "Water tank" },
-  { re: /\b(water\s*(is\s*)?(included|inclusive)|inclusive\s*of\s*water)\b/i, label: "Water included" },
+  {
+    re: /\b(water\s*(is\s*)?(included|inclusive)|inclusive\s*of\s*water)\b/i,
+    label: "Water included",
+  },
   { re: /\b(covered\s*parking|basement\s*parking|parking\s*bay)\b/i, label: "Covered parking" },
   { re: /\b(visitor\s*parking|guest\s*parking)\b/i, label: "Visitor parking" },
   { re: /\b(parking|car\s*park)\b/i, label: "Parking" },
   { re: /\b(gym|fitness\s*centre|fitness\s*center)\b/i, label: "Gym" },
   { re: /\bcctv\b/i, label: "CCTV" },
-  { re: /\b(security guard|askari|24\/7 security|round-the-clock security)\b/i, label: "Security guard" },
+  {
+    re: /\b(security guard|askari|24\/7 security|round-the-clock security)\b/i,
+    label: "Security guard",
+  },
   { re: /\b(gated(\s*community)?|controlled\s*access)\b/i, label: "Gated community" },
   { re: /\b(electric\s*fence|elec\.?\s*fence)\b/i, label: "Electric fence" },
   { re: /\b(biometric|fingerprint\s*access)\b/i, label: "Biometric access" },
@@ -81,7 +87,10 @@ const AMENITY_PATTERNS: Array<{ re: RegExp; label: string }> = [
   { re: /\b(kids?\s*play(\s*area)?|children'?s?\s*play)\b/i, label: "Kids play area" },
   { re: /\b(garden|compound)\b/i, label: "Garden" },
   { re: /\b(rooftop|roof\s*terrace)\b/i, label: "Rooftop" },
-  { re: /\b(prepaid\s*(electricity|tokens?)|token\s*electricity|kenya\s*power\s*token)\b/i, label: "Prepaid electricity" },
+  {
+    re: /\b(prepaid\s*(electricity|tokens?)|token\s*electricity|kenya\s*power\s*token)\b/i,
+    label: "Prepaid electricity",
+  },
   { re: /\b(dstv|gotv|satellite\s*tv)\b/i, label: "DSTV" },
   { re: /\b(air\s*conditioning|a\/c\b|\bac\b|aircon)\b/i, label: "Air conditioning" },
   { re: /\b(fridge|refrigerator)\b/i, label: "Fridge" },
@@ -90,7 +99,10 @@ const AMENITY_PATTERNS: Array<{ re: RegExp; label: string }> = [
   { re: /\b(kitchen\s*cabinets?|fitted\s*kitchen)\b/i, label: "Kitchen cabinets" },
   { re: /\b(tiled\s*floors?|tiles?\s*throughout)\b/i, label: "Tiled floors" },
   { re: /\b(pet[\s-]*friendly|pets?\s*allowed)\b/i, label: "Pet friendly" },
-  { re: /\b(service\s*charge\s*(included|inclusive)|inclusive\s*of\s*service\s*charge)\b/i, label: "Service charge inclusive" },
+  {
+    re: /\b(service\s*charge\s*(included|inclusive)|inclusive\s*of\s*service\s*charge)\b/i,
+    label: "Service charge inclusive",
+  },
 ];
 
 function titleCaseAmenity(raw: string): string {
@@ -100,7 +112,11 @@ function titleCaseAmenity(raw: string): string {
   if (canonical) return canonical;
   return trimmed
     .split(" ")
-    .map((w) => (w.length <= 3 && w === w.toUpperCase() ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()))
+    .map((w) =>
+      w.length <= 3 && w === w.toUpperCase()
+        ? w
+        : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+    )
     .join(" ")
     .replace(/\bWifi\b/i, "WiFi")
     .replace(/\bCctv\b/i, "CCTV")
@@ -135,7 +151,8 @@ export function mergeAmenities(...lists: Array<string[] | string | null | undefi
 }
 
 export function formatAmenityString(amenities: string[] | string | null | undefined): string {
-  const list = typeof amenities === "string" ? parseAmenityString(amenities) : mergeAmenities(amenities);
+  const list =
+    typeof amenities === "string" ? parseAmenityString(amenities) : mergeAmenities(amenities);
   return list.join(", ");
 }
 

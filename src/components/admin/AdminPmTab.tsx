@@ -75,7 +75,9 @@ export function AdminPmTab() {
           loading={false}
           loadingMessage=""
           isEmpty={data.activePmSubscriptions.length === 0}
-          emptyContent={<p className="mt-3 text-sm text-muted-foreground">No PM subscriptions yet.</p>}
+          emptyContent={
+            <p className="mt-3 text-sm text-muted-foreground">No PM subscriptions yet.</p>
+          }
         >
           <ul className="mt-3 divide-y divide-border rounded-xl border border-border">
             {data.activePmSubscriptions.map((s) => (
@@ -110,16 +112,14 @@ export function AdminPmTab() {
         >
           <ul className="mt-3 space-y-3">
             {data.openDisputes.map((d) => {
-              const claim = d.claim as
-                | {
-                    id: string;
-                    amount_claimed: number;
-                    method: string;
-                    paid_on_date: string;
-                    attachment_url: string | null;
-                    note: string | null;
-                  }
-                | null;
+              const claim = d.claim as {
+                id: string;
+                amount_claimed: number;
+                method: string;
+                paid_on_date: string;
+                attachment_url: string | null;
+                note: string | null;
+              } | null;
               return (
                 <li key={d.id} className="rounded-xl border border-border px-4 py-3 text-sm">
                   <p className="font-medium">

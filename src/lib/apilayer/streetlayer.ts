@@ -139,7 +139,11 @@ export async function enrichListingAddress(
   }
 
   // Fill missing map pins from a verified/unsure geocode; never overwrite an explicit pin.
-  if ((latitude == null || longitude == null) && result.latitude != null && result.longitude != null) {
+  if (
+    (latitude == null || longitude == null) &&
+    result.latitude != null &&
+    result.longitude != null
+  ) {
     latitude = result.latitude;
     longitude = result.longitude;
   }

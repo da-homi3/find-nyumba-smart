@@ -35,7 +35,10 @@ for (const name of readdirSync(ssrDir)) {
   if (missing.length === 0) continue;
 
   const stubs = missing
-    .map((sym) => `const ${sym} = (..._args) => { throw new Error("${sym} is unavailable in this build"); };`)
+    .map(
+      (sym) =>
+        `const ${sym} = (..._args) => { throw new Error("${sym} is unavailable in this build"); };`,
+    )
     .join("\n");
 
   // Insert stubs just before the server$1 export object

@@ -10,13 +10,23 @@ export const Route = createFileRoute("/auth/pending")({
 });
 
 function PendingApproval() {
-  const { user, roles, activePortal, pendingApplications, signOut, loading, refreshPortalState } =
-    useAuth();
+  const {
+    user,
+    roles,
+    activePortal,
+    pendingApplications,
+    signOut,
+    loading,
+    rolesReady,
+    refreshPortalState,
+  } = useAuth();
   const navigate = useNavigate();
   const pending = pendingApplications.filter((a) => a.status === "pending");
   const hasListerRole = roles.some((role) => ["landlord", "manager", "agency"].includes(role));
+  const authSettled = !loading && rolesReady;
 
   useEffect(() => {
+    if (!authSettled) return;
     if (!user) {
       navigate({
         to: "/auth",
@@ -24,16 +34,16 @@ function PendingApproval() {
         replace: true,
       });
     }
-  }, [user, navigate]);
+  }, [authSettled, user, navigate]);
 
   useEffect(() => {
-    if (loading || !user || !hasListerRole) return;
+    if (!authSettled || !user || !hasListerRole) return;
     globalThis.location.href = resolveListerDashboardPath({
       roles,
       activePortal,
       applications: pendingApplications,
     });
-  }, [loading, user, hasListerRole, roles, activePortal, pendingApplications]);
+  }, [authSettled, user, hasListerRole, roles, activePortal, pendingApplications]);
 
   useEffect(() => {
     if (!user || hasListerRole) return;

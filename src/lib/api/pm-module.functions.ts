@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
 import { adminClient, authContext } from "@/lib/api/nyumba/nyumba-shared";
 import { asPmDb, assertPmPropertyAccess, assertStaffCan } from "@/lib/pm/access";
+import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
 import { createPaymentReversal, recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
 import {
   activatePmModuleForAccount,
@@ -85,11 +86,7 @@ export const subscribePropertyManagement = createServerFn({ method: "POST" })
     }
 
     const { tier, priceKes } = await recommendedPmTier(admin, userId);
-    const isFirstTime = await isFirstTimeSubscriberForModule(
-      admin,
-      userId,
-      "property_management",
-    );
+    const isFirstTime = await isFirstTimeSubscriberForModule(admin, userId, "property_management");
 
     if (isFirstTime) {
       const trialEnd = addDaysFromNow(30);
@@ -150,10 +147,7 @@ export const listPmPaymentClaims = createServerFn({ method: "POST" })
     const unitIds = (units ?? []).map((u: { id: string }) => u.id);
     if (unitIds.length === 0) return [];
 
-    const { data: leases } = await admin
-      .from("pm_leases")
-      .select("id")
-      .in("unit_id", unitIds);
+    const { data: leases } = await admin.from("pm_leases").select("id").in("unit_id", unitIds);
     const leaseIds = (leases ?? []).map((l: { id: string }) => l.id);
     if (leaseIds.length === 0) return [];
 
@@ -207,6 +201,23 @@ export const confirmPmPaymentClaim = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!property) throw new Error("Property not found");
 
+    // Claim the row before crediting anything. Filtering on the still-pending status makes
+    // this a compare-and-set, so two concurrent confirms can't both insert a rent payment.
+    const { data: confirmed } = await admin
+      .from("pm_rent_payment_claims")
+      .update({
+        status: "confirmed",
+        resolved_at: new Date().toISOString(),
+        resolved_by_user_id: userId,
+      })
+      .eq("id", claim.id)
+      .eq("status", "pending")
+      .select("id");
+
+    if (!confirmed?.length) {
+      throw new Error("Claim was already resolved by someone else");
+    }
+
     const { data: payRow, error: payErr } = await admin
       .from("pm_rent_payments")
       .insert({
@@ -219,34 +230,22 @@ export const confirmPmPaymentClaim = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (payErr) throw payErr;
 
-    try {
-      const { recordPlatformFee } = await import("@/lib/pm/platform-fee");
-      await recordPlatformFee(admin, {
-        rentPaymentId: payRow.id,
-        ownerUserId: property.owner_user_id,
-        propertyId: property.id,
-        grossAmount: Number(claim.amount_claimed),
-      });
-      const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
-      void disburseUnbatchedFeeNow(admin, {
-        rentPaymentId: payRow.id,
-        ownerUserId: property.owner_user_id,
-        propertyId: property.id,
-      }).catch((e) => console.warn("[pm] instant payout failed:", e));
-    } catch (e) {
-      console.warn("[pm] platform fee record failed:", e);
+    if (payErr) {
+      // Release the claim so it stays actionable instead of stranded as confirmed-but-uncredited.
+      await admin
+        .from("pm_rent_payment_claims")
+        .update({ status: "pending", resolved_at: null, resolved_by_user_id: null })
+        .eq("id", claim.id);
+      throw payErr;
     }
 
-    await admin
-      .from("pm_rent_payment_claims")
-      .update({
-        status: "confirmed",
-        resolved_at: new Date().toISOString(),
-        resolved_by_user_id: userId,
-      })
-      .eq("id", claim.id);
+    await recordFeeAndDisburse(admin, {
+      rentPaymentId: payRow.id,
+      ownerUserId: property.owner_user_id,
+      propertyId: property.id,
+      grossAmount: Number(claim.amount_claimed),
+    });
 
     const reconciled = await recomputeInvoiceStatus(admin, claim.invoice_id as string);
     return { success: true as const, ...reconciled };

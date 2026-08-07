@@ -90,9 +90,12 @@ export function PmTenantsPage({
   const invite = useMutation({
     mutationFn: (id: string) => invitePmTenantPortal({ data: { tenantId: id } }),
     onSuccess: (res) => {
-      toast.success("Invite sent", {
-        description: `Token ready (${res.inviteToken.slice(0, 8)}…)`,
+      toast.success("Invite email sent", {
+        description: "Tenant will get a direct nyumbasearch.com link (valid 14 days).",
       });
+      if (res.inviteUrl && typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(res.inviteUrl).catch(() => undefined);
+      }
       qc.invalidateQueries({ queryKey: ["pm-tenants", propertyId] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -164,6 +167,11 @@ export function PmTenantsPage({
 
       <section className="mb-8 rounded-xl border border-border p-4">
         <h2 className="text-sm font-semibold">Attach lease</h2>
+        {tenants.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Add a tenant above first — their name will appear in this list.
+          </p>
+        ) : null}
         <form
           className="mt-3 grid gap-2 sm:grid-cols-2"
           onSubmit={(e) => {
@@ -175,9 +183,12 @@ export function PmTenantsPage({
             required
             value={tenantId}
             onChange={(e) => setTenantId(e.target.value)}
-            className="rounded-lg border border-border px-3 py-2 text-sm"
+            disabled={tenants.length === 0}
+            className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-60"
           >
-            <option value="">Select tenant</option>
+            <option value="">
+              {tenants.length === 0 ? "No tenants yet — add one above" : "Select tenant"}
+            </option>
             {tenants.map((t: { id: string; full_name: string }) => (
               <option key={t.id} value={t.id}>
                 {t.full_name}
@@ -187,6 +198,7 @@ export function PmTenantsPage({
           <select
             required
             value={unitId}
+            disabled={vacantUnits.length === 0}
             onChange={(e) => {
               setUnitId(e.target.value);
               const unit = vacantUnits.find((u: { id: string }) => u.id === e.target.value) as
@@ -194,9 +206,11 @@ export function PmTenantsPage({
                 | undefined;
               if (unit?.monthly_rent) setMonthlyRent(unit.monthly_rent);
             }}
-            className="rounded-lg border border-border px-3 py-2 text-sm"
+            className="rounded-lg border border-border px-3 py-2 text-sm disabled:opacity-60"
           >
-            <option value="">Select vacant unit</option>
+            <option value="">
+              {vacantUnits.length === 0 ? "No vacant units" : "Select vacant unit"}
+            </option>
             {vacantUnits.map((u: { id: string; unit_label: string; monthly_rent: number }) => (
               <option key={u.id} value={u.id}>
                 {u.unit_label}
@@ -256,8 +270,7 @@ export function PmTenantsPage({
                 >
                   <div className="text-sm">
                     <div className="font-medium">
-                      {tenantName.get(l.tenant_id) ?? "Tenant"} ·{" "}
-                      {l.pm_units?.unit_label ?? "Unit"}
+                      {tenantName.get(l.tenant_id) ?? "Tenant"} · {l.pm_units?.unit_label ?? "Unit"}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       KES {l.monthly_rent.toLocaleString()} · {l.start_date} → {l.end_date}

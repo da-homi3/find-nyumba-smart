@@ -14,10 +14,7 @@ import { normalizeNeighborhoodFilter, parseCountyWideFilter } from "@/lib/securi
 import { areasForCounty, matchLocation, neighborhoodStorageValue } from "@/data/kenya-locations";
 import { withCache, getListingsCacheEpoch } from "@/lib/cache/manager";
 import { sortListingsByProximity } from "@/lib/geo/listings-nearby-sort";
-import {
-  browseOriginFromGeolocation,
-  DEFAULT_BROWSE_ORIGIN,
-} from "@/lib/geo/tenant-browse-origin";
+import { browseOriginFromGeolocation, DEFAULT_BROWSE_ORIGIN } from "@/lib/geo/tenant-browse-origin";
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
   const f = data ?? {};
@@ -260,16 +257,16 @@ export async function queryListingsDirect(
       throw new Error(message);
     }
 
-    let items = mapPropertyRows((rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0]).map(
-      (item) => ({
-        ...item,
-        // List/map responses: keep card thumbs only — full gallery loads on detail.
-        images: item.images.slice(0, 3),
-        description: null,
-        video_url: null,
-        tour_url: null,
-      }),
-    );
+    let items = mapPropertyRows(
+      (rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0],
+    ).map((item) => ({
+      ...item,
+      // List/map responses: keep card thumbs only — full gallery loads on detail.
+      images: item.images.slice(0, 3),
+      description: null,
+      video_url: null,
+      tour_url: null,
+    }));
     const now = Date.now();
 
     if (data?.sortBy === "nearby") {

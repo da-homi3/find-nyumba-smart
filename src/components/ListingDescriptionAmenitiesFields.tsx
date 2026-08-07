@@ -160,7 +160,8 @@ export function ListingDescriptionAmenitiesFields({
     setUndoDescription(null);
   }
 
-  let aiStatus = "AI analyzes the description thoroughly, polishes wording, and fills every amenity found.";
+  let aiStatus =
+    "AI analyzes the description thoroughly, polishes wording, and fills every amenity found.";
   if (enhancing) aiStatus = "Analyzing description, polishing copy, and extracting amenities…";
   else if (extracting) aiStatus = "Extracting amenities…";
 

@@ -175,8 +175,7 @@ async function fulfillRenewalSubscription(
   const cycle = billingCycle(payment.metadata);
   const days = cycle === "quarterly" ? 90 : 30;
   const { isPmPlanId } = await import("@/lib/pm/pricing");
-  const isPmRenewal =
-    sub.module === "property_management" || isPmPlanId(String(sub.plan ?? ""));
+  const isPmRenewal = sub.module === "property_management" || isPmPlanId(String(sub.plan ?? ""));
 
   await upsertActiveSubscription(supabaseAdmin, {
     user_id: sub.user_id,
@@ -218,7 +217,9 @@ async function fulfillRenewalSubscription(
 
     // Referral conversion: first paid subscription month
     void import("@/lib/referrals/conversion")
-      .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, sub.user_id, "first_paid_subscription_month"))
+      .then(({ checkReferralConversion }) =>
+        checkReferralConversion(supabaseAdmin, sub.user_id, "first_paid_subscription_month"),
+      )
       .catch(() => undefined);
   }
 }
@@ -380,7 +381,9 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
 
   // Referral conversion: first paid subscription
   void import("@/lib/referrals/conversion")
-    .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, userId, "first_paid_subscription_month"))
+    .then(({ checkReferralConversion }) =>
+      checkReferralConversion(supabaseAdmin, userId, "first_paid_subscription_month"),
+    )
     .catch(() => undefined);
 }
 
@@ -406,7 +409,9 @@ async function fulfillPmModule(supabaseAdmin: SupabaseAdmin, payment: PaymentFul
 
   // Referral conversion: first PM module month
   void import("@/lib/referrals/conversion")
-    .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, userId, "first_pm_module_month"))
+    .then(({ checkReferralConversion }) =>
+      checkReferralConversion(supabaseAdmin, userId, "first_pm_module_month"),
+    )
     .catch(() => undefined);
 }
 
@@ -516,7 +521,9 @@ async function fulfillContactUnlock(supabaseAdmin: SupabaseAdmin, payment: Payme
 
   // Referral conversion: first contact unlock
   void import("@/lib/referrals/conversion")
-    .then(({ checkReferralConversion }) => checkReferralConversion(supabaseAdmin, userId, "first_contact_unlock"))
+    .then(({ checkReferralConversion }) =>
+      checkReferralConversion(supabaseAdmin, userId, "first_contact_unlock"),
+    )
     .catch(() => undefined);
 }
 

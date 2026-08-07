@@ -3,24 +3,13 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ForbiddenError, requireRole } from "@/lib/api/_authz";
-import {
-  adminClient,
-  authContext,
-  getUserOrganizationId,
-} from "@/lib/api/nyumba/nyumba-shared";
+import { adminClient, authContext, getUserOrganizationId } from "@/lib/api/nyumba/nyumba-shared";
 import { sendEmail } from "@/lib/email/send";
 import { tenantPortalInviteEmail } from "@/lib/email/templates";
-import {
-  asPmDb,
-  assertPmPropertyAccess,
-  assertStaffCan,
-  type PmStaffRole,
-} from "@/lib/pm/access";
+import { asPmDb, assertPmPropertyAccess, assertStaffCan, type PmStaffRole } from "@/lib/pm/access";
+import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
 import { recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
-import {
-  bedroomsForUnitType,
-  mapPmUnitTypeToListingType,
-} from "@/lib/pm/invoice-status";
+import { bedroomsForUnitType, mapPmUnitTypeToListingType } from "@/lib/pm/invoice-status";
 import { requirePmModuleSubscription } from "@/lib/pm/module-gate";
 import {
   deletePmTenantInvite,
@@ -171,10 +160,12 @@ export const createPmProperty = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
-    await admin.from("pm_property_staff").upsert(
-      { property_id: row.id, user_id: userId, role: "owner" },
-      { onConflict: "property_id,user_id" },
-    );
+    await admin
+      .from("pm_property_staff")
+      .upsert(
+        { property_id: row.id, user_id: userId, role: "owner" },
+        { onConflict: "property_id,user_id" },
+      );
 
     return row;
   });
@@ -630,26 +621,11 @@ export const createPmLease = createServerFn({ method: "POST" })
       .eq("id", data.unitId);
 
     // Seed current-period invoice so rent UI works before the monthly cron runs
-    const periodMonth = new Date().toISOString().slice(0, 7);
-    const due = new Date();
-    due.setUTCDate(5);
-    // If the 5th already passed this month, due next month's 5th so seed isn't instantly overdue
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    if (due < today) {
-      due.setUTCMonth(due.getUTCMonth() + 1);
-      due.setUTCDate(5);
-    }
-    const { error: invErr } = await admin.from("pm_rent_invoices").insert({
-      lease_id: row.id,
-      period_month: periodMonth,
-      amount_due: data.monthlyRent,
-      due_date: due.toISOString().slice(0, 10),
-      status: "pending",
+    const { seedCurrentPeriodInvoiceForLease } = await import("@/lib/pm/invoice-seed");
+    await seedCurrentPeriodInvoiceForLease(admin, {
+      id: row.id,
+      monthly_rent: data.monthlyRent,
     });
-    if (invErr && !/duplicate|unique/i.test(invErr.message ?? "")) {
-      throw invErr;
-    }
 
     return row;
   });
@@ -763,14 +739,14 @@ export const invitePmTenantPortal = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!tenant) throw new Error("Tenant not found");
 
-    const { property, staffRole } = await assertPmPropertyAccess(
-      admin,
-      userId,
-      tenant.property_id,
-    );
+    const { property, staffRole } = await assertPmPropertyAccess(admin, userId, tenant.property_id);
     assertStaffCan(staffRole, "tenants:update");
 
-    const existingUserId = tenant.email ? await findAuthUserIdByEmail(tenant.email) : null;
+    if (!tenant.email?.trim()) {
+      throw new Error("Add the tenant’s email before sending a portal invite");
+    }
+
+    const existingUserId = await findAuthUserIdByEmail(tenant.email);
     const inviteToken = crypto.randomUUID();
     await storePmTenantInvite(inviteToken, {
       tenantId: tenant.id,
@@ -786,38 +762,52 @@ export const invitePmTenantPortal = createServerFn({ method: "POST" })
       })
       .eq("id", tenant.id);
 
-    if (tenant.email) {
-      const inviteUrl = `${getSiteUrl()}/tenant/invite/${inviteToken}`;
-      const tpl = tenantPortalInviteEmail({
-        tenantName: tenant.full_name,
-        propertyName: property.name,
-        inviteUrl,
-        hasExistingAccount: Boolean(existingUserId),
-      });
-      await sendEmail({
-        to: tenant.email,
-        templateId: "tenant_portal_invite",
-        ...tpl,
-      });
+    const inviteUrl = `${getSiteUrl()}/tenant/invite/${inviteToken}`;
+    const tpl = tenantPortalInviteEmail({
+      tenantName: tenant.full_name,
+      propertyName: property.name,
+      inviteUrl,
+      hasExistingAccount: Boolean(existingUserId),
+    });
+    const emailSent = await sendEmail({
+      to: tenant.email,
+      templateId: "tenant_portal_invite",
+      ...tpl,
+      metadata: { inviteToken, propertyId: tenant.property_id },
+    });
+    if (!emailSent) {
+      throw new Error(
+        "Invitation was created but the email could not be sent. Check SendGrid and try again.",
+      );
     }
 
-    return { success: true as const, inviteToken };
+    return { success: true as const, inviteToken, inviteUrl, emailSent: true as const };
   });
 
 export const respondPmTenantInvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       token: z.string().uuid(),
       accept: z.boolean(),
     }),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
+    const { userId } = authContext(context);
     const invite = await readPmTenantInvite(data.token);
     if (!invite) {
       throw new Error("Invitation expired or invalid");
     }
 
     const admin = asPmDb(await adminClient());
+    const { data: tenantRow } = await admin
+      .from("pm_tenants")
+      .select("id, deleted_at, portal_status")
+      .eq("id", invite.tenantId)
+      .maybeSingle();
+    if (!tenantRow || tenantRow.deleted_at) {
+      throw new Error("This tenancy invitation is no longer available");
+    }
 
     if (!data.accept) {
       await admin
@@ -828,39 +818,8 @@ export const respondPmTenantInvite = createServerFn({ method: "POST" })
       return { success: true as const, status: "declined" as const };
     }
 
-    let linkedUserId: string | null = null;
-    try {
-      const { getRequest } = await import("@tanstack/react-start/server");
-      const request = getRequest();
-      const authHeader = request?.headers?.get("authorization");
-      if (authHeader?.startsWith("Bearer ")) {
-        const token = authHeader.slice("Bearer ".length);
-        const { createClient } = await import("@supabase/supabase-js");
-        const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-        const key =
-          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        if (url && key) {
-          const userClient = createClient(url, key, {
-            global: { headers: { Authorization: `Bearer ${token}` } },
-            auth: { persistSession: false, autoRefreshToken: false },
-          });
-          const { data: claims } = await userClient.auth.getClaims(token);
-          if (claims?.claims?.sub) linkedUserId = claims.claims.sub as string;
-        }
-      }
-    } catch {
-      // no session
-    }
-
-    if (!linkedUserId) {
-      return {
-        requiresSignup: true as const,
-        tenantId: invite.tenantId,
-      };
-    }
-
     // Prevent invite-link account hijack: invited existing user must match session
-    if (invite.existingUserId && invite.existingUserId !== linkedUserId) {
+    if (invite.existingUserId && invite.existingUserId !== userId) {
       throw new Error("Sign in with the invited account to accept this invitation");
     }
 
@@ -868,10 +827,15 @@ export const respondPmTenantInvite = createServerFn({ method: "POST" })
       .from("pm_tenants")
       .update({
         portal_status: "accepted",
-        tenant_user_id: linkedUserId,
+        tenant_user_id: userId,
       })
-      .eq("id", invite.tenantId);
+      .eq("id", invite.tenantId)
+      .is("deleted_at", null);
     await deletePmTenantInvite(data.token);
+
+    // If landlord already attached a lease, seed invoices so Rent works immediately.
+    const { seedInvoicesForTenantIds } = await import("@/lib/pm/invoice-seed");
+    await seedInvoicesForTenantIds(admin, [invite.tenantId]);
 
     return { success: true as const, status: "accepted" as const };
   });
@@ -941,6 +905,23 @@ export const listPmInvoices = createServerFn({ method: "POST" })
       .limit(240);
     if (error) throw error;
 
+    const invoiceIds = (invoices ?? []).map((inv: { id: string }) => inv.id);
+    const { data: payments } = invoiceIds.length
+      ? await admin
+          .from("pm_rent_payments")
+          .select("id, invoice_id, amount, method, mpesa_receipt_number, paid_at, note")
+          .in("invoice_id", invoiceIds)
+          .order("paid_at", { ascending: false })
+      : { data: [] };
+
+    const paymentsByInvoice = new Map<string, Array<Record<string, unknown>>>();
+    for (const pay of payments ?? []) {
+      const invId = pay.invoice_id as string;
+      const list = paymentsByInvoice.get(invId) ?? [];
+      if (list.length < 8) list.push(pay as Record<string, unknown>);
+      paymentsByInvoice.set(invId, list);
+    }
+
     const unitById = new Map(
       (units ?? []).map((u: { id: string; unit_label: string }) => [u.id, u.unit_label]),
     );
@@ -950,6 +931,7 @@ export const listPmInvoices = createServerFn({ method: "POST" })
 
     return (invoices ?? []).map((inv: Record<string, unknown>) => {
       const lease = leaseById.get(inv.lease_id as string);
+      const pays = paymentsByInvoice.get(inv.id as string) ?? [];
       return {
         id: inv.id as string,
         lease_id: inv.lease_id as string,
@@ -961,6 +943,14 @@ export const listPmInvoices = createServerFn({ method: "POST" })
         late_fee: Number(inv.late_fee ?? 0),
         unit_label: lease ? (unitById.get(lease.unit_id) ?? null) : null,
         tenant_id: lease?.tenant_id ?? null,
+        payments: pays.map((p) => ({
+          id: p.id as string,
+          amount: Number(p.amount),
+          method: p.method as string,
+          mpesa_receipt_number: (p.mpesa_receipt_number as string | null) ?? null,
+          paid_at: p.paid_at as string,
+          note: (p.note as string | null) ?? null,
+        })),
       };
     });
   });
@@ -1034,9 +1024,7 @@ export const getPmFinancialReport = createServerFn({ method: "POST" })
     const leaseById = new Map(
       (leases ?? []).map((l: { id: string; unit_id: string; tenant_id: string }) => [l.id, l]),
     );
-    const tenantIds = [
-      ...new Set((leases ?? []).map((l: { tenant_id: string }) => l.tenant_id)),
-    ];
+    const tenantIds = [...new Set((leases ?? []).map((l: { tenant_id: string }) => l.tenant_id))];
     const tenantName = new Map<string, string>();
     if (tenantIds.length) {
       const { data: tenants } = await admin
@@ -1128,25 +1116,27 @@ export const recordPmPayment = createServerFn({ method: "POST" })
       .single();
     if (payErr) throw payErr;
 
-    try {
-      const { recordPlatformFee } = await import("@/lib/pm/platform-fee");
-      await recordPlatformFee(admin, {
-        rentPaymentId: payRow.id,
-        ownerUserId: property.owner_user_id,
-        propertyId: property.id,
-        grossAmount: data.amount,
-      });
-      const { disburseUnbatchedFeeNow } = await import("@/lib/pm/payout-batch");
-      void disburseUnbatchedFeeNow(admin, {
-        rentPaymentId: payRow.id,
-        ownerUserId: property.owner_user_id,
-        propertyId: property.id,
-      }).catch((e) => console.warn("[pm] instant payout failed:", e));
-    } catch (e) {
-      console.warn("[pm] platform fee record failed:", e);
-    }
+    await recordFeeAndDisburse(admin, {
+      rentPaymentId: payRow.id,
+      ownerUserId: property.owner_user_id,
+      propertyId: property.id,
+      grossAmount: data.amount,
+    });
 
     const reconciled = await recomputeInvoiceStatus(admin, data.invoiceId);
+    try {
+      const { dispatchRentReceipts } = await import("@/lib/pm/rent-fulfillment");
+      await dispatchRentReceipts(admin, {
+        invoiceId: data.invoiceId,
+        amountKes: data.amount,
+        mpesaReceipt: null,
+        paymentRowId: payRow.id as string,
+        amountPaidCumulative: reconciled.amountPaid,
+        status: reconciled.status,
+      });
+    } catch (e) {
+      console.warn("[pm] rent receipt dispatch failed:", e);
+    }
     return { success: true as const, ...reconciled };
   });
 
@@ -1201,11 +1191,8 @@ export const getPmPropertyDashboard = createServerFn({ method: "POST" })
         .eq("status", "active");
 
       const leaseIds = (leases ?? []).map((l: { id: string }) => l.id);
-      const {
-        sumRentForPeriod,
-        avgClosedMaintenanceDays,
-        leasesEndingSoon,
-      } = await import("@/lib/pm/dashboard-metrics");
+      const { sumRentForPeriod, avgClosedMaintenanceDays, leasesEndingSoon } =
+        await import("@/lib/pm/dashboard-metrics");
 
       const rent = await sumRentForPeriod(admin, leaseIds, periodMonth);
       expectedIncome = rent.expectedIncome;

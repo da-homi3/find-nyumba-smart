@@ -21,7 +21,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import ke.co.nyumbasearch.app.BuildConfig
@@ -34,6 +36,7 @@ import ke.co.nyumbasearch.app.core.network.NetworkTierDetector
 import ke.co.nyumbasearch.app.core.util.Constants
 import ke.co.nyumbasearch.app.data.session.SessionPersistence
 import ke.co.nyumbasearch.app.databinding.ActivityMainBinding
+import ke.co.nyumbasearch.app.ui.webview.GalleryMediaSaver
 import ke.co.nyumbasearch.app.ui.webview.JsBridge
 import ke.co.nyumbasearch.app.ui.webview.NyumbaChromeClient
 import ke.co.nyumbasearch.app.ui.webview.NyumbaWebViewClient
@@ -53,6 +56,20 @@ class MainActivity : AppCompatActivity() {
     private var pendingGeoOrigin: String? = null
     private var pendingWebPermission: PermissionRequest? = null
     private var pageLoadWatchdog: Runnable? = null
+    private var androidSafeTopPx: Int = 0
+    private var pullRefreshLockedByPage: Boolean = false
+    private var pendingGallerySave: Triple<String, String, String>? = null
+
+    private val storagePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val pending = pendingGallerySave
+            pendingGallerySave = null
+            if (!granted || pending == null) {
+                Toast.makeText(this, R.string.save_gallery_permission_denied, Toast.LENGTH_LONG).show()
+                return@registerForActivityResult
+            }
+            enqueueGallerySave(pending.first, pending.second, pending.third)
+        }
 
     private val fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -87,6 +104,13 @@ class MainActivity : AppCompatActivity() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = false
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            androidSafeTopPx = bars.top
+            injectSafeAreaCss()
+            insets
         }
 
         tierDetector = NetworkTierDetector(this)
@@ -151,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-        webView.addJavascriptInterface(JsBridge(), "NyumbaAndroid")
+        webView.addJavascriptInterface(JsBridge(this), "NyumbaAndroid")
         webView.webChromeClient = NyumbaChromeClient(this)
         webView.webViewClient = NyumbaWebViewClient(
             activity = this,
@@ -159,6 +183,8 @@ class MainActivity : AppCompatActivity() {
                 clearPageLoadWatchdog()
                 binding.swipeRefresh.isRefreshing = false
                 retryHandler.reset()
+                updatePullRefreshForUrl(binding.webView.url)
+                injectSafeAreaCss()
             },
             onMainFrameError = {
                 clearPageLoadWatchdog()
@@ -168,22 +194,95 @@ class MainActivity : AppCompatActivity() {
         )
 
         webView.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
+            val name = URLUtil.guessFileName(url, contentDisposition, mimeType)
+            val mime = mimeType ?: "application/octet-stream"
+            // Videos/images → gallery; other files → Downloads.
+            if (mime.startsWith("video/") || mime.startsWith("image/")) {
+                saveMediaToGallery(url, mime, name)
+                return@setDownloadListener
+            }
             val request = DownloadManager.Request(Uri.parse(url)).apply {
-                setMimeType(mimeType)
+                setMimeType(mime)
                 addRequestHeader("cookie", CookieManager.getInstance().getCookie(url) ?: "")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                setDestinationInExternalPublicDir(
-                    Environment.DIRECTORY_DOWNLOADS,
-                    URLUtil.guessFileName(url, contentDisposition, mimeType),
-                )
+                setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
             }
             (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(request)
             Toast.makeText(this, R.string.downloading, Toast.LENGTH_SHORT).show()
         }
 
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            binding.swipeRefresh.isEnabled = scrollY == 0
+            binding.swipeRefresh.isEnabled = !pullRefreshLockedByPage && scrollY == 0
         }
+    }
+
+    /** Push system-bar inset into CSS so web chrome clears the status bar under edge-to-edge. */
+    fun injectSafeAreaCss() {
+        if (!::binding.isInitialized) return
+        val top = androidSafeTopPx.coerceAtLeast(0)
+        binding.webView.evaluateJavascript(
+            "document.documentElement.style.setProperty('--android-safe-top','${top}px');",
+            null,
+        )
+    }
+
+    fun setPullToRefreshEnabled(enabled: Boolean) {
+        pullRefreshLockedByPage = !enabled
+        if (!::binding.isInitialized) return
+        if (!enabled) {
+            binding.swipeRefresh.isRefreshing = false
+            binding.swipeRefresh.isEnabled = false
+        } else {
+            binding.swipeRefresh.isEnabled = binding.webView.scrollY == 0
+        }
+    }
+
+    /** Save a remote video/image into the system gallery (Movies / Pictures → NyumbaSearch). */
+    fun saveMediaToGallery(url: String, mimeType: String, filename: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            val granted =
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                    PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                pendingGallerySave = Triple(url, mimeType, filename)
+                storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                return
+            }
+        }
+        enqueueGallerySave(url, mimeType, filename)
+    }
+
+    private fun enqueueGallerySave(url: String, mimeType: String, filename: String) {
+        Toast.makeText(this, R.string.saving_to_gallery, Toast.LENGTH_SHORT).show()
+        GalleryMediaSaver.saveAsync(
+            context = this,
+            url = url,
+            mimeType = mimeType,
+            filename = filename,
+            onSuccess = {
+                runOnUiThread {
+                    Toast.makeText(this, R.string.saved_to_gallery, Toast.LENGTH_LONG).show()
+                }
+            },
+            onError = { message ->
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.save_gallery_failed, message),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            },
+        )
+    }
+
+    private fun updatePullRefreshForUrl(url: String?) {
+        // Listing upload wizards: pull-to-refresh remounts React and aborts mid-upload UX.
+        val locked =
+            url?.contains("/listings/new") == true ||
+                url?.contains("/properties/new") == true ||
+                url?.contains("/properties/create") == true
+        setPullToRefreshEnabled(!locked)
     }
 
     private fun setupSwipeRefresh() {

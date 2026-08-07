@@ -63,5 +63,27 @@ export default [
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     },
   },
+  {
+    files: ["public/sw.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "script",
+      globals: { ...globals.serviceworker, ...globals.browser },
+    },
+  },
+  {
+    // Cloudflare Workers runtime (Durable Objects) — not Node, not DOM.
+    files: ["src/worker/**"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: {
+        ...globals.serviceworker,
+        ...globals.browser,
+        WebSocketPair: "readonly",
+        DurableObject: "readonly",
+      },
+    },
+  },
   eslintPluginPrettier,
 ];

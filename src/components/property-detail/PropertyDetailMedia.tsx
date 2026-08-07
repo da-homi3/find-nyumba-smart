@@ -1,13 +1,24 @@
-import { useState } from "react";
-import { Compass, Film } from "lucide-react";
+import { lazy, Suspense, useState } from "react";
+import { Compass, Download, Film, Loader2 } from "lucide-react";
 import type { Property } from "@/lib/properties";
-import { Panorama360Viewer } from "./Panorama360Viewer";
+
+// Pulls in three.js (~180KB gzip). Only a minority of listings have a self-hosted 360
+// tour, so it must not be in the property-detail bundle that every listing view loads.
+const Panorama360Viewer = lazy(() =>
+  import("./Panorama360Viewer").then((m) => ({ default: m.Panorama360Viewer })),
+);
 import {
   externalVideoEmbedUrl,
   isExternalVideoEmbed,
   isLikelyUnsupportedHtml5Video,
   videoMimeFromUrl,
 } from "@/lib/media/video-embed";
+import { useAuth } from "@/hooks/use-auth";
+import { getAdminPropertyMediaDownloads } from "@/lib/api/admin.functions";
+import { saveMediaToGallery, saveResultToast } from "@/lib/media/save-media-to-gallery";
+import { filenameFromMediaPath, propertyMediaPathFromUrl } from "@/lib/media/property-media-path";
+import { toast } from "sonner";
+import { errorMessage } from "@/lib/utils";
 
 type PropertyDetailMediaProps = Readonly<{
   property: Property;
@@ -25,10 +36,7 @@ function matterportEmbedUrl(url: string) {
   return url;
 }
 
-function WalkthroughVideo({
-  videoUrl,
-  title,
-}: Readonly<{ videoUrl: string; title: string }>) {
+function WalkthroughVideo({ videoUrl, title }: Readonly<{ videoUrl: string; title: string }>) {
   const [failed, setFailed] = useState(false);
   const embedSrc = isExternalVideoEmbed(videoUrl) ? externalVideoEmbedUrl(videoUrl) : null;
   const mime = videoMimeFromUrl(videoUrl);
@@ -72,7 +80,8 @@ function WalkthroughVideo({
       key={videoUrl}
       controls
       playsInline
-      preload="auto"
+      // Walkthroughs are multi-MB; don't spend a mobile data plan before the user hits play.
+      preload="none"
       controlsList="nodownload"
       className="aspect-video w-full bg-black object-contain"
       onError={() => setFailed(true)}
@@ -83,7 +92,66 @@ function WalkthroughVideo({
   );
 }
 
+function walkthroughFilename(title: string, videoUrl: string): string {
+  const path = propertyMediaPathFromUrl(videoUrl);
+  if (path) return filenameFromMediaPath(path, "walkthrough.mp4");
+  const slug = title
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/(^-|-$)/g, "")
+    .slice(0, 40);
+  return `${slug || "walkthrough"}-walkthrough.mp4`;
+}
+
+function AdminWalkthroughDownload({
+  propertyId,
+  videoUrl,
+  title,
+}: Readonly<{ propertyId: string; videoUrl: string; title: string }>) {
+  const [busy, setBusy] = useState(false);
+
+  if (isExternalVideoEmbed(videoUrl)) return null;
+
+  async function onDownload() {
+    setBusy(true);
+    try {
+      const pack = await getAdminPropertyMediaDownloads({ data: { propertyId } });
+      const video = pack.items.find((item) => item.kind === "video");
+      const url = video?.url ?? videoUrl;
+      const filename = video?.filename ?? walkthroughFilename(title, url);
+      const result = await saveMediaToGallery({
+        url,
+        filename,
+        mimeType: videoMimeFromUrl(url),
+      });
+      toast.success(saveResultToast(result));
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void onDownload()}
+      disabled={busy}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground transition hover:bg-muted disabled:opacity-60"
+      aria-label="Save walkthrough to gallery"
+    >
+      {busy ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Download className="h-3.5 w-3.5" />
+      )}
+      {busy ? "Saving…" : "Save to gallery"}
+    </button>
+  );
+}
+
 export function PropertyDetailMedia({ property }: PropertyDetailMediaProps) {
+  const { isAdmin } = useAuth();
   const hasVideo = Boolean(property.video_url);
   const hasTour = Boolean(property.tour_url?.trim());
   if (!hasVideo && !hasTour) return null;
@@ -101,9 +169,18 @@ export function PropertyDetailMedia({ property }: PropertyDetailMediaProps) {
               <Film className="h-4 w-4 text-primary" aria-hidden />
               <h2 className="font-display text-sm font-semibold">Walkthrough video</h2>
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Full quality
-            </span>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <AdminWalkthroughDownload
+                  propertyId={property.id}
+                  videoUrl={videoUrl}
+                  title={property.title}
+                />
+              )}
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Full quality
+              </span>
+            </div>
           </div>
           <WalkthroughVideo videoUrl={videoUrl} title={property.title} />
         </section>
@@ -124,10 +201,18 @@ export function PropertyDetailMedia({ property }: PropertyDetailMediaProps) {
               loading="lazy"
             />
           ) : (
-            <Panorama360Viewer
-              src={tourUrl}
-              className="aspect-video w-full cursor-grab bg-muted active:cursor-grabbing"
-            />
+            <Suspense
+              fallback={
+                <div className="flex aspect-video w-full items-center justify-center bg-muted">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              }
+            >
+              <Panorama360Viewer
+                src={tourUrl}
+                className="aspect-video w-full cursor-grab bg-muted active:cursor-grabbing"
+              />
+            </Suspense>
           )}
           <p className="px-4 py-2 text-[11px] text-muted-foreground">
             Drag to look around the room in 360°.

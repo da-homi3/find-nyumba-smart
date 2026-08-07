@@ -46,12 +46,19 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
 
   try {
     sgMail.setApiKey(key);
+    // Keep CTA URLs as-is (e.g. /tenant/invite/…). Account-level SendGrid click
+    // tracking was rewriting them to url7389.nyumbasearch.com (broken SSL).
     const [res] = await sgMail.send({
       to: payload.to,
       from: fromAddress(),
       subject: payload.subject,
       text: payload.text,
       html: payload.html,
+      trackingSettings: {
+        clickTracking: { enable: false, enableText: false },
+        openTracking: { enable: false },
+        subscriptionTracking: { enable: false },
+      },
     });
     const providerId = res?.headers?.["x-message-id"] as string | undefined;
     await logEmailAttempt(payload, "sent", providerId);

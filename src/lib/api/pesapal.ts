@@ -7,8 +7,8 @@ let tokenCache: TokenCache | null = null;
 export function isPesapalConfigured(): boolean {
   return Boolean(
     getServerEnv("PESAPAL_CONSUMER_KEY")?.trim() &&
-      getServerEnv("PESAPAL_CONSUMER_SECRET")?.trim() &&
-      getServerEnv("PESAPAL_NOTIFICATION_ID")?.trim(),
+    getServerEnv("PESAPAL_CONSUMER_SECRET")?.trim() &&
+    getServerEnv("PESAPAL_NOTIFICATION_ID")?.trim(),
   );
 }
 

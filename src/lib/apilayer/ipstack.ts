@@ -122,10 +122,9 @@ export async function lookupIpstack(ip: string): Promise<IpstackLookup> {
 }
 
 /** Map an ipstack city/region onto NyumbaSearch Kenya location catalog. */
-export function mapIpstackToKenyaArea(lookup: IpstackLookup): Omit<
-  KenyaAreaHint,
-  "configured" | "available" | "ip" | "fraudRisk" | "countryMismatchLikely"
-> {
+export function mapIpstackToKenyaArea(
+  lookup: IpstackLookup,
+): Omit<KenyaAreaHint, "configured" | "available" | "ip" | "fraudRisk" | "countryMismatchLikely"> {
   const empty = {
     countryCode: lookup.countryCode,
     county: null as string | null,
@@ -146,9 +145,7 @@ export function mapIpstackToKenyaArea(lookup: IpstackLookup): Omit<
         county: matched.county,
         neighborhood: neighborhoodStorageValue(matched),
         filterValue:
-          matched.county === "Nairobi"
-            ? matched.name
-            : countyWideFilterValue(matched.county),
+          matched.county === "Nairobi" ? matched.name : countyWideFilterValue(matched.county),
         lat: matched.lat,
         lng: matched.lng,
       };
@@ -177,8 +174,7 @@ export function mapIpstackToKenyaArea(lookup: IpstackLookup): Omit<
 
 export function buildKenyaAreaHint(lookup: IpstackLookup): KenyaAreaHint {
   const mapped = mapIpstackToKenyaArea(lookup);
-  const fraudRisk: KenyaAreaHint["fraudRisk"] =
-    lookup.isProxy || lookup.isTor ? "elevated" : "low";
+  const fraudRisk: KenyaAreaHint["fraudRisk"] = lookup.isProxy || lookup.isTor ? "elevated" : "low";
   return {
     configured: lookup.configured,
     available: lookup.available,

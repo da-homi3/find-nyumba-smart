@@ -30,15 +30,13 @@ function resolveGlassClass(isHero: boolean, scrolled: boolean): string {
       ? "bg-[rgba(17,24,39,0.88)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
       : "bg-[rgba(17,24,39,0.42)]";
   }
-  return scrolled
-    ? "bg-background/90 shadow-card"
-    : "bg-background/75";
+  return scrolled ? "bg-background/90 shadow-card" : "bg-background/75";
 }
 
 function headerShellClass(isHero: boolean): string {
   return isHero
-    ? "fixed top-4 inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/12 backdrop-blur-2xl sm:inset-x-6"
-    : "sticky top-0 z-30 border-b border-border/60 backdrop-blur-2xl";
+    ? "fixed inset-x-4 z-50 mx-auto max-w-7xl rounded-2xl border border-white/12 backdrop-blur-2xl sm:inset-x-6 top-[max(1rem,env(safe-area-inset-top,0px),var(--android-safe-top,0px))]"
+    : "sticky top-0 z-30 border-b border-border/60 backdrop-blur-2xl safe-area-pad-top";
 }
 
 function heroOutlineClass(isHero: boolean): string {
@@ -58,8 +56,16 @@ function buildMobileNavLinks(loggedIn: boolean) {
 }
 
 export function SiteNav({ variant = "light" }: Readonly<Props>) {
-  const { user, signOut, isLandlord, isManager, isAgency, roles, activePortal, pendingApplications } =
-    useAuth();
+  const {
+    user,
+    signOut,
+    isLandlord,
+    isManager,
+    isAgency,
+    roles,
+    activePortal,
+    pendingApplications,
+  } = useAuth();
   const { isPlus } = useEntitlements();
   const { isDark, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);

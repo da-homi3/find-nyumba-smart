@@ -15,7 +15,11 @@ import {
   isNightlyRentType,
 } from "@/lib/property-types";
 import { normalizeCommercialRangeFields, validateCommercialRanges } from "@/lib/commercial-ranges";
-import { contactPhoneFields, phonesFromProperty, syncContactPhonePayload } from "@/lib/contact-phones";
+import {
+  contactPhoneFields,
+  phonesFromProperty,
+  syncContactPhonePayload,
+} from "@/lib/contact-phones";
 import { getSiteUrl } from "@/lib/site";
 import { normalizePropertyImages } from "@/lib/property-images";
 
@@ -100,6 +104,10 @@ export const propertyPayloadBaseSchema = z.object({
   rent_kes: z.number().int().positive(),
   rent_kes_max: z.number().int().positive().nullable().optional(),
   deposit_kes: z.number().int().nonnegative().nullable().optional(),
+  price_currency: z.enum(["KES", "USD"]).optional(),
+  rent_usd: z.number().positive().nullable().optional(),
+  rent_usd_max: z.number().positive().nullable().optional(),
+  deposit_usd: z.number().nonnegative().nullable().optional(),
   bedrooms: z.number().int().min(0),
   bathrooms: z.number().int().min(0),
   area_sqm: z.number().int().positive().nullable().optional(),
@@ -125,10 +133,11 @@ export const propertyPayloadBaseSchema = z.object({
 });
 
 export function withPropertyPayloadRules<T extends z.ZodTypeAny>(schema: T) {
-  return z.preprocess((raw) => {
-    if (!raw || typeof raw !== "object") return raw;
-    return syncContactPhonePayload(raw as Record<string, unknown>);
-  }, schema)
+  return z
+    .preprocess((raw) => {
+      if (!raw || typeof raw !== "object") return raw;
+      return syncContactPhonePayload(raw as Record<string, unknown>);
+    }, schema)
     .superRefine((data, ctx) => {
       const mode = normalizePricingMode(data.property_type, data.pricing_mode);
       const period = normalizePricePeriod(data.property_type, mode, data.price_period ?? null);
@@ -255,7 +264,9 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     id: row.id,
     owner_id: row.owner_id ?? null,
     title: row.title,
-    property_type: parsedType.success ? parsedType.data : ("bedsitter" as Property["property_type"]),
+    property_type: parsedType.success
+      ? parsedType.data
+      : ("bedsitter" as Property["property_type"]),
     neighborhood: row.neighborhood,
     address: row.address ?? null,
     latitude: row.latitude,
@@ -263,6 +274,11 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     rent_kes: row.rent_kes,
     rent_kes_max: row.rent_kes_max ?? null,
     deposit_kes: row.deposit_kes ?? null,
+    price_currency:
+      (row as { price_currency?: string | null }).price_currency === "USD" ? "USD" : "KES",
+    rent_usd: (row as { rent_usd?: number | null }).rent_usd ?? null,
+    rent_usd_max: (row as { rent_usd_max?: number | null }).rent_usd_max ?? null,
+    deposit_usd: (row as { deposit_usd?: number | null }).deposit_usd ?? null,
     bedrooms: row.bedrooms,
     bathrooms: row.bathrooms,
     area_sqm: row.area_sqm ?? null,

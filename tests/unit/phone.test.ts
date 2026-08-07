@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatKenyanPhoneDisplay,
-  isKenyanPhone,
-  resolveAccountPhone,
-} from "@/lib/phone";
+import { formatKenyanPhoneDisplay, isKenyanPhone, resolveAccountPhone } from "@/lib/phone";
 
 describe("phone helpers", () => {
   it("validates Kenyan mobiles", () => {
@@ -25,10 +21,7 @@ describe("phone helpers", () => {
 
   it("prefers profile phone over metadata", () => {
     expect(
-      resolveAccountPhone(
-        { user_metadata: { phone: "0799999999" }, phone: null },
-        "0712345678",
-      ),
+      resolveAccountPhone({ user_metadata: { phone: "0799999999" }, phone: null }, "0712345678"),
     ).toBe("0712345678");
   });
 });

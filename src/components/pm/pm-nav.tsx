@@ -32,11 +32,16 @@ const MAINTENANCE = {
   agency: "/agency/manage/$propertyId/maintenance",
   manager: "/manager/manage/$propertyId/maintenance",
 } as const;
+const COMPLAINTS = {
+  landlord: "/landlord/manage/$propertyId/complaints",
+  agency: "/agency/manage/$propertyId/complaints",
+  manager: "/manager/manage/$propertyId/complaints",
+} as const;
 
 type PmPropertySubnavProps = Readonly<{
   portal: PmPortal;
   propertyId: string;
-  active: "overview" | "units" | "tenants" | "rent" | "maintenance";
+  active: "overview" | "units" | "tenants" | "rent" | "maintenance" | "complaints";
 }>;
 
 export function PmPropertySubnav({ portal, propertyId, active }: PmPropertySubnavProps) {
@@ -47,6 +52,7 @@ export function PmPropertySubnav({ portal, propertyId, active }: PmPropertySubna
     { id: "tenants" as const, to: TENANTS[portal], label: "Tenants" },
     { id: "rent" as const, to: RENT[portal], label: "Rent" },
     { id: "maintenance" as const, to: MAINTENANCE[portal], label: "Maintenance" },
+    { id: "complaints" as const, to: COMPLAINTS[portal], label: "Complaints" },
   ];
   return (
     <nav className="mb-6 flex flex-wrap gap-2 border-b border-border pb-3">
