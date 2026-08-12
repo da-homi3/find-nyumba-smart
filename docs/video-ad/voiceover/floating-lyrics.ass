@@ -1,5 +1,5 @@
 [Script Info]
-Title: NyumbaSearch — Theme-matched floating lyrics
+Title: NyumbaSearch — Top-aligned floating lyrics
 ScriptType: v4.00+
 WrapStyle: 0
 ScaledBorderAndShadow: yes
@@ -8,51 +8,50 @@ PlayResY: 1080
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-; Soft cinematic captions — cream/gold/jade on thin cocoa outline + soft shadow (blends with video grade)
-Style: ProblemLyric,DejaVu Sans,40,&H00E0E8F0,&H000000FF,&H6A180E08,&H64000000,-1,0,0,0,100,100,0.4,0,1,2.4,2.0,8,140,140,90,1
-Style: RevealLyric,DejaVu Sans,44,&H00E8F1F7,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.7,0,1,2.6,2.2,8,140,140,90,1
-Style: RevealAccent,DejaVu Sans,46,&H003D8F0A,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.9,0,1,2.8,2.2,8,140,140,90,1
-Style: ProductLyric,DejaVu Sans,42,&H00E8F1F7,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.5,2.0,8,140,140,90,1
-Style: TrustLyric,DejaVu Sans,42,&H00D8F5E4,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.6,0,1,2.5,2.0,8,140,140,90,1
-Style: OwnersLyric,DejaVu Sans,42,&H00E8F1F7,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.5,2.0,8,140,140,90,1
-Style: ServicesLyric,DejaVu Sans,42,&H00C8E8F7,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.5,2.0,8,140,140,90,1
-Style: FinanceLyric,DejaVu Sans,41,&H004BA8D4,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.4,2.0,8,140,140,90,1
-Style: EcoLyric,DejaVu Sans,43,&H00E8F1F7,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.7,0,1,2.6,2.2,8,140,140,90,1
-Style: PayoffLyric,DejaVu Sans,44,&H00E8F1F7,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.8,0,1,2.6,2.2,8,140,140,90,1
-Style: BrandLyric,DejaVu Sans,70,&H00F7F1E8,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,2.2,0,1,0,0,5,100,100,80,1
-Style: CtaLyric,DejaVu Sans,42,&H004BA8D4,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.8,0,1,2.6,2.2,8,140,140,90,1
+Style: ProblemLyric,DejaVu Sans,40,&H00E0E8F0,&H000000FF,&H6A180E08,&H64000000,-1,0,0,0,100,100,0.4,0,1,2.4,2.0,8,140,140,48,1
+Style: RevealLyric,DejaVu Sans,44,&H00E8F1F7,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.7,0,1,2.6,2.2,8,140,140,48,1
+Style: RevealAccent,DejaVu Sans,46,&H003D8F0A,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.9,0,1,2.8,2.2,8,140,140,48,1
+Style: ProductLyric,DejaVu Sans,42,&H00E8F1F7,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.5,2.0,8,140,140,48,1
+Style: TrustLyric,DejaVu Sans,42,&H00D8F5E4,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.6,0,1,2.5,2.0,8,140,140,48,1
+Style: OwnersLyric,DejaVu Sans,42,&H00E8F1F7,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.5,2.0,8,140,140,48,1
+Style: ServicesLyric,DejaVu Sans,42,&H00C8E8F7,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.5,2.0,8,140,140,48,1
+Style: FinanceLyric,DejaVu Sans,41,&H004BA8D4,&H000000FF,&H6A180E08,&H68000000,-1,0,0,0,100,100,0.5,0,1,2.4,2.0,8,140,140,48,1
+Style: EcoLyric,DejaVu Sans,43,&H00E8F1F7,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.7,0,1,2.6,2.2,8,140,140,48,1
+Style: PayoffLyric,DejaVu Sans,44,&H00E8F1F7,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.8,0,1,2.6,2.2,8,140,140,48,1
+Style: BrandLyric,DejaVu Sans,64,&H00F7F1E8,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,2.0,0,1,0,0,8,100,100,40,1
+Style: CtaLyric,DejaVu Sans,42,&H004BA8D4,&H000000FF,&H6A180E08,&H70000000,-1,0,0,0,100,100,0.8,0,1,2.6,2.2,8,140,140,48,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.22,0:00:02.53,ProblemLyric,,0,0,0,,{\fad(320,380)\move(980,300,900,255)\blur0.8\fscx98\fscy98}Finding a home should be exciting.
-Dialogue: 0,0:00:02.69,0:00:07.70,ProblemLyric,,0,0,0,,{\fad(320,380)\move(990,300,892,255)\blur0.8\fscx98\fscy98}But in Nairobi, it often means endless calls, outdated listings, and wasted trips.
-Dialogue: 0,0:00:08.22,0:00:11.13,ProblemLyric,,0,0,0,,{\fad(320,380)\move(980,300,900,255)\blur0.8\fscx98\fscy98}You spend hours searching, money on transport
-Dialogue: 0,0:00:11.29,0:00:15.46,ProblemLyric,,0,0,0,,{\fad(320,380)\move(990,300,892,255)\blur0.8\fscx98\fscy98}and still don't know if the property is available —
-Dialogue: 0,0:00:15.62,0:00:17.70,ProblemLyric,,0,0,0,,{\fad(320,380)\move(1000,300,884,255)\blur0.8\fscx98\fscy98}or who you're dealing with.
-Dialogue: 0,0:00:18.22,0:00:20.37,RevealAccent,,0,0,0,,{\fad(260,320)\move(960,330,960,240)\blur0.3\fscx105\fscy105}That's why we built NyumbaSearch.
-Dialogue: 0,0:00:20.53,0:00:25.70,RevealLyric,,0,0,0,,{\fad(260,320)\move(960,330,960,240)\blur0.35\fscx103\fscy103}A smarter way to discover properties and connect with the right people.
-Dialogue: 0,0:00:26.22,0:00:28.03,ProductLyric,,0,0,0,,{\fad(260,320)\move(920,310,1000,250)\blur0.4}Search in one place.
-Dialogue: 0,0:00:28.19,0:00:32.70,ProductLyric,,0,0,0,,{\fad(260,320)\move(950,310,980,250)\blur0.4}Filter by location, price, and what actually matters to you.
-Dialogue: 0,0:00:33.22,0:00:37.70,ProductLyric,,0,0,0,,{\fad(260,320)\move(920,310,1000,250)\blur0.4}See homes on the map, compare options, and connect directly.
-Dialogue: 0,0:00:38.22,0:00:42.70,TrustLyric,,0,0,0,,{\fad(260,320)\move(960,280,960,245)\blur0.25\fscx101\fscy101}Because trust matters, we validate properties before they go live.
-Dialogue: 0,0:00:43.22,0:00:47.70,TrustLyric,,0,0,0,,{\fad(260,320)\move(960,280,960,245)\blur0.25\fscx101\fscy101}We don't open the door to anyone claiming to have a property.
-Dialogue: 0,0:00:48.22,0:00:52.66,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,320,980,255)\blur0.45}For owners and managers, NyumbaSearch is more than a listing.
-Dialogue: 0,0:00:52.82,0:00:57.70,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,320,980,255)\blur0.45}Manage units, organize tenants, and reach people looking for a home.
-Dialogue: 0,0:00:58.22,0:01:03.60,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,320,980,255)\blur0.45}From leases and rent collection to invoices and tenant activity —
-Dialogue: 0,0:01:03.76,0:01:06.70,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,320,980,255)\blur0.45}property management becomes easier to follow.
-Dialogue: 0,0:01:07.22,0:01:12.70,ServicesLyric,,0,0,0,,{\fad(260,320)\move(940,340,980,260)\blur0.5\fscx102\fscy102}Moving into a home also means finding the help you need around it.
-Dialogue: 0,0:01:13.22,0:01:17.70,ServicesLyric,,0,0,0,,{\fad(260,320)\move(940,340,980,260)\blur0.5\fscx102\fscy102}Connect with trusted providers for moving, maintenance, and more.
-Dialogue: 0,0:01:18.22,0:01:21.16,FinanceLyric,,0,0,0,,{\fad(260,320)\move(1000,300,920,250)\blur0.4}And because housing comes with costs
-Dialogue: 0,0:01:21.32,0:01:26.70,FinanceLyric,,0,0,0,,{\fad(260,320)\move(1000,300,920,250)\blur0.4}NyumbaSearch connects you to financial services as a careful referral pathway.
-Dialogue: 0,0:01:27.22,0:01:31.93,EcoLyric,,0,0,0,,{\fad(260,320)\move(960,320,960,245)\blur0.35\fscx102\fscy102}Whether you're hunting, managing, living, or providing services —
-Dialogue: 0,0:01:32.09,0:01:34.70,EcoLyric,,0,0,0,,{\fad(260,320)\move(960,320,960,245)\blur0.35\fscx102\fscy102}NyumbaSearch brings the journey together.
-Dialogue: 0,0:01:35.22,0:01:36.15,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,300,960,235)\blur0.3\fscx104\fscy104}Less uncertainty.
-Dialogue: 0,0:01:36.31,0:01:37.71,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,292,960,229)\blur0.3\fscx104\fscy104}Less wasted time.
-Dialogue: 0,0:01:37.87,0:01:39.27,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,284,960,223)\blur0.3\fscx104\fscy104}More clarity —
-Dialogue: 0,0:01:39.43,0:01:42.70,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,276,960,217)\blur0.3\fscx104\fscy104}toward a place you can call home.
-Dialogue: 0,0:01:43.22,0:01:44.22,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,360,960,200)\blur0.2\fscx110\fscy110}NyumbaSearch.
-Dialogue: 0,0:01:44.38,0:01:45.38,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,356,960,158)\blur0.2\fscx110\fscy110}Find.
-Dialogue: 0,0:01:45.54,0:01:46.54,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,352,960,116)\blur0.2\fscx110\fscy110}Connect.
-Dialogue: 0,0:01:46.70,0:01:48.70,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,348,960,74)\blur0.2\fscx110\fscy110}Move in.
-Dialogue: 0,0:01:49.22,0:01:52.36,CtaLyric,,0,0,0,,{\fad(260,320)\move(960,320,960,255)\blur0.35\fscx102\fscy102}Start your search today at nyumbasearch.com.
-Dialogue: 0,0:01:52.52,0:01:56.70,CtaLyric,,0,0,0,,{\fad(260,320)\move(960,320,960,255)\blur0.35\fscx102\fscy102}Your next home could be one search away.
+Dialogue: 0,0:00:00.22,0:00:02.53,ProblemLyric,,0,0,0,,{\fad(320,380)\move(980,150,900,95)\blur0.7\fscx98\fscy98}Finding a home should be exciting.
+Dialogue: 0,0:00:02.69,0:00:07.70,ProblemLyric,,0,0,0,,{\fad(320,380)\move(988,150,894,95)\blur0.7\fscx98\fscy98}But in Nairobi, it often means endless calls, outdated listings, and wasted trips.
+Dialogue: 0,0:00:08.22,0:00:11.13,ProblemLyric,,0,0,0,,{\fad(320,380)\move(980,150,900,95)\blur0.7\fscx98\fscy98}You spend hours searching, money on transport
+Dialogue: 0,0:00:11.29,0:00:15.46,ProblemLyric,,0,0,0,,{\fad(320,380)\move(988,150,894,95)\blur0.7\fscx98\fscy98}and still don't know if the property is available —
+Dialogue: 0,0:00:15.62,0:00:17.70,ProblemLyric,,0,0,0,,{\fad(320,380)\move(996,150,888,95)\blur0.7\fscx98\fscy98}or who you're dealing with.
+Dialogue: 0,0:00:18.22,0:00:20.37,RevealAccent,,0,0,0,,{\fad(260,320)\move(960,160,960,90)\blur0.3\fscx105\fscy105}That's why we built NyumbaSearch.
+Dialogue: 0,0:00:20.53,0:00:25.70,RevealLyric,,0,0,0,,{\fad(260,320)\move(960,160,960,90)\blur0.35\fscx103\fscy103}A smarter way to discover properties and connect with the right people.
+Dialogue: 0,0:00:26.22,0:00:28.03,ProductLyric,,0,0,0,,{\fad(260,320)\move(920,155,1000,95)\blur0.4}Search in one place.
+Dialogue: 0,0:00:28.19,0:00:32.70,ProductLyric,,0,0,0,,{\fad(260,320)\move(944,155,984,95)\blur0.4}Filter by location, price, and what actually matters to you.
+Dialogue: 0,0:00:33.22,0:00:37.70,ProductLyric,,0,0,0,,{\fad(260,320)\move(920,155,1000,95)\blur0.4}See homes on the map, compare options, and connect directly.
+Dialogue: 0,0:00:38.22,0:00:42.70,TrustLyric,,0,0,0,,{\fad(260,320)\move(960,140,960,100)\blur0.25\fscx101\fscy101}Because trust matters, we validate properties before they go live.
+Dialogue: 0,0:00:43.22,0:00:47.70,TrustLyric,,0,0,0,,{\fad(260,320)\move(960,140,960,100)\blur0.25\fscx101\fscy101}We don't open the door to anyone claiming to have a property.
+Dialogue: 0,0:00:48.22,0:00:52.66,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,155,980,95)\blur0.45}For owners and managers, NyumbaSearch is more than a listing.
+Dialogue: 0,0:00:52.82,0:00:57.70,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,155,980,95)\blur0.45}Manage units, organize tenants, and reach people looking for a home.
+Dialogue: 0,0:00:58.22,0:01:03.60,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,155,980,95)\blur0.45}From leases and rent collection to invoices and tenant activity —
+Dialogue: 0,0:01:03.76,0:01:06.70,OwnersLyric,,0,0,0,,{\fad(260,320)\move(900,155,980,95)\blur0.45}property management becomes easier to follow.
+Dialogue: 0,0:01:07.22,0:01:12.70,ServicesLyric,,0,0,0,,{\fad(260,320)\move(940,160,980,100)\blur0.5\fscx102\fscy102}Moving into a home also means finding the help you need around it.
+Dialogue: 0,0:01:13.22,0:01:17.70,ServicesLyric,,0,0,0,,{\fad(260,320)\move(940,160,980,100)\blur0.5\fscx102\fscy102}Connect with trusted providers for moving, maintenance, and more.
+Dialogue: 0,0:01:18.22,0:01:21.16,FinanceLyric,,0,0,0,,{\fad(260,320)\move(1000,150,920,95)\blur0.4}And because housing comes with costs
+Dialogue: 0,0:01:21.32,0:01:26.70,FinanceLyric,,0,0,0,,{\fad(260,320)\move(1000,150,920,95)\blur0.4}NyumbaSearch connects you to financial services as a careful referral pathway.
+Dialogue: 0,0:01:27.22,0:01:31.93,EcoLyric,,0,0,0,,{\fad(260,320)\move(960,155,960,95)\blur0.35\fscx102\fscy102}Whether you're hunting, managing, living, or providing services —
+Dialogue: 0,0:01:32.09,0:01:34.70,EcoLyric,,0,0,0,,{\fad(260,320)\move(960,155,960,95)\blur0.35\fscx102\fscy102}NyumbaSearch brings the journey together.
+Dialogue: 0,0:01:35.22,0:01:36.15,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,150,960,95)\blur0.3\fscx104\fscy104}Less uncertainty.
+Dialogue: 0,0:01:36.31,0:01:37.71,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,146,960,92)\blur0.3\fscx104\fscy104}Less wasted time.
+Dialogue: 0,0:01:37.87,0:01:39.27,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,142,960,89)\blur0.3\fscx104\fscy104}More clarity —
+Dialogue: 0,0:01:39.43,0:01:42.70,PayoffLyric,,0,0,0,,{\fad(320,380)\move(960,138,960,86)\blur0.3\fscx104\fscy104}toward a place you can call home.
+Dialogue: 0,0:01:43.22,0:01:44.22,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,170,960,70)\blur0.2\fscx108\fscy108}NyumbaSearch.
+Dialogue: 0,0:01:44.38,0:01:45.38,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,167,960,108)\blur0.2\fscx108\fscy108}Find.
+Dialogue: 0,0:01:45.54,0:01:46.54,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,164,960,146)\blur0.2\fscx108\fscy108}Connect.
+Dialogue: 0,0:01:46.70,0:01:48.70,BrandLyric,,0,0,0,,{\fad(220,280)\move(960,161,960,184)\blur0.2\fscx108\fscy108}Move in.
+Dialogue: 0,0:01:49.22,0:01:52.36,CtaLyric,,0,0,0,,{\fad(260,320)\move(960,155,960,100)\blur0.35\fscx102\fscy102}Start your search today at nyumbasearch.com.
+Dialogue: 0,0:01:52.52,0:01:56.70,CtaLyric,,0,0,0,,{\fad(260,320)\move(960,155,960,100)\blur0.35\fscx102\fscy102}Your next home could be one search away.
