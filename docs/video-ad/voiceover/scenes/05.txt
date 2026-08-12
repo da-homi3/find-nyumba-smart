@@ -1,0 +1,1 @@
+Because trust matters, we validate properties before they go live.
