@@ -83,3 +83,17 @@ Do **not** invent loan approvals, interest rates, or guaranteed finance. Finance
 > NyumbaSearch isn't just helping people find houses. It's making the entire housing journey easier — from finding a property, to managing it, to living in it, to finding the services and financial connections people need around it.
 
 **Tagline lock:** **FIND. CONNECT. MOVE IN.**
+
+---
+
+## 6. Preview cuts (generated)
+
+| File | Description |
+|------|-------------|
+| `animatic/NyumbaSearch-Find-Connect-Move-In-DIRECTORS-CUT.mp4` | **~116s 16:9** with Kenyan English VO (`en-KE-ChilembaNeural`), ambient bed, storyboard + **live UI footage** |
+| `animatic/NyumbaSearch-Find-Connect-Move-In-9x16-SOCIAL.mp4` | Vertical social crop for Reels / TikTok / Shorts |
+| `voiceover/VO-Chilemba-110s.mp3` | Primary VO (male, Kenyan English) |
+| `voiceover/VO-Asilia-110s.mp3` | Alternate VO (female, Kenyan English) |
+| `footage/ui-*.mp4` | Real screen recordings from nyumbasearch.com |
+
+**Status:** This is a high-quality **director’s animatic / previz** — not the final photoreal AI motion film. Use `prompts/` + storyboard refs in Kling/Runway/Luma/Veo to replace still segments with full cinematic motion, then re-lay the VO.
