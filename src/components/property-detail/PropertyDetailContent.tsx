@@ -16,14 +16,9 @@ import { PropertyReportSection } from "./PropertyReportSection";
 import { ContactUnlockCard } from "@/components/ContactUnlockCard";
 import { useAuth } from "@/hooks/use-auth";
 
-const AdminPropertyVerifyButton = lazy(() =>
-  import("@/components/admin/AdminPropertyVerifyButton").then((m) => ({
-    default: m.AdminPropertyVerifyButton,
-  })),
-);
-const AdminPropertyAuthenticityPanel = lazy(() =>
-  import("@/components/admin/AdminPropertyAuthenticityPanel").then((m) => ({
-    default: m.AdminPropertyAuthenticityPanel,
+const AdminPropertyDetailToolbar = lazy(() =>
+  import("@/components/admin/AdminPropertyDetailToolbar").then((m) => ({
+    default: m.AdminPropertyDetailToolbar,
   })),
 );
 
@@ -147,10 +142,7 @@ export function PropertyDetailContent({
 
       {isAdmin ? (
         <Suspense fallback={null}>
-          <div className="mt-3 flex justify-end">
-            <AdminPropertyVerifyButton property={p} />
-          </div>
-          <AdminPropertyAuthenticityPanel property={p} />
+          <AdminPropertyDetailToolbar property={p} />
         </Suspense>
       ) : null}
 
@@ -238,6 +230,7 @@ export function PropertyDetailContent({
         messages={chatMessages}
         chatInput={chatInput}
         chatLoading={chatLoading}
+        isPlus={isPlus}
         onChatInputChange={onChatInputChange}
         onSubmit={onChatSubmit}
       />

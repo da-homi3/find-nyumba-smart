@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Sparkles, X } from "lucide-react";
 import { useState } from "react";
+import { PLUS_PLAN } from "@/lib/revenue/plans";
 
 type Props = {
   title?: string;
@@ -25,7 +26,7 @@ export function PlusUpsellBanner({
 
   return (
     <div
-      className={`relative rounded-2xl border border-gold/30 bg-gradient-to-r from-gold/15 to-primary/10 ${compact ? "p-3" : "p-4"}`}
+      className={`relative rounded-2xl border border-gold/30 bg-linear-to-r from-gold/15 to-primary/10 ${compact ? "p-3" : "p-4"}`}
     >
       {storageKey && (
         <button
@@ -52,7 +53,8 @@ export function PlusUpsellBanner({
             search={{ plan: "plus" }}
             className="mt-2 inline-block text-xs font-bold text-primary hover:underline"
           >
-            Go Plus — KES 500/mo →
+            Tenant Plus — {PLUS_PLAN.quarterlyKes.toLocaleString()} / 3 months (save{" "}
+            {(PLUS_PLAN.quarterlyRegularKes - PLUS_PLAN.quarterlyKes).toLocaleString()}) →
           </Link>
         </div>
       </div>

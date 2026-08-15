@@ -379,6 +379,63 @@ function RentEmptyState({
   );
 }
 
+function TenantLeaseCard({
+  lease,
+}: Readonly<{ lease: NonNullable<Awaited<ReturnType<typeof getTenantPmAccess>>>["leases"][number] }>) {
+  const active = lease.status === "active";
+  const place = [lease.property_name, lease.unit_label ? `Unit ${lease.unit_label}` : null]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border px-5 py-4",
+        active ? "border-primary/30 bg-primary/5" : "border-border bg-card",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+            {active ? "Active lease" : "Past lease"}
+          </p>
+          <p className="mt-1 font-semibold text-foreground">{place || "Your tenancy"}</p>
+          {lease.neighborhood ? (
+            <p className="text-sm text-muted-foreground">{lease.neighborhood}</p>
+          ) : null}
+        </div>
+        <p className="text-lg font-semibold tabular-nums">{formatKes(lease.monthly_rent)}/mo</p>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <dt className="text-muted-foreground">Starts</dt>
+          <dd className="font-medium">{lease.start_date}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Ends</dt>
+          <dd className="font-medium">{lease.end_date}</dd>
+        </div>
+        {lease.deposit_paid > 0 ? (
+          <div className="col-span-2">
+            <dt className="text-muted-foreground">Deposit paid</dt>
+            <dd className="font-medium">{formatKes(lease.deposit_paid)}</dd>
+          </div>
+        ) : null}
+      </dl>
+      {lease.lease_document_url ? (
+        <a
+          href={lease.lease_document_url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex text-sm font-semibold text-primary hover:underline"
+        >
+          View lease document →
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 function RentBody(
   props: Readonly<{
     isLoading: boolean;
@@ -409,7 +466,11 @@ function RentBody(
     );
   }
 
-  if (props.invoices.length === 0) {
+  const leases = props.access?.leases ?? [];
+  const activeLeases = leases.filter((l) => l.status === "active");
+  const showLeaseSection = leases.length > 0;
+
+  if (props.invoices.length === 0 && !showLeaseSection) {
     return <RentEmptyState access={props.access} />;
   }
 
@@ -417,39 +478,58 @@ function RentBody(
 
   return (
     <>
-      {current ? (
-        <CurrentInvoiceCard
-          invoice={current}
-          paying={props.payingId === current.id}
-          offAppMode={props.offAppId === current.id ? props.offAppMode : null}
-          phone={props.phone}
-          payAmount={props.payAmount}
-          payPending={props.payPending}
-          onPhoneChange={props.onPhoneChange}
-          onPayAmountChange={props.onPayAmountChange}
-          onStartPay={() => props.onStartPay(current)}
-          onCancelPay={props.onCancelPay}
-          onSubmitPay={() => props.onSubmitPay(current.id)}
-          onStartOffApp={(mode) => props.onStartOffApp(current, mode)}
-          onCancelOffApp={props.onCancelOffApp}
-          onOffAppDone={props.onOffAppDone}
-        />
-      ) : (
-        <p className={cn("mt-6 text-sm text-muted-foreground")}>
-          All invoices are paid. Nice work.
-        </p>
-      )}
+      {showLeaseSection ? (
+        <section className="mt-6 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Your lease{leases.length > 1 ? "s" : ""}
+          </h2>
+          {(activeLeases.length > 0 ? activeLeases : leases.slice(0, 1)).map((lease) => (
+            <TenantLeaseCard key={lease.id} lease={lease} />
+          ))}
+        </section>
+      ) : null}
 
-      <h2
-        className={cn("mt-10 text-sm font-semibold uppercase tracking-wide text-muted-foreground")}
-      >
-        Payment history
-      </h2>
-      <ul className={cn("mt-3 space-y-2")}>
-        {props.invoices.map((inv) => (
-          <InvoiceHistoryRow key={inv.id} invoice={inv} />
-        ))}
-      </ul>
+      {props.invoices.length === 0 ? (
+        <RentEmptyState access={props.access} />
+      ) : (
+        <>
+          {current ? (
+            <CurrentInvoiceCard
+              invoice={current}
+              paying={props.payingId === current.id}
+              offAppMode={props.offAppId === current.id ? props.offAppMode : null}
+              phone={props.phone}
+              payAmount={props.payAmount}
+              payPending={props.payPending}
+              onPhoneChange={props.onPhoneChange}
+              onPayAmountChange={props.onPayAmountChange}
+              onStartPay={() => props.onStartPay(current)}
+              onCancelPay={props.onCancelPay}
+              onSubmitPay={() => props.onSubmitPay(current.id)}
+              onStartOffApp={(mode) => props.onStartOffApp(current, mode)}
+              onCancelOffApp={props.onCancelOffApp}
+              onOffAppDone={props.onOffAppDone}
+            />
+          ) : (
+            <p className={cn("mt-6 text-sm text-muted-foreground")}>
+              All invoices are paid. Nice work.
+            </p>
+          )}
+
+          <h2
+            className={cn(
+              "mt-10 text-sm font-semibold uppercase tracking-wide text-muted-foreground",
+            )}
+          >
+            Payment history
+          </h2>
+          <ul className={cn("mt-3 space-y-2")}>
+            {props.invoices.map((inv) => (
+              <InvoiceHistoryRow key={inv.id} invoice={inv} />
+            ))}
+          </ul>
+        </>
+      )}
     </>
   );
 }

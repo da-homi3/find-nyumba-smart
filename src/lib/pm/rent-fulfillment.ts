@@ -1,9 +1,10 @@
 import type { LooseDb } from "@/lib/db/loose-client";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { rentReceiptEmail } from "@/lib/email/templates";
 import { asPmDb, type PmDb } from "@/lib/pm/access";
 import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
 import { recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
+import { hashMpesaSmsContent } from "@/lib/pm/sms-claim-amount";
 import { getSiteUrl } from "@/lib/site";
 import { formatKes } from "@/lib/properties";
 
@@ -139,7 +140,7 @@ export async function fulfillPmRentPayment(
 
 /**
  * Auto-record a rent payment from a pasted Safaricom M-Pesa confirmation SMS.
- * Dedupes on mpesa_receipt_number.
+ * Dedupes on mpesa_receipt_number and normalized SMS content hash (fraud).
  */
 export async function fulfillPmRentFromSms(
   admin: Admin,
@@ -157,13 +158,24 @@ export async function fulfillPmRentFromSms(
   if (!ctx) throw new Error("Rent invoice not found for SMS payment");
 
   const receipt = opts.mpesaReceipt.trim().toUpperCase();
-  const { data: existing } = await db
+  const smsContentHash = await hashMpesaSmsContent(opts.rawSms);
+
+  const { data: existingReceipt } = await db
     .from("pm_rent_payments")
     .select("id, invoice_id")
     .eq("mpesa_receipt_number", receipt)
     .maybeSingle();
-  if (existing) {
+  if (existingReceipt) {
     throw new Error("This M-Pesa receipt was already recorded");
+  }
+
+  const { data: existingSms } = await db
+    .from("pm_rent_payments")
+    .select("id")
+    .eq("sms_content_hash", smsContentHash)
+    .maybeSingle();
+  if (existingSms) {
+    throw new Error("This payment message was already pasted and cannot be reused");
   }
 
   const paidAtIso = opts.paidAt?.toISOString() ?? new Date().toISOString();
@@ -179,12 +191,17 @@ export async function fulfillPmRentFromSms(
       mpesa_receipt_number: receipt,
       paid_at: paidAtIso,
       note,
+      sms_content_hash: smsContentHash,
     })
     .select("id")
     .single();
   if (payErr) {
-    if (/duplicate|unique/i.test(payErr.message ?? "")) {
-      throw new Error("This M-Pesa receipt was already recorded");
+    if (/duplicate|unique|sms_content_hash/i.test(payErr.message ?? "")) {
+      throw new Error(
+        /sms_content_hash/i.test(payErr.message ?? "")
+          ? "This payment message was already pasted and cannot be reused"
+          : "This M-Pesa receipt was already recorded",
+      );
     }
     throw payErr;
   }
@@ -292,7 +309,7 @@ export async function dispatchRentReceipts(
       recipientRole: "tenant",
       dashboardUrl: `${getSiteUrl()}/tenant/rent`,
     });
-    await sendEmail({
+    await sendEmailResult({
       to: tenantEmail,
       templateId: "rent_receipt",
       metadata: {
@@ -334,7 +351,7 @@ export async function dispatchRentReceipts(
       recipientRole: "landlord",
       dashboardUrl: link,
     });
-    await sendEmail({
+    await sendEmailResult({
       to: ownerEmail,
       templateId: "rent_payment_landlord",
       metadata: {

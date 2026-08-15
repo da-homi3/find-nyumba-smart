@@ -234,7 +234,7 @@ export function getTimeGreeting(): string {
 
 function appendPlanDigestLine(lines: string[], profile: UserAssistantProfile): void {
   if (profile.isPlus) {
-    lines.push("NyumbaSearch Plus — unlimited unlocks");
+    lines.push("NyumbaSearch Plus — monthly contact credits");
     return;
   }
   if (profile.trialActive && profile.trialUnlocksRemaining > 0) {

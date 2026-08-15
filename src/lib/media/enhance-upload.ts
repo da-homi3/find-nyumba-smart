@@ -87,9 +87,7 @@ function isAlreadyWebReady(file: File): boolean {
  * Decode and optionally downscale in one pass. Prefer createImageBitmap's native
  * resize — it's much faster than decoding full-res then canvas-scaling.
  */
-async function loadSizedBitmap(
-  file: File,
-): Promise<{ bitmap: ImageBitmap; downscaled: boolean }> {
+async function loadSizedBitmap(file: File): Promise<{ bitmap: ImageBitmap; downscaled: boolean }> {
   const bitmap = await createImageBitmap(file);
   const longest = Math.max(bitmap.width, bitmap.height);
   if (longest <= MAX_IMAGE_EDGE_PX) {
@@ -117,11 +115,7 @@ async function loadSizedBitmap(
 function pickSmaller(original: File, enhanced: File, forcedChange: boolean): File {
   const limit = maxUploadBytesForKind("image");
   if (enhanced.size > limit) return original;
-  if (
-    !forcedChange &&
-    enhanced.size >= original.size * 0.95 &&
-    original.type === enhanced.type
-  ) {
+  if (!forcedChange && enhanced.size >= original.size * 0.95 && original.type === enhanced.type) {
     return original;
   }
   return enhanced;

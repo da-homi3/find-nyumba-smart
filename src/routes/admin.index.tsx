@@ -35,6 +35,7 @@ import { AdminAnnouncementsTab } from "@/components/admin/AdminAnnouncementsTab"
 import { AdminAdvertiseTab } from "@/components/admin/AdminAdvertiseTab";
 import { AdminFoundingPromoTab } from "@/components/admin/AdminFoundingPromoTab";
 import { AdminListingAccountsTab } from "@/components/admin/AdminListingAccountsTab";
+import { AdminTenantsTab } from "@/components/admin/AdminTenantsTab";
 import { AdminAnalyticsTab } from "@/components/admin/AdminAnalyticsTab";
 import { AdminPmTab } from "@/components/admin/AdminPmTab";
 import { AdminPayoutsTab } from "@/components/admin/AdminPayoutsTab";
@@ -271,6 +272,7 @@ function AdminDashboard() {
     { id: "advertise" as const, label: "Advertise", count: 0 },
     { id: "announcements" as const, label: "Announcements", count: 0 },
     { id: "listing_accounts" as const, label: "Listing limits", count: 0 },
+    { id: "tenants" as const, label: "Tenant Plus", count: 0 },
     { id: "founding_promo" as const, label: "Founding promo", count: 0 },
     { id: "property_management" as const, label: "Property Mgmt", count: 0 },
     { id: "payouts" as const, label: "Rent payouts", count: 0 },
@@ -401,6 +403,7 @@ function AdminDashboard() {
           {activeTab === "announcements" && <AdminAnnouncementsTab />}
           {activeTab === "founding_promo" && <AdminFoundingPromoTab />}
           {activeTab === "listing_accounts" && <AdminListingAccountsTab />}
+          {activeTab === "tenants" && <AdminTenantsTab />}
           {activeTab === "property_management" && <AdminPmTab />}
           {activeTab === "payouts" && <AdminPayoutsTab />}
         </div>

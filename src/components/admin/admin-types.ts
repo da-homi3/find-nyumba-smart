@@ -21,6 +21,7 @@ export type AdminTab =
   | "announcements"
   | "founding_promo"
   | "listing_accounts"
+  | "tenants"
   | "property_management"
   | "payouts";
 

@@ -547,7 +547,10 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabaseAdmin
       .from("verifications")
-      .update({ status: data.status, notes: data.notes ?? null })
+      .update({
+        status: data.status,
+        notes: data.notes ?? null,
+      })
       .eq("id", data.id)
       .select("*")
       .single();
@@ -555,6 +558,12 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
     if (error) throw error;
 
     if (data.status === "approved") {
+      const { asLooseDb } = await import("@/lib/db/loose-client");
+      const expires = new Date(Date.now() + 365 * 86400000).toISOString();
+      await asLooseDb(supabaseAdmin)
+        .from("verifications")
+        .update({ expires_at: expires })
+        .eq("id", data.id);
       const { onVerificationApproved } = await import("@/lib/trust/hooks");
       await onVerificationApproved(supabaseAdmin, {
         userId: row.user_id,
@@ -571,7 +580,7 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
       "there";
 
     if (email) {
-      const { sendEmail } = await import("@/lib/email/send");
+      const { sendEmailResult } = await import("@/lib/email/send");
       const { verificationCompleteEmail } = await import("@/lib/email/templates");
       const { getSiteUrl } = await import("@/lib/site");
       const tpl = verificationCompleteEmail({
@@ -581,7 +590,7 @@ export const updateVerificationStatus = createServerFn({ method: "POST" })
         findings: data.notes ?? undefined,
         statusUrl: `${getSiteUrl()}/verify/status/${row.id}`,
       });
-      void sendEmail({
+      void sendEmailResult({
         to: email,
         templateId: "verification-complete",
         ...tpl,
@@ -652,7 +661,7 @@ export const updateVerificationRequest = createServerFn({ method: "POST" })
     });
 
     if (row.status === "completed" && row.report_url) {
-      const { sendEmail } = await import("@/lib/email/send");
+      const { sendEmailResult } = await import("@/lib/email/send");
       const { getSiteUrl } = await import("@/lib/site");
       const { verificationCompleteEmail } = await import("@/lib/email/templates");
       const tpl = verificationCompleteEmail({
@@ -662,7 +671,7 @@ export const updateVerificationRequest = createServerFn({ method: "POST" })
         findings: "Your paid property verification report is ready to download.",
         statusUrl: `${getSiteUrl()}/verify/status/${row.id}`,
       });
-      void sendEmail({
+      void sendEmailResult({
         to: row.requester_email,
         templateId: "verification-complete",
         ...tpl,
@@ -1528,4 +1537,374 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
       propertyTraffic,
       tenantAccounts,
     };
+  });
+
+export const listAdminTenants = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      query: z.string().trim().min(1).max(80),
+      limit: z.number().int().min(1).max(50).default(25),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const q = data.query.replace(/[%*,]/g, "");
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "tenant")
+      .limit(400);
+    const tenantIds = [...new Set((roles ?? []).map((r) => r.user_id))];
+    if (tenantIds.length === 0) return [];
+
+    const uuid = /^[0-9a-f-]{36}$/i.test(q);
+    let profileQuery = asLooseDb(supabaseAdmin)
+      .from("profiles")
+      .select("id, full_name, phone, tenant_plan, plus_expires_at, plus_contact_credits")
+      .in("id", tenantIds.slice(0, 400));
+    profileQuery = uuid
+      ? profileQuery.eq("id", q)
+      : profileQuery.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`);
+    const { data: rows, error } = await profileQuery.limit(data.limit);
+    if (error) throw error;
+    return (rows ?? []).map((row) => ({
+      userId: row.id as string,
+      fullName: (row.full_name as string | null) ?? "Unknown",
+      phone: (row.phone as string | null) ?? null,
+      tenantPlan: (row.tenant_plan as string | null) ?? "free",
+      plusExpiresAt: (row.plus_expires_at as string | null) ?? null,
+      plusContactCredits: Math.max(0, Number(row.plus_contact_credits) || 0),
+    }));
+  });
+
+export const adjustAdminPlusCredits = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      userId: z.string().uuid(),
+      delta: z.number().int().min(-100).max(100),
+      reason: z.string().trim().min(2).max(120),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = getAuthContext(context);
+    await requireRole(supabase, adminId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { adjustPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
+    const remaining = await adjustPlusContactCredits(
+      supabaseAdmin,
+      data.userId,
+      data.delta,
+      `admin:${data.reason}`,
+    );
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: "PLUS_CREDITS_ADJUSTED",
+      target_id: data.userId,
+      details: `${data.delta >= 0 ? "+" : ""}${data.delta} credits (${data.reason}) → ${remaining}`,
+    });
+    return { userId: data.userId, plusContactCredits: remaining };
+  });
+
+const partnerInput = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(2).max(120),
+  product: z.string().trim().min(2).max(160),
+  status: z.enum(["active", "inactive"]).default("inactive"),
+  applicationUrl: z.string().trim().max(500).optional(),
+  disclosure: z.string().trim().max(2000).optional(),
+  eligibility: z.string().trim().max(500).optional(),
+});
+
+export const listAdminFinancialPartners = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { listAllFinancialPartners } = await import("@/lib/finance/partners");
+    return listAllFinancialPartners();
+  });
+
+export const upsertAdminFinancialPartner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(partnerInput)
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = getAuthContext(context);
+    await requireRole(supabase, adminId, "admin");
+    const { upsertFinancialPartner } = await import("@/lib/finance/partners");
+    const url = data.applicationUrl?.trim() ?? "";
+    if (url && !/^https?:\/\//i.test(url)) {
+      throw new Error("Application URL must start with http:// or https://");
+    }
+    const row = await upsertFinancialPartner({
+      id: data.id,
+      name: data.name,
+      product: data.product,
+      status: data.status,
+      applicationUrl: url || null,
+      disclosure: data.disclosure?.trim() ? data.disclosure : null,
+      eligibility: data.eligibility?.trim() ? data.eligibility : null,
+    });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: data.id ? "FINANCIAL_PARTNER_UPDATED" : "FINANCIAL_PARTNER_CREATED",
+      target_id: row.id,
+      details: `${row.name} · ${row.product} · ${row.status}`,
+    });
+    return row;
+  });
+
+export const setAdminFinancialPartnerStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(z.object({ id: z.string().uuid(), status: z.enum(["active", "inactive"]) }))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = getAuthContext(context);
+    await requireRole(supabase, adminId, "admin");
+    const { setFinancialPartnerStatus } = await import("@/lib/finance/partners");
+    await setFinancialPartnerStatus(data.id, data.status);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: "FINANCIAL_PARTNER_STATUS",
+      target_id: data.id,
+      details: data.status,
+    });
+    return { id: data.id, status: data.status };
+  });
+
+export const setAdminTenantPlus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      userId: z.string().uuid(),
+      action: z.enum(["grant", "revoke"]),
+      days: z.number().int().min(1).max(366).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = getAuthContext(context);
+    await requireRole(supabase, adminId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { grantPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
+    const { PLUS_PLAN } = await import("@/lib/revenue/plans");
+
+    if (data.action === "grant") {
+      const days = data.days ?? 30;
+      const periodEnd = new Date(Date.now() + days * 86400000).toISOString();
+      await supabaseAdmin
+        .from("profiles")
+        .update({ tenant_plan: "plus", plus_expires_at: periodEnd })
+        .eq("id", data.userId);
+      await grantPlusContactCredits(supabaseAdmin, data.userId, "monthly");
+      const { data: existing } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", data.userId)
+        .eq("plan", "plus")
+        .in("status", ["active", "trialing", "past_due", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing) {
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({
+            status: "active",
+            next_billing_date: periodEnd,
+            amount_kes: PLUS_PLAN.monthlyKes,
+            billing_cycle: "monthly",
+          })
+          .eq("id", existing.id);
+      } else {
+        await supabaseAdmin.from("subscriptions").insert({
+          user_id: data.userId,
+          plan: "plus",
+          status: "active",
+          amount_kes: PLUS_PLAN.monthlyKes,
+          billing_cycle: "monthly",
+          payment_method: "admin",
+          next_billing_date: periodEnd,
+          module: "marketplace",
+        });
+      }
+      await supabaseAdmin.from("admin_audit_logs").insert({
+        admin_id: adminId,
+        action: "TENANT_PLUS_GRANTED",
+        target_id: data.userId,
+        details: `Granted ${days} days`,
+      });
+      return { userId: data.userId, tenantPlan: "plus" as const, plusExpiresAt: periodEnd };
+    }
+
+    const ended = new Date().toISOString();
+    await supabaseAdmin
+      .from("profiles")
+      .update({ tenant_plan: "free", plus_expires_at: ended })
+      .eq("id", data.userId);
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "cancelled", next_billing_date: ended })
+      .eq("user_id", data.userId)
+      .eq("plan", "plus")
+      .in("status", ["active", "trialing", "past_due"]);
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: "TENANT_PLUS_REVOKED",
+      target_id: data.userId,
+      details: "Immediate revoke",
+    });
+    return { userId: data.userId, tenantPlan: "free" as const, plusExpiresAt: ended };
+  });
+
+export const refundAdminContactUnlock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      userId: z.string().uuid(),
+      listingId: z.string().uuid(),
+      reason: z.string().trim().min(3).max(200),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId: adminId } = getAuthContext(context);
+    await requireRole(supabase, adminId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: unlock, error } = await supabaseAdmin
+      .from("contact_unlocks")
+      .select("id, method, payment_id, fee_charged")
+      .eq("user_id", data.userId)
+      .eq("listing_id", data.listingId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!unlock) throw new Error("No contact unlock found for that tenant and listing.");
+
+    await supabaseAdmin.from("contact_unlocks").delete().eq("id", unlock.id);
+    if (unlock.payment_id) {
+      await supabaseAdmin.from("payments").update({ status: "refunded" }).eq("id", unlock.payment_id);
+    }
+    if (unlock.method === "plus" || unlock.method === "credit") {
+      const { contactCreditsForFee } = await import("@/lib/revenue/tenant-plus-config");
+      const { adjustPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
+      await adjustPlusContactCredits(
+        supabaseAdmin,
+        data.userId,
+        contactCreditsForFee(unlock.fee_charged ?? 0),
+        "refund_unlock",
+      );
+    }
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: adminId,
+      action: "CONTACT_UNLOCK_REFUNDED",
+      target_id: data.userId,
+      details: `${data.listingId} · ${data.reason}`,
+    });
+    return { refunded: true };
+  });
+
+export const getAdminPlusCommercial = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { resolvePlusPricing } = await import("@/lib/revenue/platform-settings");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [pricing, rules, issues] = await Promise.all([
+      resolvePlusPricing(),
+      asLooseDb(supabaseAdmin).from("tenant_score_rules").select("*").order("id"),
+      asLooseDb(supabaseAdmin)
+        .from("contact_issues")
+        .select("id, user_id, listing_id, reason, details, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    return {
+      pricing,
+      rules: rules.data ?? [],
+      contactIssues: issues.data ?? [],
+    };
+  });
+
+export const saveAdminPlusPricing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      monthlyKes: z.number().int().min(100).max(50_000),
+      quarterlyKes: z.number().int().min(100).max(150_000),
+      quarterlyRegularKes: z.number().int().min(100).max(150_000),
+      contactCreditsPerMonth: z.number().int().min(1).max(100),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { setPlatformSetting } = await import("@/lib/revenue/platform-settings");
+    await setPlatformSetting("tenant_plus_pricing", data);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "TENANT_PLUS_PRICING",
+      details: JSON.stringify(data),
+    });
+    return { saved: true };
+  });
+
+export const saveAdminScoreRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      id: z.string().min(2).max(40),
+      points: z.number().int().min(0).max(100),
+      enabled: z.boolean(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const { error } = await asLooseDb(supabaseAdmin)
+      .from("tenant_score_rules")
+      .update({ points: data.points, enabled: data.enabled })
+      .eq("id", data.id);
+    if (error) throw error;
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "TENANT_SCORE_RULE",
+      target_id: data.id,
+      details: `${data.points} · ${data.enabled ? "on" : "off"}`,
+    });
+    return { saved: true };
+  });
+
+export const reviewAdminContactIssue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(["reviewed", "refunded", "dismissed"]),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const { error } = await asLooseDb(supabaseAdmin)
+      .from("contact_issues")
+      .update({ status: data.status })
+      .eq("id", data.id);
+    if (error) throw error;
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "CONTACT_ISSUE_REVIEW",
+      target_id: data.id,
+      details: data.status,
+    });
+    return { saved: true };
   });

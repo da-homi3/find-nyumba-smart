@@ -1,0 +1,27 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.ke.co.nyumbasearch.app",
+        "paths": [
+          "/tenant/*",
+          "/tenant/property/*",
+          "/property/*",
+          "/auth/*",
+          "/plus",
+          "/services/*",
+          "/caretaker/*",
+          "/referrals",
+          "/agency/*",
+          "/manager/*",
+          "/landlord/*",
+          "/admin/*",
+          "/verify/*",
+          "/messages/*",
+          "/compare"
+        ]
+      }
+    ]
+  }
+}

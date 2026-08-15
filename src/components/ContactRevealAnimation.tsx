@@ -3,15 +3,23 @@ import { Check, MessageCircle, Phone } from "lucide-react";
 import { whatsAppUrl } from "@/lib/phone";
 import { MOTION_DURATION } from "@/lib/design/motion";
 import { normalizeContactPhones } from "@/lib/contact-phones";
+import { ReportContactIssue } from "@/components/ReportContactIssue";
 
 type Props = Readonly<{
   phone: string;
   phones?: string[];
   listingTitle?: string;
   neighborhood?: string;
+  listingId?: string;
 }>;
 
-export function ContactRevealAnimation({ phone, phones, listingTitle, neighborhood }: Props) {
+export function ContactRevealAnimation({
+  phone,
+  phones,
+  listingTitle,
+  neighborhood,
+  listingId,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const numbers = normalizeContactPhones(phones, phone);
   const waMessage = listingTitle
@@ -73,6 +81,7 @@ export function ContactRevealAnimation({ phone, phones, listingTitle, neighborho
             </div>
           );
         })}
+        {listingId ? <ReportContactIssue listingId={listingId} /> : null}
       </motion.div>
     </motion.div>
   );

@@ -372,6 +372,22 @@ export const toggleSavedProperty = createServerFn({ method: "POST" })
     const shouldSave = data.saved ?? !existing;
 
     if (shouldSave && !existing) {
+      const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
+      const { maxSavedProperties } = await import("@/lib/revenue/tenant-plus-config");
+      const plus = await getTenantPlusStatus(supabase, userId);
+      const isPlus = plus.tenantPlan === "plus";
+      const cap = maxSavedProperties(isPlus);
+      if (Number.isFinite(cap)) {
+        const { count } = await supabase
+          .from("saved_properties")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId);
+        if ((count ?? 0) >= cap) {
+          throw new Error(
+            `You've reached your saved-home limit (${cap}). Tenant Plus includes unlimited saves.`,
+          );
+        }
+      }
       const { error } = await supabase
         .from("saved_properties")
         .insert({ user_id: userId, property_id: data.propertyId });

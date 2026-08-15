@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 export type PmPortal = "landlord" | "agency" | "manager";
 
+/* eslint-disable react-refresh/only-export-components -- path helper co-located with subnav */
 export function pmBasePath(portal: PmPortal): string {
   return `/${portal}/manage`;
 }

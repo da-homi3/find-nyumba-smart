@@ -1,5 +1,6 @@
 import type { LandlordPlan, TenantPlan } from "@/lib/revenue/types";
 import { LISTING_LIMITS } from "@/lib/revenue/listing-limits";
+import { maxSavedSearchAlerts as plusAlertCap } from "@/lib/revenue/tenant-plus-config";
 
 export type PortalSubscriptionStatus = "active" | "trialing" | "past_due" | "none";
 
@@ -12,6 +13,7 @@ export type UserEntitlements = {
   trialUnlocksRemaining?: number;
   trialEndsAt?: string | null;
   trialActive?: boolean;
+  plusContactCredits?: number;
   monthlyUnlockSpend?: number;
   portalSubscriptionStatus?: PortalSubscriptionStatus;
   portalTrialEndsAt?: string | null;
@@ -27,6 +29,7 @@ export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
   trialUnlocksRemaining: 0,
   trialEndsAt: null,
   trialActive: false,
+  plusContactCredits: 0,
   monthlyUnlockSpend: 0,
   portalSubscriptionStatus: "none",
   portalTrialEndsAt: null,
@@ -69,7 +72,8 @@ export function isListingEarlyAccess(listingCreatedAt: string, plus: boolean): b
 }
 
 export function maxSavedSearchAlerts(plan: TenantPlan): number {
-  return plan === "plus" ? 999 : 1;
+  const n = plusAlertCap(plan === "plus");
+  return Number.isFinite(n) ? n : 999;
 }
 
 export function planRank(plan: LandlordPlan): number {

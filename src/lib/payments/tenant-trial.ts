@@ -13,7 +13,7 @@ export type TenantTrialState = {
 
 /**
  * Tenants get 1 free contact unlock. Access stays free until that is used;
- * after that they need to pay per listing or use Plus for unlimited unlocks.
+ * after that they need to pay per listing or use Plus contact credits.
  */
 export async function ensureTenantTrial(db: Db, userId: string): Promise<TenantTrialState> {
   const { data: profile } = await db

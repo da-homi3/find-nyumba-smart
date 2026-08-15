@@ -15,7 +15,8 @@ export function getAppServeContext(request: Request): AppServeContext {
   const networkTier = request.headers.get("X-Network-Tier");
   const saveData = request.headers.get("Save-Data") === "on";
   const isLowBandwidth = networkTier === "POOR_2G_3G" || saveData;
-  // Android WebView always gets lite mode — skips Three.js / heavy hero assets.
+  // Android WebView / poor networks get lite image payloads.
+  // Client motion (AmbientBackdrop / HeroScene3D) still runs with a lite budget.
   const serveMode: ServeMode = isAppClient || isLowBandwidth ? "lite" : "full";
 
   return {
@@ -80,4 +81,3 @@ export function optimizeImageUrlForServeMode(url: string): string {
     return trimmed;
   }
 }
-

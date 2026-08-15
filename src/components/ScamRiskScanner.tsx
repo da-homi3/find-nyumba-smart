@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { LazyRadar } from "@/components/LazyRadar";
 import { getListingRiskScore } from "@/lib/api/listing.functions";
 import type { RiskLevel } from "@/lib/listings/risk-score";
+import { PLUS_PLAN } from "@/lib/revenue/plans";
 
 const SCAN_MIN_MS = 2200;
 
@@ -81,7 +82,7 @@ export function ScamRiskScanner({ listingId, isPlus }: Readonly<Props>) {
 
   if (!isPlus) {
     return (
-      <div className="relative h-[140px] overflow-hidden rounded-2xl bg-[#0d1117]">
+      <div className="relative h-35 overflow-hidden rounded-2xl bg-[#0d1117]">
         <div className="absolute inset-0 opacity-50 blur-sm">
           <LazyRadar
             speed={0.6}
@@ -109,7 +110,7 @@ export function ScamRiskScanner({ listingId, isPlus }: Readonly<Props>) {
             to="/tenant/checkout"
             className="rounded-full bg-[#1eb88a] px-4 py-1.5 text-[0.8125rem] font-semibold text-white no-underline"
           >
-            Unlock for KES 500/mo
+            Unlock for KES {PLUS_PLAN.monthlyKes}/mo
           </Link>
         </div>
       </div>
@@ -117,7 +118,7 @@ export function ScamRiskScanner({ listingId, isPlus }: Readonly<Props>) {
   }
 
   return (
-    <div className="relative h-[140px] overflow-hidden rounded-2xl bg-[#0d1117]">
+    <div className="relative h-35 overflow-hidden rounded-2xl bg-[#0d1117]">
       {phase === "scanning" ? (
         <>
           <LazyRadar

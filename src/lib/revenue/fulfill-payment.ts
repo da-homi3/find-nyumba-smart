@@ -91,9 +91,15 @@ async function periodDaysForSubscriptionPayment(
   supabaseAdmin: SupabaseAdmin,
   userId: string,
   cycle: "monthly" | "quarterly",
+  paymentType?: string,
 ): Promise<number> {
   const { subscriptionPeriodDaysAfterPayment } = await import("@/lib/payments/trial-eligibility");
-  const { days } = await subscriptionPeriodDaysAfterPayment(supabaseAdmin, userId, cycle);
+  const { days } = await subscriptionPeriodDaysAfterPayment(
+    supabaseAdmin,
+    userId,
+    cycle,
+    paymentType,
+  );
   return days;
 }
 
@@ -197,6 +203,8 @@ async function fulfillRenewalSubscription(
       .from("profiles")
       .update({ tenant_plan: "plus", plus_expires_at: addBillingDays(days) })
       .eq("id", sub.user_id);
+    const { grantPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
+    await grantPlusContactCredits(supabaseAdmin, sub.user_id, cycle);
   } else if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
     // Tier only — go-live requires admin approval (status stays pending until then).
     await supabaseAdmin
@@ -282,7 +290,7 @@ async function fulfillBoost(
     placements.includes("newsletter") ||
     placements.includes("push")
   ) {
-    const { sendEmail } = await import("@/lib/email/send");
+    const { sendEmailResult } = await import("@/lib/email/send");
     const { formatKes } = await import("@/lib/properties");
     const opsTo = process.env.OPS_NOTIFICATION_EMAIL ?? "nyumbasearch101@gmail.com";
     const { data: property } = await supabaseAdmin
@@ -302,7 +310,7 @@ async function fulfillBoost(
       "Search-top and homepage are automatic via featured_until.",
       "Schedule newsletter mention and push notification before expiry.",
     ].join("\n");
-    await sendEmail({
+    await sendEmailResult({
       to: opsTo,
       subject: `[NyumbaSearch] Boost placements to schedule — ${property?.title ?? propertyId}`,
       text: boostOpsText,
@@ -359,7 +367,12 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
   const plan = (metadata.plan ?? "pro") as LandlordPlan;
 
   const cycle = billingCycle(metadata);
-  const days = await periodDaysForSubscriptionPayment(supabaseAdmin, userId, cycle);
+  const days = await periodDaysForSubscriptionPayment(
+    supabaseAdmin,
+    userId,
+    cycle,
+    payment.paymentType,
+  );
 
   await supabaseAdmin
 
@@ -419,7 +432,12 @@ async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentF
   const { userId, amountKes, metadata = {} } = payment;
 
   const cycle = billingCycle(metadata);
-  const days = await periodDaysForSubscriptionPayment(supabaseAdmin, userId, cycle);
+  const days = await periodDaysForSubscriptionPayment(
+    supabaseAdmin,
+    userId,
+    cycle,
+    payment.paymentType,
+  );
 
   await supabaseAdmin
     .from("profiles")
@@ -428,6 +446,9 @@ async function fulfillTenantPlus(supabaseAdmin: SupabaseAdmin, payment: PaymentF
       plus_expires_at: addBillingDays(days),
     })
     .eq("id", userId);
+
+  const { grantPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
+  await grantPlusContactCredits(supabaseAdmin, userId, cycle);
 
   await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,
@@ -546,7 +567,12 @@ async function fulfillProviderSubscription(
   }
   await providerUpdate;
 
-  const days = await periodDaysForSubscriptionPayment(supabaseAdmin, userId, cycle);
+  const days = await periodDaysForSubscriptionPayment(
+    supabaseAdmin,
+    userId,
+    cycle,
+    payment.paymentType,
+  );
 
   await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,
@@ -614,7 +640,7 @@ async function fulfillInvoice(supabaseAdmin: SupabaseAdmin, payment: PaymentFulf
     }
   }
 
-  const { sendEmail } = await import("@/lib/email/send");
+  const { sendEmailResult } = await import("@/lib/email/send");
   const { ADVERTISE_PACKAGES } = await import("@/lib/revenue/plans");
   const { formatKes } = await import("@/lib/properties");
   const { getSiteUrl } = await import("@/lib/site");
@@ -634,7 +660,7 @@ async function fulfillInvoice(supabaseAdmin: SupabaseAdmin, payment: PaymentFulf
     "Activate the campaign placements within 48 hours.",
     `${getSiteUrl()}/admin`,
   ].join("\n");
-  await sendEmail({
+  await sendEmailResult({
     to: opsTo,
     subject: `[NyumbaSearch] Ad package paid — ${packageLabel} — ${formatKes(payment.amountKes)}`,
     text: opsText,

@@ -24,9 +24,14 @@ export async function registerFcmToken(
   return { stored: true };
 }
 
+function isAllowedMobileClient(req: Request): boolean {
+  const client = (req.headers.get("X-App-Client") ?? "").trim().toLowerCase();
+  // Legacy WebView uses "android"; Flutter uses "flutter". Both must keep working.
+  return client === "android" || client === "flutter";
+}
+
 export async function handleFcmTokenRequest(req: Request): Promise<Response> {
-  const isApp = req.headers.get("X-App-Client") === "android";
-  if (!isApp) {
+  if (!isAllowedMobileClient(req)) {
     return new Response(JSON.stringify({ error: "App client required" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },
@@ -74,12 +79,11 @@ export async function handleFcmTokenRequest(req: Request): Promise<Response> {
     }
 
     const result = await registerFcmToken(supabaseAdmin, data.user.id, token);
+    const client = (req.headers.get("X-App-Client") ?? "android").trim().toLowerCase();
+    const platform = client === "flutter" ? "flutter" : "android";
     await supabaseAdmin
       .from("push_tokens")
-      .upsert(
-        { user_id: data.user.id, token, platform: "android" },
-        { onConflict: "user_id,token" },
-      );
+      .upsert({ user_id: data.user.id, token, platform }, { onConflict: "user_id,token" });
     return new Response(JSON.stringify({ ok: true, ...result, sendEnabled }), {
       headers: { "Content-Type": "application/json" },
     });

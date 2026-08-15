@@ -5,34 +5,53 @@ function clientViewport(): {
   innerWidth: number;
   matchMedia: (q: string) => MediaQueryList;
 } | null {
-  if (typeof globalThis.window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   return globalThis.window;
 }
 
-/** Desktop + motion OK — gates Three.js and heavy 3D transforms. Disabled in Android lite mode. */
+export type MotionBudget = "full" | "lite";
+
+/** True when motion should run (desktop, mobile, WebView). Only reduced-motion opts out. */
 export function useDeviceCapability(): boolean {
   const [capable, setCapable] = useState(false);
 
   useEffect(() => {
-    if (isLiteServeMode()) {
-      setCapable(false);
-      return;
-    }
-
     const viewport = clientViewport();
     if (!viewport) {
       setCapable(false);
       return;
     }
 
-    const isMobile = viewport.innerWidth < 768;
     const prefersReduced = viewport.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const nav = navigator as Navigator & { deviceMemory?: number };
-    const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory < 4;
-    setCapable(!isMobile && !prefersReduced && !lowMemory);
+    setCapable(!prefersReduced);
   }, []);
 
   return capable;
+}
+
+/** Particle / WebGL budget — lighter on phones, WebView lite, and low-memory devices. */
+export function useMotionBudget(): MotionBudget {
+  const [budget, setBudget] = useState<MotionBudget>("lite");
+
+  useEffect(() => {
+    const viewport = clientViewport();
+    if (!viewport) {
+      setBudget("lite");
+      return;
+    }
+
+    const narrow = viewport.innerWidth < 768;
+    const nav = navigator as Navigator & {
+      deviceMemory?: number;
+      connection?: { saveData?: boolean };
+    };
+    const lowMemory = nav.deviceMemory !== undefined && nav.deviceMemory < 4;
+    const saveData = Boolean(nav.connection?.saveData);
+    const lite = isLiteServeMode() || narrow || lowMemory || saveData;
+    setBudget(lite ? "lite" : "full");
+  }, []);
+
+  return budget;
 }
 
 export function prefersReducedMotion(): boolean {

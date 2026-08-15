@@ -1414,6 +1414,7 @@ export type Database = {
           landlord_plan: string;
           lead_pack_balance: number;
           phone: string | null;
+          plus_contact_credits: number;
           plus_expires_at: string | null;
           tenant_plan: string;
           trial_unlocks_remaining: number;
@@ -1441,6 +1442,7 @@ export type Database = {
           landlord_plan?: string;
           lead_pack_balance?: number;
           phone?: string | null;
+          plus_contact_credits?: number;
           plus_expires_at?: string | null;
           tenant_plan?: string;
           trial_unlocks_remaining?: number;
@@ -1468,6 +1470,7 @@ export type Database = {
           landlord_plan?: string;
           lead_pack_balance?: number;
           phone?: string | null;
+          plus_contact_credits?: number;
           plus_expires_at?: string | null;
           tenant_plan?: string;
           trial_unlocks_remaining?: number;

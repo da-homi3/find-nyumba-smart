@@ -4,7 +4,6 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ForbiddenError, requireRole } from "@/lib/api/_authz";
 import { adminClient, authContext, getUserOrganizationId } from "@/lib/api/nyumba/nyumba-shared";
-import { sendEmail } from "@/lib/email/send";
 import { tenantPortalInviteEmail } from "@/lib/email/templates";
 import { asPmDb, assertPmPropertyAccess, assertStaffCan, type PmStaffRole } from "@/lib/pm/access";
 import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
@@ -627,6 +626,50 @@ export const createPmLease = createServerFn({ method: "POST" })
       monthly_rent: data.monthlyRent,
     });
 
+    // Surface the lease immediately on the tenant rent page when the portal invite is accepted.
+    const { data: linkedTenant } = await admin
+      .from("pm_tenants")
+      .select("id, full_name, tenant_user_id, portal_status")
+      .eq("id", data.tenantId)
+      .maybeSingle();
+    const tenantUserId = linkedTenant?.tenant_user_id as string | null | undefined;
+    if (tenantUserId && linkedTenant?.portal_status === "accepted") {
+      try {
+        const { data: unitRow } = await admin
+          .from("pm_units")
+          .select("unit_label, property_id")
+          .eq("id", data.unitId)
+          .maybeSingle();
+        const { data: propertyRow } = unitRow?.property_id
+          ? await admin
+              .from("pm_properties")
+              .select("name")
+              .eq("id", unitRow.property_id)
+              .maybeSingle()
+          : { data: null };
+        const place = [
+          propertyRow?.name,
+          unitRow?.unit_label ? `Unit ${unitRow.unit_label}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const { notifyUser } = await import("@/lib/notifications/notify-user");
+        await notifyUser(admin as never, {
+          userId: tenantUserId,
+          type: "rent",
+          title: "Your lease is ready",
+          body: place
+            ? `Your landlord attached a lease at ${place}. Open Rent to view terms and pay.`
+            : "Your landlord attached a lease. Open Rent to view terms and pay.",
+          href: "/tenant/rent",
+          entityType: "pm_lease",
+          entityId: row.id,
+        });
+      } catch (err) {
+        console.warn("[pm] lease notify tenant failed", err);
+      }
+    }
+
     return row;
   });
 
@@ -769,19 +812,47 @@ export const invitePmTenantPortal = createServerFn({ method: "POST" })
       inviteUrl,
       hasExistingAccount: Boolean(existingUserId),
     });
-    const emailSent = await sendEmail({
+    const { sendEmailResult } = await import("@/lib/email/send");
+    const emailResult = await sendEmailResult({
       to: tenant.email,
       templateId: "tenant_portal_invite",
       ...tpl,
       metadata: { inviteToken, propertyId: tenant.property_id },
     });
-    if (!emailSent) {
-      throw new Error(
-        "Invitation was created but the email could not be sent. Check SendGrid and try again.",
-      );
+
+    let smsSent = false;
+    let smsError: string | undefined;
+    if (!emailResult.ok && tenant.phone?.trim()) {
+      try {
+        const { sendSmsViaAfricasTalking } = await import("@/lib/sms/africas-talking");
+        await sendSmsViaAfricasTalking({
+          to: tenant.phone,
+          message: `NyumbaSearch: you're invited to manage your tenancy at ${property.name}. Open: ${inviteUrl}`,
+        });
+        smsSent = true;
+      } catch (err) {
+        smsError = err instanceof Error ? err.message : "SMS failed";
+        console.warn("[pm] portal invite SMS fallback failed:", smsError);
+      }
     }
 
-    return { success: true as const, inviteToken, inviteUrl, emailSent: true as const };
+    // Invitation token is already stored — never block the landlord on mail outages.
+    let deliveryWarning: string | undefined;
+    if (!emailResult.ok) {
+      deliveryWarning = smsSent
+        ? "Email failed (SendGrid); invite sent by SMS instead. Link also copied for sharing."
+        : (emailResult.reason ??
+          "Invite created but email could not be sent. Copy the link and share it with the tenant.");
+    }
+    return {
+      success: true as const,
+      inviteToken,
+      inviteUrl,
+      emailSent: emailResult.ok,
+      smsSent,
+      deliveryWarning,
+      smsError: smsSent ? undefined : smsError,
+    };
   });
 
 export const respondPmTenantInvite = createServerFn({ method: "POST" })
@@ -922,16 +993,29 @@ export const listPmInvoices = createServerFn({ method: "POST" })
       paymentsByInvoice.set(invId, list);
     }
 
+    const tenantIds = [
+      ...new Set((leases ?? []).map((l: { tenant_id: string }) => l.tenant_id).filter(Boolean)),
+    ];
+    const { data: tenants } = tenantIds.length
+      ? await admin.from("pm_tenants").select("id, full_name").in("id", tenantIds)
+      : { data: [] };
+    const tenantNameById = new Map(
+      (tenants ?? []).map((t: { id: string; full_name: string }) => [t.id, t.full_name]),
+    );
+
     const unitById = new Map(
       (units ?? []).map((u: { id: string; unit_label: string }) => [u.id, u.unit_label]),
     );
     const leaseById = new Map(
-      (leases ?? []).map((l: { id: string; unit_id: string; tenant_id: string }) => [l.id, l]),
+      (leases ?? []).map(
+        (l: { id: string; unit_id: string; tenant_id: string; monthly_rent: number }) => [l.id, l],
+      ),
     );
 
     return (invoices ?? []).map((inv: Record<string, unknown>) => {
       const lease = leaseById.get(inv.lease_id as string);
       const pays = paymentsByInvoice.get(inv.id as string) ?? [];
+      const tenantId = lease?.tenant_id ?? null;
       return {
         id: inv.id as string,
         lease_id: inv.lease_id as string,
@@ -942,7 +1026,9 @@ export const listPmInvoices = createServerFn({ method: "POST" })
         amount_paid: Number(inv.amount_paid),
         late_fee: Number(inv.late_fee ?? 0),
         unit_label: lease ? (unitById.get(lease.unit_id) ?? null) : null,
-        tenant_id: lease?.tenant_id ?? null,
+        tenant_id: tenantId,
+        tenant_name: tenantId ? (tenantNameById.get(tenantId) ?? null) : null,
+        lease_monthly_rent: lease ? Number(lease.monthly_rent) : null,
         payments: pays.map((p) => ({
           id: p.id as string,
           amount: Number(p.amount),
@@ -953,6 +1039,149 @@ export const listPmInvoices = createServerFn({ method: "POST" })
         })),
       };
     });
+  });
+
+/** Update agreed monthly rent on an active lease (future invoices use this amount). */
+export const updatePmLeaseRent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      leaseId: z.string().uuid(),
+      monthlyRent: z.number().int().min(0),
+      /** When true, also set amount_due on open invoices for the current calendar month. */
+      applyToCurrentInvoice: z.boolean().optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await requirePortalRole(supabase, userId);
+    const admin = asPmDb(await adminClient());
+
+    const { data: lease } = await admin
+      .from("pm_leases")
+      .select("id, unit_id, status, monthly_rent")
+      .eq("id", data.leaseId)
+      .maybeSingle();
+    if (!lease) throw new Error("Lease not found");
+    if (lease.status !== "active") throw new Error("Only active leases can be updated");
+
+    const { data: unit } = await admin
+      .from("pm_units")
+      .select("id, property_id")
+      .eq("id", lease.unit_id)
+      .maybeSingle();
+    if (!unit) throw new Error("Unit not found");
+
+    const { staffRole } = await assertPmPropertyAccess(admin, userId, unit.property_id);
+    assertStaffCan(staffRole, "leases:create");
+
+    const { error } = await admin
+      .from("pm_leases")
+      .update({ monthly_rent: data.monthlyRent })
+      .eq("id", data.leaseId);
+    if (error) throw error;
+
+    const currentInvoiceUpdated = data.applyToCurrentInvoice
+      ? await applyMonthlyRentToOpenInvoice(admin, data.leaseId, data.monthlyRent)
+      : false;
+
+    return {
+      ok: true as const,
+      leaseId: data.leaseId,
+      monthlyRent: data.monthlyRent,
+      currentInvoiceUpdated,
+    };
+  });
+
+async function applyMonthlyRentToOpenInvoice(
+  admin: import("@/lib/pm/access").PmDb,
+  leaseId: string,
+  monthlyRent: number,
+): Promise<boolean> {
+  const { invoiceStatusAfterPayment } = await import("@/lib/pm/invoice-status");
+  const periodMonth = new Date().toISOString().slice(0, 7);
+  const { data: openInv } = await admin
+    .from("pm_rent_invoices")
+    .select("id, amount_paid, status")
+    .eq("lease_id", leaseId)
+    .eq("period_month", periodMonth)
+    .in("status", ["pending", "partial", "overdue"])
+    .maybeSingle();
+  if (!openInv) return false;
+
+  const paid = Number(openInv.amount_paid ?? 0);
+  if (monthlyRent < paid) {
+    throw new Error(`Cannot set rent below amount already paid this month (${paid} KES)`);
+  }
+  const nextStatus = invoiceStatusAfterPayment(monthlyRent, paid, 0);
+  const { error: invErr } = await admin
+    .from("pm_rent_invoices")
+    .update({
+      amount_due: monthlyRent,
+      status: nextStatus,
+    })
+    .eq("id", openInv.id);
+  if (invErr) throw invErr;
+  return true;
+}
+
+/** Edit amount_due for a single invoice month (does not change lease monthly_rent). */
+export const updatePmInvoiceAmountDue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      invoiceId: z.string().uuid(),
+      amountDue: z.number().int().min(0),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = authContext(context);
+    await requirePortalRole(supabase, userId);
+    const admin = asPmDb(await adminClient());
+
+    const { data: invoice } = await admin
+      .from("pm_rent_invoices")
+      .select("id, lease_id, amount_paid, late_fee, status")
+      .eq("id", data.invoiceId)
+      .maybeSingle();
+    if (!invoice) throw new Error("Invoice not found");
+
+    const { data: lease } = await admin
+      .from("pm_leases")
+      .select("id, unit_id")
+      .eq("id", invoice.lease_id)
+      .maybeSingle();
+    if (!lease) throw new Error("Lease not found");
+
+    const { data: unit } = await admin
+      .from("pm_units")
+      .select("id, property_id")
+      .eq("id", lease.unit_id)
+      .maybeSingle();
+    if (!unit) throw new Error("Unit not found");
+
+    const { staffRole } = await assertPmPropertyAccess(admin, userId, unit.property_id);
+    assertStaffCan(staffRole, "invoices:create");
+
+    const paid = Number(invoice.amount_paid ?? 0);
+    if (data.amountDue < paid) {
+      throw new Error(`Cannot set amount due below amount already paid (${paid} KES)`);
+    }
+
+    const { invoiceStatusAfterPayment } = await import("@/lib/pm/invoice-status");
+    const status = invoiceStatusAfterPayment(
+      data.amountDue,
+      paid,
+      Number(invoice.late_fee ?? 0),
+    );
+
+    const { error } = await admin
+      .from("pm_rent_invoices")
+      .update({ amount_due: data.amountDue, status })
+      .eq("id", data.invoiceId);
+    if (error) throw error;
+
+    return { ok: true as const, invoiceId: data.invoiceId, amountDue: data.amountDue, status };
   });
 
 /** Rent ledger for CSV / Excel / printable PDF export. */

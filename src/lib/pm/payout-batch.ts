@@ -289,7 +289,12 @@ async function createAndProcessBatch(
 
 async function finalizeSentBatch(
   admin: PmDb,
-  batch: { owner_user_id?: unknown; total_net_payout?: unknown; total_platform_fee?: unknown; total_gross?: unknown },
+  batch: {
+    owner_user_id?: unknown;
+    total_net_payout?: unknown;
+    total_platform_fee?: unknown;
+    total_gross?: unknown;
+  },
   batchId: string,
   providerRef: string,
 ): Promise<"completed"> {

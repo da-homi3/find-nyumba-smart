@@ -58,6 +58,11 @@ async function ensureTenantUser(admin, password) {
   let user = list?.users?.find((u) => u.email === TEST_EMAIL);
 
   if (user) {
+    const { error: updateErr } = await admin.auth.admin.updateUserById(user.id, {
+      password,
+      email_confirm: true,
+    });
+    if (updateErr) throw updateErr;
     pass("Reuse test tenant", TEST_EMAIL);
   } else {
     const { data, error } = await admin.auth.admin.createUser({

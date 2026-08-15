@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getAuthContext } from "@/lib/api/server-context";
 
 const searchEventSchema = z.object({
   query: z.string().max(200).optional(),
@@ -37,5 +39,20 @@ export const recordSearchEvent = createServerFn({ method: "POST" })
       console.warn("[analytics] search_events insert:", err);
     }
 
+    return { recorded: true };
+  });
+
+export const recordProductEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      eventName: z.string().min(3).max(80),
+      properties: z.record(z.unknown()).optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { userId } = getAuthContext(context);
+    const { recordProductEventCore } = await import("@/lib/analytics/product-events");
+    await recordProductEventCore(userId, data.eventName, data.properties ?? {});
     return { recorded: true };
   });

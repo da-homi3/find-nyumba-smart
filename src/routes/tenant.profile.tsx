@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { supabase } from "@/integrations/supabase/client";
 import { submitVerification } from "@/lib/api/trust.functions";
 import { VerificationDocumentUpload } from "@/components/verification/VerificationDocumentUpload";
@@ -31,8 +32,12 @@ import {
 } from "@/lib/api/booking.functions";
 import { listTransactions } from "@/lib/api/payment.functions";
 import { listSavedSearches, setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
+import { listMyContactUnlocks } from "@/lib/api/contact-unlock.functions";
+import { cancelTenantPlus } from "@/lib/api/revenue.functions";
 import { errorMessage } from "@/lib/utils";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
+import { TenantProfileScoreCard } from "@/components/TenantProfileScoreCard";
+import { ReportContactIssue } from "@/components/ReportContactIssue";
 
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
 
@@ -69,6 +74,40 @@ function readPrefs(userId?: string): TenantNotificationPrefs {
 
 function Profile() {
   const { user, signOut, isAdmin } = useAuth();
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-2xl px-5 pt-10 pb-20">
+        <header className="flex items-center gap-4">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-gradient-emerald text-primary-foreground">
+            <User className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="font-display text-xl font-semibold">Guest</h1>
+            <p className="text-xs text-muted-foreground">Not signed in</p>
+          </div>
+        </header>
+        <Link
+          to="/auth"
+          className="mt-6 block rounded-2xl bg-primary px-6 py-3 text-center text-sm font-semibold text-primary-foreground"
+        >
+          Sign in or create an account
+        </Link>
+        <OnboardingTourHost tourId="tenant-profile" />
+      </div>
+    );
+  }
+  return <SignedInProfile isAdmin={isAdmin} signOut={signOut} />;
+}
+
+function SignedInProfile({
+  isAdmin,
+  signOut,
+}: Readonly<{
+  isAdmin: boolean;
+  signOut: () => void;
+}>) {
+  const { user } = useAuth();
+  const { isPlus, entitlements } = useEntitlements();
   const qc = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -152,6 +191,8 @@ function Profile() {
     return {
       is_phone_verified: approved("phone"),
       is_id_verified: approved("identity"),
+      is_employment_verified: approved("employment"),
+      is_income_verified: approved("income"),
       is_business_verified: approved("business"),
       is_ownership_verified: approved("ownership"),
     };
@@ -169,6 +210,12 @@ function Profile() {
     queryKey: ["my-transactions"],
     enabled: !!user,
     queryFn: () => listTransactions(),
+  });
+
+  const { data: unlocks = [] } = useQuery({
+    queryKey: ["my-contact-unlocks"],
+    enabled: !!user,
+    queryFn: () => listMyContactUnlocks(),
   });
 
   useEffect(() => {
@@ -191,6 +238,19 @@ function Profile() {
     onError: (e: Error) => {
       toast.error(e.message);
     },
+  });
+
+  const handleCancelPlus = useMutation({
+    mutationFn: () => cancelTenantPlus(),
+    onSuccess: (res) => {
+      toast.success(
+        res.accessUntil
+          ? `Plus cancelled. Access continues until ${new Date(res.accessUntil).toLocaleDateString()}.`
+          : "Plus cancelled.",
+      );
+      void qc.invalidateQueries({ queryKey: ["entitlements"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   async function saveProfile(e: SubmitEvent<HTMLFormElement>) {
@@ -307,8 +367,6 @@ function Profile() {
         </div>
       </header>
 
-      {user ? (
-        <>
           <form
             onSubmit={saveProfile}
             className="mt-8 rounded-2xl border bg-card p-4"
@@ -338,6 +396,19 @@ function Profile() {
                   placeholder="+254 7..."
                 />
               </Field>
+              <div className="sm:col-span-2">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Email</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background px-3 py-2.5 text-sm">
+                  <span>{user.email}</span>
+                  <Link
+                    to="/settings"
+                    search={{ tab: "security" } as never}
+                    className="text-xs font-semibold text-primary"
+                  >
+                    Change email
+                  </Link>
+                </div>
+              </div>
             </div>
             <button
               type="submit"
@@ -353,14 +424,35 @@ function Profile() {
             </button>
           </form>
 
+          <TenantProfileScoreCard userId={user.id} />
+
           <div
             className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4"
             data-tour="tenant-profile-plus"
           >
             <h2 className="font-display text-sm font-semibold">NyumbaSearch Plus</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Unlimited contact unlocks, scam-risk scores, and early access to new listings.
+              Monthly contact credits, NyumbaSearch AI, financial tools, scam-risk scores, and early
+              access. Paid unlocks you already bought stay yours if Plus ends.
             </p>
+            {isPlus ? (
+              <>
+                <p className="mt-2 text-xs font-semibold text-primary">
+                  {entitlements.plusContactCredits ?? 0} contact credits remaining
+                  {entitlements.plusExpiresAt
+                    ? ` · access until ${new Date(entitlements.plusExpiresAt).toLocaleDateString()}`
+                    : ""}
+                </p>
+                <button
+                  type="button"
+                  disabled={handleCancelPlus.isPending}
+                  onClick={() => handleCancelPlus.mutate()}
+                  className="mt-3 mr-2 rounded-xl border px-4 py-2 text-xs font-semibold"
+                >
+                  Cancel auto-renew
+                </button>
+              </>
+            ) : null}
             <Link
               to="/tenant/checkout"
               className="mt-3 inline-flex rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
@@ -438,6 +530,8 @@ function Profile() {
                 {[
                   { label: "Phone", status: verificationStatus.is_phone_verified },
                   { label: "Identity", status: verificationStatus.is_id_verified },
+                  { label: "Employment", status: verificationStatus.is_employment_verified },
+                  { label: "Income", status: verificationStatus.is_income_verified },
                   { label: "Business", status: verificationStatus.is_business_verified },
                   { label: "Ownership", status: verificationStatus.is_ownership_verified },
                 ].map((l) => (
@@ -493,6 +587,38 @@ function Profile() {
                         Cancel
                       </button>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="mt-6 rounded-2xl border bg-card p-4">
+            <h2 className="font-display text-sm font-semibold border-b pb-3">Contact history</h2>
+            {unlocks.length === 0 ? (
+              <p className="mt-3 text-xs text-muted-foreground">No unlocked contacts yet.</p>
+            ) : (
+              <div className="mt-3 divide-y text-xs">
+                {unlocks.map((u) => (
+                  <div key={u.id} className="py-2.5">
+                    <div className="flex justify-between gap-3">
+                      <div>
+                        <Link
+                          to="/tenant/property/$id"
+                          params={{ id: u.listingId }}
+                          className="font-semibold hover:text-primary"
+                        >
+                          {u.title}
+                        </Link>
+                        <p className="text-[10px] text-muted-foreground">
+                          {u.method} · {new Date(u.unlockedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span className="text-muted-foreground">
+                        {u.feeCharged ? `KES ${u.feeCharged}` : "Included"}
+                      </span>
+                    </div>
+                    <ReportContactIssue listingId={u.listingId} />
                   </div>
                 ))}
               </div>
@@ -581,15 +707,6 @@ function Profile() {
           >
             <LogOut className="h-4 w-4" /> Sign out
           </button>
-        </>
-      ) : (
-        <Link
-          to="/auth"
-          className="mt-6 block rounded-2xl bg-primary px-6 py-3 text-center text-sm font-semibold text-primary-foreground"
-        >
-          Sign in or create an account
-        </Link>
-      )}
       <OnboardingTourHost tourId="tenant-profile" />
     </div>
   );

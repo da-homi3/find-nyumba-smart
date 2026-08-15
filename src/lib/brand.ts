@@ -15,4 +15,4 @@ export const FAVICON_ICO_PATH = "/favicon.ico";
 export const APPLE_TOUCH_ICON_PATH = `/brand/${BRAND_ASSET_VERSION}/apple-touch-icon.png`;
 export const WEB_MANIFEST_PATH = "/manifest.webmanifest";
 /** Matches the app icon background (cocoa brown). */
-export const BRAND_THEME_COLOR = "#4A2713";
+export const BRAND_THEME_COLOR = "#0E0F14";

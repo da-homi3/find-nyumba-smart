@@ -200,13 +200,10 @@ function PropertyCardImage({
       </div>
       <motion.span
         whileHover={{ scale: 1.05 }}
-        className="listing-price-chip absolute bottom-3 left-3"
+        className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md"
       >
-        {formatListingPrice(property)}
-      </motion.span>
-      <span className="absolute bottom-3 right-3 rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
         {prettyType(property.property_type)}
-      </span>
+      </motion.span>
     </div>
   );
 }
@@ -222,16 +219,36 @@ function PropertyCardDetails({
 }>) {
   return (
     <div className="p-5">
-      <h3 className="line-clamp-1 font-display text-base font-semibold tracking-tight group-hover:text-primary">
+      <p className="text-lg font-bold tracking-tight text-foreground">
+        {formatListingPrice(property)}
+      </p>
+      <h3 className="mt-1 line-clamp-1 font-display text-base font-semibold tracking-tight group-hover:text-primary">
         {property.title}
       </h3>
-      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-secondary/80 px-2.5 py-0.5 text-xs text-muted-foreground">
+      <div className="mt-1.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
         <MapPin className="h-3 w-3 shrink-0" aria-hidden />
         <span>
           {property.neighborhood} · {intel.subArea}
         </span>
       </div>
       {detailNote ? <p className="mt-1.5 text-[10px] text-muted-foreground">{detailNote}</p> : null}
+
+      <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <BedDouble className="h-3.5 w-3.5" aria-hidden />
+          {property.bedrooms} bd
+        </span>
+        <span className="flex items-center gap-1">
+          <Bath className="h-3.5 w-3.5" aria-hidden />
+          {property.bathrooms} ba
+        </span>
+        {intel.parking ? (
+          <span className="flex items-center gap-1">
+            <Car className="h-3.5 w-3.5" aria-hidden />
+            Parking
+          </span>
+        ) : null}
+      </div>
 
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-medium">
         <span className={`inline-flex items-center gap-0.5 ${intelColor(intel.water)}`}>
@@ -246,31 +263,13 @@ function PropertyCardDetails({
         </span>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <BedDouble className="h-3.5 w-3.5" aria-hidden />
-            {property.bedrooms} bd
-          </span>
-          <span className="flex items-center gap-1">
-            <Bath className="h-3.5 w-3.5" aria-hidden />
-            {property.bathrooms} ba
-          </span>
-          {intel.parking ? (
-            <span className="flex items-center gap-1">
-              <Car className="h-3.5 w-3.5" aria-hidden />
-              Parking
-            </span>
-          ) : null}
-        </div>
-        <motion.span
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          className="shrink-0 rounded-xl bg-gradient-emerald px-3.5 py-2 text-[11px] font-semibold text-white shadow-[0_4px_14px_-4px_rgba(10,143,61,0.5)]"
-        >
-          View details
-        </motion.span>
-      </div>
+      <motion.span
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
+        className="mt-4 flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3.5 py-2.5 text-[12px] font-semibold text-foreground transition group-hover:border-primary/40"
+      >
+        View Details
+      </motion.span>
     </div>
   );
 }

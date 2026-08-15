@@ -51,16 +51,8 @@ const AmbientBackdrop = lazy(() =>
 );
 
 function shouldShowAmbientBackdrop(pathname: string): boolean {
-  if (globalThis.window !== undefined) {
-    const nav = navigator as Navigator & {
-      deviceMemory?: number;
-      connection?: { saveData?: boolean };
-    };
-    if (nav.connection?.saveData) return false;
-    if (typeof nav.deviceMemory === "number" && nav.deviceMemory < 4) return false;
-    // Skip continuous canvas RAF on phones — competes with scroll + listings.
-    if (globalThis.window.innerWidth < 768) return false;
-  }
+  // Shown on marketing surfaces including mobile / WebView; particle budget
+  // scales down inside AmbientBackdrop. Reduced-motion still opts out in-component.
   if (pathname === "/") return true;
   return (
     pathname.startsWith("/about") ||
@@ -68,7 +60,8 @@ function shouldShowAmbientBackdrop(pathname: string): boolean {
     pathname.startsWith("/advertise") ||
     pathname.startsWith("/contact") ||
     pathname.startsWith("/services") ||
-    pathname.startsWith("/partnership")
+    pathname.startsWith("/partnership") ||
+    pathname.startsWith("/tenant")
   );
 }
 
@@ -199,7 +192,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap",
       },
     ],
   }),

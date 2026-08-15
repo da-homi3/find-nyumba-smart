@@ -65,10 +65,9 @@ const MUST_STILL_WORK = [
 ];
 
 async function fetchAnonRows(url, key, table, select) {
-  const res = await fetch(
-    `${url}/rest/v1/${table}?select=${encodeURIComponent(select)}&limit=1`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}` } },
-  );
+  const res = await fetch(`${url}/rest/v1/${table}?select=${encodeURIComponent(select)}&limit=1`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
   const body = await res.text();
   let rows = [];
   if (res.ok) {

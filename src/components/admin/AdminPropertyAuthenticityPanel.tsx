@@ -34,9 +34,9 @@ export function AdminPropertyAuthenticityPanel({ property }: Readonly<{ property
   if (!isAdmin) return null;
 
   return (
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-primary/15 pt-3">
       <div className="text-xs">
-        <p className="font-semibold text-primary">Admin: authenticity score</p>
+        <p className="font-semibold text-primary">Authenticity score</p>
         <p className="text-muted-foreground">
           Adjust trust score (±5) or set authenticity to 100% for fully verified listings.
         </p>

@@ -46,6 +46,7 @@ const VAR_KEYS = [
   "VAPID_PUBLIC_KEY",
   "INTASEND_ENV",
   "AT_ENV",
+  "APPLE_TEAM_ID",
 ];
 
 /** Uploaded as Worker secrets */
@@ -302,17 +303,17 @@ function patchWranglerCustomDomains(zoneReady) {
   }
   const cfg = JSON.parse(readFileSync(wranglerConfig, "utf8"));
   cfg.workers_dev = true;
+  // Always re-attach production hostnames. Vite regenerates wrangler.json without
+  // routes; skipping this when the zone probe fails left /api/mobile unreachable
+  // on nyumbasearch.com while workers.dev worked.
+  cfg.routes = CUSTOM_DOMAINS.map((hostname) => ({
+    pattern: hostname,
+    custom_domain: true,
+  }));
   if (zoneReady) {
-    cfg.routes = CUSTOM_DOMAINS.map((hostname) => ({
-      pattern: hostname,
-      custom_domain: true,
-    }));
     console.log(`Patched custom domains: ${CUSTOM_DOMAINS.join(", ")}`);
   } else {
-    // Never strip custom domains on a failed zone probe — that broke production deploys.
-    console.warn(
-      "Zone probe failed — keeping existing custom domain routes. Re-run: npm run deploy:domain if needed",
-    );
+    console.warn(`Zone probe failed — still patching custom domains: ${CUSTOM_DOMAINS.join(", ")}`);
   }
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
 }
@@ -350,6 +351,7 @@ function patchWranglerVars(env) {
     if (env[key]) cfg.vars[key] = env[key];
   }
   cfg.ai = { binding: "AI" };
+  cfg.send_email = [{ name: "EMAIL" }];
   cfg.kv_namespaces = [
     {
       binding: "CACHE_KV",
@@ -362,6 +364,7 @@ function patchWranglerVars(env) {
   cfg.migrations = [{ tag: "v1-presence", new_sqlite_classes: ["PresenceDurableObject"] }];
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
   console.log("Patched wrangler.json vars:", VAR_KEYS.filter((k) => env[k]).join(", "));
+  console.log("Patched send_email binding: EMAIL");
 }
 
 async function main() {

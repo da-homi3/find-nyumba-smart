@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,6 +8,7 @@ import { BrandLogoLink } from "@/components/BrandLogo";
 import { CustomerCareInfo } from "@/components/CustomerCareInfo";
 import { NotificationBellMenu } from "@/components/NotificationBellMenu";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
+import { AppDownloadStickyBar, PLAY_STORE_URL } from "@/components/AppDownloadBanner";
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { PORTAL_HOME, resolveListerDashboardPath } from "@/lib/portal-guard";
 
@@ -27,8 +28,8 @@ type Props = {
 function resolveGlassClass(isHero: boolean, scrolled: boolean): string {
   if (isHero) {
     return scrolled
-      ? "bg-[rgba(17,24,39,0.88)] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-      : "bg-[rgba(17,24,39,0.42)]";
+      ? "bg-[rgba(14,15,20,0.88)] shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
+      : "bg-[rgba(14,15,20,0.42)]";
   }
   return scrolled ? "bg-background/90 shadow-card" : "bg-background/75";
 }
@@ -45,10 +46,13 @@ function heroOutlineClass(isHero: boolean): string {
 
 function buildMobileNavLinks(loggedIn: boolean) {
   const links = [
-    ...SERVICE_LINKS,
-    { to: "/pricing", label: "Pricing" },
-    { to: "/tenant", label: "Browse" },
+    { to: "/", label: "Home" },
+    { to: "/tenant", label: "Search" },
     { to: "/tenant/map", label: "Map" },
+    ...SERVICE_LINKS,
+    { to: "/reports", label: "Resources" },
+    { to: "/about", label: "About" },
+    { to: "/pricing", label: "Pricing" },
     { to: "/referrals", label: "Invite & earn", auth: true },
     { to: "/settings", label: "Settings" },
   ];
@@ -74,6 +78,8 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const isHero = variant === "hero";
   const textClass = isHero ? "text-white" : "text-foreground";
   const mutedClass = isHero ? "text-white/85" : "text-muted-foreground";
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const showStickyAppBar = pathname !== "/";
 
   const hasListerPortal = isLandlord || isManager || isAgency;
   const dashboardHref = hasListerPortal
@@ -96,6 +102,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const mobileNavLinks = buildMobileNavLinks(!!user);
 
   return (
+    <>
     <motion.header
       initial={false}
       animate={{ y: 0 }}
@@ -109,10 +116,16 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
 
         <nav className={`hidden items-center gap-1 md:flex ${mutedClass}`}>
           <Link
+            to="/"
+            className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
+          >
+            Home
+          </Link>
+          <Link
             to="/tenant"
             className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
           >
-            Browse
+            Search
           </Link>
           <Link
             to="/tenant/map"
@@ -144,10 +157,16 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             )}
           </div>
           <Link
-            to="/pricing"
+            to="/reports"
             className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
           >
-            Pricing
+            Resources
+          </Link>
+          <Link
+            to="/about"
+            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+          >
+            About
           </Link>
           {user && (
             <>
@@ -185,26 +204,35 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
                   : undefined
               }
             />
+            {isPlus ? (
+              <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
+                Plus
+              </span>
+            ) : null}
             <Link
-              to="/settings"
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${heroOutlineClass(isHero)}`}
+              to="/landlord/properties/new"
+              className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-green transition hover:opacity-95"
             >
-              Settings
-              {isPlus && (
-                <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
-                  Plus
-                </span>
-              )}
+              List Property
             </Link>
           </div>
         ) : (
-          <Link
-            to="/auth"
-            search={{ redirect: "/tenant" }}
-            className={`hidden rounded-full border px-4 py-2 text-sm font-medium md:inline-flex ${heroOutlineClass(isHero)}`}
-          >
-            Sign in
-          </Link>
+          <div className="hidden items-center gap-2 md:flex">
+            <Link
+              to="/auth"
+              search={{ redirect: "/tenant" }}
+              className={`rounded-full border px-4 py-2 text-sm font-medium ${heroOutlineClass(isHero)}`}
+            >
+              Login
+            </Link>
+            <Link
+              to="/auth"
+              search={{ redirect: "/landlord/properties/new" }}
+              className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-green transition hover:opacity-95"
+            >
+              List Property
+            </Link>
+          </div>
         )}
 
         <motion.button
@@ -245,6 +273,24 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             </Link>
           ))}
           {user ? (
+            <Link
+              to="/landlord/properties/new"
+              className="mt-2 block rounded-xl bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
+              onClick={() => setMenuOpen(false)}
+            >
+              List Property
+            </Link>
+          ) : (
+            <Link
+              to="/auth"
+              search={{ redirect: "/landlord/properties/new" }}
+              className="mt-2 block rounded-xl bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
+              onClick={() => setMenuOpen(false)}
+            >
+              List Property
+            </Link>
+          )}
+          {user ? (
             <button
               type="button"
               onClick={() => signOut()}
@@ -254,7 +300,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             </button>
           ) : (
             <Link to="/auth" search={{ redirect: "/tenant" }} className="block py-2 text-sm">
-              Sign in
+              Login
             </Link>
           )}
           <button
@@ -278,6 +324,8 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
         </div>
       )}
     </motion.header>
+    {showStickyAppBar ? <AppDownloadStickyBar /> : null}
+    </>
   );
 }
 
@@ -291,13 +339,27 @@ export function SiteFooter() {
             The trusted way to find a home in Nairobi — built for tenants and landlords, free of
             brokers.
           </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a
+              href={PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background hover:opacity-90"
+            >
+              Get it on Google Play
+            </a>
+            <span className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+              App Store · Coming soon
+            </span>
+          </div>
           <CustomerCareInfo className="mt-5" layout="inline" />
         </div>
         <FooterCol
-          title="Tenants"
+          title="Quick Links"
           links={[
-            { to: "/tenant", label: "Browse homes" },
-            { to: "/tenant/map", label: "Map view" },
+            { to: "/", label: "Home" },
+            { to: "/tenant", label: "Search" },
+            { to: "/tenant/map", label: "Map" },
             { to: "/tenant/saved", label: "Saved" },
           ]}
         />
@@ -306,25 +368,23 @@ export function SiteFooter() {
           links={SERVICE_LINKS.map((l) => ({ to: l.to, label: l.label }))}
         />
         <FooterCol
-          title="Pricing"
+          title="Resources"
           links={[
-            { to: "/pricing", label: "Landlord plans" },
-            { to: "/pricing#agencies", label: "Agency plans" },
-            { to: "/pricing#plus", label: "NyumbaSearch Plus" },
-            { to: "/pricing#boost", label: "Boost a listing" },
+            { to: "/reports", label: "Market reports" },
+            { to: "/pricing", label: "Plans & pricing" },
             { to: "/advertise", label: "Advertise with us" },
+            { to: "/pricing#plus", label: "NyumbaSearch Plus" },
           ]}
         />
         <FooterCol
-          title="Legal"
+          title="Support"
           links={[
+            { to: "/contact", label: "Contact" },
             { to: "/privacy", label: "Privacy policy" },
             { to: "/terms-of-service", label: "Terms of service" },
             { to: "/cookie-policy", label: "Cookie policy" },
-            { to: "/acceptable-use-policy", label: "Acceptable use" },
             { to: "/refund-policy", label: "Refund policy" },
             { to: "/data-deletion", label: "Delete my data" },
-            { to: "/landlord-agreement", label: "Landlord agreement" },
           ]}
         />
         <FooterCol
@@ -371,7 +431,7 @@ function FooterCol({
 
 export function PublicPageShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="min-h-screen overflow-x-clip bg-background">
+    <div className="min-h-screen overflow-x-clip bg-background pb-20 md:pb-0">
       <SiteNav variant="light" />
       {children}
       <SiteFooter />

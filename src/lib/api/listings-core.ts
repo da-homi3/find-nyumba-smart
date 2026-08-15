@@ -15,13 +15,14 @@ import { areasForCounty, matchLocation, neighborhoodStorageValue } from "@/data/
 import { withCache, getListingsCacheEpoch } from "@/lib/cache/manager";
 import { sortListingsByProximity } from "@/lib/geo/listings-nearby-sort";
 import { browseOriginFromGeolocation, DEFAULT_BROWSE_ORIGIN } from "@/lib/geo/tenant-browse-origin";
+import { PROPERTY_TYPES } from "@/lib/property-types";
 
 export function listingsCacheKey(data?: PropertySearchFilters): string {
   const f = data ?? {};
   // v4: full browse pools + multi-type filters.
   const typesKey =
     f.propertyTypes && f.propertyTypes.length > 0
-      ? [...f.propertyTypes].sort().join(",")
+      ? [...f.propertyTypes].sort((a, b) => a.localeCompare(b)).join(",")
       : (f.propertyType ?? "");
   const parts = [
     "v4",
@@ -36,6 +37,7 @@ export function listingsCacheKey(data?: PropertySearchFilters): string {
     f.pricingMode ?? "",
     f.verifiedOnly ? "v1" : "",
     f.minBedrooms != null ? String(f.minBedrooms) : "",
+    f.maxImages != null ? `mi${f.maxImages}` : "",
   ];
   if (f.sortBy === "nearby" && f.originLat != null && f.originLng != null) {
     parts.push(`g${f.originLat.toFixed(3)},${f.originLng.toFixed(3)}`);
@@ -114,10 +116,24 @@ function applySearchTermFilter(query: PropertyQuery, rawQuery: string | undefine
     .slice(0, 100);
   if (!term) return query;
 
-  const typeTerm = term.replaceAll(" ", "_");
-  return query.or(
-    `title.ilike.*${term}*,neighborhood.ilike.*${term}*,property_type.eq.${typeTerm}`,
-  );
+  // Quote values so spaces (e.g. "2 bedroom") don't break PostgREST `.or()` parsing.
+  const pattern = `"*${term}*"`;
+  const parts = [`title.ilike.${pattern}`, `neighborhood.ilike.${pattern}`];
+
+  // Only OR an exact property_type when the term is a known enum — invalid enums 500.
+  const typeTerm = term.toLowerCase().replaceAll(" ", "_");
+  const aliases: Record<string, string> = {
+    "1_bedroom": "one_bedroom",
+    "2_bedroom": "two_bedroom",
+    "3_bedroom": "three_bedroom",
+    "4_bedroom": "four_bedroom",
+  };
+  const resolvedType = aliases[typeTerm] ?? typeTerm;
+  if ((PROPERTY_TYPES as readonly string[]).includes(resolvedType)) {
+    parts.push(`property_type.eq.${resolvedType}`);
+  }
+
+  return query.or(parts.join(","));
 }
 
 function applyListingSort(query: PropertyQuery, sortBy: PropertySearchFilters["sortBy"]) {
@@ -257,12 +273,16 @@ export async function queryListingsDirect(
       throw new Error(message);
     }
 
+    const maxImages = Math.min(
+      3,
+      Math.max(0, Number.isFinite(data?.maxImages) ? Math.trunc(data!.maxImages!) : 3),
+    );
     let items = mapPropertyRows(
       (rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0],
     ).map((item) => ({
       ...item,
       // List/map responses: keep card thumbs only — full gallery loads on detail.
-      images: item.images.slice(0, 3),
+      images: item.images.slice(0, maxImages),
       description: null,
       video_url: null,
       tour_url: null,

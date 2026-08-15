@@ -7,7 +7,7 @@ import heroVilla from "@/assets/hero-kenya-villa.webp";
 import { HOOD_META } from "@/components/landing/hood-meta";
 import { HOMEPAGE_DESCRIPTION } from "@/lib/site";
 import type { PropertyType } from "@/lib/properties";
-import { useDeviceCapability } from "@/hooks/useDeviceCapability";
+import { useDeviceCapability, useMotionBudget } from "@/hooks/useDeviceCapability";
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +31,12 @@ const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
   { value: "bungalow", label: "Bungalow" },
 ];
 
+const PURPOSE_TABS = [
+  { id: "rent" as const, label: "Rent", purpose: "rent" as const },
+  { id: "buy" as const, label: "Buy", purpose: "sale" as const },
+  { id: "short" as const, label: "Short Let", purpose: "rent" as const },
+];
+
 const MIN_BUDGET_KES = 1_000;
 const MAX_BUDGET_KES = 2_000_000;
 
@@ -40,11 +46,13 @@ export function LandingHero({
 }: Readonly<{ verifiedCount: number; hoodCount: number }>) {
   const navigate = useNavigate();
   const capable3D = useDeviceCapability();
+  const motionBudget = useMotionBudget();
   const reduceMotion = useReducedMotion();
   const [slide, setSlide] = useState(0);
   const [hood, setHood] = useState("");
   const [maxRent, setMaxRent] = useState("");
   const [propType, setPropType] = useState<PropertyType | "">("");
+  const [purposeTab, setPurposeTab] = useState<(typeof PURPOSE_TABS)[number]["id"]>("rent");
 
   useEffect(() => {
     if (reduceMotion || HERO_SLIDES.length < 2) return;
@@ -62,14 +70,17 @@ export function LandingHero({
       if (!Number.isFinite(parsed)) return;
       budget = Math.min(MAX_BUDGET_KES, Math.max(MIN_BUDGET_KES, parsed));
     }
+    const tab = PURPOSE_TABS.find((t) => t.id === purposeTab);
     const search: {
       neighborhood?: string;
       maxPrice?: number;
       type?: PropertyType;
+      purpose?: "rent" | "sale";
     } = {};
     if (hood) search.neighborhood = hood;
     if (typeof budget === "number") search.maxPrice = budget;
     if (propType) search.type = propType;
+    if (tab) search.purpose = tab.purpose;
     navigate({ to: "/tenant", search });
   };
 
@@ -97,8 +108,8 @@ export function LandingHero({
 
       {capable3D ? (
         <Suspense fallback={null}>
-          <div className="pointer-events-none absolute inset-0 z-1">
-            <HeroScene3D />
+          <div className="pointer-events-none absolute inset-0 z-1 opacity-90">
+            <HeroScene3D budget={motionBudget} />
           </div>
         </Suspense>
       ) : null}
@@ -129,9 +140,8 @@ export function LandingHero({
           transition={{ duration: 0.7, delay: 0.1, ease: [0.19, 1, 0.22, 1] }}
           className="display-heading hero-title max-w-4xl text-4xl text-white sm:text-5xl lg:text-6xl"
         >
-          Your next home in Nairobi —
-          <br />
-          <span className="text-primary-glow">deal with verified property owners</span>.
+          Your next home in Nairobi deals with{" "}
+          <span className="text-primary-glow">verified property owners</span>
         </motion.h1>
 
         <motion.p
@@ -148,56 +158,88 @@ export function LandingHero({
           initial={SSR_SAFE_MOTION_INITIAL}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.6 }}
-          className="glass-surface mt-8 w-full max-w-2xl overflow-hidden rounded-2xl"
+          className="glass-surface mt-8 w-full max-w-3xl overflow-hidden rounded-[22px]"
         >
-          <div className="grid gap-0 sm:grid-cols-[1fr_1fr_1fr_auto]">
-            <label className="flex items-center gap-2 border-b border-white/10 px-4 py-3 sm:border-r sm:border-b-0">
-              <MapPin className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
-              <input
-                list="hood-suggestions"
-                value={hood}
-                onChange={(e) => setHood(e.target.value)}
-                placeholder="Neighborhood"
-                className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40 focus:shadow-[0_0_0_3px_rgba(10,143,61,0.2)]"
-                aria-label="Neighborhood"
-              />
+          <div className="flex items-center gap-1 border-b border-white/10 px-3 pt-3">
+            {PURPOSE_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setPurposeTab(tab.id)}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-sm font-semibold transition",
+                  purposeTab === tab.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-white/70 hover:bg-white/10 hover:text-white",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-0 sm:grid-cols-[1.2fr_1fr_1fr_auto]">
+            <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                Where in Nairobi?
+              </span>
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
+                <input
+                  list="hood-suggestions"
+                  value={hood}
+                  onChange={(e) => setHood(e.target.value)}
+                  placeholder="Neighborhood"
+                  className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40"
+                  aria-label="Neighborhood"
+                />
+              </span>
               <datalist id="hood-suggestions">
                 {Object.keys(HOOD_META).map((n) => (
                   <option key={n} value={n} />
                 ))}
               </datalist>
             </label>
-            <label className="flex items-center gap-2 border-b border-white/10 px-4 py-3 sm:border-r sm:border-b-0">
-              <span className="text-xs font-semibold text-white/50">KES</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={MIN_BUDGET_KES}
-                max={MAX_BUDGET_KES}
-                value={maxRent}
-                onChange={(e) => setMaxRent(e.target.value)}
-                placeholder="Max budget"
-                className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40 focus:shadow-[0_0_0_3px_rgba(10,143,61,0.2)]"
-                aria-label="Maximum rent"
-              />
-            </label>
-            <label className="flex items-center gap-2 border-b border-white/10 px-4 py-3 sm:border-r sm:border-b-0">
-              <Search className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
-              <select
-                value={propType}
-                onChange={(e) => setPropType(e.target.value as PropertyType | "")}
-                className="w-full bg-transparent text-sm text-white outline-none"
-                aria-label="Property type"
-              >
-                <option value="" className="text-foreground">
-                  Any type
-                </option>
-                {PROPERTY_TYPES.map(({ value, label }) => (
-                  <option key={value} value={value} className="text-foreground">
-                    {label}
+            <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                Property Type
+              </span>
+              <span className="flex items-center gap-2">
+                <Search className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
+                <select
+                  value={propType}
+                  onChange={(e) => setPropType(e.target.value as PropertyType | "")}
+                  className="w-full bg-transparent text-sm text-white outline-none"
+                  aria-label="Property type"
+                >
+                  <option value="" className="text-foreground">
+                    Any type
                   </option>
-                ))}
-              </select>
+                  {PROPERTY_TYPES.map(({ value, label }) => (
+                    <option key={value} value={value} className="text-foreground">
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            </label>
+            <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                Price Range
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-white/50">KES</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_BUDGET_KES}
+                  max={MAX_BUDGET_KES}
+                  value={maxRent}
+                  onChange={(e) => setMaxRent(e.target.value)}
+                  placeholder="Max budget"
+                  className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40"
+                  aria-label="Maximum rent"
+                />
+              </span>
             </label>
             <motion.button
               type="submit"

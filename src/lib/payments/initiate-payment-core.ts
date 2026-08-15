@@ -314,9 +314,10 @@ async function assertContactUnlockPrice(
 }
 
 async function assertTenantPlusPrice(data: InitiatePaymentInput): Promise<void> {
-  const { PLUS_PLAN } = await import("@/lib/revenue/plans");
+  const { resolvePlusPlan } = await import("@/lib/revenue/platform-settings");
+  const plan = await resolvePlusPlan();
   const expected =
-    data.billingCycle === "quarterly" ? PLUS_PLAN.quarterlyKes : PLUS_PLAN.monthlyKes;
+    data.billingCycle === "quarterly" ? plan.quarterlyKes : plan.monthlyKes;
   if (data.amountKes !== expected) {
     throw new Error(`Plus price mismatch — expected KES ${expected}`);
   }

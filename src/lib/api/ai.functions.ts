@@ -37,7 +37,17 @@ Always be honest about trade-offs. Never make up specific listings or landlord d
 export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase } = getAuthContext(context);
+    const { supabase, userId } = getAuthContext(context);
+    const { requirePlus } = await import("@/lib/payments/require-plus");
+    await requirePlus(supabase, userId);
+    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
+    const { checkRateLimit: limitUser } = await import("@/lib/api/rate-limit");
+    limitUser(`ai-user:${userId}`, {
+      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
+      windowMs: 60_000,
+    });
+    const { logAiUsage } = await import("@/lib/ai/usage-log");
+    logAiUsage({ userId, feature: "recommendations", ok: true });
 
     // 1) Fetch saved properties
     const { data: saved, error: sErr } = await supabase
@@ -88,10 +98,22 @@ export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
   });
 
 export const getAIValuation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(z.object({ propertyId: z.string().uuid() }))
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
+    const { supabase: authed, userId } = getAuthContext(context);
+    const { requirePlus } = await import("@/lib/payments/require-plus");
+    await requirePlus(authed, userId);
+    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
+    const { logAiUsage } = await import("@/lib/ai/usage-log");
+    logAiUsage({ userId, feature: "valuation", ok: true });
+
     const { checkRateLimit } = await import("@/lib/api/rate-limit");
     checkRateLimit(`ai-valuation:${data.propertyId}`);
+    checkRateLimit(`ai-user:${userId}`, {
+      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
+      windowMs: 60_000,
+    });
 
     const { createPublicClient, PROPERTY_DETAIL_COLUMNS } = await import("@/lib/api/public-client");
     const supabase = createPublicClient();
@@ -253,6 +275,16 @@ export const getAssistantReply = createServerFn({ method: "POST" })
     checkRateLimit(request?.headers?.get("cf-connecting-ip") ?? "ai-assistant");
 
     const { supabase, userId } = getAuthContext(context);
+    const { requirePlus } = await import("@/lib/payments/require-plus");
+    await requirePlus(supabase, userId);
+    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
+    checkRateLimit(`ai-user:${userId}`, {
+      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
+      windowMs: 60_000,
+    });
+    const { logAiUsage } = await import("@/lib/ai/usage-log");
+    logAiUsage({ userId, feature: "assistant", ok: true });
+
     const intent = detectIntent(data.message);
 
     if (intent === "recommend") {
@@ -410,13 +442,27 @@ export async function answerPropertyAiChat(input: {
 }
 
 export const getAIChatResponse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       message: z.string().trim().min(1).max(2000),
       propertyId: z.string().uuid().optional(),
     }),
   )
-  .handler(async ({ data }) => answerPropertyAiChat(data));
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    const { requirePlus } = await import("@/lib/payments/require-plus");
+    await requirePlus(supabase, userId);
+    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
+    const { checkRateLimit } = await import("@/lib/api/rate-limit");
+    checkRateLimit(`ai-user:${userId}`, {
+      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
+      windowMs: 60_000,
+    });
+    const { logAiUsage } = await import("@/lib/ai/usage-log");
+    logAiUsage({ userId, feature: "property-chat", ok: true });
+    return answerPropertyAiChat(data);
+  });
 
 function propertyChatFallback(
   message: string,

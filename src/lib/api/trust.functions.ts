@@ -5,7 +5,7 @@ import { getAuthContext } from "@/lib/api/server-context";
 
 const submitVerificationSchema = z
   .object({
-    verificationType: z.enum(["phone", "identity", "business", "ownership"]),
+    verificationType: z.enum(["phone", "identity", "business", "ownership", "employment", "income"]),
     documents: z.array(z.string().url()).default([]),
     notes: z.string().trim().max(1000).optional(),
   })

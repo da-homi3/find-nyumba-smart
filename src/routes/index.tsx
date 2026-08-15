@@ -10,6 +10,7 @@ import {
   ServiceTeaserRow,
   TrustStrip,
 } from "@/components/landing/LandingBrowseSections";
+import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
@@ -126,7 +127,7 @@ function Landing() {
   }, [properties, publicStats]);
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-(--color-obsidian)">
+    <div className="min-h-screen overflow-x-clip bg-(--color-obsidian) pb-28 md:pb-0">
       <SiteNav variant="hero" />
       <LandingHero verifiedCount={stats.verifiedCount} hoodCount={stats.hoods} />
       <TrustStrip
@@ -138,6 +139,7 @@ function Landing() {
           tenantRating: publicStats?.tenantRating,
         }}
       />
+      <AppDownloadBanner />
       <FeaturedListings
         featured={featured.items}
         isBoosted={featured.isBoosted}

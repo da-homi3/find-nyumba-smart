@@ -10,7 +10,7 @@ import {
   VERIFICATION_TIERS,
 } from "@/lib/revenue/plans";
 import { getSiteUrl } from "@/lib/site";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import {
   boostActivatedEmail,
   paymentConfirmationEmail,
@@ -104,12 +104,9 @@ async function notifySubscriptionActivated(
       name: user.name,
       planName: "NyumbaSearch Plus",
       features: PLUS_PLAN.features,
-      trialEndDate: payment.trial_end
-        ? new Date(payment.trial_end).toLocaleDateString("en-KE")
-        : undefined,
       billingUrl: `${base}/tenant/profile`,
     });
-    await sendEmail({ to: user.email, templateId: "subscription-activated", ...tpl });
+    await sendEmailResult({ to: user.email, templateId: "subscription-activated", ...tpl });
     return;
   }
 
@@ -121,7 +118,7 @@ async function notifySubscriptionActivated(
       features: plan?.features ?? [],
       billingUrl: `${base}/landlord/dashboard/billing`,
     });
-    await sendEmail({ to: user.email, templateId: "subscription-activated", ...tpl });
+    await sendEmailResult({ to: user.email, templateId: "subscription-activated", ...tpl });
   }
 }
 
@@ -144,7 +141,7 @@ async function notifyBoost(
     expiresAt: expires.toLocaleDateString("en-KE"),
     analyticsUrl: `${getSiteUrl()}/landlord/analytics`,
   });
-  await sendEmail({ to: user.email, templateId: "boost-activated", ...tpl });
+  await sendEmailResult({ to: user.email, templateId: "boost-activated", ...tpl });
 }
 
 async function notifyVerification(
@@ -162,7 +159,7 @@ async function notifyVerification(
     requestId,
     statusUrl: `${getSiteUrl()}/verify/status/${requestId}`,
   });
-  await sendEmail({ to: user.email, templateId: "verification-submitted", ...tpl });
+  await sendEmailResult({ to: user.email, templateId: "verification-submitted", ...tpl });
 }
 
 /** Send payment receipt and purpose-specific emails after fulfillment. */
@@ -190,7 +187,7 @@ export async function sendPaymentLifecycleEmails(admin: Admin, payment: PaymentR
     date: new Date(payment.created_at).toLocaleString("en-KE", { timeZone: "Africa/Nairobi" }),
     dashboardUrl,
   });
-  await sendEmail({ to: user.email, templateId: "payment-confirmation", ...generic });
+  await sendEmailResult({ to: user.email, templateId: "payment-confirmation", ...generic });
 
   const { notifyUser } = await import("@/lib/notifications/notify-user");
   await notifyUser(admin, {

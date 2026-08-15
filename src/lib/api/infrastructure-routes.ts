@@ -146,6 +146,11 @@ async function handleV1Api(req: Request): Promise<Response> {
   return handleV1Api(req);
 }
 
+async function handleMobileV1ApiRoute(req: Request): Promise<Response> {
+  const { handleMobileV1Api } = await import("@/lib/api/mobile/v1/router");
+  return handleMobileV1Api(req);
+}
+
 async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<Response> {
   const { getListingsCacheEpoch } = await import("@/lib/cache/manager");
   const epoch = await getListingsCacheEpoch();
@@ -497,6 +502,45 @@ async function handleAiChat(req: Request): Promise<Response> {
     typeof body?.propertyId === "string" && body.propertyId.length > 0
       ? body.propertyId
       : undefined;
+
+  const { requireMobileBearer } = await import("@/lib/api/mobile/v1/auth");
+  const auth = await requireMobileBearer(req);
+  if (auth instanceof Response) {
+    return new Response(
+      JSON.stringify({
+        error: "unauthorized",
+        reply: "Sign in and upgrade to Tenant Plus to use NyumbaSearch AI.",
+      }),
+      { status: 401, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const { requirePlus, PlusRequiredError, plusRequiredPayload } =
+    await import("@/lib/payments/require-plus");
+  try {
+    await requirePlus(auth.admin, auth.userId);
+  } catch (err) {
+    if (err instanceof PlusRequiredError) {
+      return new Response(
+        JSON.stringify({
+          ...plusRequiredPayload(),
+          reply: "NyumbaSearch AI is a Tenant Plus feature. Upgrade to continue.",
+        }),
+        { status: 403, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    throw err;
+  }
+
+  const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
+  const { checkRateLimit } = await import("@/lib/api/rate-limit");
+  checkRateLimit(`ai-user:${auth.userId}`, {
+    max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
+    windowMs: 60_000,
+  });
+  const { logAiUsage } = await import("@/lib/ai/usage-log");
+  logAiUsage({ userId: auth.userId, feature: "property-chat", ok: true });
+
   const { answerPropertyAiChat } = await import("@/lib/api/ai.functions");
   const reply = await answerPropertyAiChat({ message, propertyId });
   return new Response(JSON.stringify({ reply }), {
@@ -914,6 +958,11 @@ const ROUTES: RouteDef[] = [
       ),
   },
   {
+    // Flutter Mobile BFF (Tenant MVP) — additive; does not replace website createServerFn APIs.
+    match: (url) => url.pathname.startsWith("/api/mobile/v1/"),
+    run: (req) => withErrorHandler("Mobile BFF v1", req, handleMobileV1ApiRoute),
+  },
+  {
     match: (url, method) => url.pathname === "/api/mobile/fcm-token" && method === "POST",
     run: async (req) => {
       const { handleFcmTokenRequest } = await import("@/lib/api/mobile-fcm");
@@ -944,6 +993,16 @@ const ROUTES: RouteDef[] = [
         },
       }),
   },
+  {
+    match: (url) => normalizeSeoPath(url.pathname) === "/.well-known/apple-app-site-association",
+    run: async () =>
+      new Response(appleAppSiteAssociationJson(), {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, max-age=3600",
+        },
+      }),
+  },
 ];
 
 /** Digital Asset Links for Android App Links (upload/release keystore SHA-256).
@@ -960,6 +1019,41 @@ const ANDROID_ASSETLINKS_JSON = `[
     }
   }
 ]`;
+
+/**
+ * Apple App Site Association for iOS Universal Links.
+ * Set APPLE_TEAM_ID in Worker env (or sync-wrangler) before App Store submission.
+ */
+function appleAppSiteAssociationJson(): string {
+  const teamId = (process.env.APPLE_TEAM_ID ?? "TEAMID").trim() || "TEAMID";
+  return JSON.stringify({
+    applinks: {
+      apps: [],
+      details: [
+        {
+          appID: `${teamId}.ke.co.nyumbasearch.app`,
+          paths: [
+            "/tenant/*",
+            "/tenant/property/*",
+            "/property/*",
+            "/auth/*",
+            "/plus",
+            "/services/*",
+            "/caretaker/*",
+            "/referrals",
+            "/agency/*",
+            "/manager/*",
+            "/landlord/*",
+            "/admin/*",
+            "/verify/*",
+            "/messages/*",
+            "/compare",
+          ],
+        },
+      ],
+    },
+  });
+}
 
 /** Infrastructure routes (webhooks, health, sitemap) handled before TanStack SSR. */
 export async function tryInfrastructureRoute(

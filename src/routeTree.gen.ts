@@ -55,9 +55,11 @@ import { Route as TenantProfileRouteImport } from './routes/tenant.profile'
 import { Route as TenantMessagesRouteImport } from './routes/tenant.messages'
 import { Route as TenantMapRouteImport } from './routes/tenant.map'
 import { Route as TenantMaintenanceRouteImport } from './routes/tenant.maintenance'
+import { Route as TenantFinanceRouteImport } from './routes/tenant.finance'
 import { Route as TenantComplaintsRouteImport } from './routes/tenant.complaints'
 import { Route as TenantCompareRouteImport } from './routes/tenant.compare'
 import { Route as TenantCheckoutRouteImport } from './routes/tenant.checkout'
+import { Route as TTokenRouteImport } from './routes/t.$token'
 import { Route as ServicesRegisterRouteImport } from './routes/services.register'
 import { Route as ServicesCategoryRouteImport } from './routes/services.$category'
 import { Route as ManagerTeamRouteImport } from './routes/manager.team'
@@ -389,6 +391,11 @@ const TenantMaintenanceRoute = TenantMaintenanceRouteImport.update({
   path: '/maintenance',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantFinanceRoute = TenantFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => TenantRoute,
+} as any)
 const TenantComplaintsRoute = TenantComplaintsRouteImport.update({
   id: '/complaints',
   path: '/complaints',
@@ -403,6 +410,11 @@ const TenantCheckoutRoute = TenantCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
   getParentRoute: () => TenantRoute,
+} as any)
+const TTokenRoute = TTokenRouteImport.update({
+  id: '/t/$token',
+  path: '/t/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ServicesRegisterRoute = ServicesRegisterRouteImport.update({
   id: '/register',
@@ -996,9 +1008,11 @@ export interface FileRoutesByFullPath {
   '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
+  '/t/$token': typeof TTokenRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
   '/tenant/complaints': typeof TenantComplaintsRoute
+  '/tenant/finance': typeof TenantFinanceRoute
   '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
@@ -1128,9 +1142,11 @@ export interface FileRoutesByTo {
   '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
+  '/t/$token': typeof TTokenRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
   '/tenant/complaints': typeof TenantComplaintsRoute
+  '/tenant/finance': typeof TenantFinanceRoute
   '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/profile': typeof TenantProfileRoute
@@ -1276,9 +1292,11 @@ export interface FileRoutesById {
   '/manager/team': typeof ManagerTeamRoute
   '/services/$category': typeof ServicesCategoryRoute
   '/services/register': typeof ServicesRegisterRoute
+  '/t/$token': typeof TTokenRoute
   '/tenant/checkout': typeof TenantCheckoutRoute
   '/tenant/compare': typeof TenantCompareRoute
   '/tenant/complaints': typeof TenantComplaintsRoute
+  '/tenant/finance': typeof TenantFinanceRoute
   '/tenant/maintenance': typeof TenantMaintenanceRoute
   '/tenant/map': typeof TenantMapRoute
   '/tenant/messages': typeof TenantMessagesRouteWithChildren
@@ -1429,9 +1447,11 @@ export interface FileRouteTypes {
     | '/manager/team'
     | '/services/$category'
     | '/services/register'
+    | '/t/$token'
     | '/tenant/checkout'
     | '/tenant/compare'
     | '/tenant/complaints'
+    | '/tenant/finance'
     | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/messages'
@@ -1561,9 +1581,11 @@ export interface FileRouteTypes {
     | '/manager/team'
     | '/services/$category'
     | '/services/register'
+    | '/t/$token'
     | '/tenant/checkout'
     | '/tenant/compare'
     | '/tenant/complaints'
+    | '/tenant/finance'
     | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/profile'
@@ -1708,9 +1730,11 @@ export interface FileRouteTypes {
     | '/manager/team'
     | '/services/$category'
     | '/services/register'
+    | '/t/$token'
     | '/tenant/checkout'
     | '/tenant/compare'
     | '/tenant/complaints'
+    | '/tenant/finance'
     | '/tenant/maintenance'
     | '/tenant/map'
     | '/tenant/messages'
@@ -1822,6 +1846,7 @@ export interface RootRouteChildren {
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   VerifyRoute: typeof VerifyRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
+  TTokenRoute: typeof TTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2148,6 +2173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantMaintenanceRouteImport
       parentRoute: typeof TenantRoute
     }
+    '/tenant/finance': {
+      id: '/tenant/finance'
+      path: '/finance'
+      fullPath: '/tenant/finance'
+      preLoaderRoute: typeof TenantFinanceRouteImport
+      parentRoute: typeof TenantRoute
+    }
     '/tenant/complaints': {
       id: '/tenant/complaints'
       path: '/complaints'
@@ -2168,6 +2200,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tenant/checkout'
       preLoaderRoute: typeof TenantCheckoutRouteImport
       parentRoute: typeof TenantRoute
+    }
+    '/t/$token': {
+      id: '/t/$token'
+      path: '/t/$token'
+      fullPath: '/t/$token'
+      preLoaderRoute: typeof TTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/services/register': {
       id: '/services/register'
@@ -3295,6 +3334,7 @@ interface TenantRouteChildren {
   TenantCheckoutRoute: typeof TenantCheckoutRoute
   TenantCompareRoute: typeof TenantCompareRoute
   TenantComplaintsRoute: typeof TenantComplaintsRoute
+  TenantFinanceRoute: typeof TenantFinanceRoute
   TenantMaintenanceRoute: typeof TenantMaintenanceRoute
   TenantMapRoute: typeof TenantMapRoute
   TenantMessagesRoute: typeof TenantMessagesRouteWithChildren
@@ -3311,6 +3351,7 @@ const TenantRouteChildren: TenantRouteChildren = {
   TenantCheckoutRoute: TenantCheckoutRoute,
   TenantCompareRoute: TenantCompareRoute,
   TenantComplaintsRoute: TenantComplaintsRoute,
+  TenantFinanceRoute: TenantFinanceRoute,
   TenantMaintenanceRoute: TenantMaintenanceRoute,
   TenantMapRoute: TenantMapRoute,
   TenantMessagesRoute: TenantMessagesRouteWithChildren,
@@ -3371,6 +3412,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   VerifyRoute: VerifyRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
+  TTokenRoute: TTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

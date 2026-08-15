@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { PropertyType, PricingMode, PricePeriod } from "@/lib/property-types";
+/* eslint-disable react-refresh/only-export-components -- pricing helpers share this module with form UI */
 import {
   COMMERCIAL_MIN_RENT_PERIODS,
   defaultPricePeriod,

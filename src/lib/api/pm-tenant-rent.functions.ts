@@ -12,9 +12,95 @@ export type TenantPmAccess = {
   linked: boolean;
   hasActiveLease: boolean;
   invoiceCount: number;
+  leases: TenantPmLease[];
 };
 
-async function loadTenantPmAccess(userId: string): Promise<TenantPmAccess> {
+export type TenantPmLease = {
+  id: string;
+  status: string;
+  monthly_rent: number;
+  deposit_paid: number;
+  start_date: string;
+  end_date: string;
+  unit_label: string | null;
+  property_name: string | null;
+  neighborhood: string | null;
+  lease_document_url: string | null;
+};
+
+export async function loadTenantPmLeases(userId: string): Promise<TenantPmLease[]> {
+  const admin = asPmDb(await adminClient());
+  const { data: tenants } = await admin
+    .from("pm_tenants")
+    .select("id")
+    .eq("tenant_user_id", userId)
+    .eq("portal_status", "accepted")
+    .is("deleted_at", null);
+
+  if (!tenants?.length) return [];
+
+  const tenantIds = tenants.map((t: { id: string }) => t.id);
+  const { data: leases } = await admin
+    .from("pm_leases")
+    .select(
+      "id, status, monthly_rent, deposit_paid, start_date, end_date, unit_id, lease_document_url",
+    )
+    .in("tenant_id", tenantIds)
+    .in("status", ["active", "ended"])
+    .order("start_date", { ascending: false });
+
+  if (!leases?.length) return [];
+
+  const unitIds = [...new Set(leases.map((l: { unit_id: string }) => l.unit_id))];
+  const { data: units } = await admin
+    .from("pm_units")
+    .select("id, unit_label, property_id")
+    .in("id", unitIds);
+
+  const propertyIds = [
+    ...new Set((units ?? []).map((u: { property_id: string }) => u.property_id)),
+  ];
+  const { data: properties } = propertyIds.length
+    ? await admin.from("pm_properties").select("id, name, neighborhood").in("id", propertyIds)
+    : { data: [] as Array<{ id: string; name: string; neighborhood: string }> };
+
+  const unitById = new Map(
+    (units ?? []).map((u: { id: string; unit_label: string; property_id: string }) => [u.id, u]),
+  );
+  const propertyById = new Map(
+    (properties ?? []).map((p: { id: string; name: string; neighborhood: string }) => [p.id, p]),
+  );
+
+  return leases.map(
+    (l: {
+      id: string;
+      status: string;
+      monthly_rent: number;
+      deposit_paid: number;
+      start_date: string;
+      end_date: string;
+      unit_id: string;
+      lease_document_url: string | null;
+    }) => {
+      const unit = unitById.get(l.unit_id);
+      const property = unit ? propertyById.get(unit.property_id) : undefined;
+      return {
+        id: l.id,
+        status: l.status,
+        monthly_rent: Number(l.monthly_rent) || 0,
+        deposit_paid: Number(l.deposit_paid) || 0,
+        start_date: l.start_date,
+        end_date: l.end_date,
+        unit_label: unit?.unit_label ?? null,
+        property_name: property?.name ?? null,
+        neighborhood: property?.neighborhood ?? null,
+        lease_document_url: l.lease_document_url ?? null,
+      };
+    },
+  );
+}
+
+export async function loadTenantPmAccess(userId: string): Promise<TenantPmAccess> {
   const admin = asPmDb(await adminClient());
   const { data: tenants } = await admin
     .from("pm_tenants")
@@ -24,21 +110,17 @@ async function loadTenantPmAccess(userId: string): Promise<TenantPmAccess> {
     .is("deleted_at", null);
 
   if (!tenants?.length) {
-    return { linked: false, hasActiveLease: false, invoiceCount: 0 };
+    return { linked: false, hasActiveLease: false, invoiceCount: 0, leases: [] };
   }
 
-  const tenantIds = tenants.map((t: { id: string }) => t.id);
-  const { data: leases } = await admin
-    .from("pm_leases")
-    .select("id")
-    .in("tenant_id", tenantIds)
-    .eq("status", "active");
+  const leases = await loadTenantPmLeases(userId);
+  const activeLeases = leases.filter((l) => l.status === "active");
 
-  if (!leases?.length) {
-    return { linked: true, hasActiveLease: false, invoiceCount: 0 };
+  if (!activeLeases.length) {
+    return { linked: true, hasActiveLease: false, invoiceCount: 0, leases };
   }
 
-  const leaseIds = leases.map((l: { id: string }) => l.id);
+  const leaseIds = activeLeases.map((l) => l.id);
   const { count } = await admin
     .from("pm_rent_invoices")
     .select("id", { count: "exact", head: true })
@@ -48,10 +130,11 @@ async function loadTenantPmAccess(userId: string): Promise<TenantPmAccess> {
     linked: true,
     hasActiveLease: true,
     invoiceCount: count ?? 0,
+    leases,
   };
 }
 
-async function loadTenantInvoicesForUser(userId: string) {
+export async function loadTenantInvoicesForUser(userId: string) {
   const admin = asPmDb(await adminClient());
   const { data: tenants } = await admin
     .from("pm_tenants")
@@ -162,28 +245,121 @@ export const listTenantPmInvoices = createServerFn({ method: "GET" })
     return loadTenantInvoicesForUser(userId);
   });
 
-/** Portal link / lease / invoice status for accurate empty states. */
+/** Portal link / lease / invoice status for accurate empty states (includes invoice seed self-heal). */
+export async function resolveTenantPmAccess(userId: string): Promise<TenantPmAccess> {
+  const access = await loadTenantPmAccess(userId);
+  // Self-heal: linked + lease but no invoice → seed current period.
+  if (access.linked && access.hasActiveLease && access.invoiceCount === 0) {
+    const admin = asPmDb(await adminClient());
+    const { data: tenants } = await admin
+      .from("pm_tenants")
+      .select("id")
+      .eq("tenant_user_id", userId)
+      .eq("portal_status", "accepted")
+      .is("deleted_at", null);
+    const ids = (tenants ?? []).map((t: { id: string }) => t.id);
+    const { seedInvoicesForTenantIds } = await import("@/lib/pm/invoice-seed");
+    await seedInvoicesForTenantIds(admin, ids);
+    return loadTenantPmAccess(userId);
+  }
+  return access;
+}
+
 export const getTenantPmAccess = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { userId } = authContext(context);
-    const access = await loadTenantPmAccess(userId);
-    // Self-heal: linked + lease but no invoice → seed current period.
-    if (access.linked && access.hasActiveLease && access.invoiceCount === 0) {
-      const admin = asPmDb(await adminClient());
-      const { data: tenants } = await admin
-        .from("pm_tenants")
-        .select("id")
-        .eq("tenant_user_id", userId)
-        .eq("portal_status", "accepted")
-        .is("deleted_at", null);
-      const ids = (tenants ?? []).map((t: { id: string }) => t.id);
-      const { seedInvoicesForTenantIds } = await import("@/lib/pm/invoice-seed");
-      await seedInvoicesForTenantIds(admin, ids);
-      return loadTenantPmAccess(userId);
-    }
-    return access;
+    return resolveTenantPmAccess(userId);
   });
+
+export const listTenantPmLeases = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = authContext(context);
+    return loadTenantPmLeases(userId);
+  });
+
+export type PayPmRentInput = {
+  invoiceId: string;
+  phone: string;
+  amountKes?: number;
+  idempotencyKey?: string;
+};
+
+/** Shared rent STK initiation for website + mobile BFF. */
+export async function payPmRentCore(userId: string, data: PayPmRentInput) {
+  const admin = asPmDb(await adminClient());
+
+  const { data: invoice } = await admin
+    .from("pm_rent_invoices")
+    .select("*")
+    .eq("id", data.invoiceId)
+    .maybeSingle();
+  if (!invoice) throw new Error("Invoice not found");
+
+  const { data: lease } = await admin
+    .from("pm_leases")
+    .select("id, tenant_id")
+    .eq("id", invoice.lease_id)
+    .maybeSingle();
+  if (!lease) throw new Error("Lease not found");
+
+  const { data: tenant } = await admin
+    .from("pm_tenants")
+    .select("id, tenant_user_id, portal_status")
+    .eq("id", lease.tenant_id)
+    .eq("tenant_user_id", userId)
+    .eq("portal_status", "accepted")
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!tenant) throw new Error("Not authorised for this invoice");
+
+  if (invoice.status === "paid") {
+    throw new Error("This invoice is already fully paid");
+  }
+
+  const balance = rentBalanceRemaining(
+    Number(invoice.amount_due),
+    Number(invoice.amount_paid),
+    Number(invoice.late_fee ?? 0),
+  );
+  if (balance <= 0) throw new Error("Nothing left to pay on this invoice");
+
+  const amountKes = data.amountKes ?? balance;
+  if (amountKes > balance) {
+    throw new Error(`Amount cannot exceed the remaining balance (${balance} KES)`);
+  }
+
+  await admin.from("pm_leases").update({ tenant_mpesa_phone: data.phone }).eq("id", lease.id);
+
+  // Bucket to the same ~2 min window that `reuseFreshCheckout` reuses an STK for, so a
+  // double-tap resolves to one payment row and one prompt instead of charging twice.
+  // A per-millisecond suffix would make every tap a fresh key and defeat the dedupe.
+  const attemptWindow = Math.floor(Date.now() / STK_ATTEMPT_WINDOW_MS);
+  const idempotencyKey =
+    data.idempotencyKey ??
+    `rent-${data.invoiceId}-${userId.slice(0, 8)}-${amountKes}-${attemptWindow}`;
+
+  const paymentRes = await initiatePaymentCore(userId, {
+    amountKes,
+    paymentType: "rent_payment",
+    phoneNumber: data.phone,
+    paymentMethod: "mpesa",
+    idempotencyKey,
+    invoiceId: data.invoiceId,
+    plan: data.invoiceId,
+    successPath: "/tenant/rent",
+    cancelPath: "/tenant/rent",
+    title: `Rent ${invoice.period_month}`,
+  });
+
+  return {
+    paymentId: paymentRes.paymentId,
+    status: paymentRes.status,
+    amount: amountKes,
+    message: "message" in paymentRes ? paymentRes.message : undefined,
+  };
+}
 
 export const payPmRent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -197,77 +373,7 @@ export const payPmRent = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { userId } = authContext(context);
-    const admin = asPmDb(await adminClient());
-
-    const { data: invoice } = await admin
-      .from("pm_rent_invoices")
-      .select("*")
-      .eq("id", data.invoiceId)
-      .maybeSingle();
-    if (!invoice) throw new Error("Invoice not found");
-
-    const { data: lease } = await admin
-      .from("pm_leases")
-      .select("id, tenant_id")
-      .eq("id", invoice.lease_id)
-      .maybeSingle();
-    if (!lease) throw new Error("Lease not found");
-
-    const { data: tenant } = await admin
-      .from("pm_tenants")
-      .select("id, tenant_user_id, portal_status")
-      .eq("id", lease.tenant_id)
-      .eq("tenant_user_id", userId)
-      .eq("portal_status", "accepted")
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (!tenant) throw new Error("Not authorised for this invoice");
-
-    if (invoice.status === "paid") {
-      throw new Error("This invoice is already fully paid");
-    }
-
-    const balance = rentBalanceRemaining(
-      Number(invoice.amount_due),
-      Number(invoice.amount_paid),
-      Number(invoice.late_fee ?? 0),
-    );
-    if (balance <= 0) throw new Error("Nothing left to pay on this invoice");
-
-    const amountKes = data.amountKes ?? balance;
-    if (amountKes > balance) {
-      throw new Error(`Amount cannot exceed the remaining balance (${balance} KES)`);
-    }
-
-    await admin.from("pm_leases").update({ tenant_mpesa_phone: data.phone }).eq("id", lease.id);
-
-    // Bucket to the same ~2 min window that `reuseFreshCheckout` reuses an STK for, so a
-    // double-tap resolves to one payment row and one prompt instead of charging twice.
-    // A per-millisecond suffix would make every tap a fresh key and defeat the dedupe.
-    const attemptWindow = Math.floor(Date.now() / STK_ATTEMPT_WINDOW_MS);
-    const idempotencyKey =
-      data.idempotencyKey ??
-      `rent-${data.invoiceId}-${userId.slice(0, 8)}-${amountKes}-${attemptWindow}`;
-
-    const paymentRes = await initiatePaymentCore(userId, {
-      amountKes,
-      paymentType: "rent_payment",
-      phoneNumber: data.phone,
-      paymentMethod: "mpesa",
-      idempotencyKey,
-      invoiceId: data.invoiceId,
-      plan: data.invoiceId,
-      successPath: "/tenant/rent",
-      cancelPath: "/tenant/rent",
-      title: `Rent ${invoice.period_month}`,
-    });
-
-    return {
-      paymentId: paymentRes.paymentId,
-      status: paymentRes.status,
-      amount: amountKes,
-      message: "message" in paymentRes ? paymentRes.message : undefined,
-    };
+    return payPmRentCore(userId, data);
   });
 
 export const submitPmRentFromSms = createServerFn({ method: "POST" })
@@ -291,7 +397,11 @@ export const submitPmRentFromSms = createServerFn({ method: "POST" })
       );
     }
 
-    const claimedAmountKes = data.amountOverride ?? parsed.amountKes;
+    const { resolveSmsClaimAmountKes } = await import("@/lib/pm/sms-claim-amount");
+    const claimedAmountKes = resolveSmsClaimAmountKes({
+      parsedAmountKes: parsed.amountKes,
+      amountOverride: data.amountOverride,
+    });
 
     const { data: invoice } = await admin
       .from("pm_rent_invoices")

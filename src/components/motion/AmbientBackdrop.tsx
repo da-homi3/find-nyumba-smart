@@ -65,7 +65,7 @@ function mulberry32(seed: number) {
 
 function resolveAmbientBudget(): AmbientBudget {
   if (globalThis.window === undefined) {
-    return { lowEnd: true, count: 18 };
+    return { lowEnd: true, count: 20 };
   }
   const nav = navigator as Navigator & {
     deviceMemory?: number;
@@ -74,10 +74,11 @@ function resolveAmbientBudget(): AmbientBudget {
   const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory < 4;
   const saveData = Boolean(nav.connection?.saveData);
   const narrow = globalThis.window.innerWidth < 768;
-  const lowEnd = lowMemory || saveData;
-  if (lowEnd) return { lowEnd: true, count: 10 };
-  if (narrow) return { lowEnd: true, count: 14 };
-  return { lowEnd: false, count: 22 };
+  const appLite = isLiteServeMode();
+  const lowEnd = lowMemory || saveData || appLite || narrow;
+  // Keep motion visible on phones / WebView — fewer particles, not none.
+  if (lowEnd) return { lowEnd: true, count: narrow || appLite ? 18 : 16 };
+  return { lowEnd: false, count: 28 };
 }
 
 function createParticles(count: number, w: number, h: number, lowEnd: boolean): Particle[] {
@@ -91,11 +92,11 @@ function createParticles(count: number, w: number, h: number, lowEnd: boolean): 
       y: rnd() * h,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed * 0.65 - 0.02,
-      size: lowEnd ? 11 + rnd() * 16 : 10 + rnd() * 20,
+      size: lowEnd ? 14 + rnd() * 18 : 12 + rnd() * 22,
       rot: rnd() * Math.PI * 2,
-      vr: (rnd() - 0.5) * 0.01,
+      vr: (rnd() - 0.5) * 0.012,
       kind: pool[Math.floor(rnd() * pool.length)]!,
-      alpha: 0.2 + rnd() * 0.12,
+      alpha: lowEnd ? 0.38 + rnd() * 0.22 : 0.32 + rnd() * 0.28,
       phase: rnd() * Math.PI * 2,
       phaseSpeed: 0.002 + rnd() * 0.007,
       wander: 0.2 + rnd() * 0.55,
@@ -236,7 +237,7 @@ export function AmbientBackdrop() {
   }, []);
 
   useEffect(() => {
-    if (isLiteServeMode() || prefersReducedMotion()) return;
+    if (prefersReducedMotion()) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -325,10 +326,8 @@ export function AmbientBackdrop() {
     };
   }, [budget]);
 
-  if (isLiteServeMode()) return null;
-
   return (
-    <div className="ambient-backdrop" aria-hidden data-ambient="particles-v2">
+    <div className="ambient-backdrop" aria-hidden data-ambient="particles-v3">
       <canvas ref={canvasRef} />
     </div>
   );

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { baseLayout } from "@/lib/email/base-layout";
 import { getSiteUrl } from "@/lib/site";
 import { formatKes } from "@/lib/properties";
@@ -89,11 +89,11 @@ export async function runUpgradeNudgeCron(admin: Admin) {
     const saving = Math.max(0, total - PLUS_PLAN.monthlyKes);
     const body = `
       <h1>KES ${formatKes(total)} spent on unlocks this month</h1>
-      <p>Hi ${ctx.name}, NyumbaSearch Plus is <strong>${formatKes(PLUS_PLAN.monthlyKes)}/month</strong> with unlimited unlocks.</p>
+      <p>Hi ${ctx.name}, NyumbaSearch Tenant Plus is <strong>${formatKes(PLUS_PLAN.monthlyKes)}/month</strong> with monthly contact credits, AI matching, and planning tools.</p>
       <p>At your pace, Plus saves you about <strong>KES ${formatKes(saving)}</strong> every month.</p>
       <p><a class="btn" href="${getSiteUrl()}/tenant/checkout?plan=plus&ref=upgrade_nudge">Switch to Plus</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: tplId,
       subject: `You've spent ${formatKes(total)} on unlocks — Plus saves you money`,
@@ -188,10 +188,10 @@ export async function runSearchNoUnlockCron(admin: Admin) {
     const body = `
       <h1>You're close to finding your home</h1>
       <p>Hi ${ctx.name}, you've searched <strong>${count} times</strong> in ${areas} without unlocking a landlord contact yet.</p>
-      <p>Unlocking costs <strong>KES 50–150</strong> once per property — or get unlimited unlocks with Plus at ${formatKes(PLUS_PLAN.monthlyKes)}/mo.</p>
+      <p>Unlocking is a one-time contact fee of <strong>KES 50–500</strong> per listing — or get Tenant Plus contact credits at ${formatKes(PLUS_PLAN.monthlyKes)}/mo.</p>
       <p><a class="btn" href="${getSiteUrl()}/tenant?neighborhood=${encodeURIComponent(firstHood)}&ref=search_nudge">Continue searching</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: tplId,
       subject: `${ctx.name}, you've been searching — ready to take the next step?`,
@@ -245,7 +245,7 @@ export async function runLandlordUpsellCron(admin: Admin) {
       <p>Try NyumbaSearch Pro for analytics, more listings, and priority verification.</p>
       <p><a class="btn" href="${getSiteUrl()}/landlord/checkout?plan=pro&ref=landlord_upsell">Try Pro — first month free</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: tplId,
       subject: `Your listing has ${totalViews} views — ready for Pro?`,
@@ -298,7 +298,7 @@ export async function runBoostSuggestionCron(admin: Admin) {
       <p>A listing boost puts your home at the top of neighbourhood search results for 7 days.</p>
       <p><a class="btn" href="${getSiteUrl()}/landlord/boost?propertyId=${prop.id}&ref=boost_nudge">Boost this listing</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: tplId,
       subject: `Low views on ${prop.neighborhood} listing — try a boost`,

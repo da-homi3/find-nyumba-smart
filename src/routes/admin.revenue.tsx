@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { formatKes } from "@/lib/properties";
+import { TENANT_PLUS_CONFIG } from "@/lib/revenue/tenant-plus-config";
 import { getAdminRevenueStats } from "@/lib/api/revenue.functions";
 import {
   BarChart,
@@ -41,11 +42,49 @@ function AdminRevenuePage() {
       <h1 className="mt-4 font-display text-3xl font-semibold">Revenue dashboard</h1>
       <p className="mt-1 text-sm text-muted-foreground">Live data from completed payments</p>
 
+      <section className="mt-6 rounded-2xl border bg-card p-5">
+        <h2 className="text-sm font-semibold">Tenant Plus commercial config</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Live values from platform settings (admin Tenant Plus tab). Checkout charges these amounts.
+        </p>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          <div>
+            <dt className="text-xs text-muted-foreground">Monthly</dt>
+            <dd className="font-medium">{formatKes(TENANT_PLUS_CONFIG.monthlyKes)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">3 months</dt>
+            <dd className="font-medium">{formatKes(TENANT_PLUS_CONFIG.quarterlyKes)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Credits / month</dt>
+            <dd className="font-medium">{TENANT_PLUS_CONFIG.contactCreditsPerMonth}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Free save cap</dt>
+            <dd className="font-medium">{TENANT_PLUS_CONFIG.freeSavedPropertyLimit}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">Free compare</dt>
+            <dd className="font-medium">{TENANT_PLUS_CONFIG.freeCompareLimit}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground">AI / finance flags</dt>
+            <dd className="font-medium">
+              {TENANT_PLUS_CONFIG.flags.aiEnabled ? "AI on" : "AI off"} ·{" "}
+              {TENANT_PLUS_CONFIG.flags.financialServicesEnabled ? "Finance on" : "Finance off"}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
       {isLoading ? (
         <p className="mt-8 text-sm text-muted-foreground">Loading revenue…</p>
-      ) : isError ? (
+      ) : null}
+      {isError ? (
         <p className="mt-8 text-sm text-destructive">Could not load revenue stats.</p>
-      ) : (
+      ) : null}
+      {!isLoading && !isError ? (
         <>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -57,9 +96,7 @@ function AdminRevenuePage() {
               <div key={label as string} className="rounded-2xl border bg-card p-5">
                 <p className="text-xs text-muted-foreground">{label}</p>
                 <p className="mt-1 font-display text-2xl font-semibold">
-                  {typeof val === "number" && (label as string).includes("members")
-                    ? String(val)
-                    : formatKes(val as number)}
+                  {(label as string).includes("members") ? String(val) : formatKes(val as number)}
                 </p>
               </div>
             ))}
@@ -91,7 +128,7 @@ function AdminRevenuePage() {
             </ResponsiveContainer>
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

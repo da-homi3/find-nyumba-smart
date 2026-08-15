@@ -12,7 +12,10 @@ import {
   MAX_VIDEO_UPLOAD_MB,
   uploadLimitLabel,
 } from "@/lib/media/upload-limits";
-import { uploadStorageBatchWithProgress, enhanceAndUploadWithProgress } from "@/lib/media/storage-upload";
+import {
+  uploadStorageBatchWithProgress,
+  enhanceAndUploadWithProgress,
+} from "@/lib/media/storage-upload";
 import {
   enhanceMediaFilesForUpload,
   enhanceImageForUpload,

@@ -184,9 +184,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const messageLandlord = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Sign in to message landlords");
-      if (!isPlus) {
-        throw new PlusRequiredError();
-      }
       if (!p?.owner_id) throw new Error("Landlord contact is unavailable for this listing");
 
       const preferWhatsApp = Boolean(landlordContact?.preferWhatsApp || p.whatsapp_inquiries);
@@ -264,9 +261,18 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     setChatLoading(true);
 
     const askOnce = async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const res = await fetch("/api/ai/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ message: userMsg, propertyId: id }),
       });
       const payload = (await res.json().catch(() => null)) as {

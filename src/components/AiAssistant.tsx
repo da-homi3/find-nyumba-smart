@@ -2,11 +2,13 @@ import { useState } from "react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 
-import { getAssistantReply, getAIChatResponse } from "@/lib/api/ai.functions";
+import { getAssistantReply } from "@/lib/api/ai.functions";
 
 import { listSavedProperties } from "@/lib/api/nyumba.functions";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { PremiumFeatureLock } from "@/components/PremiumFeatureLock";
 
 import { Bot, Send, X } from "lucide-react";
 import { LazyRadar } from "@/components/LazyRadar";
@@ -32,12 +34,9 @@ const QUICK = [
   },
 ];
 
-function needsAuth(message: string) {
-  return /recommend|compare|saved listings|my budget/i.test(message);
-}
-
 export function AiAssistant() {
   const { user } = useAuth();
+  const { isPlus, loading: plusLoading } = useEntitlements();
 
   const [open, setOpen] = useState(false);
 
@@ -55,14 +54,8 @@ export function AiAssistant() {
 
   const ask = useMutation({
     mutationFn: async (message: string) => {
-      if (!user && needsAuth(message)) {
-        throw new Error("Sign in to get personalized recommendations and compare saved listings.");
-      }
-
       if (!user) {
-        const reply = await getAIChatResponse({ data: { message } });
-
-        return { reply, intent: "chat" as const };
+        throw new Error("Sign in to use NyumbaSearch AI.");
       }
 
       const propertyIds = saved.slice(0, 4).map((s) => s.id);
@@ -127,6 +120,16 @@ export function AiAssistant() {
             </div>
           </header>
 
+          {!plusLoading && !isPlus ? (
+            <div className="flex-1 overflow-y-auto p-3">
+              <PremiumFeatureLock
+                compact
+                title="NyumbaSearch AI"
+                body="Get intelligent property recommendations, budget analysis, neighborhood insights, and personalized home-search help."
+              />
+            </div>
+          ) : (
+            <>
           <div className="flex flex-wrap gap-1.5 border-b p-2">
             {QUICK.map((q) => (
               <button
@@ -227,6 +230,8 @@ export function AiAssistant() {
               <Send className="h-4 w-4" />
             </button>
           </form>
+            </>
+          )}
         </div>
       )}
     </>

@@ -21,15 +21,19 @@ export const createSavedSearch = createServerFn({ method: "POST" })
     const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
     const plus = await getTenantPlusStatus(supabase, userId);
     const isPlus = plus.tenantPlan === "plus";
+    const { maxSavedSearchAlerts } = await import("@/lib/revenue/tenant-plus-config");
 
     if (data.alertEnabled && !isPlus) {
+      const cap = maxSavedSearchAlerts(false);
       const { count } = await supabase
         .from("saved_searches")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("alert_enabled", true);
-      if ((count ?? 0) >= 1) {
-        throw new Error("Free plan allows 1 search alert. Upgrade to Plus for unlimited alerts.");
+      if ((count ?? 0) >= cap) {
+        throw new Error(
+          `Free plan allows ${cap} search alert. Upgrade to Tenant Plus for unlimited alerts.`,
+        );
       }
     }
 
@@ -101,15 +105,47 @@ export const updateSavedSearch = createServerFn({ method: "POST" })
   });
 
 export const compareProperties = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ ids: z.array(z.string().uuid()).min(2).max(4) }))
+  .inputValidator(z.object({ ids: z.array(z.string().uuid()).min(2).max(8) }))
   .handler(async ({ data }) => {
+    const { TENANT_PLUS_CONFIG, maxComparedProperties } = await import(
+      "@/lib/revenue/tenant-plus-config"
+    );
+    let isPlus = false;
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const req = getRequest();
+      const header = req?.headers?.get("authorization");
+      const bearer = header?.startsWith("Bearer ") ? header.slice(7).trim() : null;
+      if (bearer) {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: auth } = await supabaseAdmin.auth.getUser(bearer);
+        if (auth.user) {
+          const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
+          const plus = await getTenantPlusStatus(supabaseAdmin, auth.user.id);
+          isPlus = plus.tenantPlan === "plus";
+        }
+      }
+    } catch {
+      isPlus = false;
+    }
+
+    const unique = [...new Set(data.ids)];
+    const cap = maxComparedProperties(isPlus);
+    if (unique.length > cap) {
+      throw new Error(
+        isPlus
+          ? `You can compare up to ${cap} homes at once.`
+          : `Free plan compares up to ${TENANT_PLUS_CONFIG.freeCompareLimit} homes. Upgrade to Tenant Plus to compare more.`,
+      );
+    }
+
     const { createPublicClient, PROPERTY_DETAIL_COLUMNS } = await import("@/lib/api/public-client");
     const { mapPropertyRows } = await import("@/lib/api/nyumba/nyumba-shared");
     const supabase = createPublicClient();
     const { data: rows, error } = await supabase
       .from("properties")
       .select(PROPERTY_DETAIL_COLUMNS)
-      .in("id", data.ids)
+      .in("id", unique)
       .eq("is_active", true);
     if (error) throw error;
     return mapPropertyRows(rows ?? []);
@@ -120,6 +156,37 @@ export const setSavedSearchAlertsEnabled = createServerFn({ method: "POST" })
   .inputValidator(z.object({ enabled: z.boolean() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
+    if (data.enabled) {
+      const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
+      const { maxSavedSearchAlerts } = await import("@/lib/revenue/tenant-plus-config");
+      const plus = await getTenantPlusStatus(supabase, userId);
+      if (plus.tenantPlan !== "plus") {
+        const cap = maxSavedSearchAlerts(false);
+        const { data: rows } = await supabase
+          .from("saved_searches")
+          .select("id")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        const ids = (rows ?? []).map((r) => r.id);
+        const keep = ids.slice(0, cap);
+        const rest = ids.slice(cap);
+        if (keep.length) {
+          await supabase
+            .from("saved_searches")
+            .update({ alert_enabled: true })
+            .eq("user_id", userId)
+            .in("id", keep);
+        }
+        if (rest.length) {
+          await supabase
+            .from("saved_searches")
+            .update({ alert_enabled: false })
+            .eq("user_id", userId)
+            .in("id", rest);
+        }
+        return { enabled: true, limited: true, kept: keep.length };
+      }
+    }
     const { error } = await supabase
       .from("saved_searches")
       .update({ alert_enabled: data.enabled })

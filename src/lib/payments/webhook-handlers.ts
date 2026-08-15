@@ -254,11 +254,12 @@ export async function handleDailyPmCron(request: Request): Promise<Response> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { asPmDb } = await import("@/lib/pm/access");
   const { flagPmOverdueInvoices } = await import("@/lib/pm/cron");
-  const { applyPmLateFees, sendPmRentReminders } = await import("@/lib/pm/rent-reminders");
+  const { applyPmLateFees, sendPmRentReminders, sendOwnerArrearsDigests } =
+    await import("@/lib/pm/rent-reminders");
   const { runDailyPayoutBatch } = await import("@/lib/pm/payout-batch");
 
   const pmDb = asPmDb(supabaseAdmin);
-  const [pmOverdue, pmLateFees, pmReminders, pmPayouts] = await Promise.all([
+  const [pmOverdue, pmLateFees, pmReminders, pmOwnerDigests, pmPayouts] = await Promise.all([
     flagPmOverdueInvoices(pmDb).catch((e) => {
       console.warn("[cron] pm overdue invoices:", e);
       return { updated: 0 };
@@ -271,6 +272,10 @@ export async function handleDailyPmCron(request: Request): Promise<Response> {
       console.warn("[cron] pm rent reminders:", e);
       return { sent: 0 };
     }),
+    sendOwnerArrearsDigests(pmDb).catch((e) => {
+      console.warn("[cron] pm owner arrears digests:", e);
+      return { sent: 0, properties: 0 };
+    }),
     runDailyPayoutBatch(pmDb).catch((e) => {
       console.warn("[cron] pm payout batch:", e);
       return { batchesCreated: 0, completed: 0, failed: 0, skipped: 0 };
@@ -280,7 +285,13 @@ export async function handleDailyPmCron(request: Request): Promise<Response> {
   return new Response(
     JSON.stringify({
       ok: true,
-      pm: { overdue: pmOverdue, lateFees: pmLateFees, reminders: pmReminders, payouts: pmPayouts },
+      pm: {
+        overdue: pmOverdue,
+        lateFees: pmLateFees,
+        reminders: pmReminders,
+        ownerArrears: pmOwnerDigests,
+        payouts: pmPayouts,
+      },
     }),
     { headers: { "Content-Type": "application/json" } },
   );

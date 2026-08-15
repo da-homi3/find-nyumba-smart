@@ -38,6 +38,13 @@
     "binding": "AI",
   },
 
+  /** Cloudflare Email Sending (transactional) — domain must be onboarded. */
+  "send_email": [
+    {
+      "name": "EMAIL",
+    },
+  ],
+
   "kv_namespaces": [
     {
       "binding": "CACHE_KV",

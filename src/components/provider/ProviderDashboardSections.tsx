@@ -55,6 +55,7 @@ type SubscriptionRow = {
 
 export type ProviderDashboardTab = "overview" | "profile" | "pricing" | "inquiries" | "plan";
 
+/* eslint-disable react-refresh/only-export-components -- tab config co-located with tab UI */
 export const PROVIDER_DASHBOARD_TABS: { id: ProviderDashboardTab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "profile", label: "Business profile" },

@@ -135,6 +135,73 @@ const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "trust", label: "Trust & rewards", icon: Award },
 ];
 
+async function switchToPortal(opts: {
+  portal: PortalId;
+  hasApprovedRole: (role: string) => boolean;
+  setActivePortalChoice: (portal: PortalId) => Promise<void>;
+  navigate: ReturnType<typeof useNavigate>;
+  onNeedsApplication: (role: ListerApplyRole) => void;
+}): Promise<void> {
+  const { portal, hasApprovedRole, setActivePortalChoice, navigate, onNeedsApplication } = opts;
+  if (portal === "caretaker") {
+    navigate({ to: "/caretaker" });
+    return;
+  }
+  if (portal === "admin") {
+    navigate({ to: "/admin", search: { tab: undefined } });
+    return;
+  }
+  const def = PORTALS.find((p) => p.id === portal);
+  if (def?.role === "landlord" || def?.role === "manager" || def?.role === "agency") {
+    if (!hasApprovedRole(def.role)) {
+      onNeedsApplication(def.role);
+      return;
+    }
+  }
+  await setActivePortalChoice(portal);
+  navigate({ to: PORTAL_HOME[portal] as "/tenant" });
+}
+
+function validateRoleApplication(opts: {
+  applyRole: ListerApplyRole | null;
+  applyOrgName: string;
+  applyPhone: string;
+}): string | null {
+  if (!opts.applyRole) return "Choose a role to apply for";
+  if (!opts.applyOrgName.trim()) {
+    return opts.applyRole === "landlord"
+      ? "Enter your portfolio or business name"
+      : "Enter your organization name";
+  }
+  if (!isKenyanPhone(opts.applyPhone)) {
+    return "Enter a valid Kenyan M-Pesa phone number";
+  }
+  return null;
+}
+
+function validateEmailChange(opts: {
+  newEmail: string;
+  confirmEmail: string;
+  currentEmail: string | undefined;
+}): string | null {
+  const next = opts.newEmail.trim().toLowerCase();
+  const confirm = opts.confirmEmail.trim().toLowerCase();
+  if (!next.includes("@") || next.length < 5) return "Enter a valid email address";
+  if (next !== confirm) return "Email addresses do not match";
+  if (next === (opts.currentEmail ?? "").toLowerCase()) {
+    return "That is already your current email";
+  }
+  return null;
+}
+
+function settingsEmailRedirectTo(): string {
+  const origin =
+    globalThis.location?.origin && globalThis.location.origin.length > 0
+      ? globalThis.location.origin
+      : "https://nyumbasearch.com";
+  return `${origin}/settings?tab=security`;
+}
+
 function SettingsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -159,15 +226,11 @@ function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs>(() => readNotificationPrefs(user?.id));
   const [serverPrefs, setServerPrefs] = useState<NotificationPreferences | null>(null);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [savingPassword, setSavingPassword] = useState(false);
   const [applyRole, setApplyRole] = useState<ListerApplyRole | null>(search.apply ?? null);
   const [applyOrgName, setApplyOrgName] = useState("");
   const [applyPhone, setApplyPhone] = useState("");
   const [submittingApply, setSubmittingApply] = useState(false);
 
-  const strength = useMemo(() => scorePassword(newPassword), [newPassword]);
   const pending = useMemo(
     () => pendingApplications.filter((a) => a.status === "pending"),
     [pendingApplications],
@@ -248,25 +311,17 @@ function SettingsPage() {
   if (!user) return null;
 
   async function enterPortal(portal: PortalId) {
-    if (portal === "caretaker") {
-      navigate({ to: "/caretaker" });
-      return;
-    }
-    if (portal === "admin") {
-      navigate({ to: "/admin", search: { tab: undefined } });
-      return;
-    }
-    const def = PORTALS.find((p) => p.id === portal);
-    if (def?.role === "landlord" || def?.role === "manager" || def?.role === "agency") {
-      if (!hasApprovedRole(def.role)) {
-        setTab("portals");
-        setApplyRole(def.role);
-        return;
-      }
-    }
     try {
-      await setActivePortalChoice(portal);
-      navigate({ to: PORTAL_HOME[portal] as "/tenant" });
+      await switchToPortal({
+        portal,
+        hasApprovedRole,
+        setActivePortalChoice,
+        navigate,
+        onNeedsApplication: (role) => {
+          setTab("portals");
+          setApplyRole(role);
+        },
+      });
     } catch (err) {
       toast.error(errorMessage(err));
     }
@@ -274,19 +329,12 @@ function SettingsPage() {
 
   async function submitRoleApplication(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    const validationError = validateRoleApplication({ applyRole, applyOrgName, applyPhone });
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!applyRole) return;
-    if (!applyOrgName.trim()) {
-      toast.error(
-        applyRole === "landlord"
-          ? "Enter your portfolio or business name"
-          : "Enter your organization name",
-      );
-      return;
-    }
-    if (!isKenyanPhone(applyPhone)) {
-      toast.error("Enter a valid Kenyan M-Pesa phone number");
-      return;
-    }
     setSubmittingApply(true);
     try {
       await submitPortalApplication({
@@ -376,27 +424,6 @@ function SettingsPage() {
       qc.invalidateQueries({ queryKey: ["saved-searches"] });
     } catch (err) {
       toast.error(errorMessage(err));
-    }
-  }
-
-  async function changePassword(e: SubmitEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const passwordError = validatePasswordPair(newPassword, confirmPassword);
-    if (passwordError) {
-      toast.error(passwordError);
-      return;
-    }
-    setSavingPassword(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      setNewPassword("");
-      setConfirmPassword("");
-      toast.success("Password updated");
-    } catch (err) {
-      toast.error(errorMessage(err));
-    } finally {
-      setSavingPassword(false);
     }
   }
 
@@ -575,56 +602,7 @@ function SettingsPage() {
         </section>
       )}
 
-      {tab === "security" && (
-        <section className="mt-6">
-          <form onSubmit={changePassword} className="space-y-4 rounded-2xl border bg-card p-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Change password
-            </h2>
-            <Field label="New password">
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                minLength={8}
-                className="w-full rounded-xl border px-3 py-2.5 text-sm"
-              />
-            </Field>
-            <div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={`h-full transition-all ${strength.barClass}`}
-                  style={{ width: `${Math.min(100, (strength.score / 5) * 100)}%` }}
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{strength.label}</p>
-            </div>
-            <Field label="Confirm new password">
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                minLength={8}
-                className="w-full rounded-xl border px-3 py-2.5 text-sm"
-              />
-            </Field>
-            <button
-              type="submit"
-              disabled={savingPassword}
-              className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-            >
-              {savingPassword ? "Updating…" : "Update password"}
-            </button>
-            <Link
-              to="/auth/reset"
-              search={{ email: user.email }}
-              className="block text-center text-xs font-semibold text-primary"
-            >
-              Forgot password? Reset via email
-            </Link>
-          </form>
-        </section>
-      )}
+      {tab === "security" && <SettingsSecurityPanel user={user} />}
 
       {tab === "portals" && (
         <SettingsPortalsTab
@@ -715,6 +693,160 @@ function SettingsPage() {
         <LogOut className="h-4 w-4" /> Sign out everywhere
       </button>
     </div>
+  );
+}
+
+function SettingsSecurityPanel({ user }: Readonly<{ user: { email?: string; new_email?: string } }>) {
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const strength = useMemo(() => scorePassword(newPassword), [newPassword]);
+
+  async function changePassword(e: SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const passwordError = validatePasswordPair(newPassword, confirmPassword);
+    if (passwordError) {
+      toast.error(passwordError);
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password updated");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  async function changeEmail(e: SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const validationError = validateEmailChange({
+      newEmail,
+      confirmEmail,
+      currentEmail: user.email,
+    });
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const { error } = await supabase.auth.updateUser(
+        { email: newEmail.trim().toLowerCase() },
+        { emailRedirectTo: settingsEmailRedirectTo() },
+      );
+      if (error) throw error;
+      setNewEmail("");
+      setConfirmEmail("");
+      toast.success("Check your inbox — confirm the new email to finish the change");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSavingEmail(false);
+    }
+  }
+
+  return (
+    <section className="mt-6 space-y-6">
+      <form onSubmit={changeEmail} className="space-y-4 rounded-2xl border bg-card p-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Change email
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Current: <span className="font-medium text-foreground">{user.email}</span>
+        </p>
+        {user.new_email ? (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+            Pending confirmation for {user.new_email}. Check that inbox (and spam) to finish.
+          </p>
+        ) : null}
+        <Field label="New email">
+          <input
+            type="email"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            autoComplete="email"
+            className="w-full rounded-xl border px-3 py-2.5 text-sm"
+            required
+          />
+        </Field>
+        <Field label="Confirm new email">
+          <input
+            type="email"
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
+            autoComplete="email"
+            className="w-full rounded-xl border px-3 py-2.5 text-sm"
+            required
+          />
+        </Field>
+        <button
+          type="submit"
+          disabled={savingEmail}
+          className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {savingEmail ? "Sending…" : "Send confirmation email"}
+        </button>
+        <p className="text-xs text-muted-foreground">
+          Supabase emails both addresses. Your login email updates after you confirm the new one.
+        </p>
+      </form>
+
+      <form onSubmit={changePassword} className="space-y-4 rounded-2xl border bg-card p-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Change password
+        </h2>
+        <Field label="New password">
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            minLength={8}
+            className="w-full rounded-xl border px-3 py-2.5 text-sm"
+          />
+        </Field>
+        <div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className={`h-full transition-all ${strength.barClass}`}
+              style={{ width: `${Math.min(100, (strength.score / 5) * 100)}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">{strength.label}</p>
+        </div>
+        <Field label="Confirm new password">
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            minLength={8}
+            className="w-full rounded-xl border px-3 py-2.5 text-sm"
+          />
+        </Field>
+        <button
+          type="submit"
+          disabled={savingPassword}
+          className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {savingPassword ? "Updating…" : "Update password"}
+        </button>
+        <Link
+          to="/auth/reset"
+          search={{ email: user.email }}
+          className="block text-center text-xs font-semibold text-primary"
+        >
+          Forgot password? Reset via email
+        </Link>
+      </form>
+    </section>
   );
 }
 

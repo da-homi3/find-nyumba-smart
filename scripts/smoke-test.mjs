@@ -49,7 +49,11 @@ function loadEnv() {
     if (!t || t.startsWith("#")) continue;
     const eq = t.indexOf("=");
     if (eq === -1) continue;
-    env[t.slice(0, eq).trim()] = t.slice(eq + 1).trim();
+    let v = t.slice(eq + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+      v = v.slice(1, -1);
+    }
+    env[t.slice(0, eq).trim()] = v;
   }
   return env;
 }
@@ -268,7 +272,9 @@ function nyumbaAiDetail(aiJson) {
 
 async function checkNyumbaAi(env) {
   try {
-    const aiRes = await fetchWithRetry(`${BASE}/api/ai/probe`);
+    const headers = {};
+    if (env.CRON_SECRET) headers.Authorization = `Bearer ${env.CRON_SECRET}`;
+    const aiRes = await fetchWithRetry(`${BASE}/api/ai/probe`, { headers });
     const aiJson = await aiRes.json();
     if (aiRes.ok && aiJson.live) {
       pass("NyumbaAI live", nyumbaAiDetail(aiJson));
@@ -286,11 +292,19 @@ async function checkNyumbaAi(env) {
   }
 }
 
-async function checkMpesaCallback() {
+async function checkMpesaCallback(env) {
   try {
+    const secret = env.MPESA_WEBHOOK_SECRET;
+    if (!secret) {
+      fail("M-Pesa callback POST", "MPESA_WEBHOOK_SECRET missing in .env");
+      return;
+    }
     const cbRes = await fetchWithRetry(`${BASE}/api/mpesa/callback`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
       body: JSON.stringify({ Body: { stkCallback: { CheckoutRequestID: "smoke-test" } } }),
     });
     const cbJson = await cbRes.json();
@@ -443,7 +457,7 @@ try {
   checkSendGrid(env);
   checkGoogleMaps(env);
   await checkNyumbaAi(env);
-  await checkMpesaCallback();
+  await checkMpesaCallback(env);
   await checkDemoListing();
   await checkMapAssets();
   await runPortalShellChecks();

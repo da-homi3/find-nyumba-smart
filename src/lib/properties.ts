@@ -113,6 +113,8 @@ export type PropertySearchFilters = {
   bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   limit?: number;
   offset?: number;
+  /** Cap signed image URLs in list responses (default 3). Mobile home uses 1. */
+  maxImages?: number;
   sortBy?: "nearby" | "newest" | "price_asc" | "price_desc" | "score";
   /** Browse center for nearby sort (WGS84). */
   originLat?: number;

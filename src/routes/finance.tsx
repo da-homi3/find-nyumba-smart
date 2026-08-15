@@ -4,6 +4,9 @@ import { useState } from "react";
 import { formatKes } from "@/lib/properties";
 import { submitInquiry } from "@/lib/submit-inquiry";
 import { formFieldValue } from "@/lib/utils";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { PremiumFeatureLock } from "@/components/PremiumFeatureLock";
+import { TENANT_PLUS_CONFIG } from "@/lib/revenue/tenant-plus-config";
 
 export const Route = createFileRoute("/finance")({
   head: () => ({ meta: [{ title: "Finance & mortgages — NyumbaSearch" }] }),
@@ -15,6 +18,7 @@ type IncomeBand = "" | "under30" | "30-60" | "60-100" | "over200";
 type DocsReady = "" | "yes" | "no";
 
 function FinancePage() {
+  const { isPlus, loading } = useEntitlements();
   const [step, setStep] = useState(1);
   const [goal, setGoal] = useState<FinanceGoal>("");
   const [income, setIncome] = useState<IncomeBand>("");
@@ -41,6 +45,16 @@ function FinancePage() {
         <h1 className="font-display text-4xl font-semibold">
           Ready to own? We&apos;ll connect you with the right lender.
         </h1>
+        {!loading && TENANT_PLUS_CONFIG.flags.financialServicesEnabled && !isPlus ? (
+          <div className="mt-8">
+            <PremiumFeatureLock
+              title="Financial Services"
+              body="Tenant Plus unlocks affordability, move-in, and savings tools designed to help you plan and finance your next home."
+            />
+          </div>
+        ) : null}
+        {(isPlus || loading || !TENANT_PLUS_CONFIG.flags.financialServicesEnabled) && (
+        <>
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           {[
             {
@@ -241,6 +255,8 @@ function FinancePage() {
             </div>
           )}
         </section>
+        </>
+        )}
       </main>
     </PublicPageShell>
   );

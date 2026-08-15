@@ -52,7 +52,7 @@ export function contactUnlockEmail(opts: {
     <p><a class="btn" href="${opts.listingUrl}">View listing</a></p>
     ${
       opts.showPlusUpsell
-        ? `<p style="font-size:14px">You've spent a lot on unlocks this month. <a href="${opts.plusUrl}">NyumbaSearch Plus</a> gives unlimited unlocks for less.</p>`
+        ? `<p style="font-size:14px">You've spent a lot on unlocks this month. <a href="${opts.plusUrl}">Tenant Plus</a> includes monthly contact credits plus AI, alerts, and planning tools.</p>`
         : ""
     }
   `;
@@ -555,5 +555,62 @@ export function rentReminderEmail(opts: {
   return {
     html: baseLayout({ preheader: `Rent reminder for ${opts.unitLabel}`, body }),
     text: `${rentReminderSubject(opts.type, opts.unitLabel, opts.balanceKes)}. Balance ${formatKes(opts.balanceKes)}. Pay: ${payUrl}`,
+  };
+}
+
+export function ownerRentArrearsDigestEmail(opts: {
+  ownerName: string;
+  propertyName: string;
+  rows: Array<{
+    tenantName: string;
+    unitLabel: string;
+    balanceKes: number;
+    dueDate: string;
+    daysOverdue: number;
+  }>;
+  manageUrl: string;
+}) {
+  const total = opts.rows.reduce((s, r) => s + r.balanceKes, 0);
+  const listHtml = opts.rows
+    .map(
+      (r) =>
+        `<tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${r.tenantName}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${r.unitLabel}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${formatKes(r.balanceKes)}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${r.daysOverdue}d · due ${r.dueDate}</td>
+        </tr>`,
+    )
+    .join("");
+  const body = `
+    <h1>Rent arrears — ${opts.propertyName}</h1>
+    <p>Hi ${opts.ownerName},</p>
+    <p><strong>${opts.rows.length}</strong> tenant(s) are behind on rent. Outstanding total:
+      <strong>${formatKes(total)}</strong>.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
+      <thead>
+        <tr>
+          <th align="left" style="padding:8px 12px;border-bottom:2px solid #111">Tenant</th>
+          <th align="left" style="padding:8px 12px;border-bottom:2px solid #111">Unit</th>
+          <th align="left" style="padding:8px 12px;border-bottom:2px solid #111">Balance</th>
+          <th align="left" style="padding:8px 12px;border-bottom:2px solid #111">Overdue</th>
+        </tr>
+      </thead>
+      <tbody>${listHtml}</tbody>
+    </table>
+    <p><a class="btn" href="${opts.manageUrl}">Open rent ledger</a></p>
+  `;
+  const textRows = opts.rows
+    .map(
+      (r) =>
+        `- ${r.tenantName} · ${r.unitLabel}: ${formatKes(r.balanceKes)} (${r.daysOverdue}d overdue, due ${r.dueDate})`,
+    )
+    .join("\n");
+  return {
+    html: baseLayout({
+      preheader: `${opts.rows.length} tenant(s) behind — ${formatKes(total)}`,
+      body,
+    }),
+    text: `Rent arrears — ${opts.propertyName}. Total ${formatKes(total)}.\n${textRows}\n${opts.manageUrl}`,
   };
 }

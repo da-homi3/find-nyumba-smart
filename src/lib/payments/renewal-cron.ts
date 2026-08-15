@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { initiateStkPush, isMpesaConfigured } from "@/lib/api/mpesa";
 import {
-  PLUS_PLAN,
   planMonthlyPrice,
   providerTierPrice,
   resolveLandlordPlan,
@@ -19,9 +18,11 @@ const PM_CATALOG_MONTHLY: Record<string, number> = {
   "pm-scale": 9000,
 };
 
-function planAmountKes(sub: SubscriptionRow): number {
+async function planAmountKes(sub: SubscriptionRow): Promise<number> {
   if (sub.plan === "plus") {
-    return sub.billing_cycle === "quarterly" ? PLUS_PLAN.quarterlyKes : PLUS_PLAN.monthlyKes;
+    const { resolvePlusPlan } = await import("@/lib/revenue/platform-settings");
+    const plan = await resolvePlusPlan();
+    return sub.billing_cycle === "quarterly" ? plan.quarterlyKes : plan.monthlyKes;
   }
   if (sub.plan === "basic" || sub.plan === "featured" || sub.plan === "premium") {
     const base = providerTierPrice(sub.plan);
@@ -178,7 +179,7 @@ export async function runSubscriptionRenewalCron(supabaseAdmin: Admin): Promise<
     .lte("next_billing_date", soon.toISOString());
 
   for (const sub of expiring ?? []) {
-    const amount = planAmountKes(sub);
+    const amount = await planAmountKes(sub);
     await sendRenewalStk(supabaseAdmin, sub, amount, stats);
     await supabaseAdmin
       .from("subscriptions")

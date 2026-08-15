@@ -24,48 +24,8 @@ export const verifyPaymentStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: row, error } = await supabaseAdmin
-      .from("payments")
-      .select("*")
-      .eq("id", data.paymentId)
-      .eq("user_id", userId)
-      .single();
-
-    if (error) throw error;
-
-    const ageMs = Date.now() - new Date(row.created_at).getTime();
-    let synced = row;
-    // Sync STK quickly so IntaSend COMPLETE does not leave the rent UI looping.
-    if (row.status === "pending" && ageMs > 2_000) {
-      if (row.payment_method === "mpesa") {
-        synced = await (
-          await import("@/lib/payments/complete-mpesa-payment")
-        ).syncMpesaPaymentStatus(supabaseAdmin, row);
-      } else if (row.payment_method === "card") {
-        synced = await (
-          await import("@/lib/payments/complete-pesapal-payment")
-        ).syncPesapalPaymentStatus(supabaseAdmin, row);
-      }
-    }
-
-    let message = "Waiting for payment confirmation";
-    if (synced.payment_method === "mpesa" && synced.status === "pending") {
-      message = "Waiting for M-Pesa confirmation";
-    } else if (synced.payment_method === "card" && synced.status === "pending") {
-      message = "Waiting for card payment confirmation";
-    }
-    if (synced.status === "completed") message = "Payment confirmed";
-    else if (synced.status === "failed") message = "Payment failed or was cancelled";
-
-    return {
-      status: synced.status,
-      paymentId: synced.id,
-      method: synced.payment_method,
-      purpose: synced.payment_type,
-      receipt: synced.mpesa_receipt ?? undefined,
-      message,
-    };
+    const { verifyPaymentStatusCore } = await import("@/lib/payments/contact-unlock-core");
+    return verifyPaymentStatusCore(supabaseAdmin, userId, data.paymentId);
   });
 
 /** @deprecated Use verifyPaymentStatus */

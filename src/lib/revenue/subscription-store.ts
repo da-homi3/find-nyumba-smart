@@ -97,16 +97,30 @@ export async function getTenantPlusStatus(
     .from("subscriptions")
     .select("plan, status, next_billing_date")
     .eq("user_id", userId)
-    .in("status", ["active", "trialing"])
     .eq("plan", "plus")
+    .in("status", ["active", "trialing", "cancelled", "past_due"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(5);
 
-  if (!data || new Date(data.next_billing_date).getTime() <= Date.now()) {
-    return { tenantPlan: "free", plusExpiresAt: null };
+  const now = Date.now();
+  const live = (data ?? []).find((row) => new Date(row.next_billing_date).getTime() > now);
+  if (live) {
+    return { tenantPlan: "plus", plusExpiresAt: live.next_billing_date };
   }
-  return { tenantPlan: "plus", plusExpiresAt: data.next_billing_date };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tenant_plan, plus_expires_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (
+    profile?.tenant_plan === "plus" &&
+    profile.plus_expires_at &&
+    new Date(profile.plus_expires_at).getTime() > now
+  ) {
+    return { tenantPlan: "plus", plusExpiresAt: profile.plus_expires_at };
+  }
+  return { tenantPlan: "free", plusExpiresAt: null };
 }
 
 export async function fetchActiveBoostMap(supabaseAdmin: Db): Promise<Map<string, string>> {

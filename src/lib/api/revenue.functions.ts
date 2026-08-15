@@ -29,11 +29,22 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
           getBonusListingSlots(supabase, userId),
         ),
         getPortalSubscriptionMeta(supabase, userId),
-        supabaseAdmin.from("profiles").select("lead_pack_balance").eq("id", userId).maybeSingle(),
+        import("@/lib/db/loose-client").then(({ asLooseDb }) =>
+          asLooseDb(supabaseAdmin)
+            .from("profiles")
+            .select("lead_pack_balance, plus_contact_credits")
+            .eq("id", userId)
+            .maybeSingle(),
+        ),
       ]);
 
     const portalSubscriptionStatus: PortalSubscriptionStatus = portalSub?.status ?? "none";
     const leadPackBalance = profileRow.data?.lead_pack_balance ?? 0;
+    const plusContactCredits = Math.max(
+      0,
+      Number((profileRow.data as { plus_contact_credits?: number } | null)?.plus_contact_credits) ||
+        0,
+    );
     const { data: adminRole } = await supabase
       .from("user_roles")
       .select("role")
@@ -71,6 +82,7 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
       trialUnlocksRemaining: trial.trialUnlocksRemaining,
       trialEndsAt: trial.trialEndsAt,
       trialActive: trial.trialActive,
+      plusContactCredits: isAdmin ? 9999 : plusContactCredits,
       monthlyUnlockSpend,
       portalSubscriptionStatus: isAdmin ? "active" : portalSubscriptionStatus,
       portalTrialEndsAt: portalSub?.trialEnd ?? portalSub?.nextBillingDate ?? null,
@@ -297,5 +309,41 @@ export const getAdminRevenueStats = createServerFn({ method: "GET" })
       paymentCount: payments?.length ?? 0,
       chart,
       latest,
+    };
+  });
+
+export const getFinancialPartners = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    const { requirePlus } = await import("@/lib/payments/require-plus");
+    await requirePlus(supabase, userId);
+    const { listActiveFinancialPartners } = await import("@/lib/finance/partners");
+    return listActiveFinancialPartners();
+  });
+
+export const getPlusPricingPublic = createServerFn({ method: "GET" }).handler(async () => {
+  const { resolvePlusPricing } = await import("@/lib/revenue/platform-settings");
+  return resolvePlusPricing();
+});
+
+export const cancelTenantPlus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = getAuthContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const plus = await getTenantPlusStatus(supabase, userId);
+    if (plus.tenantPlan !== "plus") {
+      throw new Error("No active Tenant Plus period to cancel.");
+    }
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({ status: "cancelled" })
+      .eq("user_id", userId)
+      .eq("plan", "plus")
+      .in("status", ["active", "trialing", "past_due"]);
+    return {
+      cancelled: true,
+      accessUntil: plus.plusExpiresAt,
     };
   });

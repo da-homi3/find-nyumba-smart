@@ -1,3 +1,5 @@
+import { useEntitlements } from "@/hooks/use-entitlements";
+
 type Props = {
   label?: "Ad" | "Sponsored" | "Partner";
   title: string;
@@ -15,6 +17,8 @@ export function AdUnit({
   href = "#",
   variant = "card",
 }: Readonly<Props>) {
+  const { isPlus } = useEntitlements();
+  if (isPlus) return null;
   if (variant === "banner") {
     return (
       <a

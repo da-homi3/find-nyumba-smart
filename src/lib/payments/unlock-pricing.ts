@@ -8,3 +8,11 @@ export function unlockFeeForRent(rentKes: number): number {
   if (rent <= 100_000) return 400;
   return 500;
 }
+
+export function contactAccessLabel(feeKes: number): string {
+  return feeKes >= 300 ? "Premium property contact" : "Contact access";
+}
+
+export function unlockFeeExplanation(): string {
+  return "Contact access is a one-time fee based on listing rent: KES 50 (up to 15k), 100 (to 25k), 180 (to 40k), 280 (to 60k), 400 (to 100k), 500 above that.";
+}

@@ -54,3 +54,16 @@ export function AdminAsyncPanel({
   if (isEmpty) return emptyContent;
   return children;
 }
+
+export function AdminField({
+  label,
+  children,
+  className = "text-xs",
+}: Readonly<{ label: string; children: ReactNode; className?: string }>) {
+  return (
+    <label className={className}>
+      <span className="block">{label}</span>
+      {children}
+    </label>
+  );
+}

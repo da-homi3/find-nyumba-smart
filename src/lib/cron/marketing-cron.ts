@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { baseLayout } from "@/lib/email/base-layout";
 import { getSiteUrl } from "@/lib/site";
 import { formatKes } from "@/lib/properties";
@@ -62,7 +62,7 @@ export async function runTrialReminderCron(admin: Admin) {
         <p>You have <strong>${p.trial_unlocks_remaining ?? 0}</strong> free contact unlocks remaining.</p>
         <p><a class="btn" href="${getSiteUrl()}/tenant/checkout?plan=plus">Upgrade to Plus</a></p>
       `;
-      await sendEmail({
+      await sendEmailResult({
         to: ctx.email,
         templateId: "trial-ending",
         subject: "Your free trial ends in 3 days",
@@ -78,10 +78,10 @@ export async function runTrialReminderCron(admin: Admin) {
       if (!(await alreadySent(admin, p.id, expiredTpl))) {
         const body = `
           <h1>Your trial has ended</h1>
-          <p>Hi ${ctx.name}, your NyumbaSearch trial ended. Upgrade to Plus for unlimited unlocks and messaging.</p>
+          <p>Hi ${ctx.name}, your NyumbaSearch trial ended. Upgrade to Tenant Plus for contact credits, AI matching, and messaging.</p>
           <p><a class="btn" href="${getSiteUrl()}/tenant/checkout?plan=plus">Get Plus — ${formatKes(PLUS_PLAN.monthlyKes)}/mo</a></p>
         `;
-        await sendEmail({
+        await sendEmailResult({
           to: ctx.email,
           templateId: "trial-expired",
           subject: "Your NyumbaSearch trial has ended",
@@ -135,7 +135,7 @@ export async function runReengagementCron(admin: Admin) {
       <p>Hi ${ctx.name}, <strong>${newListings ?? 0}</strong> new listings were added since your last visit.</p>
       <p><a class="btn" href="${getSiteUrl()}/tenant">Browse homes</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: "re-engagement",
       subject: "Still looking for a home in Nairobi?",
@@ -190,7 +190,7 @@ export async function runWeeklyDigestCron(admin: Admin) {
       <ul>${hoodLines}</ul>
       <p><a class="btn" href="${getSiteUrl()}/tenant/map">Explore on map</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: "weekly-digest",
       subject: `This week in Nairobi — ${topHoods.reduce((s, [, c]) => s + c, 0)} new listings`,
@@ -224,7 +224,7 @@ export async function runMonthlyMarketTeaserCron(admin: Admin) {
       <p>Hi ${ctx.name}, our monthly market report is ready with neighbourhood trends and price shifts.</p>
       <p><a class="btn" href="${getSiteUrl()}/reports">View teaser &amp; buy full report</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: "market-report-teaser",
       subject: `Nairobi rental market — ${new Date().toLocaleString("en-KE", { month: "long", year: "numeric" })}`,
@@ -288,7 +288,7 @@ export async function runSavedSearchDigestCron(admin: Admin) {
       ${cards}
       <p><a class="btn" href="${getSiteUrl()}/tenant">See all matches</a></p>
     `;
-    await sendEmail({
+    await sendEmailResult({
       to: ctx.email,
       templateId: "saved-search-alert",
       subject: `${matches.length} new homes match your search`,

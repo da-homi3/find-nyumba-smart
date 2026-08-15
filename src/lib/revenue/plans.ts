@@ -233,18 +233,7 @@ export const BOOST_PACKAGES: {
   },
 ];
 
-export const PLUS_PLAN = {
-  monthlyKes: 500,
-  quarterlyKes: 1500,
-  features: [
-    "Unlimited contact unlocks on every listing",
-    "In-app messaging with landlords and service providers",
-    "Scam-risk scores on every property you view",
-    "Early access: new listings 24hrs before public",
-    "Unlimited saved searches with instant alerts",
-    "Monthly market report by neighborhood",
-  ],
-};
+export { PLUS_PLAN, getPlusPricing } from "@/lib/revenue/plus-plan";
 
 export const PROVIDER_TIERS = [
   { value: "basic" as const, label: "Basic", priceKes: 500, desc: "Listed in category directory" },

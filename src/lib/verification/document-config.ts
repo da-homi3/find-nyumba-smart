@@ -1,4 +1,10 @@
-export type VerificationType = "phone" | "identity" | "business" | "ownership";
+export type VerificationType =
+  | "phone"
+  | "identity"
+  | "business"
+  | "ownership"
+  | "employment"
+  | "income";
 
 export type VerificationDocumentConfig = {
   levelLabel: string;
@@ -45,6 +51,24 @@ export const VERIFICATION_DOCUMENT_CONFIG: Record<VerificationType, Verification
     requiresUpload: true,
     uploadLabel: "Land ownership documents",
     uploadHint: "Upload title deed, lease, allotment letter, or other proof of ownership.",
+    accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf",
+    maxFiles: 3,
+    maxMb: 25,
+  },
+  employment: {
+    levelLabel: "Employment verification",
+    requiresUpload: true,
+    uploadLabel: "Employment letter or contract",
+    uploadHint: "Upload a recent employment letter, contract, or HR confirmation. Admin reviews before it counts as verified.",
+    accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf",
+    maxFiles: 3,
+    maxMb: 25,
+  },
+  income: {
+    levelLabel: "Income verification",
+    requiresUpload: true,
+    uploadLabel: "Payslip or income proof",
+    uploadHint: "Upload a recent payslip, bank income proof, or similar. Admin reviews before it counts as verified.",
     accept: "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf",
     maxFiles: 3,
     maxMb: 25,

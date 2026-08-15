@@ -155,7 +155,7 @@ function TenantHome() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isTenant } = useAuth();
-  const { isPlus } = useEntitlements();
+  const { isPlus, entitlements } = useEntitlements();
   const qc = useQueryClient();
   const [q, setQ] = useState(search.q ?? "");
   const debouncedQ = useDebouncedValue(q, 400);
@@ -526,7 +526,17 @@ function TenantHome() {
 
       <RecentlyViewedStrip />
 
-      {!isPlus && (
+      {isPlus ? (
+        <div className="mx-auto max-w-2xl px-5 pt-4">
+          <div className="rounded-2xl border border-primary/30 bg-card/80 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Tenant Plus</p>
+            <p className="mt-0.5 text-sm">
+              {entitlements.plusContactCredits ?? 0} contact credit
+              {(entitlements.plusContactCredits ?? 0) === 1 ? "" : "s"} remaining
+            </p>
+          </div>
+        </div>
+      ) : (
         <div className="mx-auto max-w-2xl px-5 pt-4">
           <PlusUpsellBanner dismissKey="tenant-browse-top" />
         </div>
@@ -566,9 +576,19 @@ function TenantHome() {
           <div>
             <h3 className="font-display font-semibold">Ask NyumbaAI</h3>
             <p className="text-xs text-muted-foreground">
-              Tap the chat bubble — verified property owners, no scams, just honest neighbourhood
-              advice.
+              {isPlus
+                ? "Tap the chat bubble for neighborhood advice grounded in live listings."
+                : "Intelligent search and matching — included with Tenant Plus."}
             </p>
+            {!isPlus ? (
+              <Link
+                to="/tenant/checkout"
+                search={{ plan: "plus" }}
+                className="mt-2 inline-block text-xs font-semibold text-primary"
+              >
+                Upgrade to Tenant Plus →
+              </Link>
+            ) : null}
           </div>
         </div>
       </section>

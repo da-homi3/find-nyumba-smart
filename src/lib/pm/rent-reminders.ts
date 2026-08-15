@@ -1,8 +1,13 @@
 import type { PmDb } from "@/lib/pm/access";
 import { calculateLateFeeKes } from "@/lib/pm/invoice-status";
-import { sendEmail } from "@/lib/email/send";
-import { rentReminderEmail, rentReminderSubject } from "@/lib/email/templates";
+import { sendEmailResult } from "@/lib/email/send";
+import {
+  ownerRentArrearsDigestEmail,
+  rentReminderEmail,
+  rentReminderSubject,
+} from "@/lib/email/templates";
 import { formatKes } from "@/lib/properties";
+import { getSiteUrl } from "@/lib/site";
 
 export type ReminderType = "upcoming" | "due_today" | "overdue_3day" | "overdue_7day";
 
@@ -10,6 +15,12 @@ function isoDateOffset(days: number): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+function daysBetweenUtc(dueDateIso: string, todayIso: string): number {
+  const due = Date.parse(`${dueDateIso}T00:00:00Z`);
+  const today = Date.parse(`${todayIso}T00:00:00Z`);
+  return Math.max(0, Math.round((today - due) / 86_400_000));
 }
 
 export async function applyPmLateFees(admin: PmDb): Promise<{ updated: number }> {
@@ -84,6 +95,8 @@ type ReminderInvoice = {
   tenant_user_id: string | null;
   unit_label: string;
   property_name: string;
+  property_id: string;
+  owner_user_id: string;
 };
 
 async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderInvoice[]> {
@@ -130,10 +143,13 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
   ];
   const { data: properties } = await admin
     .from("pm_properties")
-    .select("id, name")
+    .select("id, name, owner_user_id")
     .in("id", propertyIds);
   const propertyById = new Map(
-    (properties ?? []).map((p: { id: string; name: string }) => [p.id, p]),
+    (properties ?? []).map((p: { id: string; name: string; owner_user_id: string }) => [
+      p.id,
+      p,
+    ]),
   );
 
   const results: ReminderInvoice[] = [];
@@ -144,6 +160,7 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
     const tenant = tenantById.get(lease.tenant_id);
     if (!unit || !tenant) continue;
     const property = propertyById.get(unit.property_id);
+    if (!property) continue;
 
     results.push({
       id: inv.id,
@@ -156,7 +173,9 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
       email: tenant.email,
       tenant_user_id: tenant.tenant_user_id ?? null,
       unit_label: unit.unit_label,
-      property_name: property?.name ?? "Property",
+      property_name: property.name ?? "Property",
+      property_id: property.id,
+      owner_user_id: property.owner_user_id,
     });
   }
   return results;
@@ -178,7 +197,7 @@ async function deliverRentReminder(
       balanceKes: balance,
       dueDate: inv.due_date,
     });
-    await sendEmail({
+    await sendEmailResult({
       to: inv.email,
       templateId: `rent_reminder_${stage}`,
       subject: rentReminderSubject(stage, inv.unit_label, balance),
@@ -239,6 +258,197 @@ export async function sendPmRentReminders(admin: PmDb): Promise<{ sent: number }
   }
 
   return { sent };
+}
+
+type OwnerArrearsRow = {
+  invoiceId: string;
+  tenantName: string;
+  unitLabel: string;
+  balanceKes: number;
+  dueDate: string;
+  daysOverdue: number;
+  propertyId: string;
+  propertyName: string;
+  ownerUserId: string;
+};
+
+async function loadOwnerArrearsRows(
+  admin: PmDb,
+  today: string,
+): Promise<OwnerArrearsRow[]> {
+  const { data: invoices } = await admin
+    .from("pm_rent_invoices")
+    .select("id, amount_due, amount_paid, late_fee, due_date, lease_id, status")
+    .in("status", ["partial", "overdue"])
+    .lt("due_date", today)
+    .limit(2000);
+  if (!invoices?.length) return [];
+
+  const leaseIds = [...new Set(invoices.map((i: { lease_id: string }) => i.lease_id))];
+  const { data: leases } = await admin
+    .from("pm_leases")
+    .select("id, unit_id, tenant_id")
+    .in("id", leaseIds);
+  const leaseById = new Map(
+    (leases ?? []).map((l: { id: string; unit_id: string; tenant_id: string }) => [l.id, l]),
+  );
+
+  const unitIds = [...new Set((leases ?? []).map((l: { unit_id: string }) => l.unit_id))];
+  const tenantIds = [...new Set((leases ?? []).map((l: { tenant_id: string }) => l.tenant_id))];
+  const [{ data: units }, { data: tenants }] = await Promise.all([
+    admin.from("pm_units").select("id, unit_label, property_id").in("id", unitIds),
+    admin.from("pm_tenants").select("id, full_name").in("id", tenantIds),
+  ]);
+  const unitById = new Map(
+    (units ?? []).map((u: { id: string; unit_label: string; property_id: string }) => [u.id, u]),
+  );
+  const tenantById = new Map(
+    (tenants ?? []).map((t: { id: string; full_name: string }) => [t.id, t]),
+  );
+
+  const propertyIds = [
+    ...new Set((units ?? []).map((u: { property_id: string }) => u.property_id)),
+  ];
+  const { data: properties } = await admin
+    .from("pm_properties")
+    .select("id, name, owner_user_id")
+    .in("id", propertyIds);
+  const propertyById = new Map(
+    (properties ?? []).map((p: { id: string; name: string; owner_user_id: string }) => [
+      p.id,
+      p,
+    ]),
+  );
+
+  const rows: OwnerArrearsRow[] = [];
+  for (const inv of invoices) {
+    const lease = leaseById.get(inv.lease_id);
+    if (!lease) continue;
+    const unit = unitById.get(lease.unit_id);
+    const tenant = tenantById.get(lease.tenant_id);
+    const property = unit ? propertyById.get(unit.property_id) : undefined;
+    if (!unit || !tenant || !property) continue;
+    const balance = Math.max(
+      0,
+      Number(inv.amount_due) + Number(inv.late_fee ?? 0) - Number(inv.amount_paid),
+    );
+    if (balance <= 0) continue;
+    rows.push({
+      invoiceId: inv.id as string,
+      tenantName: tenant.full_name,
+      unitLabel: unit.unit_label,
+      balanceKes: balance,
+      dueDate: inv.due_date as string,
+      daysOverdue: daysBetweenUtc(inv.due_date as string, today),
+      propertyId: property.id,
+      propertyName: property.name,
+      ownerUserId: property.owner_user_id,
+    });
+  }
+  return rows;
+}
+
+async function deliverOwnerArrearsDigest(opts: {
+  admin: PmDb;
+  propertyRows: OwnerArrearsRow[];
+  digestKey: string;
+  site: string;
+}): Promise<boolean> {
+  const first = opts.propertyRows[0];
+  if (!first) return false;
+
+  const { data: already } = await opts.admin
+    .from("pm_rent_reminder_log")
+    .select("id")
+    .eq("invoice_id", first.invoiceId)
+    .eq("reminder_type", opts.digestKey)
+    .maybeSingle();
+  if (already) return false;
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { notifyUser } = await import("@/lib/notifications/notify-user");
+
+  let ownerEmail: string | null = null;
+  let ownerName = "Property owner";
+  try {
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(first.ownerUserId);
+    ownerEmail = userData.user?.email ?? null;
+    const meta = userData.user?.user_metadata as { full_name?: string } | undefined;
+    if (meta?.full_name) ownerName = meta.full_name;
+  } catch {
+    // ignore lookup failures
+  }
+
+  const total = opts.propertyRows.reduce((s, r) => s + r.balanceKes, 0);
+  const manageUrl = `${opts.site}/landlord/manage/${first.propertyId}/rent`;
+  const sorted = [...opts.propertyRows].sort((a, b) => b.balanceKes - a.balanceKes);
+
+  if (ownerEmail) {
+    const tpl = ownerRentArrearsDigestEmail({
+      ownerName,
+      propertyName: first.propertyName,
+      rows: sorted.map((r) => ({
+        tenantName: r.tenantName,
+        unitLabel: r.unitLabel,
+        balanceKes: r.balanceKes,
+        dueDate: r.dueDate,
+        daysOverdue: r.daysOverdue,
+      })),
+      manageUrl,
+    });
+    await sendEmailResult({
+      to: ownerEmail,
+      templateId: "owner_rent_arrears_digest",
+      subject: `${sorted.length} tenant(s) behind on rent — ${formatKes(total)} · ${first.propertyName}`,
+      ...tpl,
+    });
+  }
+
+  await notifyUser(supabaseAdmin, {
+    userId: first.ownerUserId,
+    type: "rent",
+    title: `${sorted.length} tenant(s) behind — ${formatKes(total)}`,
+    body: `${first.propertyName}: ${sorted
+      .slice(0, 3)
+      .map((r) => `${r.tenantName} owes ${formatKes(r.balanceKes)}`)
+      .join("; ")}`,
+    href: `/landlord/manage/${first.propertyId}/rent`,
+    entityType: "pm_property",
+    entityId: first.propertyId,
+  });
+
+  await opts.admin.from("pm_rent_reminder_log").insert({
+    invoice_id: first.invoiceId,
+    reminder_type: opts.digestKey,
+  });
+  return true;
+}
+
+/** Owner digest: who is behind and by how much (paired with tenant overdue reminders). */
+export async function sendOwnerArrearsDigests(
+  admin: PmDb,
+): Promise<{ sent: number; properties: number }> {
+  const today = isoDateOffset(0);
+  const rows = await loadOwnerArrearsRows(admin, today);
+  if (!rows.length) return { sent: 0, properties: 0 };
+
+  const byProperty = new Map<string, OwnerArrearsRow[]>();
+  for (const row of rows) {
+    const list = byProperty.get(row.propertyId) ?? [];
+    list.push(row);
+    byProperty.set(row.propertyId, list);
+  }
+
+  const digestKey = `owner_arrears_${today}`;
+  const site = getSiteUrl();
+  let sent = 0;
+  for (const propertyRows of byProperty.values()) {
+    if (await deliverOwnerArrearsDigest({ admin, propertyRows, digestKey, site })) {
+      sent += 1;
+    }
+  }
+
+  return { sent, properties: byProperty.size };
 }
 
 /** @deprecated format helper kept for tests */

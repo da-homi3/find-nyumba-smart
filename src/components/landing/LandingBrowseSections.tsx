@@ -4,7 +4,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { AdUnit } from "@/components/AdUnit";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { ServiceCategoryIcon } from "@/components/services/ServiceCategoryIcon";
-import { HOOD_META } from "@/components/landing/hood-meta";
+import { resolveHoodMeta } from "@/components/landing/hood-meta";
 import { AnimatedStat } from "@/components/motion/AnimatedStat";
 import { Star } from "lucide-react";
 import { NeighborhoodCard3D } from "@/components/landing/NeighborhoodCard3D";
@@ -96,7 +96,7 @@ export function FeaturedListings({
             {isBoosted ? "Featured listings" : "Newest listings"}
           </p>
           <h2 className="display-heading mt-1 text-3xl font-semibold sm:text-4xl">
-            {isBoosted ? "Boosted homes, top of search" : "Fresh homes, newest first"}
+            Featured properties
           </h2>
         </div>
         <Link
@@ -152,7 +152,7 @@ export function PopularNeighborhoods({
   const items = hoods.length ? hoods : fallback.map((name) => ({ name, count: 0 }));
 
   return (
-    <section className="border-t bg-secondary/40">
+    <section className="scroll-mt-28 border-t bg-secondary/40 pb-28 md:pb-0">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
         <ScrollReveal className="flex items-end justify-between gap-4">
           <div>
@@ -165,18 +165,18 @@ export function PopularNeighborhoods({
           </div>
         </ScrollReveal>
         <ScrollRevealStagger
-          className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
           stagger={0.06}
         >
           {items.map((h) => {
-            const meta = HOOD_META[h.name];
+            const meta = resolveHoodMeta(h.name);
             const liveMin = minRentByHood?.[h.name];
             return (
               <ScrollRevealItem key={h.name}>
                 <NeighborhoodCard3D
                   name={h.name}
-                  minPrice={liveMin ?? meta?.from ?? 15000}
-                  image={meta?.img}
+                  minPrice={liveMin ?? meta.from}
+                  image={meta.img}
                   count={h.count}
                 />
               </ScrollRevealItem>
@@ -204,7 +204,7 @@ export function ServiceTeaserRow({ counts }: Readonly<{ counts?: Record<string, 
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Services</p>
           <h2 className="mt-1 font-display text-2xl font-semibold sm:text-3xl">
-            Everything after you move in
+            Everything you need
           </h2>
         </div>
         <Link to="/services" className="text-sm font-semibold text-primary hover:underline">

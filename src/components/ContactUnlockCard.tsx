@@ -6,7 +6,7 @@ import { MpesaPhonePicker } from "@/components/checkout/MpesaPhonePicker";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatKes } from "@/lib/properties";
-import { unlockFeeForRent } from "@/lib/payments/unlock-pricing";
+import { contactAccessLabel, unlockFeeExplanation, unlockFeeForRent } from "@/lib/payments/unlock-pricing";
 import { getListingUnlockState, unlockListingContact } from "@/lib/api/contact-unlock.functions";
 import { pollPaymentUntilComplete } from "@/lib/payments/poll-payment-client";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,6 +16,7 @@ import { isKenyanPhone } from "@/lib/phone";
 import { errorMessage } from "@/lib/utils";
 import { randomUuid } from "@/lib/random-uuid";
 import { TENANT_FREE_UNLOCK_ALLOWANCE } from "@/lib/payments/tenant-trial";
+import { TENANT_PLUS_CONFIG } from "@/lib/revenue/tenant-plus-config";
 import type { Property } from "@/lib/properties";
 
 type Props = Readonly<{
@@ -23,26 +24,42 @@ type Props = Readonly<{
   onUnlocked?: (phone: string, phones?: string[]) => void;
 }>;
 
-function unlockPriceHint(
-  trialActive: boolean | undefined,
-  freeUnlocksLeft: number,
-  isPlus: boolean,
-  fee: number,
-) {
-  if (isPlus) {
-    return <p className="mt-1 text-sm text-emerald-600">Included with your Plus subscription</p>;
-  }
-  if (trialActive && freeUnlocksLeft > 0) {
-    const suffix = freeUnlocksLeft === 1 ? "" : "s";
+function unlockPriceHint(opts: {
+  trialActive: boolean | undefined;
+  freeUnlocksLeft: number;
+  isPlus: boolean;
+  fee: number;
+  plusCredits: number;
+  creditsRequired: number;
+}) {
+  if (opts.isPlus && opts.plusCredits >= opts.creditsRequired) {
     return (
       <p className="mt-1 text-sm text-emerald-600">
-        Free — {freeUnlocksLeft} of {TENANT_FREE_UNLOCK_ALLOWANCE} unlock{suffix} remaining
+        Included with Tenant Plus — {opts.plusCredits} credit
+        {opts.plusCredits === 1 ? "" : "s"} remaining ({opts.creditsRequired} for this listing)
+      </p>
+    );
+  }
+  if (opts.isPlus) {
+    return (
+      <p className="mt-1 text-sm text-muted-foreground">
+        You&apos;ve used your included contact credits. Pay {formatKes(opts.fee)} for this listing,
+        or wait until your next Plus period.
+      </p>
+    );
+  }
+  if (opts.trialActive && opts.freeUnlocksLeft > 0) {
+    const suffix = opts.freeUnlocksLeft === 1 ? "" : "s";
+    return (
+      <p className="mt-1 text-sm text-emerald-600">
+        Free — {opts.freeUnlocksLeft} of {TENANT_FREE_UNLOCK_ALLOWANCE} unlock{suffix} remaining
       </p>
     );
   }
   return (
     <p className="mt-1 text-sm text-muted-foreground">
-      {formatKes(fee)} via M-Pesa for this listing, or subscribe to Plus for unlimited unlocks.
+      {contactAccessLabel(opts.fee)} — {formatKes(opts.fee)}. One-time access to this landlord&apos;s
+      contact details.
     </p>
   );
 }
@@ -66,7 +83,8 @@ function SignInUnlockCard() {
     <div className="rounded-2xl border bg-card p-4">
       <p className="font-semibold">Get this landlord&apos;s number</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        Sign in for 1 free unlock, then KES 50–500 via M-Pesa per listing — or Plus for unlimited.
+        Sign in for 1 free unlock, then KES 50–500 via M-Pesa per listing — or Plus for monthly
+        contact credits.
       </p>
       <Link
         to="/auth"
@@ -118,7 +136,10 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
   const unlocked = state?.unlocked ?? false;
   const monthlySpend = state?.monthlyUnlockSpend ?? entitlements.monthlyUnlockSpend ?? 0;
   const hasFreeUnlock = Boolean(trialActive && freeUnlocksLeft > 0);
-  const needsPayment = !isPlus && !hasFreeUnlock;
+  const plusCredits = Number(state?.plusContactCredits ?? entitlements.plusContactCredits ?? 0);
+  const creditsRequired = Number(state?.creditsRequired ?? 1);
+  const plusCanCover = isPlus && plusCredits >= creditsRequired;
+  const needsPayment = !plusCanCover && !hasFreeUnlock;
 
   useEffect(() => {
     if (contactPhone && onUnlocked) onUnlocked(contactPhone, contactPhones);
@@ -213,36 +234,101 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
         phones={contactPhones}
         listingTitle={listing.title}
         neighborhood={listing.neighborhood}
+        listingId={listing.id}
       />
     );
   }
 
-  if (unlocked || (isPlus && !contactPhone)) {
+  if (unlocked && !contactPhone) {
     return <NoContactOnFileCard />;
   }
 
   const buttonLabel = unlockButtonLabel({ unlocking, needsPayment, isPlus, fee });
   const spendHint =
-    needsPayment && monthlySpend >= 500 ? " — Plus includes unlimited unlocks." : "";
+    needsPayment && monthlySpend >= 500 ? " — Plus includes monthly contact credits." : "";
 
+  return (
+    <LockedContactPanel
+      trialActive={trialActive}
+      freeUnlocksLeft={freeUnlocksLeft}
+      isPlus={isPlus}
+      fee={fee}
+      plusCredits={plusCredits}
+      creditsRequired={creditsRequired}
+      needsPayment={needsPayment}
+      monthlySpend={monthlySpend}
+      spendHint={spendHint}
+      linkedPhone={linkedPhone}
+      phone={phone}
+      onPhoneChange={setPhone}
+      unlocking={unlocking}
+      buttonLabel={buttonLabel}
+      onUnlock={() => void unlock(needsPayment ? "mpesa" : undefined)}
+    />
+  );
+}
+
+function LockedContactPanel({
+  trialActive,
+  freeUnlocksLeft,
+  isPlus,
+  fee,
+  plusCredits,
+  creditsRequired,
+  needsPayment,
+  monthlySpend,
+  spendHint,
+  linkedPhone,
+  phone,
+  onPhoneChange,
+  unlocking,
+  buttonLabel,
+  onUnlock,
+}: Readonly<{
+  trialActive: boolean | undefined;
+  freeUnlocksLeft: number;
+  isPlus: boolean;
+  fee: number;
+  plusCredits: number;
+  creditsRequired: number;
+  needsPayment: boolean;
+  monthlySpend: number;
+  spendHint: string;
+  linkedPhone: string | null;
+  phone: string;
+  onPhoneChange: (value: string) => void;
+  unlocking: boolean;
+  buttonLabel: string;
+  onUnlock: () => void;
+}>) {
   return (
     <div className="rounded-2xl border bg-card p-4">
       <p className="font-semibold">Get this landlord&apos;s number</p>
-      {unlockPriceHint(trialActive, freeUnlocksLeft, isPlus, fee)}
+      {unlockPriceHint({
+        trialActive,
+        freeUnlocksLeft,
+        isPlus,
+        fee,
+        plusCredits,
+        creditsRequired,
+      })}
 
       {needsPayment && monthlySpend > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
-          You&apos;ve spent {formatKes(monthlySpend)} on unlocks this month
+          You&apos;ve spent {formatKes(monthlySpend)} unlocking property contacts this month
           {spendHint}
         </p>
       )}
+      {needsPayment ? (
+        <p className="mt-2 text-[11px] text-muted-foreground">{unlockFeeExplanation()}</p>
+      ) : null}
 
       {needsPayment && (
         <div className="mt-3">
           <MpesaPhonePicker
             linkedPhone={linkedPhone}
             value={phone}
-            onChange={setPhone}
+            onChange={onPhoneChange}
             disabled={unlocking}
           />
         </div>
@@ -251,7 +337,7 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
       <button
         type="button"
         disabled={unlocking}
-        onClick={() => void unlock(needsPayment ? "mpesa" : undefined)}
+        onClick={onUnlock}
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
       >
         {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -264,7 +350,7 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
           search={{ plan: "plus" }}
           className="mt-2 flex w-full items-center justify-center rounded-xl border py-2.5 text-sm font-semibold text-primary"
         >
-          Or subscribe to Plus — unlimited unlocks
+          Or get Tenant Plus — {TENANT_PLUS_CONFIG.contactCreditsPerMonth} credits / month
         </Link>
       ) : null}
     </div>

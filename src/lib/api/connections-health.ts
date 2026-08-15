@@ -59,10 +59,19 @@ export async function checkConnections(): Promise<ConnectionStatus[]> {
     },
     {
       name: "sendgrid",
-      status: process.env.SENDGRID_API_KEY ? "ok" : "degraded",
+      status: process.env.SENDGRID_API_KEY ? "degraded" : "missing",
       detail: process.env.SENDGRID_API_KEY
-        ? "Email notifications enabled"
-        : "Emails skipped until SENDGRID_API_KEY is set",
+        ? "SendGrid key present (fallback; Cloudflare Email is preferred when EMAIL binding is live)"
+        : "No SendGrid key — relies on Cloudflare Email binding",
+    },
+    {
+      name: "cloudflare_email",
+      status: (globalThis as { __env__?: { EMAIL?: { send?: unknown } } }).__env__?.EMAIL?.send
+        ? "ok"
+        : "degraded",
+      detail: (globalThis as { __env__?: { EMAIL?: { send?: unknown } } }).__env__?.EMAIL?.send
+        ? "EMAIL Workers binding available"
+        : "EMAIL binding missing until deploy with send_email in wrangler",
     },
     {
       name: "mpesa",
