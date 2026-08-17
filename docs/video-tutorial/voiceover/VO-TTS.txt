@@ -1,40 +1,34 @@
 Welcome to NyumbaSearch for Property Managers.
 
-This walkthrough uses the live website — nyumbasearch.com — so you see the same screens you'll use when you apply, list properties, and reach tenants.
+This walkthrough uses the live website — nyumbasearch.com — and the real property manager dashboard.
 
-Start on the homepage. NyumbaSearch is Nairobi's housing platform: verified owners, real listings, and tools for the people who manage them.
+From the homepage, open your portal. After approval, you land here: your dashboard.
 
-Open nyumbasearch.com/manager.
+This is your command centre. At the top: total properties, views, tenant leads, and potential monthly revenue.
 
-This is the Property Manager Portal. It's built for firms that onboard landlord clients, publish listings, and route tenant leads from one place.
+The Tools row covers bulk import, API integrations, your plan, and billing.
 
-Tap Create manager account.
+Your properties lists live marketplace listings. Viewing requests appear on the right — confirm or decline in one click.
 
-Enter your organization name and contact details. NyumbaSearch operations reviews every application before dashboard access is granted. That review keeps the marketplace trustworthy.
+Use Add property any time you have a new unit to publish.
 
-Once approved, sign in here. After sign-in you land on your dashboard — properties, leads, viewing requests, team, billing, and Add property.
+Open Properties to see every listing, its status, and quick actions.
 
-Your first paid month unlocks the portal. Your second month is free on manager plans.
+Now upload a listing. The wizard has four steps: Details, Photos and media, Map pin, and Review.
 
-Open nyumbasearch.com/pricing and scroll to Property Manager plans.
+Choose the property type. Add bedrooms, rent, a clear title, and contact details.
 
-Solo Manager is for independent managers. Management Team is for growing firms — bulk import, more seats, more units. Enterprise is for large companies that need custom integrations.
+Then add photos — bright, honest, well-lit. Drop the map pin on the exact building so tenants can find you.
 
-After you upload a listing, this is what tenants see. Open Discover homes.
+Review everything before you submit. New listings may go through verification. That's how NyumbaSearch keeps the marketplace trustworthy.
 
-Filters, neighbourhoods, verification badges, and live inventory. Your listing competes here — so photos, price, and location need to be accurate.
+Tenants and rent is where you operate portfolios — units, leases, invoices, and M-Pesa collection.
 
-Open any listing. This is the result of a successful upload: photos, rent, amenities, map, and a way for serious tenants to connect.
+Under Team, invite colleagues by email. Approve them before they can open this dashboard.
 
-More honest media means more viewing requests.
+Analytics shows how your listings perform.
 
-Tenants also search on the map. Drop your pin on the exact building when you list — accurate pins get found faster.
-
-Landlords can list directly too. Many managers work alongside owner accounts — same marketplace, different portal.
-
-Questions about approval, plans, or onboarding? Use the contact page, or email nyumbasearch101@gmail.com.
-
-That's the live NyumbaSearch path for property managers: apply at /manager, get approved, sign in to your dashboard, upload listings, and reach tenants on the same platform.
+That's the live NyumbaSearch workflow: dashboard, upload properties, manage rent, and grow your team.
 
 Visit nyumbasearch.com/manager to get started.
 

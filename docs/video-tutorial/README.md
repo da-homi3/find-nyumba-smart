@@ -30,17 +30,15 @@ npm run tutorial:all
 ## Live pages recorded
 
 1. Homepage  
-2. `/manager` — Property Manager Portal  
-3. `/auth` — create manager account (fields filled, not submitted)  
-4. `/auth` — sign in after approval  
-5. `/pricing` — manager plans  
-6. `/tenant` — marketplace (what uploaded listings look like)  
-7. A live property detail page  
-8. `/tenant/map`  
-9. `/landlord`  
-10. `/contact` → back to `/manager`
+2. `/manager/dashboard` — real signed-in overview (KPIs, tools, listings, viewings)  
+3. `/manager/properties`  
+4. `/manager/properties/new` — listing wizard (details → media → map → review)  
+5. `/manager/manage` — tenants & rent  
+6. `/manager/team`  
+7. `/manager/analytics`  
+8. Back to dashboard CTA  
 
-Authenticated dashboard and the listing wizard require an approved account. The video shows the **real sign-in gate** on those URLs, then the live marketplace tenants use after you publish.
+Sign-in is off-camera. Emails on screen are masked. Credentials come from `TUTORIAL_EMAIL` / `TUTORIAL_PASSWORD` environment variables and are **never committed**.
 
 ---
 
