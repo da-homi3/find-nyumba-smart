@@ -24,30 +24,42 @@ const OUT = path.join(TUTORIAL, "FOR-LAPTOP");
 const ARTIFACTS = "/opt/cursor/artifacts";
 
 const CLIP_ORDER = [
-  "01-intro-manager-portal",
-  "02-signup-flow",
-  "03-pricing-manager",
-  "04-studio-dashboard",
-  "05-studio-nav",
-  "06-studio-wizard-details",
-  "07-studio-wizard-media",
-  "08-studio-wizard-location",
-  "09-studio-wizard-review",
-  "10-studio-pm-portfolio",
-  "11-studio-team-close",
+  "01-homepage",
+  "02-manager-portal",
+  "03-create-account",
+  "04-sign-in",
+  "05-pricing-manager",
+  "06-tenant-listings",
+  "07-property-detail",
+  "08-map",
+  "09-landlord-portal",
+  "10-contact-cta",
 ];
 
-const CHAPTERS = [
-  { t: 0, title: "Welcome" },
-  { t: 15, title: "Apply & sign in" },
-  { t: 40, title: "Dashboard overview" },
-  { t: 86, title: "Navigation" },
-  { t: 117, title: "Upload: Details" },
-  { t: 151, title: "Photos & media" },
-  { t: 182, title: "Map pin" },
-  { t: 210, title: "Review & publish" },
-  { t: 237, title: "Tenants & rent" },
-  { t: 267, title: "Team & next steps" },
+const CLIP_TRIM = {
+  "01-homepage": { ss: 2.8, t: 14 },
+  "02-manager-portal": { ss: 0.4, t: 16 },
+  "03-create-account": { ss: 0.4, t: 18 },
+  "04-sign-in": { ss: 0.4, t: 14 },
+  "05-pricing-manager": { ss: 0.4, t: 18 },
+  "06-tenant-listings": { ss: 0.4, t: 16 },
+  "07-property-detail": { ss: 8.0, t: 18 },
+  "08-map": { ss: 0.4, t: 12 },
+  "09-landlord-portal": { ss: 0.4, t: 10 },
+  "10-contact-cta": { ss: 0.4, t: 14 },
+};
+
+const CLIP_TITLES = [
+  "Welcome — nyumbasearch.com",
+  "Property Manager Portal",
+  "Create your account",
+  "Sign in after approval",
+  "Manager plans",
+  "What tenants see",
+  "A live listing",
+  "Map discovery",
+  "Owners & managers",
+  "Get started",
 ];
 
 function run(cmd, args, opts = {}) {
@@ -116,27 +128,57 @@ async function concatClips() {
     return path.join(FOOTAGE, f);
   });
 
+  const trimmedDir = path.join(FOOTAGE, "trimmed");
+  await mkdir(trimmedDir, { recursive: true });
+  const trimmed = [];
+  for (const src of clips) {
+    const base = path.basename(src, ".webm");
+    const spec = CLIP_TRIM[base] ?? { ss: 0, t: 30 };
+    const dest = path.join(trimmedDir, `${base}.mp4`);
+    await run("ffmpeg", [
+      "-y",
+      "-ss", String(spec.ss),
+      "-t", String(spec.t),
+      "-i", src,
+      "-c:v", "libx264",
+      "-preset", "fast",
+      "-crf", "20",
+      "-an",
+      "-pix_fmt", "yuv420p",
+      dest,
+    ]);
+    trimmed.push(dest);
+  }
+
+  const chapters = [];
+  let t = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    chapters.push({ t, title: CLIP_TITLES[i] ?? CLIP_ORDER[i] });
+    t += await ffprobeDuration(trimmed[i]);
+  }
+  await writeFile(path.join(FOOTAGE, "chapters.json"), JSON.stringify(chapters, null, 2), "utf8");
+
   const listPath = path.join(FOOTAGE, "concat.txt");
   const lines = [];
-  for (const f of clips) {
+  for (const f of trimmed) {
     lines.push(`file '${f.replace(/'/g, "'\\''")}'`);
   }
   await writeFile(listPath, lines.join("\n"), "utf8");
 
   const raw = path.join(OUT, "raw-concat.mp4");
   await run("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c:v", "libx264", "-preset", "fast", "-crf", "20", "-pix_fmt", "yuv420p", "-an", raw]);
-  return raw;
+  return { raw, chapters };
 }
 
-function chapterFilter() {
-  const filters = CHAPTERS.map((ch) => {
+function chapterFilter(chapters) {
+  const filters = chapters.map((ch) => {
     const escaped = ch.title.replace(/'/g, "'\\''").replace(/:/g, "\\:");
-    return `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${escaped}':fontsize=42:fontcolor=white:x=(w-text_w)/2:y=80:enable='between(t,${ch.t},${ch.t + 4})':box=1:boxcolor=0x1a1209@0.75:boxborderw=16`;
+    return `drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${escaped}':fontsize=42:fontcolor=white:x=(w-text_w)/2:y=80:enable='between(t,${ch.t},${ch.t + 3.5})':box=1:boxcolor=0x1a1209@0.75:boxborderw=16`;
   });
   return filters.join(",");
 }
 
-async function buildMaster(rawVideo, voMp3) {
+async function buildMaster(rawVideo, voMp3, chapters) {
   await mkdir(OUT, { recursive: true });
   const voDur = await ffprobeDuration(voMp3);
   const vidDur = await ffprobeDuration(rawVideo);
@@ -144,13 +186,14 @@ async function buildMaster(rawVideo, voMp3) {
 
   const master = path.join(OUT, "01-MASTER-16x9-VO.mp4");
   const finalDur = voDur + 1.5;
+  const pad = Math.max(0, finalDur - vidDur);
 
   await run("ffmpeg", [
     "-y",
     "-i", rawVideo,
     "-i", voMp3,
     "-filter_complex",
-    `[0:v]trim=0:${finalDur.toFixed(2)},setpts=PTS-STARTPTS,${chapterFilter()}[v];[1:a]atrim=0:${finalDur.toFixed(2)},asetpts=PTS-STARTPTS[a]`,
+    `[0:v]tpad=stop_mode=clone:stop_duration=${pad.toFixed(2)},trim=0:${finalDur.toFixed(2)},setpts=PTS-STARTPTS,${chapterFilter(chapters)}[v];[1:a]atrim=0:${finalDur.toFixed(2)},asetpts=PTS-STARTPTS[a]`,
     "-map", "[v]",
     "-map", "[a]",
     "-t", String(finalDur),
@@ -186,8 +229,8 @@ async function buildMaster(rawVideo, voMp3) {
 
 async function main() {
   const voMp3 = await ensureVo();
-  const raw = await concatClips();
-  const { master, social, voDur } = await buildMaster(raw, voMp3);
+  const { raw, chapters } = await concatClips();
+  const { master, social, voDur } = await buildMaster(raw, voMp3, chapters);
   console.log(`\n✓ 16:9 master: ${master}`);
   console.log(`✓ 9:16 social: ${social}`);
   console.log(`✓ Runtime: ~${Math.round(voDur / 60)} min`);

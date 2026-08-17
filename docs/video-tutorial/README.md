@@ -1,23 +1,18 @@
 # NyumbaSearch — Property Manager Tutorial (Production Kit)
 
-High-quality onboarding video for new property managers: dashboard walkthrough + property upload guide.
+Onboarding video for new property managers, recorded from the **live website**.
 
-**Target runtime:** ~8 minutes  
-**Formats:** 16:9 (YouTube / onboarding) · 9:16 (social)  
-**Voice:** Kenyan English — `en-KE-ChilembaNeural`
+**Source:** https://nyumbasearch.com only  
+**Voice:** Kenyan English — `en-KE-ChilembaNeural`  
+**Formats:** 16:9 (YouTube / onboarding) · 9:16 (social)
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Record screen footage (live site + tutorial capture studio)
-npm run tutorial:record
-
-# 2. Generate VO + compile master videos
-npm run tutorial:build
-
-# Or both:
+npm run tutorial:record   # Playwright against nyumbasearch.com
+npm run tutorial:build    # VO + ffmpeg masters
 npm run tutorial:all
 ```
 
@@ -28,41 +23,24 @@ npm run tutorial:all
 | `FOR-LAPTOP/01-MASTER-16x9-VO.mp4` | Primary tutorial master |
 | `FOR-LAPTOP/02-MASTER-9x16-VO.mp4` | Vertical social cut |
 | `voiceover/VO-Chilemba-tutorial.mp3` | Narration track |
-| `footage/*.webm` | Raw screen recordings |
+| `footage/*.webm` | Raw live recordings |
 
 ---
 
-## What's covered
+## Live pages recorded
 
-1. Applying and signing in at `/manager`
-2. Dashboard KPIs, tools, properties, viewing requests
-3. Full sidebar navigation tour
-4. Listing upload wizard — Details → Photos → Map → Review
-5. Property Management module (tenants & rent)
-6. Team access and wrap-up CTA
+1. Homepage  
+2. `/manager` — Property Manager Portal  
+3. `/auth` — create manager account (fields filled, not submitted)  
+4. `/auth` — sign in after approval  
+5. `/pricing` — manager plans  
+6. `/tenant` — marketplace (what uploaded listings look like)  
+7. A live property detail page  
+8. `/tenant/map`  
+9. `/landlord`  
+10. `/contact` → back to `/manager`
 
----
-
-## UI fidelity notes
-
-| Segment | Source |
-|---------|--------|
-| Manager portal landing, signup, pricing | **Live** nyumbasearch.com |
-| Dashboard, wizard, PM portfolio, team | **Tutorial capture studio** (`capture-studio.html`) — pixel-faithful UI with **sample data only** |
-
-Authenticated manager dashboards are not publicly scrapable. The capture studio is built from the live product component structure and design tokens — clearly watermarked "Tutorial preview · Sample data".
-
----
-
-## Files
-
-| Path | Purpose |
-|------|---------|
-| `SCRIPT.md` | Full narration + chapter map |
-| `capture-studio.html` | Auto-advancing UI scenes for signed-in flows |
-| `voiceover/VO-TTS.txt` | Plain text for TTS (auto-generated from SCRIPT) |
-| `scripts/record-manager-tutorial.mjs` | Playwright recorder |
-| `scripts/build-manager-tutorial.mjs` | ffmpeg assembly + chapter titles |
+Authenticated dashboard and the listing wizard require an approved account. The video shows the **real sign-in gate** on those URLs, then the live marketplace tenants use after you publish.
 
 ---
 
@@ -70,4 +48,4 @@ Authenticated manager dashboards are not publicly scrapable. The capture studio 
 
 - Cream `#F7F1E8` · Cocoa `#4A2713` · Green `#0a8f3d` · Gold `#D4A84B`
 - Tagline: **Find. Connect. Move in.**
-- Contact: nyumbasearch101@gmail.com · nyumbasearch.com/manager
+- Contact: nyumbasearch101@gmail.com · https://nyumbasearch.com/manager
