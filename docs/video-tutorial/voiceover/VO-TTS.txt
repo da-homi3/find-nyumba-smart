@@ -1,0 +1,95 @@
+Welcome to NyumbaSearch for Property Managers.
+
+In the next few minutes, you'll see how to get approved, open your dashboard, upload listings for the marketplace, and manage client portfolios — all from one place.
+
+Whether you manage five units or five hundred, this walkthrough shows the exact screens you'll use every day.
+
+Start at nyumbasearch.com/manager.
+
+This is the Property Manager Portal — built for firms that onboard landlord clients, publish listings, and route tenant leads.
+
+Tap Create manager account. Enter your organization name and contact details.
+
+NyumbaSearch operations reviews every application before dashboard access is granted. Once approved, sign in and you'll land on your dashboard.
+
+Your first paid month unlocks the portal; your second month is free on manager plans.
+
+This is your command centre.
+
+At the top: Total Properties, Property Views, Tenant Leads, and Monthly Revenue — a quick pulse on portfolio performance.
+
+The Tools row gives you bulk CSV import, API integrations, plan limits, and billing — the same power landlords get, tuned for multi-client work.
+
+Your properties lists active marketplace listings with status, views, and quick actions.
+
+On the right, Viewing Requests shows tenants who want to visit — confirm or decline in one click.
+
+Use Add property any time to publish a new listing.
+
+The left sidebar is your map.
+
+Dashboard — overview and KPIs.
+Properties — all marketplace listings.
+Tenants and rent — the Property Management module: units, leases, invoices, and M-Pesa rent collection.
+Bulk import — upload a CSV to create draft listings at once.
+API and integrations — connect external systems.
+Messages — tenant inquiries tied to each listing.
+Caretakers — on-site staff with PIN access.
+Analytics — views and lead performance.
+Team — invite staff with role-based access.
+Plan and Billing — subscriptions, lead packs, and payment history.
+Rent payouts — receive collected rent to bank or M-Pesa.
+
+Let's add a listing. Open Properties, then Add property.
+
+The wizard has four steps. First: Details.
+
+Choose the property type — apartment, house, bedsitter, commercial, and more.
+
+Add bedrooms, bathrooms, rent amount, and pricing mode — monthly, nightly, or sale.
+
+Write a clear title and description. Select amenities tenants care about — parking, water, security, fibre.
+
+Add contact name and phone numbers — tenants reach you directly through NyumbaSearch.
+
+Step two: Photos and media.
+
+Drag in high-quality photos — bright, honest, and well-lit. The platform enhances uploads for faster loading.
+
+Add a walkthrough video or three-sixty tour if you have one. You can also paste a YouTube or Matterport link.
+
+More media means more trust — and more viewing requests.
+
+Step three: Map pin.
+
+Drop the pin on the exact building location. Tenants use map search — accurate pins get found faster.
+
+Pick the county and neighbourhood from Kenya location lists so filters work correctly.
+
+Final step: Review.
+
+Check every field, preview how the card will look, and run the listing quality check.
+
+When you're satisfied, submit. New listings may go through verification before going live — that's how NyumbaSearch keeps the marketplace trustworthy.
+
+You can edit, boost visibility, or deactivate any time from Properties.
+
+Marketplace listings attract tenants. Tenants and rent is where you operate portfolios.
+
+Subscribe to the Property Management module — first month free — to unlock units, leases, rent invoices, and M-Pesa collection.
+
+Create a managed property, add units, invite tenants to the portal, and track who has paid — with exports for your accounts.
+
+This is separate from public listings: one system for discovery, another for day-to-day operations.
+
+Under Team, invite colleagues by email. Approve them before they access the dashboard. Staff can manage listings and leads; owners control billing and invites.
+
+Messages centralises inquiries so nothing slips through.
+
+Explore Analytics for portfolio insights, and Plan when you need more units or team seats.
+
+That's the NyumbaSearch property manager workflow — apply, dashboard, upload, manage, and grow.
+
+Visit nyumbasearch.com/manager to get started. Questions? Email nyumbasearch101@gmail.com.
+
+NyumbaSearch. Find. Connect. Move in.
