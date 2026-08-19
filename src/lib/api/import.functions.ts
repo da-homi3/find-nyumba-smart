@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { requireRole } from "@/lib/api/_authz";
+import { ForbiddenError, requireRole } from "@/lib/api/_authz";
 import { getAuthContext } from "@/lib/api/server-context";
 import { parseCsv, rowsToObjects } from "@/lib/import/csv-parser";
 import {
@@ -10,7 +10,7 @@ import {
   type RowValidationError,
   type ValidatedImportRow,
 } from "@/lib/import/listing-import";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { baseLayout } from "@/lib/email/base-layout";
 import { getSiteUrl } from "@/lib/site";
 
@@ -37,6 +37,12 @@ export const previewListingImport = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getListingCap, listingCapReachedMessage } = await import("@/lib/promo/listing-cap");
+    const cap = await getListingCap(supabaseAdmin, userId);
+    if (cap <= 0) {
+      throw new ForbiddenError(listingCapReachedMessage(cap));
+    }
 
     const rows = rowsToObjects(parseCsv(data.csvText));
     const valid: ValidatedImportRow[] = [];
@@ -51,7 +57,6 @@ export const previewListingImport = createServerFn({ method: "POST" })
       }
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const hashes = valid.map((r) => r.duplicate_hash);
     let duplicateCount = 0;
     if (hashes.length) {
@@ -87,6 +92,11 @@ export const executeListingImport = createServerFn({ method: "POST" })
     const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { getListingCap, listingCapReachedMessage } = await import("@/lib/promo/listing-cap");
+    const cap = await getListingCap(supabaseAdmin, userId);
+    if (cap <= 0) {
+      throw new ForbiddenError(listingCapReachedMessage(cap));
+    }
 
     const { data: batch, error: batchErr } = await supabaseAdmin
       .from("import_batches")
@@ -167,7 +177,7 @@ export const executeListingImport = createServerFn({ method: "POST" })
         <p><strong>${data.filename}</strong>: ${imported} imported, ${failed} failed.</p>
         <p><a class="btn" href="${getSiteUrl()}/landlord/properties">Review listings</a></p>
       `;
-      await sendEmail({
+      await sendEmailResult({
         to: email,
         templateId: "import-complete",
         subject: `Import complete — ${imported} listings`,

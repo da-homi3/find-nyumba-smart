@@ -23,15 +23,27 @@ function isCoarsePointerClient(): boolean {
   }
 }
 
-/** Upload XHR pool size — leaner on 2G/3G/Save-Data, hungrier on Wi‑Fi/4G. */
+/** Upload XHR pool size — phones share a small per-host connection pool with the page. */
 export function preferredUploadConcurrency(): number {
   const conn = readNetworkInfo();
   if (conn?.saveData) return 2;
   const et = conn?.effectiveType;
-  if (et === "slow-2g" || et === "2g") return 2;
-  if (et === "3g") return 3;
-  // Listing photos are small after enhance; 6 parallel XHRs saturate typical broadband.
-  return 6;
+  if (et === "slow-2g" || et === "2g" || et === "3g") return 2;
+  if (isCoarsePointerClient()) return 2;
+  return 4;
+}
+
+/** Auto walkthrough encoding is too heavy to run beside photo uploads on phones. */
+export function shouldAutoGenerateListingSlideshow(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (isCoarsePointerClient()) return false;
+  const conn = readNetworkInfo();
+  if (conn?.saveData) return false;
+  const et = conn?.effectiveType;
+  if (et === "slow-2g" || et === "2g" || et === "3g") return false;
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  if (typeof memory === "number" && memory > 0 && memory < 4) return false;
+  return true;
 }
 
 /** Image decode/re-encode pool — keep phones from OOM'ing on full-res bitmaps. */
@@ -86,6 +98,31 @@ function reportXhrProgress(
   }
 }
 
+const MAX_UPLOAD_ATTEMPTS = 4;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, ms);
+  });
+}
+
+function uploadTimeoutMs(fileSize: number): number {
+  const mb = Math.max(1, Math.ceil(fileSize / (1024 * 1024)));
+  return Math.min(8 * 60_000, Math.max(90_000, mb * 8_000 + 45_000));
+}
+
+function xhrFailureMessage(kind: "error" | "timeout"): string {
+  if (kind === "timeout") return "Upload timed out";
+  const online = typeof navigator === "undefined" || navigator.onLine;
+  return online ? "Upload was interrupted" : "Upload failed — you appear to be offline";
+}
+
+export function isRetryableUploadFailure(message: string, status?: number): boolean {
+  if (status === 401 || status === 408 || status === 429) return true;
+  if (status != null && status >= 500) return true;
+  return /interrupted|timed out|network error|offline|failed to fetch|fetch failed/i.test(message);
+}
+
 function parseUploadErrorMessage(status: number, responseText: string): string {
   let message = `Upload failed (${status})`;
   try {
@@ -100,14 +137,95 @@ function parseUploadErrorMessage(status: number, responseText: string): string {
   return message;
 }
 
-export async function resolveAccessToken(explicit?: string): Promise<string> {
-  if (explicit) return explicit;
+function parseStatusFromMessage(message: string): number | undefined {
+  const match = /\((\d{3})\)/.exec(message);
+  if (!match) return undefined;
+  return Number(match[1]);
+}
+
+export async function resolveAccessToken(explicit?: string, refresh = false): Promise<string> {
+  if (explicit && !refresh) return explicit;
+  if (refresh) {
+    const { data } = await supabase.auth.refreshSession();
+    const token = data.session?.access_token;
+    if (token) return token;
+  }
   const {
     data: { session },
   } = await supabase.auth.getSession();
   const token = session?.access_token;
   if (!token) throw new Error("Sign in required");
   return token;
+}
+
+type XhrUploadRequest = {
+  method: "POST" | "PUT";
+  url: string;
+  file: File;
+  headers: Record<string, string>;
+  onProgress?: StorageUploadProgress;
+};
+
+function sendXhrUpload(request: XhrUploadRequest): Promise<void> {
+  const { method, url, file, headers, onProgress } = request;
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.timeout = uploadTimeoutMs(file.size);
+    xhr.upload.addEventListener("progress", (event) => {
+      reportXhrProgress(event, file.size, onProgress);
+    });
+    xhr.upload.addEventListener("loadstart", () => {
+      onProgress?.(1);
+    });
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+        return;
+      }
+      reject(new Error(parseUploadErrorMessage(xhr.status, xhr.responseText)));
+    });
+    xhr.addEventListener("error", () => reject(new Error(xhrFailureMessage("error"))));
+    xhr.addEventListener("timeout", () => reject(new Error(xhrFailureMessage("timeout"))));
+    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
+
+    xhr.open(method, url);
+    for (const [key, value] of Object.entries(headers)) {
+      xhr.setRequestHeader(key, value);
+    }
+    xhr.send(file);
+  });
+}
+
+async function withUploadRetries(work: (attempt: number) => Promise<void>): Promise<void> {
+  let lastError: Error = new Error("Upload failed");
+  for (let attempt = 1; attempt <= MAX_UPLOAD_ATTEMPTS; attempt++) {
+    try {
+      await work(attempt);
+      return;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (lastError.message === "Upload cancelled") throw lastError;
+      const status = parseStatusFromMessage(lastError.message);
+      const retry = attempt < MAX_UPLOAD_ATTEMPTS && isRetryableUploadFailure(lastError.message, status);
+      if (!retry) throw lastError;
+      await sleep(500 * attempt);
+    }
+  }
+  throw lastError;
+}
+
+async function uploadViaSupabaseClient(
+  bucket: string,
+  path: string,
+  file: File,
+  upsert: boolean,
+): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert,
+    contentType: file.type || "application/octet-stream",
+  });
+  if (error) throw new Error(error.message);
 }
 
 /** Run async work over items with a fixed concurrency pool. */
@@ -237,37 +355,35 @@ export async function uploadStorageObjectWithProgress(
   onProgress?: StorageUploadProgress,
   options?: UploadOptions,
 ): Promise<void> {
-  const token = await resolveAccessToken(options?.accessToken);
   const base = getSupabaseStorageBaseUrl();
   const encodedPath = encodeStoragePath(path);
   const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`;
+  let token = await resolveAccessToken(options?.accessToken);
 
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.upload.addEventListener("progress", (event) => {
-      reportXhrProgress(event, file.size, onProgress);
-    });
-    xhr.upload.addEventListener("loadstart", () => {
-      onProgress?.(1);
-    });
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress?.(100);
-        resolve();
-        return;
+  try {
+    await withUploadRetries(async (attempt) => {
+      if (attempt > 1) {
+        token = await resolveAccessToken(undefined, true);
       }
-      reject(new Error(parseUploadErrorMessage(xhr.status, xhr.responseText)));
+      await sendXhrUpload({
+        method: "POST",
+        url,
+        file,
+        headers: {
+          apikey: getSupabaseAnonKey(),
+          Authorization: `Bearer ${token}`,
+          "Content-Type": file.type || "application/octet-stream",
+          "x-upsert": options?.upsert ? "true" : "false",
+        },
+        onProgress,
+      });
     });
-    xhr.addEventListener("error", () => reject(new Error("Upload failed — network error")));
-    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
-
-    xhr.open("POST", url);
-    xhr.setRequestHeader("apikey", getSupabaseAnonKey());
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-upsert", options?.upsert ? "true" : "false");
-    xhr.send(file);
-  });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!isRetryableUploadFailure(message, parseStatusFromMessage(message))) throw err;
+    await uploadViaSupabaseClient(bucket, path, file, true);
+    onProgress?.(100);
+  }
 }
 
 /** Upload via a Supabase signed upload URL (admin on-behalf listing media). */
@@ -278,30 +394,18 @@ export async function uploadStorageObjectViaSignedUrl(
   onProgress?: StorageUploadProgress,
   options?: UploadOptions,
 ): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.upload.addEventListener("progress", (event) => {
-      reportXhrProgress(event, file.size, onProgress);
+  await withUploadRetries(async () => {
+    await sendXhrUpload({
+      method: "PUT",
+      url: signedUrl,
+      file,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": file.type || "application/octet-stream",
+        "x-upsert": options?.upsert ? "true" : "false",
+      },
+      onProgress,
     });
-    xhr.upload.addEventListener("loadstart", () => {
-      onProgress?.(1);
-    });
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress?.(100);
-        resolve();
-        return;
-      }
-      reject(new Error(parseUploadErrorMessage(xhr.status, xhr.responseText)));
-    });
-    xhr.addEventListener("error", () => reject(new Error("Upload failed — network error")));
-    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
-
-    xhr.open("PUT", signedUrl);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-upsert", options?.upsert ? "true" : "false");
-    xhr.send(file);
   });
 }
 

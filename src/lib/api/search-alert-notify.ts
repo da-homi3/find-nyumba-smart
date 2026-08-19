@@ -1,6 +1,6 @@
 import type { Property } from "@/lib/properties";
 import { getSiteUrl } from "@/lib/site";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { newListingsAlertEmail } from "@/lib/email/templates";
 import { shouldSendMarketingEmail } from "@/lib/email/prefs";
 
@@ -23,6 +23,13 @@ function matchesCriteria(property: Property, criteria: SearchCriteria): boolean 
   return true;
 }
 
+function isThrottled(lastAt: string | null | undefined, frequency: string): boolean {
+  if (!lastAt || frequency === "instant") return false;
+  const hours = frequency === "weekly" ? 144 : 20;
+  const elapsed = Date.now() - new Date(lastAt).getTime();
+  return Number.isFinite(elapsed) && elapsed < hours * 60 * 60 * 1000;
+}
+
 /** Notify tenants with matching saved-search alerts when a new listing goes live. */
 export async function notifyMatchingSearchAlerts(property: Property): Promise<void> {
   if (!property.is_active) return;
@@ -30,7 +37,7 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: searches, error } = await supabaseAdmin
     .from("saved_searches")
-    .select("id, user_id, name, filters, criteria")
+    .select("id, user_id, name, filters, criteria, last_notified_at")
     .eq("alert_enabled", true);
 
   if (error || !searches?.length) return;
@@ -42,6 +49,10 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
   for (const search of searches) {
     const criteria = (search.criteria ?? search.filters ?? {}) as SearchCriteria;
     if (!matchesCriteria(property, criteria)) continue;
+
+    const lastAt = (search as { last_notified_at?: string | null }).last_notified_at;
+    const freq = (criteria.frequency ?? "instant").toLowerCase();
+    if (isThrottled(lastAt, freq)) continue;
 
     if (!(await shouldSendMarketingEmail(supabaseAdmin, search.user_id))) continue;
 
@@ -61,13 +72,13 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
       ],
       browseUrl: `${baseUrl}/tenant`,
     });
-    const sent = await sendEmail({
+    const sent = await sendEmailResult({
       to: email,
       templateId: "new-listings-alert",
       ...tpl,
       metadata: { userId: search.user_id, searchId: search.id, propertyId: property.id },
     });
-    if (sent) {
+    if (sent.ok) {
       await supabaseAdmin
         .from("saved_searches")
         .update({ last_notified_at: now })
@@ -78,7 +89,7 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
     await notifyUser(supabaseAdmin, {
       userId: search.user_id,
       type: "listing_match",
-      title: `New match: ${property.title}`,
+      title: "A new property matches your search.",
       body: `${property.neighborhood ?? "Nairobi"} · KES ${property.rent_kes.toLocaleString()}`,
       href: `/tenant/property/${property.id}`,
       entityType: "property",

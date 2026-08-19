@@ -110,6 +110,7 @@ import { Route as AgencyManageIndexRouteImport } from './routes/agency.manage.in
 import { Route as AgencyDashboardIndexRouteImport } from './routes/agency.dashboard.index'
 import { Route as VerifyStatusRequestIdRouteImport } from './routes/verify.status.$requestId'
 import { Route as TenantReviewPropertyIdRouteImport } from './routes/tenant.review.$propertyId'
+import { Route as TenantProviderOwnerIdRouteImport } from './routes/tenant.provider.$ownerId'
 import { Route as TenantPropertyIdRouteImport } from './routes/tenant.property.$id'
 import { Route as TenantMessagesIdRouteImport } from './routes/tenant.messages.$id'
 import { Route as TenantInviteTokenRouteImport } from './routes/tenant.invite.$token'
@@ -666,6 +667,11 @@ const TenantReviewPropertyIdRoute = TenantReviewPropertyIdRouteImport.update({
   path: '/review/$propertyId',
   getParentRoute: () => TenantRoute,
 } as any)
+const TenantProviderOwnerIdRoute = TenantProviderOwnerIdRouteImport.update({
+  id: '/provider/$ownerId',
+  path: '/provider/$ownerId',
+  getParentRoute: () => TenantRoute,
+} as any)
 const TenantPropertyIdRoute = TenantPropertyIdRouteImport.update({
   id: '/property/$id',
   path: '/property/$id',
@@ -1058,6 +1064,7 @@ export interface FileRoutesByFullPath {
   '/tenant/invite/$token': typeof TenantInviteTokenRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
+  '/tenant/provider/$ownerId': typeof TenantProviderOwnerIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/agency/dashboard/': typeof AgencyDashboardIndexRoute
@@ -1188,6 +1195,7 @@ export interface FileRoutesByTo {
   '/tenant/invite/$token': typeof TenantInviteTokenRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
+  '/tenant/provider/$ownerId': typeof TenantProviderOwnerIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/agency/dashboard': typeof AgencyDashboardIndexRoute
@@ -1342,6 +1350,7 @@ export interface FileRoutesById {
   '/tenant/invite/$token': typeof TenantInviteTokenRoute
   '/tenant/messages/$id': typeof TenantMessagesIdRoute
   '/tenant/property/$id': typeof TenantPropertyIdRoute
+  '/tenant/provider/$ownerId': typeof TenantProviderOwnerIdRoute
   '/tenant/review/$propertyId': typeof TenantReviewPropertyIdRoute
   '/verify/status/$requestId': typeof VerifyStatusRequestIdRoute
   '/agency/dashboard/': typeof AgencyDashboardIndexRoute
@@ -1497,6 +1506,7 @@ export interface FileRouteTypes {
     | '/tenant/invite/$token'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
+    | '/tenant/provider/$ownerId'
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/agency/dashboard/'
@@ -1627,6 +1637,7 @@ export interface FileRouteTypes {
     | '/tenant/invite/$token'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
+    | '/tenant/provider/$ownerId'
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/agency/dashboard'
@@ -1780,6 +1791,7 @@ export interface FileRouteTypes {
     | '/tenant/invite/$token'
     | '/tenant/messages/$id'
     | '/tenant/property/$id'
+    | '/tenant/provider/$ownerId'
     | '/tenant/review/$propertyId'
     | '/verify/status/$requestId'
     | '/agency/dashboard/'
@@ -2556,6 +2568,13 @@ declare module '@tanstack/react-router' {
       path: '/review/$propertyId'
       fullPath: '/tenant/review/$propertyId'
       preLoaderRoute: typeof TenantReviewPropertyIdRouteImport
+      parentRoute: typeof TenantRoute
+    }
+    '/tenant/provider/$ownerId': {
+      id: '/tenant/provider/$ownerId'
+      path: '/provider/$ownerId'
+      fullPath: '/tenant/provider/$ownerId'
+      preLoaderRoute: typeof TenantProviderOwnerIdRouteImport
       parentRoute: typeof TenantRoute
     }
     '/tenant/property/$id': {
@@ -3344,6 +3363,7 @@ interface TenantRouteChildren {
   TenantIndexRoute: typeof TenantIndexRoute
   TenantInviteTokenRoute: typeof TenantInviteTokenRoute
   TenantPropertyIdRoute: typeof TenantPropertyIdRoute
+  TenantProviderOwnerIdRoute: typeof TenantProviderOwnerIdRoute
   TenantReviewPropertyIdRoute: typeof TenantReviewPropertyIdRoute
 }
 
@@ -3361,6 +3381,7 @@ const TenantRouteChildren: TenantRouteChildren = {
   TenantIndexRoute: TenantIndexRoute,
   TenantInviteTokenRoute: TenantInviteTokenRoute,
   TenantPropertyIdRoute: TenantPropertyIdRoute,
+  TenantProviderOwnerIdRoute: TenantProviderOwnerIdRoute,
   TenantReviewPropertyIdRoute: TenantReviewPropertyIdRoute,
 }
 

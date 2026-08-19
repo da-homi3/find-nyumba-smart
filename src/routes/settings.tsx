@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, useId, type SubmitEvent, type ReactNode } from "react";
 import {
   Building2,
@@ -39,6 +39,7 @@ import { validatePasswordPair } from "@/lib/validate-password";
 import { setSavedSearchAlertsEnabled } from "@/lib/api/search.functions";
 import { useTheme, type ThemeMode } from "@/hooks/use-theme";
 import { getMyTrustRewards } from "@/lib/api/trust-rewards.functions";
+import { updateRecommendationSettings } from "@/lib/api/recommendation.functions";
 import { ReputationBadge } from "@/components/ReputationBadge";
 import { LEVEL_BENEFITS } from "@/lib/loyalty/benefits";
 
@@ -515,6 +516,7 @@ function SettingsPage() {
               {isPlus ? "Manage membership →" : "Upgrade to Plus →"}
             </Link>
           </section>
+          <RecommendationSettingsPanel />
         </section>
       )}
 
@@ -1103,5 +1105,51 @@ function ToggleRow({
         aria-label={label}
       />
     </div>
+  );
+}
+
+function RecommendationSettingsPanel() {
+  const qc = useQueryClient();
+  const [enabled, setEnabled] = useState(true);
+  const save = useMutation({
+    mutationFn: (payload: { recsEnabled?: boolean; reset?: boolean }) =>
+      updateRecommendationSettings({ data: payload }),
+    onSuccess: (_, payload) => {
+      if (payload.reset) toast.success("Recommendations reset");
+      else toast.success(payload.recsEnabled ? "Personalized recommendations on" : "Using search criteria only");
+      void qc.invalidateQueries({ queryKey: ["recommendation-feed"] });
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+  return (
+    <section className="rounded-2xl border bg-card p-4">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        Personalized recommendations
+      </h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        When off, we only use the search preferences you entered — not views, saves, or other activity.
+      </p>
+      <ToggleRow
+        label="Personalized recommendations"
+        description="Learn from your searches and saved homes"
+        checked={enabled}
+        onChange={(v) => {
+          setEnabled(v);
+          save.mutate({ recsEnabled: v });
+        }}
+      />
+      <button
+        type="button"
+        className="mt-3 text-sm font-semibold text-primary"
+        onClick={() => save.mutate({ reset: true })}
+      >
+        Reset recommendations
+      </button>
+      <p className="mt-3 text-xs text-muted-foreground">
+        We recommend properties based on your preferences, searches, saved homes and activity on
+        NyumbaSearch. We never use identity documents or private verification files to rank homes.
+        Tenant Profile Score is separate from Property Match Score.
+      </p>
+    </section>
   );
 }

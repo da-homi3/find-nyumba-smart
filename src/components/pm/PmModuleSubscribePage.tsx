@@ -36,10 +36,10 @@ export function PmModuleSubscribePage({ portal }: Readonly<{ portal: PmPortal }>
   const subscribe = useMutation({
     mutationFn: () => subscribePropertyManagement(),
     onSuccess: (res) => {
-      if (res.status === "already_active" || res.status === "trial_started") {
+      if (res.status === "already_active" || res.status === "included_with_plan") {
         toast.success(
-          res.status === "trial_started"
-            ? "Property Management trial started — first month free"
+          res.status === "included_with_plan"
+            ? "Property Management is included with your paid plan"
             : "Property Management is already active",
         );
         qc.invalidateQueries({ queryKey: ["pm-module-status"] });
@@ -116,8 +116,8 @@ export function PmModuleSubscribePage({ portal }: Readonly<{ portal: PmPortal }>
       <h1 className="font-display text-2xl font-semibold">Add Property Management</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Recommended for your portfolio: <strong>{tierName}</strong> ({statusQ.data?.unitCount ?? 0}{" "}
-        units) at {formatKes(price)}/mo. First month free if you have never subscribed to this
-        module.
+        units) at {formatKes(price)}/mo. Paid marketplace subscribers get PM free — a 1% fee still
+        applies on rent collected. Otherwise pay your first month and get the next month free.
       </p>
       <button
         type="button"

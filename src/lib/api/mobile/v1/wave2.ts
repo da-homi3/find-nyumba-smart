@@ -274,6 +274,26 @@ async function handlePatchProperty(req: Request, propertyId: string): Promise<Re
   const patch = buildPropertyPatch(body);
   if (patch instanceof Response) return patch;
 
+  if (typeof patch.rent_kes === "number") {
+    const { data: before } = await auth.admin
+      .from("properties")
+      .select("rent_kes, title, neighborhood, bedrooms")
+      .eq("id", propertyId)
+      .maybeSingle();
+    if (before && patch.rent_kes < before.rent_kes) {
+      void import("@/lib/recommendations/price-history").then(({ recordPropertyPriceChange }) =>
+        recordPropertyPriceChange({
+          propertyId,
+          previousRent: before.rent_kes,
+          newRent: patch.rent_kes as number,
+          title: before.title,
+          neighborhood: before.neighborhood,
+          bedrooms: before.bedrooms,
+        }).catch((err) => console.warn("[wave2] price drop:", err)),
+      );
+    }
+  }
+
   const { data: row, error } = await auth.admin
     .from("properties")
     .update(patch)

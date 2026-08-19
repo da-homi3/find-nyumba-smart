@@ -1,4 +1,4 @@
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
 import type { PmDb } from "@/lib/pm/access";
 
@@ -99,7 +99,7 @@ export async function notifyOwnerNewComplaint(admin: PmDb, complaintId: string):
   const excerpt = details.body.slice(0, 160);
 
   if (email) {
-    await sendEmail({
+    await sendEmailResult({
       to: email,
       subject: `Tenant complaint — ${details.property_name}, Unit ${details.unit_label}`,
       templateId: "pm_complaint_new",
@@ -135,7 +135,7 @@ export async function notifyTenantComplaintReply(
   const excerpt = reply.slice(0, 200);
 
   if (email) {
-    await sendEmail({
+    await sendEmailResult({
       to: email,
       subject: `Reply to your complaint — ${details.subject}`,
       templateId: "pm_complaint_reply",

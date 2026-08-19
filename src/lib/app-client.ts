@@ -58,22 +58,59 @@ export function isLiteServeMode(): boolean {
   return document.cookie.split(";").some((c) => c.trim() === "nyumba_serve_mode=lite");
 }
 
+const VIDEO_PATH_RE = /\.(mp4|m4v|webm|mov|avi|mpeg|mpg)(\?|$)/i;
+
+function supabaseImageTransformUrl(parsed: URL, width: string, quality: string): string | null {
+  if (!parsed.hostname.includes("supabase.co")) return null;
+  if (VIDEO_PATH_RE.test(parsed.pathname)) return null;
+
+  const objectMarkers = [
+    "/storage/v1/object/sign/",
+    "/storage/v1/object/public/",
+    "/storage/v1/object/authenticated/",
+  ];
+  const renderMarkers = [
+    "/storage/v1/render/image/sign/",
+    "/storage/v1/render/image/public/",
+    "/storage/v1/render/image/authenticated/",
+  ];
+
+  let path = parsed.pathname;
+  for (let i = 0; i < objectMarkers.length; i++) {
+    const from = objectMarkers[i]!;
+    const to = renderMarkers[i]!;
+    if (path.includes(from)) {
+      path = path.replace(from, to);
+      break;
+    }
+  }
+  if (!path.includes("/storage/v1/render/image/")) return null;
+
+  parsed.pathname = path;
+  parsed.searchParams.set("width", width);
+  parsed.searchParams.set("height", String(Math.round(Number(width) * (2 / 3))));
+  parsed.searchParams.set("resize", "cover");
+  parsed.searchParams.set("quality", quality);
+  return parsed.toString();
+}
+
 /** Resize listing images for faster cards. Lite mode uses smaller variants. */
 export function optimizeImageUrlForServeMode(url: string): string {
   const trimmed = url.trim();
   if (!trimmed || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) return trimmed;
   try {
     const parsed = new URL(trimmed, "https://nyumbasearch.com");
-    const host = parsed.hostname;
-    const supportsResize =
-      host.includes("supabase.co") ||
-      host.includes("unsplash.com") ||
-      host.includes("images.unsplash.com");
-    if (!supportsResize) return trimmed;
-
     const lite = isLiteServeMode();
     const w = lite ? "400" : "720";
     const q = lite ? "60" : "72";
+
+    const transformed = supabaseImageTransformUrl(parsed, w, q);
+    if (transformed) return transformed;
+
+    const host = parsed.hostname;
+    const supportsResize = host.includes("unsplash.com") || host.includes("images.unsplash.com");
+    if (!supportsResize) return trimmed;
+
     if (!parsed.searchParams.has("w")) parsed.searchParams.set("w", w);
     if (!parsed.searchParams.has("q")) parsed.searchParams.set("q", q);
     return parsed.toString();

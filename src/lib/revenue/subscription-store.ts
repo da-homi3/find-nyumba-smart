@@ -59,6 +59,32 @@ export async function getPortalSubscriptionMeta(
   return null;
 }
 
+/** Paid marketplace landlord/agency/manager plan (not free, not trialing, amount > 0). */
+export async function hasPaidMarketplacePortalAccess(
+  supabase: Db,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("plan, status, next_billing_date, module, amount_kes")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const now = Date.now();
+  for (const row of data ?? []) {
+    const module = (row as { module?: string }).module ?? "marketplace";
+    if (module !== "marketplace") continue;
+    if (new Date(row.next_billing_date).getTime() <= now) continue;
+    const plan = String(row.plan ?? "");
+    if (!plan || plan === "free" || plan === "plus") continue;
+    if (Number((row as { amount_kes?: number }).amount_kes ?? 0) <= 0) continue;
+    return true;
+  }
+  return false;
+}
+
 export async function getActiveLandlordPlan(supabase: Db, userId: string): Promise<LandlordPlan> {
   const { data } = await supabase
     .from("subscriptions")

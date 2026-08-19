@@ -47,6 +47,8 @@ const VAR_KEYS = [
   "INTASEND_ENV",
   "AT_ENV",
   "APPLE_TEAM_ID",
+  "VITE_GOOGLE_MAPS_API_KEY",
+  "VITE_GOOGLE_MAPS_TRACKING_ID",
 ];
 
 /** Uploaded as Worker secrets */

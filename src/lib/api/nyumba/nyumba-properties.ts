@@ -65,15 +65,15 @@ async function insertPropertyListing(
   options?: { skipListingCap?: boolean },
 ): Promise<Property> {
   if (!options?.skipListingCap) {
-    const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
+    const { getListingCap, countActiveListings, listingCapReachedMessage } = await import(
+      "@/lib/promo/listing-cap"
+    );
     const [cap, activeCount] = await Promise.all([
       getListingCap(admin, ownerUserId),
       countActiveListings(admin, ownerUserId),
     ]);
     if (activeCount >= cap) {
-      throw new ForbiddenError(
-        `This account has reached its listing limit of ${cap}. Upgrade the plan for more.`,
-      );
+      throw new ForbiddenError(listingCapReachedMessage(cap));
     }
   }
 
@@ -620,7 +620,7 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
     const admin = await adminClient();
     const { data: property, error: fetchError } = await admin
       .from("properties")
-      .select("id, owner_id, organization_id")
+      .select("id, owner_id, organization_id, is_active")
       .eq("id", data.propertyId)
       .maybeSingle();
     if (fetchError) throw fetchError;
@@ -632,6 +632,19 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
       .eq("user_id", userId);
     const roles = new Set((roleRows ?? []).map((r) => r.role));
     await assertPropertyAccess(supabase, userId, property, roles);
+
+    if (data.isVacant && !property.is_active) {
+      const { getListingCap, countActiveListings, listingCapReachedMessage } = await import(
+        "@/lib/promo/listing-cap"
+      );
+      const [cap, activeCount] = await Promise.all([
+        getListingCap(admin, userId),
+        countActiveListings(admin, userId),
+      ]);
+      if (activeCount >= cap) {
+        throw new ForbiddenError(listingCapReachedMessage(cap));
+      }
+    }
 
     const { data: updated, error } = await admin
       .from("properties")
@@ -724,6 +737,12 @@ export const updateProperty = createServerFn({ method: "POST" })
       }
     }
 
+    const { data: before } = await admin
+      .from("properties")
+      .select("rent_kes")
+      .eq("id", propertyId)
+      .maybeSingle();
+
     const { data: updated, error } = await admin
       .from("properties")
       .update({
@@ -738,6 +757,23 @@ export const updateProperty = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw error;
+
+    if (
+      before &&
+      typeof listingPayload.rent_kes === "number" &&
+      listingPayload.rent_kes < before.rent_kes
+    ) {
+      void import("@/lib/recommendations/price-history").then(({ recordPropertyPriceChange }) =>
+        recordPropertyPriceChange({
+          propertyId,
+          previousRent: before.rent_kes,
+          newRent: listingPayload.rent_kes,
+          title: listingPayload.title,
+          neighborhood: listingPayload.neighborhood,
+          bedrooms: listingPayload.bedrooms,
+        }).catch((err) => console.warn("[updateProperty] price drop:", err)),
+      );
+    }
 
     void import("@/lib/trust/hooks").then(({ onListingUpdated }) =>
       onListingUpdated(admin, userId, propertyId).catch((err) =>

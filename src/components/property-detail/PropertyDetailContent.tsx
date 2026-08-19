@@ -252,7 +252,7 @@ export function PropertyDetailContent({
 
       {similar.length > 0 && (
         <section className="mt-8">
-          <h2 className="font-display text-lg font-semibold">Similar homes nearby</h2>
+          <h2 className="font-display text-lg font-semibold">More like this</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {similar.map((item) => (
               <PropertyCard key={item.id} p={item} />

@@ -17,6 +17,8 @@ export default [
       "src/components/ui/**",
       "src/integrations/supabase/types.ts",
       "tmp_*.js",
+      "tmp-verify/**",
+      "route-report.json",
     ],
   },
   js.configs.recommended,

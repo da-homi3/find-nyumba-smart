@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState, type SubmitEvent } from "react";
 import { toast } from "sonner";
-import { fetchProperty, searchProperties } from "@/lib/properties";
+import { fetchProperty } from "@/lib/properties";
+import { getMoreLikeThis } from "@/lib/api/recommendation.functions";
 import { getAIValuation } from "@/lib/api/ai.functions";
 import {
   createInquiry,
@@ -16,7 +17,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
 import { currentRedirectPath } from "@/lib/navigation";
 import { errorMessage } from "@/lib/utils";
-import { useEntitlements } from "@/hooks/use-entitlements";
 import { PlusRequiredError } from "@/lib/payments/require-plus";
 import type { Property } from "@/lib/properties";
 import { whatsAppUrl } from "@/lib/phone";
@@ -37,7 +37,6 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const { isPlus } = useEntitlements();
   const qc = useQueryClient();
 
   const authSearch = useMemo(() => ({ redirect: currentRedirectPath(location) }), [location]);
@@ -120,19 +119,15 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   });
 
   const { data: similar = [] } = useQuery({
-    queryKey: ["similar", id, p?.neighborhood],
+    queryKey: ["similar", id],
     enabled: !!p,
     staleTime: 120_000,
     queryFn: async () => {
-      await new Promise<void>((resolve) => {
-        if (typeof globalThis.requestIdleCallback === "function") {
-          globalThis.requestIdleCallback(() => resolve(), { timeout: 2500 });
-        } else {
-          globalThis.setTimeout(() => resolve(), 800);
-        }
-      });
-      const result = await searchProperties({ neighborhood: p!.neighborhood, limit: 4 });
-      return result.items.filter((item) => item.id !== id).slice(0, 3);
+      const result = await getMoreLikeThis({ data: { propertyId: id } });
+      return result.items
+        .map((item) => item.property)
+        .filter((property): property is NonNullable<typeof property> => Boolean(property))
+        .slice(0, 4);
     },
   });
 

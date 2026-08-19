@@ -24,7 +24,7 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
     const { ensureTenantTrial } = await import("@/lib/payments/tenant-trial");
     const { canViewLeadContactDetails } = await import("@/lib/revenue/entitlements");
 
-    const [landlordPlan, plus, trial, portalSub, profileRow, adminRole] = await Promise.all([
+    const [landlordPlan, plus, trial, portalSub, profileRow, adminRole, listingLimit] = await Promise.all([
       getActiveLandlordPlan(auth.admin, auth.userId),
       getTenantPlusStatus(auth.admin, auth.userId),
       ensureTenantTrial(auth.admin, auth.userId),
@@ -36,6 +36,9 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
         .eq("user_id", auth.userId)
         .eq("role", "admin")
         .maybeSingle(),
+      import("@/lib/promo/listing-cap").then(({ getListingCap }) =>
+        getListingCap(auth.admin, auth.userId),
+      ),
     ]);
 
     const isAdmin = Boolean(adminRole.data);
@@ -68,6 +71,7 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
         portalTrialEndsAt: portalSub?.trialEnd ?? portalSub?.nextBillingDate ?? null,
         leadPackBalance: isAdmin ? Math.max(leadPackBalance, 9999) : leadPackBalance,
         canViewLeadContacts,
+        listingLimit: isAdmin ? 9999 : listingLimit,
         isPlus: isAdmin || plus.tenantPlan === "plus",
       },
     });

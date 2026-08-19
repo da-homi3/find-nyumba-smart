@@ -8,6 +8,7 @@ export const TRIAL_ELIGIBLE_PAYMENT_TYPES = [
   "landlord_plan",
   "premium_subscription",
   "provider_subscription",
+  "pm_module",
 ] as const;
 
 export type TrialEligiblePaymentType = (typeof TRIAL_ELIGIBLE_PAYMENT_TYPES)[number];

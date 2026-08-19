@@ -54,8 +54,8 @@ export function PortalPlanPage({ portal }: Readonly<{ portal: ListingPortal }>) 
         <p className="mt-1 font-display text-xl font-semibold">{planName}</p>
         {isTrialing && trialEndLabel && (
           <p className="mt-2 text-sm text-muted-foreground">
-            Free trial active until {trialEndLabel}. Full dashboard access is included — lead
-            contact details require a lead pack or your first paid month.
+            Bonus free month active until {trialEndLabel} (unlocked after your first paid month).
+            Lead contact details require a lead pack or a paid plan.
           </p>
         )}
         {isActive && (

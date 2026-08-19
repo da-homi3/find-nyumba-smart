@@ -54,7 +54,7 @@ export function PmPropertyListPage({ portal }: Readonly<{ portal: PmPortal }>) {
           Property Management
         </h1>
         <PmModuleUpsellCard
-          priceLabel={`From ${formatKes(price)}/mo — first month free`}
+          priceLabel={`From ${formatKes(price)}/mo — or included free with your paid marketplace plan (1% rent fee still applies)`}
           subscribePath={SUBSCRIBE_PATH[portal]}
         />
       </div>

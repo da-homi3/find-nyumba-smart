@@ -6,19 +6,16 @@ import {
 import { mapPool, preferredEnhanceConcurrency } from "@/lib/media/storage-upload";
 
 /**
- * Longest edge after downscale. The stored image IS what every viewer downloads
- * (the private bucket has no server-side resize), so this doubles as the ceiling for
- * both the browse-grid card and the bounded, object-cover detail gallery — neither
- * displays above ~1000px CSS, so 2048px keeps 2x sharpness while trimming bytes on
- * oversized phone shots.
+ * Longest edge after downscale. Cards load via Supabase Image Transformation;
+ * originals stay sharper for the detail gallery (around 1000px CSS / 2x).
  */
-const MAX_IMAGE_EDGE_PX = 2048;
+const MAX_IMAGE_EDGE_PX = 2560;
 /**
  * Skip decode/re-encode for compact JPEG/WebP — the CPU cost of re-encoding often
  * exceeds the upload-time savings on mid-range phones. Oversized dimensions still
  * get downscaled when the file is larger than this.
  */
-const SKIP_REENCODE_UNDER_BYTES = Math.floor(1.1 * 1024 * 1024);
+const SKIP_REENCODE_UNDER_BYTES = Math.floor(1.8 * 1024 * 1024);
 const JPEG_QUALITY = 0.8;
 const WEBP_QUALITY = 0.78;
 

@@ -25,8 +25,8 @@ export function PmModuleUpsellCard({
         Manage your properties, not just list them
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Track rent, tenants, leases and maintenance in one place — separate from your marketplace
-        listings.
+        Track rent, tenants, leases and maintenance in one place. Included free with a paid
+        marketplace plan — a 1% fee still applies on rent collected.
       </p>
       <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm">
         {bullets.map((b) => (

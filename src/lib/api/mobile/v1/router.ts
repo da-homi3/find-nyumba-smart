@@ -74,7 +74,7 @@ async function buildListingsFilters(url: URL): Promise<PropertySearchFilters> {
     verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
     minBedrooms: minBedroomsRaw ? Number(minBedroomsRaw) : undefined,
     maxImages: Number.isFinite(maxImagesParsed)
-      ? Math.min(3, Math.max(0, Math.trunc(maxImagesParsed)))
+      ? Math.min(5, Math.max(0, Math.trunc(maxImagesParsed)))
       : undefined,
     sortBy: parseSortBy(url.searchParams.get("sortBy")),
     originLat: Number.isFinite(originLat) ? originLat : undefined,
@@ -426,6 +426,7 @@ async function tryWaveRoutes(req: Request, rest: string, method: string): Promis
     async () => (await import("@/lib/api/mobile/v1/wave18")).tryHandleWave18,
     async () => (await import("@/lib/api/mobile/v1/wave19")).tryHandleWave19,
     async () => (await import("@/lib/api/mobile/v1/wave20")).tryHandleWave20,
+    async () => (await import("@/lib/api/mobile/v1/wave21")).tryHandleWave21,
   ];
 
   for (const load of loaders) {

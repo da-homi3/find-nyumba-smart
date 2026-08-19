@@ -25,9 +25,11 @@ export function PremiumFeatureLock({ title, body, compact = false }: Readonly<Pr
           <p className="mt-1 text-sm text-muted-foreground">{body}</p>
           <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
             <li>✓ {TENANT_PLUS_CONFIG.contactCreditsPerMonth} contact credits / month</li>
+            <li>✓ Personalized & AI-powered matching</li>
+            <li>✓ New listing and price-drop alerts</li>
+            <li>✓ Provider discovery</li>
             <li>✓ NyumbaSearch AI</li>
-            <li>✓ Financial planning tools</li>
-            <li>✓ Unlimited saved homes</li>
+            <li>✓ Tenant Profile Card & financial tools</li>
           </ul>
           <p className="mt-3 text-sm font-semibold">
             Best value {pricing.quarterlyKes.toLocaleString()} / 3 months

@@ -4,6 +4,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
 import { computeTenantScore, TENANT_SCORE_RULES, type TenantScoreRule } from "@/lib/tenant/profile-score";
 
+function asText(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : fallback;
+}
+
 const prefsSchema = z.object({
   preferredLocations: z.string().trim().max(200).optional(),
   budgetMin: z.number().int().min(0).max(10_000_000).optional(),
@@ -11,6 +15,7 @@ const prefsSchema = z.object({
   bedrooms: z.number().int().min(0).max(12).optional(),
   propertyType: z.string().trim().max(40).optional(),
   moveInDate: z.string().trim().max(20).optional(),
+  parkingRequired: z.boolean().optional(),
   previousTenancy: z.string().trim().max(500).optional(),
   shareVisibility: z.enum(["private", "link"]).optional(),
 });
@@ -42,7 +47,7 @@ async function approvedTypes(userId: string): Promise<Set<string>> {
         if (!expires) return true;
         return new Date(expires).getTime() > now;
       })
-      .map((row) => String(row.verification_type)),
+      .map((row) => asText(row.verification_type)),
   );
 }
 
@@ -53,9 +58,9 @@ async function loadScoreRules(): Promise<TenantScoreRule[]> {
     const { data } = await asLooseDb(supabaseAdmin).from("tenant_score_rules").select("*");
     if (!data?.length) return TENANT_SCORE_RULES;
     return data.map((row) => ({
-      id: String(row.id),
-      name: String(row.name),
-      description: String(row.description ?? ""),
+      id: asText(row.id),
+      name: asText(row.name),
+      description: asText(row.description),
       points: Number(row.points) || 0,
       category: row.category === "verified" ? "verified" : "complete",
       tenantVisibility: row.tenant_visibility !== false,
@@ -100,7 +105,7 @@ export const getTenantProfileBundle = createServerFn({ method: "GET" })
       loadScoreRules(),
     ]);
     const user = authUser.data.user;
-    const locations = String(prefs?.preferred_locations ?? "").trim();
+    const locations = asText(prefs?.preferred_locations).trim();
     const budgetMin = Number(prefs?.budget_min) || 0;
     const budgetMax = Number(prefs?.budget_max) || 0;
     const score = computeTenantScore(
@@ -110,10 +115,10 @@ export const getTenantProfileBundle = createServerFn({ method: "GET" })
         identityVerified: types.has("identity"),
         employmentVerified: types.has("employment"),
         incomeVerified: types.has("income"),
-        tenancyProvided: Boolean(String(prefs?.previous_tenancy ?? "").trim()),
+        tenancyProvided: Boolean(asText(prefs?.previous_tenancy).trim()),
         hasLocations: locations.length > 0,
         hasBudget: budgetMin > 0 || budgetMax > 0,
-        hasMoveIn: Boolean(String(prefs?.move_in_date ?? "").trim()),
+        hasMoveIn: Boolean(asText(prefs?.move_in_date).trim()),
         profileComplete: Boolean(profile?.full_name?.trim() && profile?.phone?.trim()),
       },
       rules,
@@ -129,9 +134,9 @@ export const getTenantProfileBundle = createServerFn({ method: "GET" })
         budgetMin,
         budgetMax,
         bedrooms: Number(prefs?.bedrooms) || 0,
-        propertyType: String(prefs?.property_type ?? ""),
-        moveInDate: String(prefs?.move_in_date ?? ""),
-        previousTenancy: String(prefs?.previous_tenancy ?? ""),
+        propertyType: asText(prefs?.property_type),
+        moveInDate: asText(prefs?.move_in_date),
+        previousTenancy: asText(prefs?.previous_tenancy),
         shareVisibility: (prefs?.share_visibility as string) === "link" ? "link" : "private",
         shareToken: (prefs?.share_token as string) || null,
       },
@@ -146,7 +151,7 @@ export const updateTenantSearchPrefs = createServerFn({ method: "POST" })
     const { userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { asLooseDb } = await import("@/lib/db/loose-client");
-    const payload = {
+    const payload: Record<string, unknown> = {
       user_id: userId,
       preferred_locations: data.preferredLocations ?? "",
       budget_min: data.budgetMin ?? 0,
@@ -158,6 +163,7 @@ export const updateTenantSearchPrefs = createServerFn({ method: "POST" })
       share_visibility: data.shareVisibility ?? "private",
       updated_at: new Date().toISOString(),
     };
+    if (data.parkingRequired !== undefined) payload.parking_required = data.parkingRequired;
     const { error } = await asLooseDb(supabaseAdmin)
       .from("tenant_search_profiles")
       .upsert(payload, { onConflict: "user_id" });

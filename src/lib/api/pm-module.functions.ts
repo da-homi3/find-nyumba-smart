@@ -8,13 +8,11 @@ import { asPmDb, assertPmPropertyAccess, assertStaffCan } from "@/lib/pm/access"
 import { recordFeeAndDisburse } from "@/lib/pm/fee-and-payout";
 import { createPaymentReversal, recomputeInvoiceStatus } from "@/lib/pm/invoice-integrity";
 import {
-  activatePmModuleForAccount,
   getActivePmSubscription,
-  isFirstTimeSubscriberForModule,
+  hasPaidMarketplacePortalAccess,
   userHasPmModuleAccess,
 } from "@/lib/pm/module-gate";
 import { recommendedPmTier } from "@/lib/pm/pricing";
-import { addDaysFromNow } from "@/lib/payments/trial-eligibility";
 
 const PORTAL_ROLES = ["landlord", "agency", "manager"] as const;
 
@@ -48,10 +46,12 @@ export const getPmModuleStatus = createServerFn({ method: "GET" })
 
     const recommended = await recommendedPmTier(admin, userId);
     const sub = await getActivePmSubscription(admin, userId);
+    const includedWithPlan = !sub && (await hasPaidMarketplacePortalAccess(admin, userId));
     const active = await userHasPmModuleAccess(admin, userId);
 
     return {
       active,
+      includedWithPlan,
       subscription: sub
         ? {
             id: sub.id,
@@ -85,38 +85,17 @@ export const subscribePropertyManagement = createServerFn({ method: "POST" })
       };
     }
 
-    const { tier, priceKes } = await recommendedPmTier(admin, userId);
-    const isFirstTime = await isFirstTimeSubscriberForModule(admin, userId, "property_management");
-
-    if (isFirstTime) {
-      const trialEnd = addDaysFromNow(30);
-      const { data: sub, error } = await admin
-        .from("subscriptions")
-        .insert({
-          user_id: userId,
-          plan: tier,
-          module: "property_management",
-          status: "trialing",
-          amount_kes: priceKes,
-          billing_cycle: "monthly",
-          payment_method: "mpesa",
-          next_billing_date: trialEnd,
-          trial_end: trialEnd,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      await activatePmModuleForAccount(admin, userId);
-
+    if (await hasPaidMarketplacePortalAccess(admin, userId)) {
+      const { tier } = await recommendedPmTier(admin, userId);
       return {
-        status: "trial_started" as const,
-        subscriptionId: sub.id,
+        status: "included_with_plan" as const,
         tier,
-        priceKes,
-        trialEnd,
+        priceKes: 0,
       };
     }
+
+    // Free bonus month is granted only after the first paid period (see fulfillPmModule).
+    const { tier, priceKes } = await recommendedPmTier(admin, userId);
 
     return {
       status: "requires_payment" as const,

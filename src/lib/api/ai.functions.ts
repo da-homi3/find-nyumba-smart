@@ -6,7 +6,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   firstRegexMatch,
   getAuthContext,
-  JSON_ARRAY_RE,
   JSON_OBJECT_RE,
 } from "@/lib/api/server-context";
 
@@ -47,54 +46,27 @@ export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
       windowMs: 60_000,
     });
     const { logAiUsage } = await import("@/lib/ai/usage-log");
+    const { buildRecommendationFeed, hydrateRecommendationFeed } = await import(
+      "@/lib/recommendations/service"
+    );
+    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+    const feed = await buildRecommendationFeed({
+      userId,
+      plus: true,
+      firstName: profile?.full_name?.trim() || "there",
+    });
+    const hydrated = await hydrateRecommendationFeed(feed);
+    const top = hydrated.shelves[0]?.items.slice(0, 3) ?? [];
     logAiUsage({ userId, feature: "recommendations", ok: true });
-
-    // 1) Fetch saved properties
-    const { data: saved, error: sErr } = await supabase
-      .from("saved_properties")
-      .select("property_id");
-    if (sErr) throw sErr;
-    const savedIds = (saved ?? []).map((s) => s.property_id);
-
-    // 2) Fetch active listings
-    const { data: properties, error: pErr } = await supabase
-      .from("properties")
-      .select("id, title, property_type, neighborhood, rent_kes, bedrooms, bathrooms")
-      .eq("is_active", true)
-      .limit(50);
-    if (pErr) throw pErr;
-
-    // Build prompt
-    const savedListingsText =
-      savedIds.length > 0
-        ? `User likes these property IDs: ${savedIds.join(", ")}`
-        : "User has not bookmarked any listings yet.";
-
-    const prompt = `${savedListingsText}\n\nListings available:\n${JSON.stringify(properties)}\n\nRecommend the top 3 best property IDs for this user as a JSON array.`;
-
-    const systemPrompt =
-      'You are a real estate recommender bot. Reply ONLY with a strict JSON array of property IDs (strings), e.g. ["uuid1", "uuid2"]. No markdown.';
-
-    const aiRes = await callGeminiChat(systemPrompt, prompt);
-    let recommendedIds: string[] = [];
-
-    if (aiRes) {
-      try {
-        const jsonText = firstRegexMatch(aiRes, JSON_ARRAY_RE);
-        if (jsonText) {
-          recommendedIds = JSON.parse(jsonText);
-        }
-      } catch (e) {
-        console.error("AI Recommendation parsing error:", e);
-      }
-    }
-
-    // Heuristic fallback if AI is unavailable or parsing fails
-    if (recommendedIds.length === 0 && properties.length > 0) {
-      recommendedIds = properties.slice(0, 3).map((p) => p.id);
-    }
-
-    return recommendedIds;
+    return {
+      source: "recommendation_engine",
+      items: top.map((item) => ({
+        id: item.propertyId,
+        matchScore: item.matchScore,
+        reasons: item.reasons,
+        property: item.property,
+      })),
+    };
   });
 
 export const getAIValuation = createServerFn({ method: "POST" })

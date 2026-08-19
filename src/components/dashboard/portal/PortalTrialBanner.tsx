@@ -30,14 +30,14 @@ export function PortalTrialBanner({ portal }: Readonly<{ portal: ListingPortal }
         <div className="max-w-2xl">
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
             <Sparkles className="h-4 w-4" />
-            Free trial active
+            Free month included
           </p>
           <h2 className="mt-2 font-display text-lg font-semibold">
             You&apos;re on {planName} — full dashboard access included
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {trialEnd
-              ? `Your bonus free month runs until ${trialEnd}. After that, renew to keep full access.`
+              ? `Your bonus free month (after your first paid month) runs until ${trialEnd}. After that, renew to keep full access.`
               : "Your plan includes a bonus free month after your first paid period."}{" "}
             Lead contact details require a lead pack.
           </p>

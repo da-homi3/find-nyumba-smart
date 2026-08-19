@@ -1811,10 +1811,11 @@ export const getAdminPlusCommercial = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
-    const { resolvePlusPricing } = await import("@/lib/revenue/platform-settings");
+    const { resolvePlusPricing, getPlatformSetting } = await import("@/lib/revenue/platform-settings");
+    const { DEFAULT_RECOMMENDATION_WEIGHTS } = await import("@/lib/recommendations/config");
     const { asLooseDb } = await import("@/lib/db/loose-client");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [pricing, rules, issues] = await Promise.all([
+    const [pricing, rules, issues, recWeights] = await Promise.all([
       resolvePlusPricing(),
       asLooseDb(supabaseAdmin).from("tenant_score_rules").select("*").order("id"),
       asLooseDb(supabaseAdmin)
@@ -1822,11 +1823,13 @@ export const getAdminPlusCommercial = createServerFn({ method: "GET" })
         .select("id, user_id, listing_id, reason, details, status, created_at")
         .order("created_at", { ascending: false })
         .limit(50),
+      getPlatformSetting("recommendation_weights", DEFAULT_RECOMMENDATION_WEIGHTS),
     ]);
     return {
       pricing,
       rules: rules.data ?? [],
       contactIssues: issues.data ?? [],
+      recommendationWeights: recWeights,
     };
   });
 
@@ -1849,6 +1852,34 @@ export const saveAdminPlusPricing = createServerFn({ method: "POST" })
     await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: userId,
       action: "TENANT_PLUS_PRICING",
+      details: JSON.stringify(data),
+    });
+    return { saved: true };
+  });
+
+export const saveAdminRecommendationWeights = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      explorationPercent: z.number().int().min(0).max(40),
+      maxPerShelf: z.number().int().min(2).max(12),
+      maxPerNeighborhood: z.number().int().min(1).max(8),
+      maxPerOwner: z.number().int().min(1).max(6),
+      freshnessDays: z.number().int().min(1).max(60),
+      minAuthenticity: z.number().int().min(0).max(80),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { getPlatformSetting, setPlatformSetting } = await import("@/lib/revenue/platform-settings");
+    const { DEFAULT_RECOMMENDATION_WEIGHTS } = await import("@/lib/recommendations/config");
+    const current = await getPlatformSetting("recommendation_weights", DEFAULT_RECOMMENDATION_WEIGHTS);
+    await setPlatformSetting("recommendation_weights", { ...current, ...data });
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: userId,
+      action: "RECOMMENDATION_WEIGHTS",
       details: JSON.stringify(data),
     });
     return { saved: true };

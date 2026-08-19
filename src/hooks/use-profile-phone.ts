@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { isKenyanPhone, normalizeKenyanPhoneLocal, resolveAccountPhone } from "@/lib/phone";
+import { isKenyanPhone, resolveAccountPhone } from "@/lib/phone";
 import { withTimeout } from "@/lib/auth/with-timeout";
 
 export const profilePhoneQueryKey = (userId: string) => ["profile-phone", userId] as const;
@@ -12,7 +12,10 @@ async function fetchProfilePhone(userId: string): Promise<string | null> {
     .select("phone")
     .eq("id", userId)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {
+    console.warn("[profile-phone]", error.message);
+    return null;
+  }
   return data?.phone?.trim() || null;
 }
 
@@ -40,24 +43,11 @@ export function useProfilePhone() {
   };
 }
 
-/** Persist phone on profiles + auth metadata. */
-export async function saveAccountPhone(userId: string, rawPhone: string): Promise<string> {
-  const phone = normalizeKenyanPhoneLocal(rawPhone);
-  if (!phone) {
-    throw new Error("Enter a valid Kenyan mobile number (07XX XXX XXX)");
-  }
-
-  const { error } = await supabase
-    .from("profiles")
-    .upsert({ id: userId, phone }, { onConflict: "id" });
-  if (error) throw error;
-
-  const { error: metaError } = await supabase.auth.updateUser({
-    data: { phone },
-  });
-  if (metaError) throw metaError;
-
-  return phone;
+/** Persist phone on profiles + auth metadata (service role — column grants block client upsert). */
+export async function saveAccountPhone(_userId: string, rawPhone: string): Promise<string> {
+  const { saveAccountPhoneFn } = await import("@/lib/api/account-phone.functions");
+  const result = await saveAccountPhoneFn({ data: { phone: rawPhone } });
+  return result.phone;
 }
 
 export function useSaveAccountPhone() {

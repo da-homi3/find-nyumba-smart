@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PortalId } from "@/lib/portal-guard";
-import { autoStartPortalTrial, type PortalListerRole } from "@/lib/payments/portal-trial";
+import type { PortalListerRole } from "@/lib/payments/portal-trial";
 import { linkAdminListingsByPhone } from "@/lib/listings/link-by-phone";
 
 type Admin = SupabaseClient<Database>;
@@ -102,8 +102,8 @@ export async function grantPortalListerAccess(
   trialEnd?: string;
   linkedListings: number;
 }> {
-  // Free portal month is granted only after the first paid subscription month.
-  const startTrial = input.startTrial === true;
+  // Bonus free month unlocks only after the first paid subscription month.
+  // Unpaid auto-trials are disabled (`startTrial` is ignored if passed).
 
   await supabaseAdmin
     .from("user_roles")
@@ -132,13 +132,8 @@ export async function grantPortalListerAccess(
     .update({ active_portal: portalMap[input.requestedRole] })
     .eq("id", input.userId);
 
-  let trialStarted = false;
-  let trialEnd: string | undefined;
-  if (startTrial) {
-    const trial = await autoStartPortalTrial(supabaseAdmin, input.userId, input.requestedRole);
-    trialStarted = trial.started;
-    trialEnd = trial.trialEnd;
-  }
+  const trialStarted = false;
+  const trialEnd: string | undefined = undefined;
 
   let linkedListings = 0;
   try {

@@ -11,8 +11,8 @@ type Props = {
 };
 
 export function PlusUpsellBanner({
-  title = "Unlock NyumbaSearch Plus",
-  body = "Early access to new listings, unlimited search alerts, and scam risk scores on every home.",
+  title = "NyumbaSearch learns what you're looking for",
+  body = "Personalized matches, provider discovery, new-listing alerts, and scam risk scores — not just contact credits.",
   dismissKey,
   compact = false,
 }: Readonly<Props>) {

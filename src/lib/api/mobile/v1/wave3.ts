@@ -95,30 +95,103 @@ async function handleSubscriptionsCheckout(req: Request): Promise<Response> {
 
 // ── Create property ──────────────────────────────────────────────────────────
 
-async function handleCreateProperty(req: Request): Promise<Response> {
-  const auth = await requireMobileBearer(req);
-  if (auth instanceof Response) return auth;
+type CreatePropertyBody = {
+  title?: unknown;
+  neighborhood?: unknown;
+  property_type?: unknown;
+  rent_kes?: unknown;
+  bedrooms?: unknown;
+  bathrooms?: unknown;
+  description?: unknown;
+  pricing_mode?: unknown;
+  is_active?: unknown;
+  amenities?: unknown;
+  deposit_kes?: unknown;
+  address?: unknown;
+  video_url?: unknown;
+};
 
-  const roleErr = await requireListerOrAdmin(auth.admin, auth.userId);
-  if (roleErr) return roleErr;
+type ParsedCreateProperty = {
+  title: string;
+  neighborhood: string;
+  propertyType: string;
+  rentKes: number;
+  bedrooms: number;
+  bathrooms: number;
+  description: string | null;
+  pricingMode?: Database["public"]["Enums"]["pricing_mode"];
+  isActive: boolean;
+  amenities?: string[];
+  depositKes?: number;
+  address?: string;
+  videoUrl?: string;
+};
 
-  const body = await parseJsonBody<{
-    title?: unknown;
-    neighborhood?: unknown;
-    property_type?: unknown;
-    rent_kes?: unknown;
-    bedrooms?: unknown;
-    bathrooms?: unknown;
-    description?: unknown;
-    pricing_mode?: unknown;
-    is_active?: unknown;
-    amenities?: unknown;
-    deposit_kes?: unknown;
-    address?: unknown;
-    video_url?: unknown;
-  }>(req);
-  if (body instanceof Response) return body;
+function parseNonNegInt(value: unknown, field: string): number | Response {
+  if (value === undefined || value === null) return 0;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return mobileError(`${field} must be a non-negative integer`, "BAD_REQUEST", 400);
+  }
+  return value;
+}
 
+function applyOptionalTextFields(body: CreatePropertyBody, parsed: ParsedCreateProperty): void {
+  if (Array.isArray(body.amenities)) {
+    parsed.amenities = body.amenities
+      .filter((a): a is string => typeof a === "string")
+      .map((a) => a.trim())
+      .filter(Boolean)
+      .slice(0, 40);
+  }
+  if (
+    typeof body.deposit_kes === "number" &&
+    Number.isFinite(body.deposit_kes) &&
+    body.deposit_kes >= 0
+  ) {
+    parsed.depositKes = Math.trunc(body.deposit_kes);
+  }
+  if (typeof body.address === "string" && body.address.trim()) {
+    parsed.address = body.address.trim();
+  }
+  if (typeof body.video_url === "string" && body.video_url.trim()) {
+    parsed.videoUrl = body.video_url.trim();
+  }
+}
+
+function applyOptionalCreateFields(
+  body: CreatePropertyBody,
+  parsed: ParsedCreateProperty,
+): ParsedCreateProperty | Response {
+  if (body.description !== undefined && body.description !== null) {
+    if (typeof body.description !== "string") {
+      return mobileError("description must be a string", "BAD_REQUEST", 400);
+    }
+    parsed.description = body.description.trim() || null;
+  }
+
+  if (body.pricing_mode !== undefined && body.pricing_mode !== null) {
+    if (
+      body.pricing_mode !== "rent" &&
+      body.pricing_mode !== "sale" &&
+      body.pricing_mode !== "booking"
+    ) {
+      return mobileError("pricing_mode must be rent|sale|booking", "BAD_REQUEST", 400);
+    }
+    parsed.pricingMode = body.pricing_mode;
+  }
+
+  if (body.is_active !== undefined && body.is_active !== null) {
+    if (typeof body.is_active !== "boolean") {
+      return mobileError("is_active must be a boolean", "BAD_REQUEST", 400);
+    }
+    parsed.isActive = body.is_active;
+  }
+
+  applyOptionalTextFields(body, parsed);
+  return parsed;
+}
+
+function parseCreatePropertyBody(body: CreatePropertyBody): ParsedCreateProperty | Response {
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const neighborhood = typeof body.neighborhood === "string" ? body.neighborhood.trim() : "";
   const propertyType = typeof body.property_type === "string" ? body.property_type.trim() : "";
@@ -134,116 +207,88 @@ async function handleCreateProperty(req: Request): Promise<Response> {
     return mobileError("rent_kes must be a positive integer", "BAD_REQUEST", 400);
   }
 
-  let bedrooms = 0;
-  if ("bedrooms" in body && body.bedrooms !== undefined && body.bedrooms !== null) {
-    if (
-      typeof body.bedrooms !== "number" ||
-      !Number.isInteger(body.bedrooms) ||
-      body.bedrooms < 0
-    ) {
-      return mobileError("bedrooms must be a non-negative integer", "BAD_REQUEST", 400);
-    }
-    bedrooms = body.bedrooms;
-  }
+  const bedrooms = parseNonNegInt(body.bedrooms, "bedrooms");
+  if (bedrooms instanceof Response) return bedrooms;
+  const bathrooms = parseNonNegInt(body.bathrooms, "bathrooms");
+  if (bathrooms instanceof Response) return bathrooms;
 
-  let bathrooms = 0;
-  if ("bathrooms" in body && body.bathrooms !== undefined && body.bathrooms !== null) {
-    if (
-      typeof body.bathrooms !== "number" ||
-      !Number.isInteger(body.bathrooms) ||
-      body.bathrooms < 0
-    ) {
-      return mobileError("bathrooms must be a non-negative integer", "BAD_REQUEST", 400);
-    }
-    bathrooms = body.bathrooms;
-  }
+  return applyOptionalCreateFields(body, {
+    title,
+    neighborhood,
+    propertyType,
+    rentKes: body.rent_kes,
+    bedrooms,
+    bathrooms,
+    description: null,
+    isActive: true,
+  });
+}
 
-  let description: string | null = null;
-  if ("description" in body && body.description !== undefined && body.description !== null) {
-    if (typeof body.description !== "string") {
-      return mobileError("description must be a string", "BAD_REQUEST", 400);
-    }
-    description = body.description.trim() || null;
-  }
-
-  let pricingMode: Database["public"]["Enums"]["pricing_mode"] | undefined;
-  if ("pricing_mode" in body && body.pricing_mode !== undefined && body.pricing_mode !== null) {
-    if (
-      body.pricing_mode !== "rent" &&
-      body.pricing_mode !== "sale" &&
-      body.pricing_mode !== "booking"
-    ) {
-      return mobileError("pricing_mode must be rent|sale|booking", "BAD_REQUEST", 400);
-    }
-    pricingMode = body.pricing_mode;
-  }
-
-  let isActive = true;
-  if ("is_active" in body && body.is_active !== undefined && body.is_active !== null) {
-    if (typeof body.is_active !== "boolean") {
-      return mobileError("is_active must be a boolean", "BAD_REQUEST", 400);
-    }
-    isActive = body.is_active;
-  }
-
+async function enforceMobileListingCap(
+  admin: MobileAdmin,
+  userId: string,
+  isActive: boolean,
+): Promise<Response | null> {
   try {
-    const { getListingCap, countActiveListings } = await import("@/lib/promo/listing-cap");
+    const { getListingCap, countActiveListings, listingCapReachedMessage } = await import(
+      "@/lib/promo/listing-cap"
+    );
     const [cap, activeCount] = await Promise.all([
-      getListingCap(auth.admin, auth.userId),
-      countActiveListings(auth.admin, auth.userId),
+      getListingCap(admin, userId),
+      countActiveListings(admin, userId),
     ]);
-    if (isActive && activeCount >= cap) {
-      return mobileError(
-        `This account has reached its listing limit of ${cap}. Upgrade the plan for more.`,
-        "LISTING_CAP",
-        403,
-      );
+    if (cap <= 0 || (isActive && activeCount >= cap)) {
+      return mobileError(listingCapReachedMessage(cap), "LISTING_CAP", 403);
     }
+    return null;
   } catch (err) {
     console.error("mobile listing cap:", err);
     return mobileError("Could not check listing cap", "PROPERTY_ERROR", 500);
   }
+}
 
+function toPropertyInsert(userId: string, parsed: ParsedCreateProperty) {
   type PropertyInsert = Database["public"]["Tables"]["properties"]["Insert"];
   const insert: PropertyInsert = {
-    title,
-    neighborhood,
-    property_type: propertyType as Database["public"]["Enums"]["property_type"],
-    rent_kes: body.rent_kes,
-    bedrooms,
-    bathrooms,
-    description,
-    is_active: isActive,
-    owner_id: auth.userId,
+    title: parsed.title,
+    neighborhood: parsed.neighborhood,
+    property_type: parsed.propertyType as Database["public"]["Enums"]["property_type"],
+    rent_kes: parsed.rentKes,
+    bedrooms: parsed.bedrooms,
+    bathrooms: parsed.bathrooms,
+    description: parsed.description,
+    is_active: parsed.isActive,
+    owner_id: userId,
     is_vacant: true,
     images: [],
   };
-  if (pricingMode) insert.pricing_mode = pricingMode;
+  if (parsed.pricingMode) insert.pricing_mode = parsed.pricingMode;
+  if (parsed.amenities) insert.amenities = parsed.amenities;
+  if (parsed.depositKes !== undefined) insert.deposit_kes = parsed.depositKes;
+  if (parsed.address) insert.address = parsed.address;
+  if (parsed.videoUrl) insert.video_url = parsed.videoUrl;
+  return insert;
+}
 
-  if (Array.isArray(body.amenities)) {
-    insert.amenities = body.amenities
-      .filter((a): a is string => typeof a === "string")
-      .map((a) => a.trim())
-      .filter(Boolean)
-      .slice(0, 40);
-  }
-  if (
-    typeof body.deposit_kes === "number" &&
-    Number.isFinite(body.deposit_kes) &&
-    body.deposit_kes >= 0
-  ) {
-    insert.deposit_kes = Math.trunc(body.deposit_kes);
-  }
-  if (typeof body.address === "string" && body.address.trim()) {
-    insert.address = body.address.trim();
-  }
-  if (typeof body.video_url === "string" && body.video_url.trim()) {
-    insert.video_url = body.video_url.trim();
-  }
+async function handleCreateProperty(req: Request): Promise<Response> {
+  const auth = await requireMobileBearer(req);
+  if (auth instanceof Response) return auth;
+
+  const roleErr = await requireListerOrAdmin(auth.admin, auth.userId);
+  if (roleErr) return roleErr;
+
+  const body = await parseJsonBody<CreatePropertyBody>(req);
+  if (body instanceof Response) return body;
+
+  const parsed = parseCreatePropertyBody(body);
+  if (parsed instanceof Response) return parsed;
+
+  const capErr = await enforceMobileListingCap(auth.admin, auth.userId, parsed.isActive);
+  if (capErr) return capErr;
 
   const { data: row, error } = await auth.admin
     .from("properties")
-    .insert(insert)
+    .insert(toPropertyInsert(auth.userId, parsed))
     .select(PROPERTY_SAFE_SELECT)
     .single();
 
@@ -386,6 +431,73 @@ async function handlePostMessage(req: Request, inquiryId: string): Promise<Respo
   return mobileJson({ apiVersion: "v1", message }, 201);
 }
 
+async function requirePlusToMessage(admin: MobileAdmin, userId: string): Promise<Response | null> {
+  const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
+  const plus = await getTenantPlusStatus(admin, userId);
+  if (plus.tenantPlan === "plus") return null;
+  return mobileError(
+    "NyumbaSearch Plus is required to message landlords.",
+    "PLUS_REQUIRED",
+    402,
+  );
+}
+
+async function loadActiveListingForMessage(admin: MobileAdmin, propertyId: string) {
+  const { data: property, error } = await admin
+    .from("properties")
+    .select("id, owner_id, title")
+    .eq("id", propertyId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (error) {
+    console.error("mobile create message property:", error.message);
+    return mobileError("Could not load listing", "MESSAGES_ERROR", 500);
+  }
+  if (!property?.owner_id) {
+    return mobileError("Landlord contact is unavailable for this listing", "BAD_REQUEST", 400);
+  }
+  return { id: property.id, owner_id: property.owner_id, title: property.title };
+}
+
+async function loadOrCreateInquiry(
+  admin: MobileAdmin,
+  userId: string,
+  property: { id: string; owner_id: string },
+  text: string,
+) {
+  const { data: existingInquiry, error: existingError } = await admin
+    .from("inquiries")
+    .select("*")
+    .eq("tenant_id", userId)
+    .eq("property_id", property.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("mobile create message existing:", existingError.message);
+    return mobileError("Could not start conversation", "MESSAGES_ERROR", 500);
+  }
+  if (existingInquiry) return existingInquiry;
+
+  const { data: inserted, error: insertError } = await admin
+    .from("inquiries")
+    .insert({
+      tenant_id: userId,
+      landlord_id: property.owner_id,
+      property_id: property.id,
+      message: text,
+    })
+    .select("*")
+    .single();
+
+  if (insertError) {
+    console.error("mobile create inquiry:", insertError.message);
+    return mobileError(insertError.message, "MESSAGES_ERROR", 400);
+  }
+  return inserted;
+}
+
 async function handleCreateMessage(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
@@ -402,64 +514,14 @@ async function handleCreateMessage(req: Request): Promise<Response> {
   }
 
   try {
-    const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
-    const plus = await getTenantPlusStatus(auth.admin, auth.userId);
-    if (plus.tenantPlan !== "plus") {
-      return mobileError(
-        "NyumbaSearch Plus is required to message landlords.",
-        "PLUS_REQUIRED",
-        402,
-      );
-    }
+    const plusErr = await requirePlusToMessage(auth.admin, auth.userId);
+    if (plusErr) return plusErr;
 
-    const { data: property, error: propertyError } = await auth.admin
-      .from("properties")
-      .select("id, owner_id, title")
-      .eq("id", propertyId)
-      .eq("is_active", true)
-      .maybeSingle();
+    const property = await loadActiveListingForMessage(auth.admin, propertyId);
+    if (property instanceof Response) return property;
 
-    if (propertyError) {
-      console.error("mobile create message property:", propertyError.message);
-      return mobileError("Could not load listing", "MESSAGES_ERROR", 500);
-    }
-    if (!property?.owner_id) {
-      return mobileError("Landlord contact is unavailable for this listing", "BAD_REQUEST", 400);
-    }
-
-    const { data: existingInquiry, error: existingError } = await auth.admin
-      .from("inquiries")
-      .select("*")
-      .eq("tenant_id", auth.userId)
-      .eq("property_id", property.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingError) {
-      console.error("mobile create message existing:", existingError.message);
-      return mobileError("Could not start conversation", "MESSAGES_ERROR", 500);
-    }
-
-    let inquiry = existingInquiry;
-    if (!inquiry) {
-      const { data: inserted, error: insertError } = await auth.admin
-        .from("inquiries")
-        .insert({
-          tenant_id: auth.userId,
-          landlord_id: property.owner_id,
-          property_id: property.id,
-          message: text,
-        })
-        .select("*")
-        .single();
-
-      if (insertError) {
-        console.error("mobile create inquiry:", insertError.message);
-        return mobileError(insertError.message, "MESSAGES_ERROR", 400);
-      }
-      inquiry = inserted;
-    }
+    const inquiry = await loadOrCreateInquiry(auth.admin, auth.userId, property, text);
+    if (inquiry instanceof Response) return inquiry;
 
     const { error: messageError } = await auth.admin.from("inquiry_messages").insert({
       inquiry_id: inquiry.id,
@@ -623,50 +685,68 @@ async function handlePmPropertyDetail(req: Request, propertyId: string): Promise
 /**
  * Wave 3 Mobile BFF expansions. Returns null when the path/method is not handled here.
  */
-export async function tryHandleWave3(
+async function tryWave3MessageRoute(
   req: Request,
   rest: string,
   method: string,
 ): Promise<Response | null> {
-  if (rest === "/subscriptions/checkout" && method === "POST") {
-    return handleSubscriptionsCheckout(req);
-  }
-
-  if (rest === "/properties" && method === "POST") {
-    return handleCreateProperty(req);
-  }
-
-  if (rest === "/messages") {
-    if (method === "GET") return handleListMessages(req);
-    if (method === "POST") return handleCreateMessage(req);
-  }
-
   const messageMatch = /^\/messages\/([^/]+)$/.exec(rest);
-  if (messageMatch) {
-    const id = parseUuid(messageMatch[1]);
-    if (!id) return mobileError("Invalid message id", "BAD_REQUEST", 400);
-    if (method === "GET") return handleGetMessage(req, id);
-    if (method === "POST") return handlePostMessage(req, id);
-  }
+  if (!messageMatch) return null;
+  const id = parseUuid(messageMatch[1]);
+  if (!id) return mobileError("Invalid message id", "BAD_REQUEST", 400);
+  if (method === "GET") return handleGetMessage(req, id);
+  if (method === "POST") return handlePostMessage(req, id);
+  return null;
+}
+
+async function tryWave3PmRoute(
+  req: Request,
+  rest: string,
+  method: string,
+): Promise<Response | null> {
+  if (method !== "GET") return null;
 
   const pmNested = /^\/property-management\/properties\/([^/]+)\/(units|tenants|maintenance)$/.exec(
     rest,
   );
-  if (pmNested && method === "GET") {
+  if (pmNested) {
     const id = parseUuid(pmNested[1]);
     if (!id) return mobileError("Invalid property id", "BAD_REQUEST", 400);
     const kind = pmNested[2];
     if (kind === "units") return handlePmUnits(req, id);
     if (kind === "tenants") return handlePmTenants(req, id);
-    if (kind === "maintenance") return handlePmMaintenance(req, id);
+    return handlePmMaintenance(req, id);
   }
 
   const pmDetail = /^\/property-management\/properties\/([^/]+)$/.exec(rest);
-  if (pmDetail && method === "GET") {
-    const id = parseUuid(pmDetail[1]);
-    if (!id) return mobileError("Invalid property id", "BAD_REQUEST", 400);
-    return handlePmPropertyDetail(req, id);
-  }
+  if (!pmDetail) return null;
+  const id = parseUuid(pmDetail[1]);
+  if (!id) return mobileError("Invalid property id", "BAD_REQUEST", 400);
+  return handlePmPropertyDetail(req, id);
+}
 
-  return null;
+async function tryWave3ParamRoutes(
+  req: Request,
+  rest: string,
+  method: string,
+): Promise<Response | null> {
+  return (
+    (await tryWave3MessageRoute(req, rest, method)) ?? (await tryWave3PmRoute(req, rest, method))
+  );
+}
+
+export async function tryHandleWave3(
+  req: Request,
+  rest: string,
+  method: string,
+): Promise<Response | null> {
+  const exact: Record<string, (r: Request) => Promise<Response>> = {
+    "POST /subscriptions/checkout": handleSubscriptionsCheckout,
+    "POST /properties": handleCreateProperty,
+    "GET /messages": handleListMessages,
+    "POST /messages": handleCreateMessage,
+  };
+  const exactHandler = exact[`${method} ${rest}`];
+  if (exactHandler) return exactHandler(req);
+  return tryWave3ParamRoutes(req, rest, method);
 }

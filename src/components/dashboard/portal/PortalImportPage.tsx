@@ -7,10 +7,13 @@ import {
   previewListingImport,
   rollbackListingImport,
 } from "@/lib/api/import.functions";
+import { ListingSubscribePaywall } from "@/components/dashboard/portal/ListingSubscribePaywall";
 import { PORTAL_PATHS, PORTAL_PROPERTY_QUERY_KEY, type ListingPortal } from "@/lib/portal-paths";
 import { formatKes } from "@/lib/properties";
 import { errorMessage } from "@/lib/utils";
 import { toast } from "sonner";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { useAuth } from "@/hooks/use-auth";
 import { Download, FileSpreadsheet, Loader2, RotateCcw } from "lucide-react";
 import { FileDropZone } from "@/components/FileDropZone";
 
@@ -105,6 +108,9 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
   const paths = PORTAL_PATHS[portal];
   const propertyKey = PORTAL_PROPERTY_QUERY_KEY[portal];
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
+  const { entitlements, loading: entitlementsLoading } = useEntitlements();
+  const listingBlocked = !isAdmin && entitlements.listingLimit <= 0;
   const [filename, setFilename] = useState("import.csv");
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -195,6 +201,17 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
         </p>
       </div>
 
+      {entitlementsLoading && !isAdmin ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Checking listing access…
+        </div>
+      ) : null}
+
+      {listingBlocked && !entitlementsLoading ? <ListingSubscribePaywall portal={portal} /> : null}
+
+      {listingBlocked && !entitlementsLoading ? null : (
+        <>
       <section className="rounded-2xl border bg-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -231,11 +248,11 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
         />
 
         <p className="mt-4 text-xs text-muted-foreground">
-          Columns: title, neighborhood, rent_kes, bedrooms, bathrooms, property_type (e.g.{" "}
+          Columns: title, neighborhood, rent_kes, bedrooms, bathrooms, property_type, description,
+          contact_phone. Property type examples include{" "}
           <code className="rounded bg-muted px-1">one_bedroom</code>
-          {", "}
-          <code className="rounded bg-muted px-1">bedsitter</code>
-          ), description, contact_phone.
+          <span> and </span>
+          <code className="rounded bg-muted px-1">bedsitter</code>.
         </p>
       </section>
 
@@ -302,6 +319,8 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
             </button>
           </div>
         </section>
+      )}
+        </>
       )}
 
       <section className="rounded-2xl border bg-card p-6">

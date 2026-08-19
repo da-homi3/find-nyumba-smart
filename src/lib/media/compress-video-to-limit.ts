@@ -364,12 +364,12 @@ export async function compressVideoToFitLimit(
   onProgress?.(1);
   const meta = await readVideoMeta(file);
 
-  // Long walkthroughs need aggressive downscale to stay under the Free-plan 50MB cap.
+  // Pro allows up to ~900MB — try 1080p first, then step down only if needed.
   const attempts: Array<{ maxEdge: number; bitrateScale: number }> = [
-    { maxEdge: 1280, bitrateScale: 1 },
-    { maxEdge: 960, bitrateScale: 0.75 },
-    { maxEdge: 720, bitrateScale: 0.55 },
-    { maxEdge: 540, bitrateScale: 0.4 },
+    { maxEdge: 1920, bitrateScale: 1 },
+    { maxEdge: 1280, bitrateScale: 0.85 },
+    { maxEdge: 960, bitrateScale: 0.7 },
+    { maxEdge: 720, bitrateScale: 0.5 },
   ];
 
   let last: File | null = null;

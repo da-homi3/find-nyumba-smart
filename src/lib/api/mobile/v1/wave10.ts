@@ -197,10 +197,9 @@ async function handlePmModuleSubscribe(req: Request): Promise<Response> {
 
   try {
     const { asPmDb } = await import("@/lib/pm/access");
-    const { getActivePmSubscription, activatePmModuleForAccount } =
+    const { getActivePmSubscription, hasPaidMarketplacePortalAccess } =
       await import("@/lib/pm/module-gate");
     const { recommendedPmTier } = await import("@/lib/pm/pricing");
-    const { isFirstTimeSubscriberForModule } = await import("@/lib/pm/module-gate");
     const admin = asPmDb(auth.admin);
 
     const existing = await getActivePmSubscription(admin, auth.userId);
@@ -213,45 +212,18 @@ async function handlePmModuleSubscribe(req: Request): Promise<Response> {
       });
     }
 
-    const { tier, priceKes } = await recommendedPmTier(admin, auth.userId);
-    const isFirstTime = await isFirstTimeSubscriberForModule(
-      admin,
-      auth.userId,
-      "property_management",
-    );
-
-    if (isFirstTime) {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 30);
-      const trialEndIso = trialEnd.toISOString();
-      const { data: sub, error } = await admin
-        .from("subscriptions")
-        .insert({
-          user_id: auth.userId,
-          plan: tier,
-          module: "property_management",
-          status: "trialing",
-          amount_kes: priceKes,
-          billing_cycle: "monthly",
-          payment_method: "mpesa",
-          next_billing_date: trialEndIso,
-          trial_end: trialEndIso,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      await activatePmModuleForAccount(admin, auth.userId);
-
+    if (await hasPaidMarketplacePortalAccess(admin, auth.userId)) {
+      const { tier } = await recommendedPmTier(admin, auth.userId);
       return mobileJson({
         apiVersion: "v1",
-        status: "trial_started",
-        subscriptionId: sub.id,
+        status: "included_with_plan",
         tier,
-        priceKes,
-        trialEnd: trialEndIso,
+        priceKes: 0,
       });
     }
+
+    // Free bonus month is granted only after the first paid period (see fulfillPmModule).
+    const { tier, priceKes } = await recommendedPmTier(admin, auth.userId);
 
     return mobileJson({
       apiVersion: "v1",

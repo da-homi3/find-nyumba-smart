@@ -404,7 +404,12 @@ async function fulfillPmModule(supabaseAdmin: SupabaseAdmin, payment: PaymentFul
   const { userId, amountKes, metadata = {} } = payment;
   const plan = metadata.plan ?? "pm-starter";
   const cycle = billingCycle(metadata);
-  const days = cycle === "quarterly" ? 90 : 30;
+  const days = await periodDaysForSubscriptionPayment(
+    supabaseAdmin,
+    userId,
+    cycle,
+    payment.paymentType,
+  );
 
   await upsertActiveSubscription(supabaseAdmin, {
     user_id: userId,

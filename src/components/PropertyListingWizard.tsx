@@ -31,7 +31,13 @@ import {
   isLikelyVideoFile,
 } from "@/lib/media/enhance-upload";
 import { useAuth } from "@/hooks/use-auth";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { ListingSubscribePaywall } from "@/components/dashboard/portal/ListingSubscribePaywall";
+import { listerPortalFromRoles } from "@/lib/portal-paths";
+import { Loader2, FileText, MapPin, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import {
+  resolveAccessToken,
+  shouldAutoGenerateListingSlideshow,
   uploadItemsWithConcurrency,
   uploadStorageObjectViaSignedUrl,
   uploadStorageObjectWithProgress,
@@ -44,7 +50,6 @@ import {
   type DurableUploadController,
 } from "@/lib/media/listing-upload-session";
 import { useKeepListingUploadAlive } from "@/lib/media/use-keep-listing-upload-alive";
-import { Loader2, FileText, MapPin, CheckCircle2, Image as ImageIcon } from "lucide-react";
 import { portalLabelForRole } from "@/lib/portal-labels";
 import { isWithinUploadLimit, uploadLimitLabel } from "@/lib/media/upload-limits";
 import { mapProgressRange } from "@/lib/media/progress-range";
@@ -254,10 +259,13 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
   const imageSourceIds = imageFiles.map((file) => fileUploadIdentity(file));
   const tourSourceId = tourFile ? fileUploadIdentity(tourFile) : null;
 
-  // Compress photos first, then overlap their upload with video/slideshow prep.
+  // Compress photos, upload them, then prepare optional video/tour so phones
+  // are not encoding a walkthrough at the same time as 15 parallel XHRs.
   const enhancedImages = await enhanceMediaFilesForUpload(imageFiles, "image");
   controller?.setProgress(12);
   onProgress?.(12);
+
+  await resolveAccessToken(undefined, true).catch(() => undefined);
 
   const imageOnly = buildMediaUploads({
     userId,
@@ -272,7 +280,6 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
   });
 
   const reportImageUpload = (percent: number) => {
-    // Image storage shares 12–55% while video may still be preparing.
     const mapped = mapProgressRange(percent, 12, 55);
     controller?.setPhase("uploading");
     controller?.setProgress(mapped);
@@ -286,11 +293,12 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
       : runMediaUploads(imageOnly.uploads, reportImageUpload, controller);
   }
 
-  const videoPrepTask = (async () => {
+  await imageUploadTask;
+
+  const videoPrep = await (async () => {
     controller?.setPhase("enhancing");
     const report = (percent: number) => {
-      // Video prep runs alongside image upload; setProgress is monotonic.
-      const mapped = mapProgressRange(percent, 12, 50);
+      const mapped = mapProgressRange(percent, 55, 70);
       controller?.setProgress(mapped);
       onProgress?.(mapped);
     };
@@ -300,7 +308,11 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
       enhancedVideo = await enhanceVideoForUpload(videoFile, {
         onProgress: (p) => report(mapProgressRange(p, 0, 100)),
       });
-    } else if (!externalVideoUrl.trim() && enhancedImages.length > 0) {
+    } else if (
+      !externalVideoUrl.trim() &&
+      enhancedImages.length > 0 &&
+      shouldAutoGenerateListingSlideshow()
+    ) {
       try {
         const { createSlideshowWalkthrough } = await import("@/lib/media/images-to-slideshow");
         const slideshow = await createSlideshowWalkthrough(
@@ -322,7 +334,7 @@ async function uploadListingMedia(input: UploadListingMediaInput) {
     return { enhancedVideo, enhancedTour };
   })();
 
-  const [, { enhancedVideo, enhancedTour }] = await Promise.all([imageUploadTask, videoPrepTask]);
+  const { enhancedVideo, enhancedTour } = videoPrep;
 
   let videoSourceId: string | null = null;
   if (videoFile) {
@@ -826,7 +838,11 @@ export function PropertyListingWizard({
 }>) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isAgency, isManager } = useAuth();
+  const { user, isAgency, isManager, isAdmin } = useAuth();
+  const { entitlements, loading: entitlementsLoading } = useEntitlements();
+  const skipListingPaywall = Boolean(adminOwned || onBehalfOf || isAdmin);
+  const listingBlocked = !skipListingPaywall && entitlements.listingLimit <= 0;
+  const listingPortal = listerPortalFromRoles({ isAgency, isManager });
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     // If an upload is already running (layout remount), land on Review — not Details.
     return isListingUploadBusy() ? "review" : "details";
@@ -928,6 +944,10 @@ export function PropertyListingWizard({
       return;
     }
 
+    if (listingBlocked) {
+      toast.error("Subscribe to a paid plan to list properties.");
+      return;
+    }
     await publishListing({
       form,
       userId: onBehalfOf?.userId ?? user.id,
@@ -989,6 +1009,17 @@ export function PropertyListingWizard({
         </div>
       ) : null}
 
+      {!skipListingPaywall && entitlementsLoading ? (
+        <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Checking listing access…
+        </div>
+      ) : null}
+
+      {listingBlocked && !entitlementsLoading ? <ListingSubscribePaywall portal={listingPortal} /> : null}
+
+      {listingBlocked || (!skipListingPaywall && entitlementsLoading) ? null : (
+        <>
       {busy ? (
         <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
           Upload in progress
@@ -1078,6 +1109,8 @@ export function PropertyListingWizard({
           </button>
         </div>
       </form>
+        </>
+      )}
     </div>
   );
 }

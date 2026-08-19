@@ -5,6 +5,7 @@ import {
   getAdminPlusCommercial,
   reviewAdminContactIssue,
   saveAdminPlusPricing,
+  saveAdminRecommendationWeights,
   saveAdminScoreRule,
 } from "@/lib/api/admin.functions";
 import { AdminField } from "@/components/admin/admin-shared";
@@ -155,6 +156,8 @@ export function AdminPlusCommercialPanel() {
         </ul>
       </div>
 
+      <RecommendationWeightsForm weights={data.recommendationWeights} />
+
       <div className="rounded-2xl border bg-card p-4">
         <h3 className="text-sm font-semibold">Contact issue reports</h3>
         {issues.length === 0 ? (
@@ -204,6 +207,80 @@ function ScoreRuleRow({ rule }: Readonly<{ rule: ScoreRule }>) {
         {rule.enabled ? "Disable" : "Enable"}
       </button>
     </li>
+  );
+}
+
+function RecommendationWeightsForm({
+  weights,
+}: Readonly<{
+  weights?: {
+    explorationPercent: number;
+    maxPerShelf: number;
+    maxPerNeighborhood: number;
+    maxPerOwner: number;
+    freshnessDays: number;
+    minAuthenticity: number;
+  };
+}>) {
+  const qc = useQueryClient();
+  const [explorationPercent, setExplorationPercent] = useState(String(weights?.explorationPercent ?? 20));
+  const [maxPerShelf, setMaxPerShelf] = useState(String(weights?.maxPerShelf ?? 6));
+  const [maxPerNeighborhood, setMaxPerNeighborhood] = useState(String(weights?.maxPerNeighborhood ?? 3));
+  const [maxPerOwner, setMaxPerOwner] = useState(String(weights?.maxPerOwner ?? 2));
+  const [freshnessDays, setFreshnessDays] = useState(String(weights?.freshnessDays ?? 14));
+  const [minAuthenticity, setMinAuthenticity] = useState(String(weights?.minAuthenticity ?? 20));
+  const save = useMutation({
+    mutationFn: () =>
+      saveAdminRecommendationWeights({
+        data: {
+          explorationPercent: Number(explorationPercent),
+          maxPerShelf: Number(maxPerShelf),
+          maxPerNeighborhood: Number(maxPerNeighborhood),
+          maxPerOwner: Number(maxPerOwner),
+          freshnessDays: Number(freshnessDays),
+          minAuthenticity: Number(minAuthenticity),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Recommendation settings saved");
+      void qc.invalidateQueries({ queryKey: ["admin-plus-commercial"] });
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+  return (
+    <form
+      className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <h3 className="sm:col-span-2 text-sm font-semibold">Recommendation engine</h3>
+      <p className="sm:col-span-2 text-xs text-muted-foreground">
+        Global ranking settings. Individual tenant recommendations cannot be edited without an audit log.
+      </p>
+      <AdminField label="Exploration %">
+        <input value={explorationPercent} onChange={(e) => setExplorationPercent(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+      </AdminField>
+      <AdminField label="Max per shelf">
+        <input value={maxPerShelf} onChange={(e) => setMaxPerShelf(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+      </AdminField>
+      <AdminField label="Max per neighborhood">
+        <input value={maxPerNeighborhood} onChange={(e) => setMaxPerNeighborhood(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+      </AdminField>
+      <AdminField label="Max per provider">
+        <input value={maxPerOwner} onChange={(e) => setMaxPerOwner(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+      </AdminField>
+      <AdminField label="Freshness window (days)">
+        <input value={freshnessDays} onChange={(e) => setFreshnessDays(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+      </AdminField>
+      <AdminField label="Min authenticity">
+        <input value={minAuthenticity} onChange={(e) => setMinAuthenticity(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+      </AdminField>
+      <button type="submit" disabled={save.isPending} className="sm:col-span-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+        Save recommendation settings
+      </button>
+    </form>
   );
 }
 

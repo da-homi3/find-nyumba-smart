@@ -23,7 +23,7 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
         getTenantPlusStatus(supabase, userId),
         ensureTenantTrial(supabaseAdmin, userId),
         import("@/lib/promo/listing-cap").then(({ getListingCap }) =>
-          getListingCap(supabase, userId),
+          getListingCap(supabaseAdmin, userId),
         ),
         import("@/lib/promo/listing-cap").then(({ getBonusListingSlots }) =>
           getBonusListingSlots(supabase, userId),

@@ -8,6 +8,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { recordSearchEvent } from "@/lib/api/analytics.functions";
 import { hasAnalyticsConsent } from "@/lib/cookie-consent";
 import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
+import { RecommendationHome } from "@/components/recommendations/RecommendationHome";
 import heroImg from "@/assets/hero-nairobi-apartments.webp";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
 import { EmptyState } from "@/components/EmptyState";
@@ -525,6 +526,8 @@ function TenantHome() {
       ) : null}
 
       <RecentlyViewedStrip />
+
+      {user ? <RecommendationHome userId={user.id} isPlus={isPlus} /> : null}
 
       {isPlus ? (
         <div className="mx-auto max-w-2xl px-5 pt-4">

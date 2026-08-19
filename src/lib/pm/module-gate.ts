@@ -51,6 +51,36 @@ export async function getActivePmSubscription(
   return data as PmSubscriptionRow;
 }
 
+/**
+ * Paid marketplace portal plan (landlord / manager / agency) unlocks PM for free.
+ * Trialling and free plans do not qualify — the 1% rent fee still always applies.
+ */
+export async function hasPaidMarketplacePortalAccess(
+  admin: PmDb,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await admin
+    .from("subscriptions")
+    .select("plan, status, next_billing_date, module, amount_kes")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const now = Date.now();
+  for (const row of data ?? []) {
+    const module = (row as { module?: string }).module ?? "marketplace";
+    if (module !== "marketplace") continue;
+    if (new Date(row.next_billing_date).getTime() <= now) continue;
+    const plan = String(row.plan ?? "");
+    if (!plan || plan === "free" || plan === "plus") continue;
+    // Zero-amount comps / unpaid grants do not count as paid.
+    if (Number(row.amount_kes ?? 0) <= 0) continue;
+    return true;
+  }
+  return false;
+}
+
 export async function isFirstTimeSubscriberForModule(
   admin: PmDb,
   userId: string,
@@ -70,9 +100,36 @@ export async function activatePmModuleForAccount(admin: PmDb, userId: string): P
   await admin.from("pm_properties").update({ pm_module_active: true }).eq("owner_user_id", userId);
 }
 
-/** Revoke PM access after cancel / failed renewal. */
+/** Revoke PM access after cancel / failed renewal (unless marketplace plan still includes PM). */
 export async function deactivatePmModuleForAccount(admin: PmDb, userId: string): Promise<void> {
+  if (await hasPaidMarketplacePortalAccess(admin, userId)) {
+    await activatePmModuleForAccount(admin, userId);
+    return;
+  }
   await admin.from("pm_properties").update({ pm_module_active: false }).eq("owner_user_id", userId);
+}
+
+async function grantPmIfEntitled(admin: PmDb, userId: string, propertyId?: string): Promise<boolean> {
+  const sub = await getActivePmSubscription(admin, userId);
+  if (sub) {
+    if (propertyId) {
+      await admin.from("pm_properties").update({ pm_module_active: true }).eq("id", propertyId);
+    } else {
+      await activatePmModuleForAccount(admin, userId);
+    }
+    return true;
+  }
+
+  if (await hasPaidMarketplacePortalAccess(admin, userId)) {
+    if (propertyId) {
+      await admin.from("pm_properties").update({ pm_module_active: true }).eq("id", propertyId);
+    } else {
+      await activatePmModuleForAccount(admin, userId);
+    }
+    return true;
+  }
+
+  return false;
 }
 
 export async function requirePmModule(admin: PmDb, propertyId: string): Promise<void> {
@@ -86,12 +143,8 @@ export async function requirePmModule(admin: PmDb, propertyId: string): Promise<
     throw new PmModuleRequiredError();
   }
 
-  // Prefer live subscription; property flag alone is not enough (prevents forever-free trials).
-  const sub = await getActivePmSubscription(admin, property.owner_user_id);
-  if (sub) {
-    if (!property.pm_module_active) {
-      await admin.from("pm_properties").update({ pm_module_active: true }).eq("id", propertyId);
-    }
+  // Prefer live PM sub or paid marketplace portal plan; property flag alone is not enough.
+  if (await grantPmIfEntitled(admin, property.owner_user_id, propertyId)) {
     return;
   }
 
@@ -100,11 +153,10 @@ export async function requirePmModule(admin: PmDb, propertyId: string): Promise<
 
 /** Account-level gate for create / list-upsell flows. */
 export async function requirePmModuleSubscription(admin: PmDb, userId: string): Promise<void> {
-  const sub = await getActivePmSubscription(admin, userId);
-  if (sub) return;
+  if (await grantPmIfEntitled(admin, userId)) return;
 
   throw new PmModuleRequiredError(
-    "Property Management is not active on this account. Subscribe to unlock the module.",
+    "Property Management is not active on this account. Subscribe to unlock the module, or upgrade your marketplace plan.",
   );
 }
 

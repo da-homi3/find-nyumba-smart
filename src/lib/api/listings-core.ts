@@ -209,7 +209,7 @@ function isCurrentlyBoosted(featuredUntil: string | null | undefined, now: numbe
 /** Hard cap for any public listings request — protects Worker CPU + payload size. */
 export const MAX_LISTINGS_LIMIT = 300;
 /** Nearby/map pool before distance slice — keep below hard cap for faster responses. */
-const NEARBY_POOL_LIMIT = 150;
+const NEARBY_POOL_LIMIT = 300;
 
 async function runListingsSelect(
   supabase: Db,
@@ -274,8 +274,8 @@ export async function queryListingsDirect(
     }
 
     const maxImages = Math.min(
-      3,
-      Math.max(0, Number.isFinite(data?.maxImages) ? Math.trunc(data!.maxImages!) : 3),
+      5,
+      Math.max(0, Number.isFinite(data?.maxImages) ? Math.trunc(data!.maxImages!) : 5),
     );
     let items = mapPropertyRows(
       (rows ?? []) as unknown as Parameters<typeof mapPropertyRows>[0],

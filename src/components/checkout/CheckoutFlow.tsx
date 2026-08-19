@@ -245,7 +245,7 @@ export function CheckoutFlow({
         {!isTrial && <p className="mt-1 text-lg font-semibold">{formatKes(amountKes)}</p>}
         {isTrial && (
           <p className="mt-2 text-sm text-emerald-600">
-            After your first paid month, your next month is free.
+            After you pay your first month, your next month is free.
           </p>
         )}
         {receipt && (

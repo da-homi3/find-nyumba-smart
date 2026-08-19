@@ -390,11 +390,11 @@ export function foundingMemberClaimedEmail(opts: {
     <p>Hi ${opts.name},</p>
     <p>As one of NyumbaSearch's first ${opts.maxSlots} ${opts.label.toLowerCase()}s, you've secured:</p>
     <div class="highlight">
-      <strong>30 days completely free</strong> — no charge today, as with every new account<br>
+      <strong>Pay your first month</strong> — then get the next month free<br>
       <strong>Bonus: +${opts.bonusListings} bonus free listing slots</strong> — on top of your plan's normal allowance
     </div>
-    <p><strong>One thing to know:</strong> the bonus listing slots activate automatically once your first month is billed successfully on day 31. If you don't continue past your free trial, no bonus is charged or owed — the offer simply doesn't activate, and that founding member spot passes to someone else.</p>
-    <p>Start listing right away — your bonus slots will appear on day 31.</p>
+    <p><strong>One thing to know:</strong> the bonus listing slots activate automatically once your first month is billed successfully. If you don't complete that first paid month, no bonus is charged or owed — the offer simply doesn't activate, and that founding member spot passes to someone else.</p>
+    <p>Start listing after you subscribe — your bonus slots appear after the first successful payment.</p>
     <p style="text-align:center;margin:28px 0">
       <a href="https://nyumbasearch.com/landlord/properties/new" class="btn">Add your first listing →</a>
     </p>

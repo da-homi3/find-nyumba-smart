@@ -2,7 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { LandlordPlan } from "@/lib/revenue/types";
 import { LISTING_LIMITS } from "@/lib/revenue/listing-limits";
-import { getActiveLandlordPlan } from "@/lib/revenue/subscription-store";
+import {
+  getActiveLandlordPlan,
+  hasPaidMarketplacePortalAccess,
+} from "@/lib/revenue/subscription-store";
 
 type Db = SupabaseClient<Database>;
 
@@ -37,7 +40,7 @@ export async function getAdminListingLimitOverride(
 }
 
 export function baseListingCap(plan: LandlordPlan): number {
-  return LISTING_LIMITS[plan] ?? 1;
+  return LISTING_LIMITS[plan] ?? 0;
 }
 
 export function resolveListingCap(input: {
@@ -50,8 +53,17 @@ export function resolveListingCap(input: {
     return Math.max(0, Math.min(9999, input.adminOverride));
   }
   const base = baseListingCap(input.plan);
+  // Unpaid / free accounts cannot list — bonus slots only apply on a paid plan.
+  if (base <= 0) return 0;
   if (base >= 9999) return base;
   return base + (input.bonusSlots ?? 0) + (input.loyaltyExtraSlots ?? 0);
+}
+
+export function listingCapReachedMessage(cap: number): string {
+  if (cap <= 0) {
+    return "Subscribe to a paid plan to list properties.";
+  }
+  return `This account has reached its listing limit of ${cap}. Upgrade the plan for more.`;
 }
 
 export async function getListingCap(supabase: Db, userId: string): Promise<number> {
@@ -63,10 +75,15 @@ export async function getListingCap(supabase: Db, userId: string): Promise<numbe
     .maybeSingle();
   if (adminRole) return 9999;
 
-  const [plan, profile] = await Promise.all([
+  const [plan, profile, paid] = await Promise.all([
     getActiveLandlordPlan(supabase, userId),
     getListingCapProfile(supabase, userId),
+    hasPaidMarketplacePortalAccess(supabase, userId),
   ]);
+
+  if (profile?.admin_listing_limit_override == null && !paid) {
+    return 0;
+  }
 
   let loyaltyExtraSlots = 0;
   try {
@@ -79,7 +96,7 @@ export async function getListingCap(supabase: Db, userId: string): Promise<numbe
   }
 
   return resolveListingCap({
-    plan,
+    plan: paid ? plan : "free",
     bonusSlots: profile?.bonus_listing_slots ?? 0,
     adminOverride: profile?.admin_listing_limit_override,
     loyaltyExtraSlots,
