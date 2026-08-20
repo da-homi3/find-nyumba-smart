@@ -42,12 +42,19 @@ import { getMyTrustRewards } from "@/lib/api/trust-rewards.functions";
 import { updateRecommendationSettings } from "@/lib/api/recommendation.functions";
 import { ReputationBadge } from "@/components/ReputationBadge";
 import { LEVEL_BENEFITS } from "@/lib/loyalty/benefits";
+import { buildPageHead } from "@/lib/seo/head";
 
 type SettingsTab = "profile" | "notifications" | "security" | "portals" | "trust";
 type ListerApplyRole = "landlord" | "manager" | "agency";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Settings — NyumbaSearch",
+      description: "Manage your NyumbaSearch account, notifications, and portal preferences.",
+      path: "/settings",
+      noIndex: true,
+    }),
   component: SettingsPage,
 });
 

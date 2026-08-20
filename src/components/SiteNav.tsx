@@ -360,7 +360,7 @@ export function SiteFooter() {
             { to: "/", label: "Home" },
             { to: "/tenant", label: "Search" },
             { to: "/tenant/map", label: "Map" },
-            { to: "/tenant/saved", label: "Saved" },
+            { to: "/areas", label: "Nairobi areas" },
           ]}
         />
         <FooterCol

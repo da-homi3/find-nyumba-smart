@@ -31,7 +31,13 @@ function hasSubstantialBody(html) {
   return !/<div id="root">\s*<\/div>/i.test(html) && visibleWordCount(html) > 80;
 }
 
-const [homeHtml, innerHtml] = await Promise.all([fetchHtml(SITE), fetchHtml(INNER)]);
+const [homeHtml, innerHtml, robots, sitemap, llms] = await Promise.all([
+  fetchHtml(SITE),
+  fetchHtml(INNER),
+  fetchHtml(`${SITE}/robots.txt`),
+  fetchHtml(`${SITE}/sitemap.xml`),
+  fetchHtml(`${SITE}/llms.txt`),
+]);
 
 const homeTitle = extractTitle(homeHtml);
 const innerTitle = extractTitle(innerHtml);
@@ -44,6 +50,13 @@ const checks = [
   { name: "inner page substantial SSR body", ok: hasSubstantialBody(innerHtml) },
   { name: "homepage has canonical", ok: homeHtml.includes('rel="canonical"') },
   { name: "inner page has canonical", ok: innerHtml.includes('rel="canonical"') },
+  { name: "homepage JSON-LD", ok: homeHtml.includes("application/ld+json") },
+  { name: "homepage geo tags", ok: homeHtml.includes("geo.region") },
+  { name: "html lang en-KE", ok: /<html[^>]*lang="en-KE"/i.test(homeHtml) },
+  { name: "robots allows public paths", ok: robots.includes("Allow: /") && robots.includes("Disallow: /admin") },
+  { name: "robots lists sitemap", ok: robots.includes("sitemap.xml") },
+  { name: "sitemap is xml", ok: sitemap.includes("<urlset") && sitemap.includes("nyumbasearch.com") },
+  { name: "llms.txt present", ok: llms.toLowerCase().includes("nyumbasearch") },
 ];
 
 let failed = 0;

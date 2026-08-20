@@ -79,6 +79,10 @@ function appendFilterParams(params: URLSearchParams, f: PropertySearchFilters) {
   if (f.offset != null) params.set("offset", String(f.offset));
   if (f.query) params.set("q", f.query);
   if (f.neighborhood && f.neighborhood !== "All") params.set("neighborhood", f.neighborhood);
+  if (f.locationId) params.set("locationId", f.locationId);
+  if (f.countyLocationId) params.set("countyLocationId", f.countyLocationId);
+  if (f.constituencyLocationId) params.set("constituencyLocationId", f.constituencyLocationId);
+  if (f.wardLocationId) params.set("wardLocationId", f.wardLocationId);
   if (f.propertyTypes && f.propertyTypes.length > 0) {
     params.set("types", f.propertyTypes.join(","));
   } else if (f.propertyType) {
@@ -92,6 +96,12 @@ function appendFilterParams(params: URLSearchParams, f: PropertySearchFilters) {
   if (f.sortBy) params.set("sortBy", f.sortBy);
   if (f.originLat != null) params.set("originLat", String(f.originLat));
   if (f.originLng != null) params.set("originLng", String(f.originLng));
+  if (f.bounds) {
+    params.set("minLat", String(f.bounds.minLat));
+    params.set("maxLat", String(f.bounds.maxLat));
+    params.set("minLng", String(f.bounds.minLng));
+    params.set("maxLng", String(f.bounds.maxLng));
+  }
 }
 
 function buildListingsUrl(filters?: PropertySearchFilters): string {

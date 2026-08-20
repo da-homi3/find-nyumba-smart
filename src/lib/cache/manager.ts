@@ -229,6 +229,7 @@ export async function invalidateListingCaches(): Promise<void> {
     cacheDelete("intelligence_stats"),
     cacheDelete("agency_featured"),
     cacheDelete("sitemap_xml"),
+    cacheDelete("sitemap_xml_v2"),
     // Legacy key (never matched real listings keys, but safe to clear).
     cacheDelete("listings_search:default"),
   ]);

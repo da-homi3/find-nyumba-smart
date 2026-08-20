@@ -1313,7 +1313,7 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
         .in("role", ["landlord", "agency", "manager"]),
       supabaseAdmin
         .from("profiles")
-        .select(
+      .select(
           "id, full_name, phone, tenant_plan, plus_expires_at, created_at, updated_at, is_portal_active, active_portal",
         ),
       supabaseAdmin

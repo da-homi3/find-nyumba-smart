@@ -1,0 +1,17 @@
+{
+  "accessed_at": "2026-08-20",
+  "sources": [
+    "iebc-hierarchy-stevehoober254",
+    "nyumbasearch-kenya-locations-catalog"
+  ],
+  "counts": {
+    "countries": 1,
+    "counties": 47,
+    "constituencies": 290,
+    "wards": 1450,
+    "localities": 378,
+    "aliases": 2079
+  },
+  "errors": [],
+  "warnings": []
+}

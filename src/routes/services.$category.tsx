@@ -49,7 +49,23 @@ export const Route = createFileRoute("/services/$category")({
     const place = countyLabel ?? "Kenya";
     const title = `${label} in ${place} — NyumbaSearch`;
     const description = `Compare verified ${label.toLowerCase()} in ${place}. Request quotes and contact providers on NyumbaSearch.`;
-    return buildPageHead({ title, description, path: `/services/${params.category}` });
+    const areaServed = countyLabel
+      ? { "@type": "AdministrativeArea", name: countyLabel }
+      : { "@type": "Country", name: "Kenya" };
+    return buildPageHead({
+      title,
+      description,
+      path: `/services/${params.category}`,
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        name: `${label} in ${place}`,
+        description,
+        areaServed,
+        serviceType: label,
+        provider: { "@type": "Organization", name: "NyumbaSearch" },
+      },
+    });
   },
   component: CategoryPage,
 });

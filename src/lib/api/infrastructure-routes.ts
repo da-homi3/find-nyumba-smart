@@ -12,6 +12,7 @@ import type { PropertySearchFilters } from "@/lib/properties";
 import { buildFullSitemapXml, buildStaticSitemapXml, sitemapResponse } from "@/lib/seo/sitemap";
 import { buildRobotsTxt } from "@/lib/seo/robots";
 import { buildLlmsTxt } from "@/lib/seo/llms";
+import { INDEXNOW_KEY, indexNowKeyPath } from "@/lib/seo/indexnow";
 import { isServerEnvConfigured, getServerEnv } from "@/lib/server-env";
 
 type RouteHandler = (request: Request, ctx?: ExecutionContext) => Promise<Response>;
@@ -126,6 +127,11 @@ async function handleDailyMarketingCronRoute(req: Request): Promise<Response> {
   return handleDailyMarketingCron(req);
 }
 
+async function handleSubscriptionInvoiceCronRoute(req: Request): Promise<Response> {
+  const { handleSubscriptionInvoiceCron } = await import("@/lib/payments/webhook-handlers");
+  return handleSubscriptionInvoiceCron(req);
+}
+
 async function handleWeeklyCronRoute(req: Request): Promise<Response> {
   const { handleWeeklyCron } = await import("@/lib/payments/webhook-handlers");
   return handleWeeklyCron(req);
@@ -184,6 +190,15 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
       const originLngRaw = url.searchParams.get("originLng");
       const originLat = originLatRaw != null ? Number(originLatRaw) : Number.NaN;
       const originLng = originLngRaw != null ? Number(originLngRaw) : Number.NaN;
+      const minLat = Number(url.searchParams.get("minLat") ?? Number.NaN);
+      const maxLat = Number(url.searchParams.get("maxLat") ?? Number.NaN);
+      const minLng = Number(url.searchParams.get("minLng") ?? Number.NaN);
+      const maxLng = Number(url.searchParams.get("maxLng") ?? Number.NaN);
+      const hasBounds =
+        Number.isFinite(minLat) &&
+        Number.isFinite(maxLat) &&
+        Number.isFinite(minLng) &&
+        Number.isFinite(maxLng);
       const sortByRaw = url.searchParams.get("sortBy");
       const sortBy: PropertySearchFilters["sortBy"] =
         sortByRaw === "nearby" ||
@@ -205,6 +220,10 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
         })(),
         query: url.searchParams.get("q") ?? undefined,
         neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
+        locationId: url.searchParams.get("locationId") ?? undefined,
+        countyLocationId: url.searchParams.get("countyLocationId") ?? undefined,
+        constituencyLocationId: url.searchParams.get("constituencyLocationId") ?? undefined,
+        wardLocationId: url.searchParams.get("wardLocationId") ?? undefined,
         propertyType: parsedType?.success ? parsedType.data : undefined,
         propertyTypes: propertyTypes && propertyTypes.length > 0 ? propertyTypes : undefined,
         pricingMode,
@@ -221,6 +240,7 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
         sortBy,
         originLat: Number.isFinite(originLat) ? originLat : undefined,
         originLng: Number.isFinite(originLng) ? originLng : undefined,
+        bounds: hasBounds ? { minLat, maxLat, minLng, maxLng } : undefined,
       };
 
       const started = Date.now();
@@ -569,7 +589,7 @@ function handleLlmsTxt(): Response {
 async function handleSitemapXml(): Promise<Response> {
   try {
     const { data: xml, cacheHit } = await withCache(
-      "sitemap_xml",
+      "sitemap_xml_v2",
       "sitemap_xml",
       buildFullSitemapXml,
     );
@@ -661,6 +681,11 @@ const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/cron/daily-marketing" && method === "POST",
     run: (req) => withErrorHandler("Daily marketing cron", req, handleDailyMarketingCronRoute),
+  },
+  {
+    match: (url, method) => url.pathname === "/api/cron/subscription-invoices" && method === "POST",
+    run: (req) =>
+      withErrorHandler("Subscription invoice cron", req, handleSubscriptionInvoiceCronRoute),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/weekly" && method === "POST",
@@ -777,6 +802,15 @@ const ROUTES: RouteDef[] = [
             headers: { "Content-Type": "application/json" },
           });
         }
+      }),
+  },
+  {
+    match: (url, method) =>
+      url.pathname.startsWith("/api/locations") && method === "GET",
+    run: (req) =>
+      withPublicRateLimit(req, "api", async (r) => {
+        const { handleLocationsApi } = await import("@/lib/locations/http");
+        return handleLocationsApi(r);
       }),
   },
   {
@@ -951,11 +985,25 @@ const ROUTES: RouteDef[] = [
     run: () => handleLlmsTxt(),
   },
   {
+    match: (url) => normalizeSeoPath(url.pathname) === "/.well-known/llms.txt",
+    run: () => handleLlmsTxt(),
+  },
+  {
     match: (url) => normalizeSeoPath(url.pathname) === "/sitemap.xml",
     run: (req) =>
       withErrorHandler("Sitemap", req, handleSitemapXml, () =>
         sitemapResponse(buildStaticSitemapXml()),
       ),
+  },
+  {
+    match: (url) => normalizeSeoPath(url.pathname) === indexNowKeyPath().toLowerCase(),
+    run: () =>
+      new Response(`${INDEXNOW_KEY}\n`, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+        },
+      }),
   },
   {
     // Flutter Mobile BFF (Tenant MVP) — additive; does not replace website createServerFn APIs.

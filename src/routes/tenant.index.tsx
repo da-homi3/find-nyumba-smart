@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, MapPin, Sparkles, ShieldCheck } from "lucide-react";
 import { type Property, type PropertyType } from "@/lib/properties";
@@ -49,6 +49,7 @@ import {
   TENANT_LISTINGS_PAGE_SIZE,
 } from "@/lib/seo/prefetch-tenant-listings";
 import { buildPageHead } from "@/lib/seo/head";
+import { areaFromName, areaPathForName } from "@/lib/seo/areas";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 const tenantSearchSchema = z.object({
@@ -61,16 +62,43 @@ const tenantSearchSchema = z.object({
 
 export const Route = createFileRoute("/tenant/")({
   validateSearch: tenantSearchSchema,
+  beforeLoad: ({ search }) => {
+    const neighborhood = search.neighborhood;
+    if (!neighborhood || neighborhood === "All") return;
+    // Pure neighbourhood browse → dedicated GEO landing URL (avoids duplicate indexables).
+    if (search.q || search.type || search.maxPrice || (search.purpose && search.purpose !== "all")) {
+      return;
+    }
+    const area = areaFromName(neighborhood);
+    if (!area) return;
+    throw redirect({
+      to: "/areas/$slug",
+      params: { slug: area.slug },
+      statusCode: 301,
+    });
+  },
   loader: async ({ context }) => {
     await prefetchTenantListings(context.queryClient);
   },
-  head: () =>
-    buildPageHead({
-      title: "Discover homes — NyumbaSearch",
+  head: ({ match }) => {
+    const neighborhood = (match.search as { neighborhood?: string } | undefined)?.neighborhood;
+    if (neighborhood && neighborhood !== "All") {
+      const areaPath = areaPathForName(neighborhood);
+      if (areaPath) {
+        return buildPageHead({
+          title: `Homes for rent in ${neighborhood}, Nairobi — NyumbaSearch`,
+          description: `Verified vacant houses and apartments in ${neighborhood}, Nairobi. Browse on the map and contact owners on NyumbaSearch.`,
+          path: areaPath,
+        });
+      }
+    }
+    return buildPageHead({
+      title: "Houses and apartments for rent in Nairobi — NyumbaSearch",
       description:
-        "Search verified vacant homes across Kenya. Filter by budget, bedrooms, and area — map view, saved listings, and NyumbaAI.",
+        "Search verified vacant homes across Nairobi and Kenya. Filter by budget, bedrooms, and neighbourhood — map view, saved listings, and NyumbaAI.",
       path: "/tenant",
-    }),
+    });
+  },
   component: TenantHome,
 });
 
@@ -253,6 +281,7 @@ function TenantHome() {
     return {
       query: debouncedQ || undefined,
       neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
+      locationId: filters.locationId,
       maxRent: rentFilterActive ? effectiveMaxRent(filters.maxRent) : undefined,
       minRent: rentFilterActive && filters.minRent > 0 ? filters.minRent : undefined,
       propertyType: filters.types.length === 1 ? filters.types[0] : undefined,
@@ -269,6 +298,7 @@ function TenantHome() {
     browseOrigin.lng,
     debouncedQ,
     filters.neighborhood,
+    filters.locationId,
     filters.maxRent,
     filters.minRent,
     filters.listingPurpose,
@@ -363,6 +393,9 @@ function TenantHome() {
   const patchFilters = (patch: Partial<TenantFilters>) => {
     setFilters((f) => {
       const next = { ...f, ...patch };
+      if (patch.neighborhood !== undefined && patch.locationId === undefined) {
+        next.locationId = undefined;
+      }
       // Selecting a property type or area expands budget so high- and low-priced homes both appear.
       if (
         (patch.types && patch.types.length > 0) ||

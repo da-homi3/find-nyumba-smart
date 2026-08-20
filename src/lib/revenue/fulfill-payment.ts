@@ -398,6 +398,10 @@ async function fulfillLandlordPlan(supabaseAdmin: SupabaseAdmin, payment: Paymen
       checkReferralConversion(supabaseAdmin, userId, "first_paid_subscription_month"),
     )
     .catch(() => undefined);
+
+  void import("@/lib/revenue/subscription-invoice-store")
+    .then(({ markOpenInvoicesPaid }) => markOpenInvoicesPaid(supabaseAdmin, userId))
+    .catch(() => undefined);
 }
 
 async function fulfillPmModule(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {
@@ -587,6 +591,10 @@ async function fulfillProviderSubscription(
     payment_method: paymentMethod(metadata),
     next_billing_date: addBillingDays(days),
   });
+
+  void import("@/lib/revenue/subscription-invoice-store")
+    .then(({ markOpenInvoicesPaid }) => markOpenInvoicesPaid(supabaseAdmin, userId))
+    .catch(() => undefined);
 }
 
 async function fulfillReport(supabaseAdmin: SupabaseAdmin, payment: PaymentFulfillment) {

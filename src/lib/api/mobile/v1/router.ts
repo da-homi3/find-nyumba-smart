@@ -66,6 +66,10 @@ async function buildListingsFilters(url: URL): Promise<PropertySearchFilters> {
     offset: parseBoundedInt(url.searchParams.get("offset"), 0),
     query: url.searchParams.get("q") ?? undefined,
     neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")) ?? undefined,
+    locationId: url.searchParams.get("locationId") ?? undefined,
+    countyLocationId: url.searchParams.get("countyLocationId") ?? undefined,
+    constituencyLocationId: url.searchParams.get("constituencyLocationId") ?? undefined,
+    wardLocationId: url.searchParams.get("wardLocationId") ?? undefined,
     propertyType: parsedType?.success ? parsedType.data : undefined,
     propertyTypes: propertyTypes && propertyTypes.length > 0 ? propertyTypes : undefined,
     pricingMode,
@@ -427,6 +431,7 @@ async function tryWaveRoutes(req: Request, rest: string, method: string): Promis
     async () => (await import("@/lib/api/mobile/v1/wave19")).tryHandleWave19,
     async () => (await import("@/lib/api/mobile/v1/wave20")).tryHandleWave20,
     async () => (await import("@/lib/api/mobile/v1/wave21")).tryHandleWave21,
+    async () => (await import("@/lib/api/mobile/v1/wave22")).tryHandleWave22,
   ];
 
   for (const load of loaders) {

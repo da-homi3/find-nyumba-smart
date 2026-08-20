@@ -22,6 +22,8 @@ export type TenantFilters = {
   types: PropertyType[];
   listingPurpose: ListingPurposeFilter;
   neighborhood: string;
+  /** Resolved locations.id when user picks from PlaceSearch / API. */
+  locationId?: string;
   waterGoodOnly: boolean;
   verifiedLevel2Plus: boolean;
   bedrooms: number | null;
@@ -165,6 +167,7 @@ export function TenantFiltersBar({
                 setCountyFilter(nextCounty);
                 onChange({
                   neighborhood: nextCounty === "All" ? "All" : countyWideFilterValue(nextCounty),
+                  locationId: undefined,
                 });
               }}
               className="w-full rounded-lg border bg-card px-2 py-1.5 text-sm"

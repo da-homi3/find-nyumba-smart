@@ -15,7 +15,12 @@ export const Route = createFileRoute("/auth/reset")({
     if (!raw?.includes("@")) return { email: undefined };
     return { email: raw };
   },
-  head: () => ({ meta: [{ title: "Reset password — NyumbaSearch" }] }),
+  head: () => ({
+    meta: [
+      { title: "Reset password — NyumbaSearch" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: ResetPasswordPage,
 });
 

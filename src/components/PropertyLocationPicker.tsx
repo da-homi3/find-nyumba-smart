@@ -45,6 +45,7 @@ export function PropertyLocationPicker({
   const [searchQuery, setSearchQuery] = useState(neighborhood ?? "");
   const [aiBusy, setAiBusy] = useState(false);
   const [autoNote, setAutoNote] = useState<string | null>(null);
+  const [boundaryWarn, setBoundaryWarn] = useState<string | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onNeighborhoodSelectRef = useRef(onNeighborhoodSelect);
@@ -190,6 +191,58 @@ export function PropertyLocationPicker({
     };
   }, [latitude, longitude, address, neighborhood]);
 
+  /** Suggest locality from pin via /api/locations/reverse — never auto-overwrite manual neighborhood. */
+  useEffect(() => {
+    if (latitude == null || longitude == null) {
+      setBoundaryWarn(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(
+            `/api/locations/reverse?lat=${encodeURIComponent(String(latitude))}&lng=${encodeURIComponent(String(longitude))}`,
+            { headers: { Accept: "application/json" } },
+          );
+          if (!res.ok || cancelled) return;
+          const data = (await res.json()) as {
+            locality?: { name?: string } | null;
+            county?: { name?: string } | null;
+            confidence?: number;
+          };
+          const suggested = data.locality?.name;
+          const countyName = data.county?.name?.replace(/\s+City$/i, "") ?? "this county";
+          if (!suggested) return;
+          const current = neighborhood?.trim() ?? "";
+          if (!current) {
+            if (!neighborhoodManualRef.current && onNeighborhoodSelectRef.current) {
+              // Soft suggest only when empty — still require user acceptance via note
+              setAutoNote(`Map suggests ${suggested} (${countyName}) — confirm in Details if correct`);
+            }
+            return;
+          }
+          const same =
+            current.toLowerCase() === suggested.toLowerCase() ||
+            current.toLowerCase().includes(suggested.toLowerCase());
+          if (!same && (data.confidence ?? 0) >= 40) {
+            setBoundaryWarn(
+              `Pin looks nearer to ${suggested} than “${current}”. Neighborhood was not changed.`,
+            );
+          } else {
+            setBoundaryWarn(null);
+          }
+        } catch {
+          // reverse API optional
+        }
+      })();
+    }, 700);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [latitude, longitude, neighborhood]);
+
   function selectSearchResult(result: LocationSearchResult) {
     setError(null);
     setSearchQuery(result.neighborhood ?? result.label);
@@ -308,6 +361,9 @@ export function PropertyLocationPicker({
             )}
             {autoNote}
           </p>
+        ) : null}
+        {boundaryWarn ? (
+          <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-400">{boundaryWarn}</p>
         ) : null}
       </div>
 

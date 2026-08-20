@@ -34,7 +34,9 @@ const site = (
 ).replace(/\/$/, "");
 
 const staticPaths = [
-  ...staticRoutes.sitemapPaths,
+  ...staticRoutes.sitemapPaths.filter((path) => path !== "/areas" && !path.startsWith("/areas/")),
+  "/areas",
+  ...(staticRoutes.geoAreas ?? []).map((area) => `/areas/${area.slug}`),
   ...staticRoutes.serviceCategories.map((c) => `/services/${c}`),
 ];
 
@@ -88,6 +90,7 @@ async function fetchActivePropertyIds() {
 
 function sitemapPriority(path) {
   if (path === "") return "1.0";
+  if (path.startsWith("/areas")) return "0.9";
   if (path.startsWith("/services")) return "0.85";
   return "0.8";
 }

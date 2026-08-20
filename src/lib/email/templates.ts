@@ -614,3 +614,72 @@ export function ownerRentArrearsDigestEmail(opts: {
     text: `Rent arrears — ${opts.propertyName}. Total ${formatKes(total)}.\n${textRows}\n${opts.manageUrl}`,
   };
 }
+
+function escapeEmailText(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+export function subscriptionInvoiceEmail(opts: {
+  name: string;
+  invoiceNumber: string;
+  planName: string;
+  amountKes: number;
+  periodLabel: string;
+  dueLabel: string;
+  payUrl: string;
+  demandHeadline: string;
+  demandDetail: string;
+  benefits: string[];
+  howToPay: string[];
+  includeDemand: boolean;
+  unsubscribeUrl?: string;
+}) {
+  const name = escapeEmailText(opts.name);
+  const benefits = opts.benefits.map((b) => `<li>${escapeEmailText(b)}</li>`).join("");
+  const steps = opts.howToPay.map((s) => `<li>${escapeEmailText(s)}</li>`).join("");
+  const demandBlock = opts.includeDemand
+    ? `<div class="highlight"><p style="margin:0;font-size:18px;font-weight:700;color:#0A5C47">${escapeEmailText(opts.demandHeadline)}</p><p style="margin:8px 0 0">${escapeEmailText(opts.demandDetail)}</p></div>`
+    : "";
+  const body = `
+    <h1>Invoice ${escapeEmailText(opts.invoiceNumber)}</h1>
+    <p>Hi ${name},</p>
+    <p>Your NyumbaSearch <strong>${escapeEmailText(opts.planName)}</strong> invoice for ${escapeEmailText(opts.periodLabel)} is ready.</p>
+    ${demandBlock}
+    <p>Until this is paid, tenants can search — but your listing or directory profile stays off the public marketplace.</p>
+    <div class="highlight">
+      <p style="margin:0"><strong>Amount due:</strong> ${formatKes(opts.amountKes)}</p>
+      <p style="margin:8px 0 0"><strong>Due:</strong> ${escapeEmailText(opts.dueLabel)}</p>
+      <p style="margin:8px 0 0"><strong>Invoice:</strong> ${escapeEmailText(opts.invoiceNumber)}</p>
+    </div>
+    <p><strong>What you are missing:</strong></p>
+    <ul>${benefits}</ul>
+    <p><strong>How to pay:</strong></p>
+    <ol>${steps}</ol>
+    <p><a class="btn" href="${opts.payUrl}">Pay ${formatKes(opts.amountKes)} now</a></p>
+    <p style="font-size:13px;color:#64748b">Pay with M-Pesa STK push or card on the checkout page. Keep this invoice for your records.</p>
+  `;
+  return {
+    subject: opts.includeDemand
+      ? `${opts.demandHeadline} — invoice ${opts.invoiceNumber}`
+      : `NyumbaSearch invoice ${opts.invoiceNumber} — ${formatKes(opts.amountKes)} due`,
+    html: baseLayout({
+      preheader: `${formatKes(opts.amountKes)} due for ${opts.planName}`,
+      body,
+      footerExtra: opts.unsubscribeUrl
+        ? `<p style="margin:12px 0 0"><a href="${opts.unsubscribeUrl}">Unsubscribe from marketing emails</a></p>`
+        : undefined,
+    }),
+    text: [
+      `Invoice ${opts.invoiceNumber}`,
+      `${opts.planName}: ${formatKes(opts.amountKes)} due ${opts.dueLabel}.`,
+      opts.includeDemand ? opts.demandHeadline : "",
+      `Pay: ${opts.payUrl}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  };
+}

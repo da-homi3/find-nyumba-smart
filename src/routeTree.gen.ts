@@ -45,6 +45,7 @@ import { Route as ManagerIndexRouteImport } from './routes/manager.index'
 import { Route as LandlordIndexRouteImport } from './routes/landlord.index'
 import { Route as CaretakerIndexRouteImport } from './routes/caretaker.index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AreasIndexRouteImport } from './routes/areas.index'
 import { Route as AgencyIndexRouteImport } from './routes/agency.index'
 import { Route as AdvertiseIndexRouteImport } from './routes/advertise.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -86,6 +87,7 @@ import { Route as CaretakerDashboardRouteImport } from './routes/caretaker.dashb
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthPendingRouteImport } from './routes/auth.pending'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AreasSlugRouteImport } from './routes/areas.$slug'
 import { Route as AgencyTeamRouteImport } from './routes/agency.team'
 import { Route as AgencyPropertiesRouteImport } from './routes/agency.properties'
 import { Route as AgencyManageRouteImport } from './routes/agency.manage'
@@ -342,6 +344,11 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthRoute,
 } as any)
+const AreasIndexRoute = AreasIndexRouteImport.update({
+  id: '/areas/',
+  path: '/areas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgencyIndexRoute = AgencyIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -546,6 +553,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/callback',
   path: '/callback',
   getParentRoute: () => AuthRoute,
+} as any)
+const AreasSlugRoute = AreasSlugRouteImport.update({
+  id: '/areas/$slug',
+  path: '/areas/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AgencyTeamRoute = AgencyTeamRouteImport.update({
   id: '/team',
@@ -988,6 +1000,7 @@ export interface FileRoutesByFullPath {
   '/agency/manage': typeof AgencyManageRouteWithChildren
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
   '/agency/team': typeof AgencyTeamRoute
+  '/areas/$slug': typeof AreasSlugRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/pending': typeof AuthPendingRoute
   '/auth/reset': typeof AuthResetRoute
@@ -1029,6 +1042,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/advertise/': typeof AdvertiseIndexRoute
   '/agency/': typeof AgencyIndexRoute
+  '/areas/': typeof AreasIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/caretaker/': typeof CaretakerIndexRoute
   '/landlord/': typeof LandlordIndexRoute
@@ -1129,6 +1143,7 @@ export interface FileRoutesByTo {
   '/agency/integrations': typeof AgencyIntegrationsRoute
   '/agency/leads': typeof AgencyLeadsRoute
   '/agency/team': typeof AgencyTeamRoute
+  '/areas/$slug': typeof AreasSlugRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/pending': typeof AuthPendingRoute
   '/auth/reset': typeof AuthResetRoute
@@ -1163,6 +1178,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/advertise': typeof AdvertiseIndexRoute
   '/agency': typeof AgencyIndexRoute
+  '/areas': typeof AreasIndexRoute
   '/auth': typeof AuthIndexRoute
   '/caretaker': typeof CaretakerIndexRoute
   '/landlord': typeof LandlordIndexRoute
@@ -1274,6 +1290,7 @@ export interface FileRoutesById {
   '/agency/manage': typeof AgencyManageRouteWithChildren
   '/agency/properties': typeof AgencyPropertiesRouteWithChildren
   '/agency/team': typeof AgencyTeamRoute
+  '/areas/$slug': typeof AreasSlugRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/pending': typeof AuthPendingRoute
   '/auth/reset': typeof AuthResetRoute
@@ -1315,6 +1332,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/advertise/': typeof AdvertiseIndexRoute
   '/agency/': typeof AgencyIndexRoute
+  '/areas/': typeof AreasIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/caretaker/': typeof CaretakerIndexRoute
   '/landlord/': typeof LandlordIndexRoute
@@ -1430,6 +1448,7 @@ export interface FileRouteTypes {
     | '/agency/manage'
     | '/agency/properties'
     | '/agency/team'
+    | '/areas/$slug'
     | '/auth/callback'
     | '/auth/pending'
     | '/auth/reset'
@@ -1471,6 +1490,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/advertise/'
     | '/agency/'
+    | '/areas/'
     | '/auth/'
     | '/caretaker/'
     | '/landlord/'
@@ -1571,6 +1591,7 @@ export interface FileRouteTypes {
     | '/agency/integrations'
     | '/agency/leads'
     | '/agency/team'
+    | '/areas/$slug'
     | '/auth/callback'
     | '/auth/pending'
     | '/auth/reset'
@@ -1605,6 +1626,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/advertise'
     | '/agency'
+    | '/areas'
     | '/auth'
     | '/caretaker'
     | '/landlord'
@@ -1715,6 +1737,7 @@ export interface FileRouteTypes {
     | '/agency/manage'
     | '/agency/properties'
     | '/agency/team'
+    | '/areas/$slug'
     | '/auth/callback'
     | '/auth/pending'
     | '/auth/reset'
@@ -1756,6 +1779,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/advertise/'
     | '/agency/'
+    | '/areas/'
     | '/auth/'
     | '/caretaker/'
     | '/landlord/'
@@ -1858,7 +1882,9 @@ export interface RootRouteChildren {
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   VerifyRoute: typeof VerifyRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
+  AreasSlugRoute: typeof AreasSlugRoute
   TTokenRoute: typeof TTokenRoute
+  AreasIndexRoute: typeof AreasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2114,6 +2140,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/'
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/areas/': {
+      id: '/areas/'
+      path: '/areas'
+      fullPath: '/areas/'
+      preLoaderRoute: typeof AreasIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/agency/': {
       id: '/agency/'
@@ -2401,6 +2434,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/areas/$slug': {
+      id: '/areas/$slug'
+      path: '/areas/$slug'
+      fullPath: '/areas/$slug'
+      preLoaderRoute: typeof AreasSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/agency/team': {
       id: '/agency/team'
@@ -3433,7 +3473,9 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   VerifyRoute: VerifyRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
+  AreasSlugRoute: AreasSlugRoute,
   TTokenRoute: TTokenRoute,
+  AreasIndexRoute: AreasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

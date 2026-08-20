@@ -19,6 +19,7 @@ const CRON_SCHEDULES = [
   "0 6 * * *", // billing / renewals
   "15 6 * * *", // PM overdue + payouts
   "30 6 * * *", // marketing / sales
+  "45 6 * * *", // owner + provider subscription invoices
   "0 8 * * 1", // weekly digest
   "0 7 1 * *", // monthly invoices + teaser
 ];
@@ -32,6 +33,7 @@ const CRON_PATHS = {
   "0 6 * * *": "/api/cron/daily",
   "15 6 * * *": "/api/cron/daily-pm",
   "30 6 * * *": "/api/cron/daily-marketing",
+  "45 6 * * *": "/api/cron/subscription-invoices",
   "0 8 * * 1": "/api/cron/weekly",
   "0 7 1 * *": "/api/cron/monthly",
 };

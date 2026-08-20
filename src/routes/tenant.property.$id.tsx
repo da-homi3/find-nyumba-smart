@@ -1,4 +1,4 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute, notFound, useParams } from "@tanstack/react-router";
 import { z } from "zod";
 import { fetchProperty } from "@/lib/properties";
 import { verificationLevel } from "@/lib/listing-intel";
@@ -23,9 +23,10 @@ export const Route = createFileRoute("/tenant/property/$id")({
   validateSearch: propertySearchSchema,
   loader: async ({ params, context }) => {
     const property = await fetchProperty(params.id);
-    if (property) {
-      context.queryClient.setQueryData(["property", params.id], property);
+    if (!property) {
+      throw notFound();
     }
+    context.queryClient.setQueryData(["property", params.id], property);
     return { property };
   },
   head: ({ loaderData }) => buildPropertyDetailHead(loaderData?.property ?? undefined),

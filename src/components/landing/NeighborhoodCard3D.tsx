@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { isTouchDevice } from "@/lib/motion/performance";
+import { areaFromName } from "@/lib/seo/areas";
 
 type Props = {
   name: string;
@@ -28,33 +29,10 @@ export function NeighborhoodCard3D({ name, minPrice, image, count = 0 }: Readonl
     setTilt({ x: y * -15, y: x * 15 });
   };
 
-  return (
-    <motion.div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setTilt({ x: 0, y: 0 });
-        setIsHovered(false);
-      }}
-      animate={{
-        rotateX: tilt.x,
-        rotateY: tilt.y,
-        scale: isHovered ? 1.05 : 1,
-      }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="transform-3d"
-      style={{
-        boxShadow: isHovered
-          ? "0 24px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(30,184,138,0.4)"
-          : "0 8px 24px rgba(0,0,0,0.2)",
-      }}
-    >
-      <Link
-        to="/tenant"
-        search={{ neighborhood: name }}
-        className="group relative block aspect-3/4 overflow-hidden rounded-[20px] no-underline"
-      >
+  const area = areaFromName(name);
+  const cardClass = "group relative block aspect-3/4 overflow-hidden rounded-[20px] no-underline";
+  const cardInner = (
+    <>
         <motion.div
           className="absolute inset-0 bg-cover bg-center bg-muted"
           style={
@@ -67,7 +45,6 @@ export function NeighborhoodCard3D({ name, minPrice, image, count = 0 }: Readonl
           animate={{ scale: isHovered ? 1.1 : 1 }}
           transition={{ duration: 0.4 }}
         />
-        {/* Hidden img only to detect load failures for remote Unsplash URLs */}
         {image ? (
           <img
             src={image}
@@ -100,7 +77,40 @@ export function NeighborhoodCard3D({ name, minPrice, image, count = 0 }: Readonl
             {count > 0 ? `${count} homes available →` : "Explore →"}
           </motion.div>
         </div>
-      </Link>
+    </>
+  );
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setTilt({ x: 0, y: 0 });
+        setIsHovered(false);
+      }}
+      animate={{
+        rotateX: tilt.x,
+        rotateY: tilt.y,
+        scale: isHovered ? 1.05 : 1,
+      }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="transform-3d"
+      style={{
+        boxShadow: isHovered
+          ? "0 24px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(30,184,138,0.4)"
+          : "0 8px 24px rgba(0,0,0,0.2)",
+      }}
+    >
+      {area ? (
+        <Link to="/areas/$slug" params={{ slug: area.slug }} className={cardClass}>
+          {cardInner}
+        </Link>
+      ) : (
+        <Link to="/tenant" search={{ neighborhood: name }} className={cardClass}>
+          {cardInner}
+        </Link>
+      )}
     </motion.div>
   );
 }

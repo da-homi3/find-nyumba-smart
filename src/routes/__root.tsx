@@ -60,6 +60,7 @@ function shouldShowAmbientBackdrop(pathname: string): boolean {
     pathname.startsWith("/advertise") ||
     pathname.startsWith("/contact") ||
     pathname.startsWith("/services") ||
+    pathname.startsWith("/areas") ||
     pathname.startsWith("/partnership") ||
     pathname.startsWith("/tenant")
   );
@@ -156,6 +157,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: BRAND_THEME_COLOR },
       { name: "format-detection", content: "telephone=no" },
       { property: "og:site_name", content: "NyumbaSearch" },
+      { property: "og:locale", content: "en_KE" },
+      { name: "geo.region", content: "KE-30" },
+      { name: "geo.placename", content: "Nairobi, Kenya" },
       { title: HOMEPAGE_TITLE },
       {
         name: "description",
@@ -204,7 +208,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en-KE" className="dark">
       <head>
         <HeadContent />
       </head>

@@ -24,6 +24,7 @@ function urlEntry(
 
 function sitemapPriority(path: string): string {
   if (path === "") return "1.0";
+  if (path.startsWith("/areas")) return "0.9";
   if (path.startsWith("/services")) return "0.85";
   return "0.8";
 }
@@ -53,6 +54,7 @@ export async function buildFullSitemapXml(): Promise<string> {
   );
 
   let propertyEntries: string[] = [];
+  let extraAreaEntries: string[] = [];
   try {
     const { createPublicClient } = await import("@/lib/api/public-client");
     const supabase = createPublicClient();
@@ -76,7 +78,25 @@ export async function buildFullSitemapXml(): Promise<string> {
     console.warn("[sitemap] property fetch failed, serving static pages only:", error);
   }
 
-  const urls = [...staticEntries, ...propertyEntries].join("\n");
+  try {
+    const { loadIndexableAreas, shouldIndexArea } = await import("@/lib/seo/areas");
+    const { allSitemapStaticPaths: staticPaths } = await import("@/lib/seo/static-routes");
+    const already = new Set(staticPaths());
+    const areas = (await loadIndexableAreas()).filter(shouldIndexArea);
+    extraAreaEntries = areas
+      .map((area) => `/areas/${area.slug}`)
+      .filter((path) => !already.has(path))
+      .map((path) =>
+        urlEntry(`${base}${path}`, {
+          changefreq: "daily",
+          priority: "0.85",
+        }),
+      );
+  } catch (error) {
+    console.warn("[sitemap] inventory areas failed:", error);
+  }
+
+  const urls = [...staticEntries, ...extraAreaEntries, ...propertyEntries].join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
 }
 

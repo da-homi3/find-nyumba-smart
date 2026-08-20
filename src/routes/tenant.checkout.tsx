@@ -10,6 +10,7 @@ import { PLUS_PLAN } from "@/lib/revenue/plans";
 import { TenantPlusOfferCards } from "@/components/TenantPlusOfferCards";
 import { getPlusPricingPublic } from "@/lib/api/revenue.functions";
 import { recordProductEvent } from "@/lib/api/analytics.functions";
+import { buildPageHead } from "@/lib/seo/head";
 
 const searchSchema = z.object({
   plan: z.string().optional(),
@@ -17,6 +18,13 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/tenant/checkout")({
   validateSearch: (search) => searchSchema.parse(search),
+  head: () =>
+    buildPageHead({
+      title: "Checkout — NyumbaSearch",
+      description: "Complete your NyumbaSearch Plus or contact credit purchase.",
+      path: "/tenant/checkout",
+      noIndex: true,
+    }),
   component: () => (
     <RouteErrorBoundary title="Checkout failed to load">
       <TenantCheckoutPage />

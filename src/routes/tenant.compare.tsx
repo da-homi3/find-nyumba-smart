@@ -8,6 +8,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PremiumFeatureLock } from "@/components/PremiumFeatureLock";
 import { TENANT_PLUS_CONFIG, maxComparedProperties } from "@/lib/revenue/tenant-plus-config";
+import { buildPageHead } from "@/lib/seo/head";
 
 const compareSearchSchema = z.object({
   ids: z.string().optional(),
@@ -15,7 +16,13 @@ const compareSearchSchema = z.object({
 
 export const Route = createFileRoute("/tenant/compare")({
   validateSearch: compareSearchSchema,
-  head: () => ({ meta: [{ title: "Compare homes — NyumbaSearch" }] }),
+  head: () =>
+    buildPageHead({
+      title: "Compare homes — NyumbaSearch",
+      description: "Compare rental listings side by side on NyumbaSearch.",
+      path: "/tenant/compare",
+      noIndex: true,
+    }),
   component: ComparePage,
 });
 

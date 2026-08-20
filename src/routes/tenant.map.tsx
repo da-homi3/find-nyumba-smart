@@ -10,9 +10,9 @@ import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 export const Route = createFileRoute("/tenant/map")({
   head: () =>
     buildPageHead({
-      title: "Map — NyumbaSearch",
+      title: "Nairobi rental map — NyumbaSearch",
       description:
-        "Map-first rental search across Nairobi. Clustered pins, rent heatmap, and neighbourhood filters for water, security, and more.",
+        "Map-first rental search across Nairobi, Kenya. Clustered pins, rent in KES, and neighbourhood filters for water, security, and commute.",
       path: "/tenant/map",
     }),
   component: () => (

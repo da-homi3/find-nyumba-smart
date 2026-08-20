@@ -25,11 +25,15 @@ export function listingsCacheKey(data?: PropertySearchFilters): string {
       ? [...f.propertyTypes].sort((a, b) => a.localeCompare(b)).join(",")
       : (f.propertyType ?? "");
   const parts = [
-    "v4",
+    "v5",
     `l${f.limit ?? 50}`,
     `o${f.offset ?? 0}`,
     f.sortBy ?? "newest",
     f.neighborhood ?? "",
+    f.locationId ?? "",
+    f.countyLocationId ?? "",
+    f.constituencyLocationId ?? "",
+    f.wardLocationId ?? "",
     typesKey,
     f.query ?? "",
     f.minRent != null ? String(f.minRent) : "",
@@ -106,6 +110,30 @@ function applyNeighborhoodFilter(query: PropertyQuery, neighborhood: string | un
   return query.eq("neighborhood", normalized);
 }
 
+/** Prefer structured location FKs; fall back to legacy neighborhood text. */
+function applyLocationFilters(query: PropertyQuery, data: PropertySearchFilters | undefined) {
+  // location_* columns added in kenya_locations migration; may lag generated Database types.
+  const q = query as PropertyQuery & {
+    eq: (column: string, value: string) => PropertyQuery;
+    or: (filters: string) => PropertyQuery;
+  };
+  if (data?.locationId) {
+    return q.or(
+      `location_id.eq.${data.locationId},ward_location_id.eq.${data.locationId},constituency_location_id.eq.${data.locationId},county_location_id.eq.${data.locationId}`,
+    );
+  }
+  if (data?.wardLocationId) {
+    return q.eq("ward_location_id", data.wardLocationId);
+  }
+  if (data?.constituencyLocationId) {
+    return q.eq("constituency_location_id", data.constituencyLocationId);
+  }
+  if (data?.countyLocationId) {
+    return q.eq("county_location_id", data.countyLocationId);
+  }
+  return applyNeighborhoodFilter(query, data?.neighborhood);
+}
+
 function applySearchTermFilter(query: PropertyQuery, rawQuery: string | undefined) {
   if (!rawQuery) return query;
 
@@ -175,7 +203,7 @@ function applyPropertyTypeFilter(query: PropertyQuery, data: PropertySearchFilte
 
 function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters | undefined) {
   let next = query.eq("is_active", true);
-  next = applyNeighborhoodFilter(next, data?.neighborhood);
+  next = applyLocationFilters(next, data);
   next = applyPropertyTypeFilter(next, data);
   if (data?.pricingMode === "sale") {
     next = next.eq("pricing_mode", "sale");

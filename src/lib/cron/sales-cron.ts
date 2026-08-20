@@ -242,8 +242,8 @@ export async function runLandlordUpsellCron(admin: Admin) {
     const body = `
       <h1>Your listing has ${totalViews} views</h1>
       <p>Hi ${ctx.name}, your free listing is getting traction with ${totalViews} views.</p>
-      <p>Try NyumbaSearch Pro for analytics, more listings, and priority verification.</p>
-      <p><a class="btn" href="${getSiteUrl()}/landlord/checkout?plan=pro&ref=landlord_upsell">Try Pro — first month free</a></p>
+      <p>Upgrade to NyumbaSearch Pro for analytics, more listings, and tenant inquiries on a live listing.</p>
+      <p><a class="btn" href="${getSiteUrl()}/landlord/checkout?plan=pro&ref=landlord_upsell">Subscribe to Pro</a></p>
     `;
     await sendEmailResult({
       to: ctx.email,

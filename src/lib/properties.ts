@@ -100,6 +100,14 @@ export async function fetchMapProperties(filters?: PropertySearchFilters) {
 export type PropertySearchFilters = {
   query?: string;
   neighborhood?: string;
+  /** Prefer filtering by resolved location UUID (ward/locality/neighbourhood). */
+  locationId?: string;
+  /** County-level location UUID — matches properties.county_location_id. */
+  countyLocationId?: string;
+  /** Constituency-level location UUID. */
+  constituencyLocationId?: string;
+  /** Ward-level location UUID. */
+  wardLocationId?: string;
   propertyType?: PropertyType;
   /** Multi-type filter (chips). Prefer over propertyType when length > 1. */
   propertyTypes?: PropertyType[];

@@ -113,6 +113,20 @@ function maybeCanonicalHostRedirect(request: Request): Response | null {
   return Response.redirect(url.toString(), 301);
 }
 
+/**
+ * Permanent trailing-slash collapse so Google sees one URL (301, not 307).
+ * Skip `/` and asset-like paths with a file extension.
+ */
+function maybeTrailingSlashRedirect(request: Request): Response | null {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  const path = url.pathname;
+  if (path.length <= 1 || !path.endsWith("/")) return null;
+  if (/\.[a-z0-9]{1,8}$/i.test(path.slice(0, -1))) return null;
+  url.pathname = path.slice(0, -1);
+  return Response.redirect(url.toString(), 301);
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: ExecutionContext) {
     try {
@@ -120,6 +134,9 @@ export default {
 
       const hostRedirect = maybeCanonicalHostRedirect(request);
       if (hostRedirect) return hostRedirect;
+
+      const slashRedirect = maybeTrailingSlashRedirect(request);
+      if (slashRedirect) return slashRedirect;
 
       const cachedHtml = await matchPublicHtmlCache(request);
       if (cachedHtml) return cachedHtml;

@@ -1,0 +1,75 @@
+/** Shared Kenya place-name normalization (must stay aligned with seed script). */
+export function normalizeLocationName(name: string): string {
+  return String(name ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[\u2018\u2019\u201a\u201b'`´]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+export function slugifyLocationName(name: string): string {
+  return normalizeLocationName(name).replace(/\s+/g, "-") || "unknown";
+}
+
+/** Map informal county labels onto IEBC normalized county keys. */
+export function countyLookupKey(countyName: string): string {
+  const n = normalizeLocationName(countyName);
+  if (n === "nairobi" || n === "nairobi city" || n === "nairobi city county") return "nairobi city";
+  if (n === "muranga" || n === "murang a") return "murang a";
+  if (n === "elgeyo marakwet" || n === "elgeyomarakwet") return "elgeyo marakwet";
+  if (n === "trans nzoia" || n === "transnzoia") return "trans nzoia";
+  if (n === "taita taveta" || n === "taitataveta") return "taita taveta";
+  if (n === "tharak nithi" || n === "tharaka nithi") return "tharaka nithi";
+  return n;
+}
+
+export function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const lat1 = toRad(aLat);
+  const lat2 = toRad(bLat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Cheap edit-distance for typo-tolerant matching. */
+export function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    let prevDiag = prev[0]!;
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const temp = prev[j]!;
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      prev[j] = Math.min(prev[j]! + 1, prev[j - 1]! + 1, prevDiag + cost);
+      prevDiag = temp;
+    }
+  }
+  return prev[b.length]!;
+}
+
+/** Split "Kilimani Nairobi" / "Kilimani, Nairobi" into place + optional county hint. */
+export function parsePlaceQuery(q: string): { place: string; countyHint: string | null } {
+  const raw = q.trim();
+  if (!raw) return { place: "", countyHint: null };
+  const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  if (comma.length >= 2) {
+    return { place: comma[0]!, countyHint: comma.slice(1).join(" ") };
+  }
+  const parts = raw.split(/\s+/);
+  if (parts.length >= 2) {
+    const last = parts[parts.length - 1]!;
+    const countyish = ["nairobi", "kiambu", "mombasa", "nakuru", "kisumu", "machakos", "kajiado"];
+    if (countyish.includes(normalizeLocationName(last))) {
+      return { place: parts.slice(0, -1).join(" "), countyHint: last };
+    }
+  }
+  return { place: raw, countyHint: null };
+}

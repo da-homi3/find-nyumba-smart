@@ -1,14 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { buildPageHead } from "@/lib/seo/head";
+import { NYUMBASEARCH_FAQS } from "@/lib/seo/faq";
 
 export const Route = createFileRoute("/about")({
   head: () =>
     buildPageHead({
-      title: "About — NyumbaSearch",
+      title: "About NyumbaSearch — Nairobi rental search",
       description:
         "NyumbaSearch helps Nairobi renters find vacant homes from verified property owners. Built in Kenya for Kenyan renters and landlords.",
       path: "/about",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: NYUMBASEARCH_FAQS.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
     }),
   component: AboutPage,
 });
@@ -57,6 +67,18 @@ function AboutPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="font-display text-2xl font-semibold">Questions people ask</h2>
+          <dl className="mt-6 space-y-6">
+            {NYUMBASEARCH_FAQS.map((item) => (
+              <div key={item.question}>
+                <dt className="font-semibold">{item.question}</dt>
+                <dd className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.answer}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         <Link

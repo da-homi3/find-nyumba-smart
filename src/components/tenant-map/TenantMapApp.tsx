@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { type Property } from "@/lib/properties";
+import { type Property, type PropertySearchFilters } from "@/lib/properties";
 import { useListingsSearch } from "@/hooks/use-listings-search";
-import { MAP_LISTINGS_FILTERS } from "@/lib/tenant-section-prefetch";
+import { MAP_LISTINGS_FILTERS, MAP_LISTINGS_LIMIT } from "@/lib/tenant-section-prefetch";
 import { FallbackMap } from "@/components/tenant-map/FallbackMap";
 import {
   filterMappableProperties,
@@ -14,7 +14,7 @@ import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 import { canUseWebGl, mapLoadTimeoutMs } from "@/lib/mapbox/map-device";
 import { mergeListingsForDisplay } from "@/lib/listings-preview";
-import { createPlaceFocus, type MapPlaceFocus } from "@/lib/geo/location-search";
+import { createPlaceFocus, type MapPlaceFocus, type LocationSearchResult } from "@/lib/geo/location-search";
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -22,11 +22,22 @@ function hasGoogleMapsKeySync(): boolean {
   return Boolean(GOOGLE_MAPS_KEY?.trim());
 }
 
+function boundsAround(lat: number, lng: number, radiusKm: number): PropertySearchFilters["bounds"] {
+  const d = Math.min(Math.max(radiusKm, 1), 25) / 111;
+  return {
+    minLat: lat - d,
+    maxLat: lat + d,
+    minLng: lng - d,
+    maxLng: lng + d,
+  };
+}
+
 type MapProvider = "loading" | "mapbox" | "google" | "fallback";
 type MapHookResult = ReturnType<typeof useTenantGoogleMap>;
 type TenantMapViewProps = Readonly<{
   properties: Property[];
   propertiesLoading: boolean;
+  onPlaceBounds?: (bounds: PropertySearchFilters["bounds"] | undefined) => void;
 }>;
 
 function resolveInitialProvider(): MapProvider {
@@ -50,13 +61,23 @@ function MapLoadingState({ message }: Readonly<{ message: string }>) {
 }
 
 export function TenantMapApp() {
+  const [placeBounds, setPlaceBounds] = useState<PropertySearchFilters["bounds"]>();
+  const listingFilters = useMemo(
+    () => ({
+      ...MAP_LISTINGS_FILTERS,
+      ...(placeBounds
+        ? { bounds: placeBounds, limit: Math.max(MAP_LISTINGS_LIMIT, 200) }
+        : {}),
+    }),
+    [placeBounds],
+  );
   const {
     data: searchResult,
     isLoading: propertiesLoading,
     isError,
     error,
     refetch,
-  } = useListingsSearch(MAP_LISTINGS_FILTERS);
+  } = useListingsSearch(listingFilters);
   const properties = useMemo(
     () => mergeListingsForDisplay(searchResult?.items ?? []),
     [searchResult?.items],
@@ -112,17 +133,39 @@ export function TenantMapApp() {
   }
 
   if (provider === "mapbox") {
-    return <TenantMapboxView properties={properties} propertiesLoading={propertiesLoading} />;
+    return (
+      <TenantMapboxView
+        properties={properties}
+        propertiesLoading={propertiesLoading}
+        onPlaceBounds={setPlaceBounds}
+      />
+    );
   }
 
   if (provider === "google") {
-    return <TenantGoogleMapView properties={properties} propertiesLoading={propertiesLoading} />;
+    return (
+      <TenantGoogleMapView
+        properties={properties}
+        propertiesLoading={propertiesLoading}
+        onPlaceBounds={setPlaceBounds}
+      />
+    );
   }
 
-  return <TenantFallbackMapView properties={properties} propertiesLoading={propertiesLoading} />;
+  return (
+    <TenantFallbackMapView
+      properties={properties}
+      propertiesLoading={propertiesLoading}
+      onPlaceBounds={setPlaceBounds}
+    />
+  );
 }
 
-function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewProps) {
+function TenantFallbackMapView({
+  properties,
+  propertiesLoading,
+  onPlaceBounds,
+}: TenantMapViewProps) {
   const [selected, setSelected] = useState<Property | null>(null);
   const [query, setQuery] = useState("");
   const [placeFocus, setPlaceFocus] = useState<MapPlaceFocus | null>(null);
@@ -131,6 +174,13 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
   const filtered = placeFocus
     ? filterPropertiesNearPlace(properties, placeFocus.lat, placeFocus.lng, placeFocus.radiusKm)
     : filterMappableProperties(properties, query);
+
+  function applyPlace(place: LocationSearchResult) {
+    const focus = createPlaceFocus(place);
+    setPlaceFocus(focus);
+    setQuery(place.neighborhood ?? place.label);
+    onPlaceBounds?.(boundsAround(focus.lat, focus.lng, focus.radiusKm));
+  }
 
   return (
     <TenantMapShell
@@ -151,14 +201,11 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
         query,
         setQuery,
         placeFocus,
-        focusPlace: (place) => {
-          const focus = createPlaceFocus(place);
-          setPlaceFocus(focus);
-          setQuery(place.neighborhood ?? place.label);
-        },
+        focusPlace: applyPlace,
         clearPlaceFocus: () => {
           setPlaceFocus(null);
           setQuery("");
+          onPlaceBounds?.(undefined);
         },
         filteredProperties: filtered,
         visibleCount: filtered.length,
@@ -166,6 +213,7 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
         recenter: () => {
           setPlaceFocus(null);
           setSelected(null);
+          onPlaceBounds?.(undefined);
         },
         isOnline: true,
         searchProximity: { lat: -1.286389, lng: 36.817223 },
@@ -177,13 +225,14 @@ function TenantFallbackMapView({ properties, propertiesLoading }: TenantMapViewP
   );
 }
 
-function TenantMapboxView({ properties, propertiesLoading }: TenantMapViewProps) {
+function TenantMapboxView({ properties, propertiesLoading, onPlaceBounds }: TenantMapViewProps) {
   const [mapEpoch, setMapEpoch] = useState(0);
   return (
     <TenantMapboxViewInner
       key={mapEpoch}
       properties={properties}
       propertiesLoading={propertiesLoading}
+      onPlaceBounds={onPlaceBounds}
       onHardRetry={() => setMapEpoch((n) => n + 1)}
     />
   );
@@ -192,12 +241,29 @@ function TenantMapboxView({ properties, propertiesLoading }: TenantMapViewProps)
 function TenantMapboxViewInner({
   properties,
   propertiesLoading,
+  onPlaceBounds,
   onHardRetry,
 }: TenantMapViewProps & { onHardRetry: () => void }) {
   const map = useTenantMapbox(properties);
+  const wrapped = useMemo(() => {
+    const focusPlace = (place: LocationSearchResult) => {
+      map.focusPlace?.(place);
+      const focus = createPlaceFocus(place);
+      onPlaceBounds?.(boundsAround(focus.lat, focus.lng, focus.radiusKm));
+    };
+    const clearPlaceFocus = () => {
+      map.clearPlaceFocus?.();
+      onPlaceBounds?.(undefined);
+    };
+    const recenter = () => {
+      map.recenter?.();
+      onPlaceBounds?.(undefined);
+    };
+    return { ...map, focusPlace, clearPlaceFocus, recenter };
+  }, [map, onPlaceBounds]);
   return (
     <TenantMapShell
-      map={map}
+      map={wrapped}
       propertiesLoading={propertiesLoading}
       onCycleStyle={map.cycleMapStyle}
       provider="mapbox"
@@ -206,13 +272,14 @@ function TenantMapboxViewInner({
   );
 }
 
-function TenantGoogleMapView({ properties, propertiesLoading }: TenantMapViewProps) {
+function TenantGoogleMapView({ properties, propertiesLoading, onPlaceBounds }: TenantMapViewProps) {
   const [mapEpoch, setMapEpoch] = useState(0);
   return (
     <TenantGoogleMapViewInner
       key={mapEpoch}
       properties={properties}
       propertiesLoading={propertiesLoading}
+      onPlaceBounds={onPlaceBounds}
       onHardRetry={() => setMapEpoch((n) => n + 1)}
     />
   );
@@ -221,12 +288,29 @@ function TenantGoogleMapView({ properties, propertiesLoading }: TenantMapViewPro
 function TenantGoogleMapViewInner({
   properties,
   propertiesLoading,
+  onPlaceBounds,
   onHardRetry,
 }: TenantMapViewProps & { onHardRetry: () => void }) {
   const map = useTenantGoogleMap(properties);
+  const wrapped = useMemo(() => {
+    const focusPlace = (place: LocationSearchResult) => {
+      map.focusPlace?.(place);
+      const focus = createPlaceFocus(place);
+      onPlaceBounds?.(boundsAround(focus.lat, focus.lng, focus.radiusKm));
+    };
+    const clearPlaceFocus = () => {
+      map.clearPlaceFocus?.();
+      onPlaceBounds?.(undefined);
+    };
+    const recenter = () => {
+      map.recenter?.();
+      onPlaceBounds?.(undefined);
+    };
+    return { ...map, focusPlace, clearPlaceFocus, recenter };
+  }, [map, onPlaceBounds]);
   return (
     <TenantMapShell
-      map={map}
+      map={wrapped}
       propertiesLoading={propertiesLoading}
       provider="google"
       onHardRetry={onHardRetry}

@@ -6,6 +6,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { resolveListerDashboardPath } from "@/lib/portal-guard";
 
 export const Route = createFileRoute("/auth/pending")({
+  head: () => ({
+    meta: [
+      { title: "Pending approval — NyumbaSearch" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: PendingApproval,
 });
 

@@ -334,6 +334,17 @@ export async function handleDailyMarketingCron(request: Request): Promise<Respon
   );
 }
 
+/** Listing-owner and service-provider subscription invoices + pay-now emails. */
+export async function handleSubscriptionInvoiceCron(request: Request): Promise<Response> {
+  if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { runSubscriptionInvoiceCron } = await import("@/lib/cron/subscription-invoice-cron");
+  const invoices = await runSubscriptionInvoiceCron(supabaseAdmin);
+  return new Response(JSON.stringify({ ok: true, invoices }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export async function handleWeeklyCron(request: Request): Promise<Response> {
   if (!authorizeCron(request)) return new Response("Unauthorized", { status: 401 });
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

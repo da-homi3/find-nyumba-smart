@@ -14,7 +14,10 @@ export type LocationSearchResult = {
   lng: number;
   /** Kenya catalog storage value when applicable. */
   neighborhood?: string;
-  source: "kenya" | "mapbox";
+  /** First-party locations.id when resolved from /api/locations. */
+  locationId?: string;
+  locationType?: string;
+  source: "kenya" | "mapbox" | "nyumba";
   kind: LocationPlaceKind;
   /** Optional Mapbox Search Box id for retrieve (when using suggest flow). */
   mapboxId?: string;
@@ -385,9 +388,9 @@ function rankMergedResults(
     const bPrefix = b.label.toLowerCase().startsWith(norm);
     if (aPrefix !== bPrefix) return aPrefix ? -1 : 1;
 
-    // Prefer curated Kenya neighborhoods slightly over remote POIs at equal distance.
-    const aKenya = a.source === "kenya" ? 1 : 0;
-    const bKenya = b.source === "kenya" ? 1 : 0;
+    // Prefer curated Nyumba / Kenya neighborhoods slightly over remote POIs at equal distance.
+    const aKenya = a.source === "kenya" || a.source === "nyumba" ? 1 : 0;
+    const bKenya = b.source === "kenya" || b.source === "nyumba" ? 1 : 0;
     if (aKenya !== bKenya && Math.abs((a.distanceKm ?? 50) - (b.distanceKm ?? 50)) < 3) {
       return bKenya - aKenya;
     }
@@ -398,6 +401,71 @@ function rankMergedResults(
       b.distanceKm ?? (proximity ? haversineKm(proximity.lat, proximity.lng, b.lat, b.lng) : 999);
     return aDist - bDist || a.label.localeCompare(b.label);
   });
+}
+
+function nyumbaKind(type: string | undefined): LocationPlaceKind {
+  switch (type) {
+    case "NEIGHBOURHOOD":
+    case "ESTATE":
+      return "neighborhood";
+    case "LOCALITY":
+    case "TOWN":
+    case "CITY":
+      return "locality";
+    case "WARD":
+    case "CONSTITUENCY":
+    case "COUNTY":
+      return "area";
+    default:
+      return "area";
+  }
+}
+
+async function searchNyumbaLocationsApi(
+  query: string,
+  limit: number,
+  proximity?: { lat: number; lng: number },
+): Promise<LocationSearchResult[]> {
+  try {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    if (proximity) {
+      params.set("lat", String(proximity.lat));
+      params.set("lng", String(proximity.lng));
+    }
+    const res = await fetch(`/api/locations/search?${params}`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      items?: Array<{
+        id: string;
+        name: string;
+        label: string;
+        subtitle?: string;
+        lat: number | null;
+        lng: number | null;
+        type: string;
+        distanceKm?: number;
+      }>;
+    };
+    return (data.items ?? [])
+      .filter((item) => item.lat != null && item.lng != null)
+      .map((item) => ({
+        id: `nyumba:${item.id}`,
+        label: item.label || item.name,
+        subtitle: item.subtitle,
+        lat: item.lat!,
+        lng: item.lng!,
+        neighborhood: item.name,
+        locationId: item.id,
+        locationType: item.type,
+        source: "nyumba" as const,
+        kind: nyumbaKind(item.type),
+        distanceKm: item.distanceKm,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 export async function searchLocations(
@@ -414,15 +482,28 @@ export async function searchLocations(
     proximity: options?.proximity,
     bbox: options?.bbox,
   };
-  const local = searchKenyaLocations(query, Math.min(6, limit), options?.proximity);
+
+  const [apiHits, local] = await Promise.all([
+    searchNyumbaLocationsApi(query, Math.min(8, limit), options?.proximity),
+    Promise.resolve(searchKenyaLocations(query, Math.min(4, limit), options?.proximity)),
+  ]);
+
+  // Prefer first-party DB; keep catalog as offline/fill-in.
+  const primary = apiHits.length > 0 ? apiHits : local;
+  const fill = apiHits.length > 0 ? local : [];
 
   const token = options?.mapboxToken?.trim();
   if (!token?.startsWith("pk.") || query.trim().length < 2) {
-    return rankMergedResults(local, query, options?.proximity).slice(0, limit);
+    const merged = [...primary];
+    for (const place of fill) {
+      if (merged.some((e) => isNear(e, place) || e.label === place.label)) continue;
+      merged.push(place);
+    }
+    return rankMergedResults(merged, query, options?.proximity).slice(0, limit);
   }
 
   try {
-    const remoteLimit = Math.max(5, limit - Math.min(local.length, 2));
+    const remoteLimit = Math.max(4, limit - Math.min(primary.length, 4));
     let remote = await searchMapboxSearchBox(query, token, remoteLimit, viewport);
     if (remote.length === 0) {
       remote = await searchMapboxPlaces(
@@ -434,8 +515,8 @@ export async function searchLocations(
       );
     }
 
-    const merged: LocationSearchResult[] = [...local];
-    for (const place of remote) {
+    const merged: LocationSearchResult[] = [...primary];
+    for (const place of [...fill, ...remote]) {
       if (merged.some((existing) => isNear(existing, place) || existing.label === place.label)) {
         continue;
       }
@@ -443,7 +524,7 @@ export async function searchLocations(
     }
     return rankMergedResults(merged, query, options?.proximity).slice(0, limit);
   } catch {
-    return rankMergedResults(local, query, options?.proximity).slice(0, limit);
+    return rankMergedResults(primary, query, options?.proximity).slice(0, limit);
   }
 }
 

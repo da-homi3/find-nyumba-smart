@@ -14,13 +14,20 @@ const site = (
   "https://nyumbasearch.com"
 ).replace(/\/$/, "");
 
+function agentBlock(agent, disallows) {
+  return [`User-agent: ${agent}`, "Allow: /", ...disallows.map((path) => `Disallow: ${path}`), ""];
+}
+
+const disallows = staticRoutes.robotsDisallow;
+const aiAgents = staticRoutes.aiUserAgents ?? [];
 const content = [
-  "User-agent: *",
-  "Allow: /",
-  ...staticRoutes.robotsDisallow.map((path) => `Disallow: ${path}`),
-  "",
+  "# NyumbaSearch crawl policy — public listings, areas, and services are indexable.",
+  ...agentBlock("*", disallows),
+  "# Answer engines and AI crawlers (same public paths as Googlebot).",
+  ...aiAgents.flatMap((agent) => agentBlock(agent, disallows)),
   `Sitemap: ${site}/sitemap.xml`,
   `LLMs-Txt: ${site}/llms.txt`,
+  "Host: nyumbasearch.com",
 ].join("\n");
 
 mkdirSync(join(root, "public"), { recursive: true });

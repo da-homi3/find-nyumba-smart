@@ -38,10 +38,18 @@ import { errorMessage } from "@/lib/utils";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import { TenantProfileScoreCard } from "@/components/TenantProfileScoreCard";
 import { ReportContactIssue } from "@/components/ReportContactIssue";
+import { buildPageHead } from "@/lib/seo/head";
 
 type TenantTransaction = Awaited<ReturnType<typeof listTransactions>>[number];
 
 export const Route = createFileRoute("/tenant/profile")({
+  head: () =>
+    buildPageHead({
+      title: "Profile — NyumbaSearch",
+      description: "Your NyumbaSearch tenant profile, preferences, and account details.",
+      path: "/tenant/profile",
+      noIndex: true,
+    }),
   component: Profile,
 });
 
