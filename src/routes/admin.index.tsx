@@ -39,6 +39,7 @@ import { AdminTenantsTab } from "@/components/admin/AdminTenantsTab";
 import { AdminAnalyticsTab } from "@/components/admin/AdminAnalyticsTab";
 import { AdminPmTab } from "@/components/admin/AdminPmTab";
 import { AdminPayoutsTab } from "@/components/admin/AdminPayoutsTab";
+import { AdminLocationsTab } from "@/components/admin/AdminLocationsTab";
 import { BrandLogo } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -74,6 +75,7 @@ function AdminDashboard() {
     if (tabFromUrl === "analytics") return "analytics";
     if (tabFromUrl === "property_management") return "property_management";
     if (tabFromUrl === "payouts") return "payouts";
+    if (tabFromUrl === "locations") return "locations";
     return "verifications";
   });
   const qc = useQueryClient();
@@ -86,6 +88,7 @@ function AdminDashboard() {
     if (tabFromUrl === "analytics") setActiveTab("analytics");
     if (tabFromUrl === "property_management") setActiveTab("property_management");
     if (tabFromUrl === "payouts") setActiveTab("payouts");
+    if (tabFromUrl === "locations") setActiveTab("locations");
   }, [tabFromUrl]);
 
   const { data: verifications = [], isLoading: verLoading } = useQuery({
@@ -276,6 +279,7 @@ function AdminDashboard() {
     { id: "founding_promo" as const, label: "Founding promo", count: 0 },
     { id: "property_management" as const, label: "Property Mgmt", count: 0 },
     { id: "payouts" as const, label: "Rent payouts", count: 0 },
+    { id: "locations" as const, label: "Locations", count: 0 },
   ];
 
   if (authLoading) {
@@ -406,6 +410,7 @@ function AdminDashboard() {
           {activeTab === "tenants" && <AdminTenantsTab />}
           {activeTab === "property_management" && <AdminPmTab />}
           {activeTab === "payouts" && <AdminPayoutsTab />}
+          {activeTab === "locations" && <AdminLocationsTab />}
         </div>
       </div>
       <OnboardingTourHost tourId="admin-dashboard" />

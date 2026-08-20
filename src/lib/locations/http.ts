@@ -50,6 +50,25 @@ export async function handleLocationsApi(request: Request): Promise<Response> {
         types: url.searchParams.get("types")?.split(",").filter(Boolean),
         countyId: url.searchParams.get("county_id") ?? undefined,
       });
+      // Fire-and-forget autocomplete telemetry (Phase 3 demand analytics).
+      void (async () => {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { asLooseDb } = await import("@/lib/db/loose-client");
+          const { normalizeLocationName } = await import("@/lib/locations/normalize");
+          await asLooseDb(supabaseAdmin).from("location_search_events").insert({
+            query: q,
+            normalized_query: normalizeLocationName(q),
+            selected_location_id: items[0]?.id ?? null,
+            result_count: items.length,
+            lat: parseFloatParam(url.searchParams.get("lat")) ?? null,
+            lng: parseFloatParam(url.searchParams.get("lng")) ?? null,
+            source: "web",
+          });
+        } catch {
+          // non-blocking
+        }
+      })();
       return json({ items });
     }
 

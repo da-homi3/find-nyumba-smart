@@ -56,3 +56,12 @@ test-results/
 oauth-*.png
 oauth-download/
 
+# Regenerable Kenya location downloads (scripts re-fetch)
+data/kenya-admin/geoboundaries-ken-adm1-simplified.geojson
+data/kenya-admin/osm-major-roads.json
+
+# Local scratch
+tmp-verify/
+supabase/.temp/
+scripts/_fix-locations-unique.mjs
+

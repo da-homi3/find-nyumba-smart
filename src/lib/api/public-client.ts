@@ -22,7 +22,7 @@ export function createPublicClient(): PublicDb {
 
 /** List/map projection — card fields only (no amenities/description/deposit payloads). */
 const PUBLIC_PROPERTY_COLUMNS_BASE =
-  "id,title,property_type,neighborhood,latitude,longitude,rent_kes,rent_kes_max,price_currency,rent_usd,rent_usd_max,bedrooms,bathrooms,images,is_verified,is_active,is_vacant,authenticity_score,available_from,pricing_mode,price_period,views,created_at,updated_at,featured_until,boost_package,nyumba_verified_at" as const;
+  "id,title,property_type,neighborhood,latitude,longitude,rent_kes,rent_kes_max,price_currency,rent_usd,rent_usd_max,bedrooms,bathrooms,images,is_verified,is_active,is_vacant,authenticity_score,available_from,pricing_mode,price_period,views,created_at,updated_at,featured_until,boost_package,nyumba_verified_at,location_id,county_location_id,constituency_location_id,ward_location_id" as const;
 
 /** Safe columns for list/search/map views — no owner_id. */
 export const PUBLIC_PROPERTY_COLUMNS = PUBLIC_PROPERTY_COLUMNS_BASE;
@@ -52,6 +52,9 @@ export function isMissingRevenueColumnError(message: string | undefined): boolea
     message.includes("area_sqm_max") ||
     message.includes("landlord_plan") ||
     message.includes("tenant_plan") ||
-    message.includes("plus_expires_at")
+    message.includes("plus_expires_at") ||
+    message.includes("location_id") ||
+    message.includes("county_location_id") ||
+    message.includes("ward_location_id")
   );
 }

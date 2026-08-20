@@ -271,6 +271,11 @@ export function mapPropertyRow(row: PropertyRowInput): Property {
     address: row.address ?? null,
     latitude: row.latitude,
     longitude: row.longitude,
+    location_id: (row as { location_id?: string | null }).location_id ?? null,
+    county_location_id: (row as { county_location_id?: string | null }).county_location_id ?? null,
+    constituency_location_id:
+      (row as { constituency_location_id?: string | null }).constituency_location_id ?? null,
+    ward_location_id: (row as { ward_location_id?: string | null }).ward_location_id ?? null,
     rent_kes: row.rent_kes,
     rent_kes_max: row.rent_kes_max ?? null,
     deposit_kes: row.deposit_kes ?? null,

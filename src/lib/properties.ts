@@ -67,6 +67,10 @@ export interface Property {
   nyumba_verified_at?: string | null;
   /** Set client-side when map pin uses neighborhood centroid */
   map_approximate?: boolean;
+  location_id?: string | null;
+  county_location_id?: string | null;
+  constituency_location_id?: string | null;
+  ward_location_id?: string | null;
 }
 
 export const formatKes = (n: number) => "KES " + n.toLocaleString("en-KE");

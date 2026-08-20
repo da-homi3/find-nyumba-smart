@@ -1,5 +1,5 @@
 import staticRoutes from "./staticRoutes.json";
-import { SEO_AREA_TYPES, SEO_INVENTORY_THRESHOLD } from "@/lib/locations/types";
+import { SEO_AREA_TYPES, SEO_INVENTORY_THRESHOLD, SEO_WARD_INVENTORY_THRESHOLD } from "@/lib/locations/types";
 
 export type GeoArea = {
   slug: string;
@@ -8,6 +8,7 @@ export type GeoArea = {
   locationId?: string;
   countyName?: string;
   inventoryCount?: number;
+  type?: string;
 };
 
 export const GEO_AREAS = staticRoutes.geoAreas as readonly GeoArea[];
@@ -61,14 +62,25 @@ export async function loadIndexableAreas(): Promise<GeoArea[]> {
   try {
     const { createPublicClient } = await import("@/lib/api/public-client");
     const supabase = createPublicClient() as import("@/lib/locations/db").LocationsDb;
-    const { data } = await supabase
-      .from("locations")
-      .select("id,name,slug,inventory_count,location_type,parent_id")
-      .eq("is_active", true)
-      .in("location_type", [...SEO_AREA_TYPES])
-      .gte("inventory_count", SEO_INVENTORY_THRESHOLD)
-      .order("inventory_count", { ascending: false })
-      .limit(200);
+    const [{ data: denseAreas }, { data: wardAreas }] = await Promise.all([
+      supabase
+        .from("locations")
+        .select("id,name,slug,inventory_count,location_type,parent_id")
+        .eq("is_active", true)
+        .in("location_type", ["LOCALITY", "NEIGHBOURHOOD", "ESTATE"])
+        .gte("inventory_count", SEO_INVENTORY_THRESHOLD)
+        .order("inventory_count", { ascending: false })
+        .limit(800),
+      supabase
+        .from("locations")
+        .select("id,name,slug,inventory_count,location_type,parent_id")
+        .eq("is_active", true)
+        .eq("location_type", "WARD")
+        .gte("inventory_count", SEO_WARD_INVENTORY_THRESHOLD)
+        .order("inventory_count", { ascending: false })
+        .limit(2000),
+    ]);
+    const data = [...(denseAreas ?? []), ...(wardAreas ?? [])];
 
     const parentIds = [
       ...new Set(
@@ -109,6 +121,7 @@ export async function loadIndexableAreas(): Promise<GeoArea[]> {
         locationId: row.id,
         inventoryCount: row.inventory_count,
         countyName: parentNames.get(row.parent_id ?? "") ?? undefined,
+        type: row.location_type,
       });
     }
   } catch (err) {
@@ -180,5 +193,7 @@ export async function resolveAreaFromSlug(slug: string): Promise<GeoArea | null>
 
 export function shouldIndexArea(area: GeoArea): boolean {
   if (STATIC_SLUGS.has(area.slug)) return true;
-  return (area.inventoryCount ?? 0) >= SEO_INVENTORY_THRESHOLD;
+  const inventory = area.inventoryCount ?? 0;
+  if (area.type === "WARD") return inventory >= SEO_WARD_INVENTORY_THRESHOLD;
+  return inventory >= SEO_INVENTORY_THRESHOLD;
 }

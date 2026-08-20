@@ -324,6 +324,65 @@ export async function queryListingsDirect(
           : DEFAULT_BROWSE_ORIGIN;
       items = sortListingsByProximity(items, origin, now);
       items = items.slice(offset, offset + limit);
+    } else if (
+      data?.locationId ||
+      data?.wardLocationId ||
+      data?.constituencyLocationId ||
+      data?.countyLocationId ||
+      data?.neighborhood
+    ) {
+      const { classifyLocationMatch, compareByLocationTier } = await import(
+        "@/lib/locations/match-tiers"
+      );
+      const filterId =
+        data.locationId ??
+        data.wardLocationId ??
+        data.constituencyLocationId ??
+        data.countyLocationId ??
+        null;
+      const ranked = items.map((item) => {
+        const tier = classifyLocationMatch({
+          filterLocationId: filterId,
+          filterNeighborhood: data.neighborhood,
+          filterLat: data.originLat,
+          filterLng: data.originLng,
+          property: {
+            location_id: item.location_id,
+            ward_location_id: item.ward_location_id,
+            constituency_location_id: item.constituency_location_id,
+            county_location_id: item.county_location_id,
+            neighborhood: item.neighborhood,
+            latitude: item.latitude,
+            longitude: item.longitude,
+          },
+        });
+        const distanceKm =
+          data.originLat != null &&
+          data.originLng != null &&
+          item.latitude != null &&
+          item.longitude != null
+            ? (() => {
+                const toRad = (d: number) => (d * Math.PI) / 180;
+                const dLat = toRad(item.latitude! - data.originLat!);
+                const dLng = toRad(item.longitude! - data.originLng!);
+                const lat1 = toRad(data.originLat!);
+                const lat2 = toRad(item.latitude!);
+                const h =
+                  Math.sin(dLat / 2) ** 2 +
+                  Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+                return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
+              })()
+            : undefined;
+        return { item, tier, distanceKm, authenticity: item.authenticity_score ?? 0 };
+      });
+      ranked.sort((a, b) => {
+        const boosted =
+          (isCurrentlyBoosted(b.item.featured_until, now) ? 1 : 0) -
+          (isCurrentlyBoosted(a.item.featured_until, now) ? 1 : 0);
+        if (boosted !== 0) return boosted;
+        return compareByLocationTier(a, b);
+      });
+      items = ranked.map((r) => r.item);
     } else if (data?.sortBy === "score") {
       // Keep authenticity order from SQL; optionally surface boosted listings first.
       items = [...items].sort((a, b) => {

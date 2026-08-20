@@ -102,4 +102,7 @@ export const SEO_AREA_TYPES: LocationType[] = [
   "WARD",
 ];
 
+/** Localities/neighbourhoods need denser inventory before indexing. */
 export const SEO_INVENTORY_THRESHOLD = 3;
+/** National ward SEO: index wards with any live listing (Phase 3 expansion). */
+export const SEO_WARD_INVENTORY_THRESHOLD = 1;
