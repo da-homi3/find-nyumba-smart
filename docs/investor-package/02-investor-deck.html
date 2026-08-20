@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NyumbaSearch — Investor Deck</title>
+  <link rel="stylesheet" href="assets/package.css" />
+  <style>
+    body { background: #e8edf2; }
+    .deck-tools { max-width: 1280px; margin: 1rem auto 0; padding: 0 1rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; }
+    .shot {
+      border-radius: 12px; border: 1px solid var(--line); overflow: hidden; background: #0b1220;
+    }
+    .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+    .anno {
+      position: absolute; background: rgba(255,255,255,0.95); border: 1px solid var(--line);
+      border-radius: 8px; padding: 0.35rem 0.5rem; font-size: 0.68rem; font-weight: 700; color: var(--ink);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    .eco {
+      display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 0.75rem; align-items: stretch;
+    }
+    .eco .hub {
+      background: linear-gradient(160deg, #086b2e, #0a8f3d);
+      color: white; border-radius: 16px; padding: 1.1rem; display:flex; flex-direction:column; justify-content:center; text-align:center;
+    }
+    .eco .spoke { background: var(--soft); border: 1px solid var(--line); border-radius: 14px; padding: 0.85rem; }
+    .eco .spoke h4 { font-size: 0.85rem; margin-bottom: 0.45rem; }
+    .eco .spoke li { font-size: 0.72rem; color: var(--slate); margin-bottom: 0.2rem; }
+    .matrix td, .matrix th { font-size: 0.68rem; text-align: center; }
+    .matrix td:first-child, .matrix th:first-child { text-align: left; font-weight: 600; }
+    .pill-row { display:flex; flex-wrap:wrap; gap:0.4rem; }
+    .pill { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:999px; padding:0.35rem 0.7rem; font-size:0.72rem; font-weight:700; }
+    .why-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:0.65rem; }
+    .why-grid .card { padding:0.85rem; box-shadow:none; }
+    .why-grid h4 { font-size:0.8rem; }
+    .why-grid p { font-size:0.72rem; color:var(--slate); margin:0; }
+  </style>
+</head>
+<body>
+  <nav class="nav no-print">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><img src="assets/logo.png" alt="" /><strong>Investor Deck</strong></a>
+      <div class="nav-links">
+        <a href="01-executive-summary.html">Exec summary</a>
+        <a href="03-product-showcase.html">Screenshots</a>
+        <a href="#slide-15">The ask</a>
+      </div>
+    </div>
+  </nav>
+  <div class="deck-tools no-print">
+    <span class="small muted">15 slides · Print to PDF (landscape) for sharing · Data as of 11 August 2026</span>
+  </div>
+
+  <!-- SLIDE 1 -->
+  <section class="deck-page cover" id="slide-1">
+    <div class="slide-body">
+      <img src="assets/logo.png" alt="NyumbaSearch" style="width:56px;height:56px;border-radius:12px;background:#fff;margin-bottom:1rem" />
+      <div class="tiny" style="color:rgba(255,255,255,0.75)">Investor &amp; Strategic Partnership Deck</div>
+      <h1>NYUMBASEARCH</h1>
+      <p class="tagline">Building the digital infrastructure for how Africa finds, manages and experiences housing.</p>
+      <div style="margin-top:1.5rem;font-size:0.85rem;opacity:0.9;display:flex;flex-wrap:wrap;gap:1rem 1.75rem">
+        <span>nyumbasearch.com</span>
+        <span>Nairobi, Kenya</span>
+        <span>Faith Wanjiku · Kevin Buluma</span>
+        <span>August 2026</span>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Confidential</span><span>01 / Cover</span></div>
+  </section>
+
+  <!-- SLIDE 2 -->
+  <section class="deck-page" id="slide-2">
+    <div class="slide-body">
+      <p class="kicker">The housing problem</p>
+      <h2 class="slide-title">Finding a home is still unnecessarily difficult.</h2>
+      <p class="slide-sub">In Nairobi and across urban Kenya, housing search still runs through fragmented chats, informal intermediaries and listings that are hard to verify — before anyone even moves in or manages the home.</p>
+      <div class="flow" style="margin:0.5rem 0 1.2rem">
+        <span class="step">Search</span><span class="arrow">→</span>
+        <span class="step">Verify</span><span class="arrow">→</span>
+        <span class="step">Contact</span><span class="arrow">→</span>
+        <span class="step">Move</span><span class="arrow">→</span>
+        <span class="step">Manage</span>
+      </div>
+      <div class="grid-2">
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:1rem;margin-bottom:0.55rem">Where the journey breaks</h3>
+          <ul style="margin:0;padding-left:1.1rem;color:var(--slate);font-size:0.88rem">
+            <li>Property information scattered across social groups and agents</li>
+            <li>Unreliable or stale vacancy claims</li>
+            <li>Weak trust signals before deposits and site visits</li>
+            <li>Time-consuming house hunting with limited transparency</li>
+            <li>Housing services discovered separately, after the fact</li>
+            <li>Landlords and managers operating with thin digital tooling</li>
+          </ul>
+        </div>
+        <div class="card" style="box-shadow:none;background:#f8fafc">
+          <h3 style="font-size:1rem;margin-bottom:0.55rem">What tenants and owners feel</h3>
+          <p style="font-size:0.88rem;color:var(--slate)">Tenants need confidence that a home is real, vacant and fairly presented. Owners need qualified demand without drowning in noise. Managers need operational continuity after the lease starts. Today those needs sit in different places — or nowhere digital at all.</p>
+          <p class="tiny" style="margin-top:0.75rem">No fabricated scam-rate statistics. Pain described from product positioning and observed market practice.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>NyumbaSearch</span><span>02 / Problem</span></div>
+  </section>
+
+  <!-- SLIDE 3 -->
+  <section class="deck-page" id="slide-3">
+    <div class="slide-body">
+      <p class="kicker">The opportunity</p>
+      <h2 class="slide-title">Real estate is massive. Housing discovery remains fragmented.</h2>
+      <div class="grid-3" style="margin-bottom:0.9rem">
+        <div class="metric">
+          <div class="num" style="font-size:1.5rem">~10%</div>
+          <div class="label">Real estate share of Kenya GDP (Q4’24 context)</div>
+          <div class="note"><span class="tag tag-ext">External</span> KNBS Economic Survey 2025 via Cytonn NMA Report 2025</div>
+        </div>
+        <div class="metric">
+          <div class="num" style="font-size:1.5rem">3.8%</div>
+          <div class="label">Urbanization growth (vs ~1.7% global)</div>
+          <div class="note"><span class="tag tag-ext">External</span> World Bank 2023 via Cytonn 2025</div>
+        </div>
+        <div class="metric">
+          <div class="num" style="font-size:1.5rem">250k / 50k</div>
+          <div class="label">Annual homes demanded vs approx. delivered</div>
+          <div class="note"><span class="tag tag-ext">External</span> CAHF framing via Cytonn 2025</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <h3 style="font-size:0.95rem">Why digital housing infrastructure matters</h3>
+          <ul style="font-size:0.8rem;color:var(--slate);margin:0.4rem 0 0;padding-left:1.1rem">
+            <li>Urban rental demand remains structurally strong as cities grow</li>
+            <li>Smartphone + M-Pesa rails make product distribution feasible</li>
+            <li>Property management and services are still under-digitized</li>
+            <li>Trust gaps create willingness to pay for verification and quality supply</li>
+          </ul>
+          <p class="tiny" style="margin-top:0.6rem">Additional context: World Bank historical housing deficit framing; KNBS 2023/24 Kenya Housing Survey programme.</p>
+        </div>
+        <div class="card" style="box-shadow:none;padding:0.9rem">
+          <h3 style="font-size:0.95rem">Illustrative TAM / SAM / SOM <span class="tag tag-est">Estimate</span></h3>
+          <table class="table" style="margin-top:0.5rem;font-size:0.72rem">
+            <tr><th>Layer</th><th>Definition</th><th>Method (transparent)</th></tr>
+            <tr>
+              <td><strong>TAM</strong></td>
+              <td>Kenya digital housing services: listing SaaS, PM tools, boosts, referrals, related marketplace fees</td>
+              <td>Top-down context from RE GDP + urbanization; not a claimed dollar TAM without audited census of operators</td>
+            </tr>
+            <tr>
+              <td><strong>SAM</strong></td>
+              <td>Nairobi metro + satellite towns rental discovery, verification, PM subscriptions, home services</td>
+              <td>Focus geography where NyumbaSearch product is live today</td>
+            </tr>
+            <tr>
+              <td><strong>SOM</strong></td>
+              <td>Near-term reachable paying supply accounts + Plus + boosts + referrals</td>
+              <td>Bottom-up from published price cards × attainable accounts — scenario model only; not a forecast commitment</td>
+            </tr>
+          </table>
+          <p class="tiny" style="margin-top:0.45rem">Example SOM scenario (illustrative): 500 paying supply accounts × blended ~KES 2,000/mo ≈ KES 12M ARR before boosts/referrals. Assumptions require diligence.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Sources cited on-slide · No invented market sizes presented as fact</span><span>03 / Opportunity</span></div>
+  </section>
+
+  <!-- SLIDE 4 -->
+  <section class="deck-page" id="slide-4">
+    <div class="slide-body">
+      <p class="kicker">The solution</p>
+      <h2 class="slide-title">One digital ecosystem for the housing journey.</h2>
+      <div class="eco" style="flex:1">
+        <div class="spoke">
+          <h4>Tenant</h4>
+          <ol style="margin:0;padding-left:1rem">
+            <li>Property discovery</li>
+            <li>Verified listings</li>
+            <li>Direct contact</li>
+            <li>Housing services</li>
+          </ol>
+          <h4 style="margin-top:0.85rem">Landlord</h4>
+          <ol style="margin:0;padding-left:1rem">
+            <li>List property</li>
+            <li>Reach tenants</li>
+            <li>Manage property</li>
+            <li>Track operations</li>
+          </ol>
+        </div>
+        <div class="hub">
+          <img src="assets/logo.png" alt="" style="width:48px;height:48px;border-radius:10px;margin:0 auto 0.6rem;background:#fff" />
+          <div style="font-family:var(--font-display);font-size:1.35rem;font-weight:800">NyumbaSearch</div>
+          <p style="font-size:0.8rem;opacity:0.92;margin:0.5rem 0 0">Trust · Discovery · Operations · Services</p>
+        </div>
+        <div class="spoke">
+          <h4>Property manager</h4>
+          <ol style="margin:0;padding-left:1rem">
+            <li>Properties → Units</li>
+            <li>Tenants → Leases</li>
+            <li>Rent → Invoices</li>
+            <li>Operations</li>
+          </ol>
+          <h4 style="margin-top:0.85rem">Service provider</h4>
+          <ol style="margin:0;padding-left:1rem">
+            <li>Create profile</li>
+            <li>Get discovered</li>
+            <li>Acquire customers</li>
+            <li>Grow with housing demand</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Ecosystem map</span><span>04 / Solution</span></div>
+  </section>
+
+  <!-- SLIDE 5 -->
+  <section class="deck-page" id="slide-5">
+    <div class="slide-body">
+      <p class="kicker">Product</p>
+      <h2 class="slide-title">Built for the real housing journey.</h2>
+      <p class="slide-sub">Live product surfaces from nyumbasearch.com — not mockups.</p>
+      <div class="grid-3" style="flex:1">
+        <div class="shot" style="position:relative;height:360px">
+          <img src="assets/crops/hero.jpg" alt="Homepage" />
+          <span class="anno" style="left:12px;bottom:12px">Homepage · verified-owner positioning</span>
+        </div>
+        <div class="shot" style="position:relative;height:360px">
+          <img src="assets/crops/tenant.jpg" alt="Discovery" />
+          <span class="anno" style="left:12px;bottom:12px">Discovery · live inventory</span>
+        </div>
+        <div class="shot" style="position:relative;height:360px">
+          <img src="assets/crops/property.jpg" alt="Property detail" />
+          <span class="anno" style="left:12px;bottom:12px">Detail · intelligence &amp; contact</span>
+        </div>
+      </div>
+      <div class="pill-row" style="margin-top:0.75rem">
+        <span class="pill">Map-first search</span>
+        <span class="pill">Verification badges</span>
+        <span class="pill">Water / security signals</span>
+        <span class="pill">Direct contact unlocks</span>
+        <span class="pill">Services + finance + insurance entry points</span>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Screenshots captured 11 Aug 2026</span><span>05 / Product</span></div>
+  </section>
+
+  <!-- SLIDE 6 -->
+  <section class="deck-page" id="slide-6">
+    <div class="slide-body">
+      <p class="kicker">Trust &amp; verification</p>
+      <h2 class="slide-title">Trust is part of the product.</h2>
+      <p class="slide-sub">NyumbaSearch does not allow random users to freely open listing or service-provider supply accounts without review. Applications are approved before listing access.</p>
+      <div class="flow" style="margin-bottom:1.1rem">
+        <span class="step">Listing submitted</span><span class="arrow">↓</span>
+        <span class="step">Account review</span><span class="arrow">↓</span>
+        <span class="step">Owner / responsible party contacted</span><span class="arrow">↓</span>
+        <span class="step">Property validated</span><span class="arrow">↓</span>
+        <span class="step">Listing published</span>
+      </div>
+      <div class="grid-2">
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:1rem">Platform controls</h3>
+          <ul style="font-size:0.85rem;color:var(--slate);padding-left:1.1rem">
+            <li>Landlord / manager / agency onboarding with operations approval</li>
+            <li>Staged landlord verification states (phone → ID → business → ownership)</li>
+            <li>On-listing badges such as Verified / Business Verified</li>
+            <li>Optional paid site inspection tiers on /verify</li>
+            <li>Tenant-facing scam-risk messaging via Plus</li>
+          </ul>
+        </div>
+        <div class="shot" style="height:265px;position:relative">
+          <img src="assets/crops/verify.jpg" alt="Verification page" />
+          <span class="anno" style="left:12px;bottom:12px">Live /verify surface</span>
+        </div>
+      </div>
+      <p class="tiny" style="margin-top:0.55rem"><span class="tag tag-claim">Website claim</span> Copy on /verify referencing “2,400+ verifications / 98% accuracy” requires internal confirmation before diligence use.</p>
+    </div>
+    <div class="slide-footer"><span>Differentiation: controlled supply + validation workflow</span><span>06 / Trust</span></div>
+  </section>
+
+  <!-- SLIDE 7 -->
+  <section class="deck-page" id="slide-7">
+    <div class="slide-body">
+      <p class="kicker">Traction</p>
+      <h2 class="slide-title">Early traction with a growing supply-side network.</h2>
+      <p class="slide-sub">Early-stage traction — current snapshot. No historical growth chart is shown because time-series data has not been disclosed.</p>
+      <div class="grid-4" style="margin-bottom:1rem">
+        <div class="metric">
+          <div class="num">295+</div>
+          <div class="label">Live listings</div>
+          <div class="note"><span class="tag tag-live">Verified live</span> /tenant · 11 Aug 2026</div>
+        </div>
+        <div class="metric">
+          <div class="num">214</div>
+          <div class="label">Service providers</div>
+          <div class="note"><span class="tag tag-live">Verified live</span> /services</div>
+        </div>
+        <div class="metric">
+          <div class="num">324</div>
+          <div class="label">Indexed properties</div>
+          <div class="note"><span class="tag tag-live">Verified live</span> sitemap.xml</div>
+        </div>
+        <div class="metric">
+          <div class="num">136</div>
+          <div class="label">Users</div>
+          <div class="note"><span class="tag tag-internal">Internal</span> Requires confirmation</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:0.95rem">Also observed</h3>
+          <ul style="font-size:0.82rem;color:var(--slate);padding-left:1.1rem">
+            <li>22 listing accounts — <span class="tag tag-internal">Internal</span></li>
+            <li>Multi-neighbourhood inventory (e.g. Kilimani, Westlands, Karen, Ruaka, Ongata Rongai)</li>
+            <li>24 service categories with live provider counts</li>
+            <li>App downloads: not publicly disclosed (Play listing not live)</li>
+          </ul>
+        </div>
+        <div class="card" style="box-shadow:none;background:#f8fafc">
+          <h3 style="font-size:0.95rem">How to read this</h3>
+          <p style="font-size:0.82rem;color:var(--slate)">The credible signal today is <strong>supply presence</strong> and a working multi-sided product surface. Demand metrics, retention and revenue will be shared in diligence under NDA rather than implied here.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Current traction snapshot</span><span>07 / Traction</span></div>
+  </section>
+
+  <!-- SLIDE 8 -->
+  <section class="deck-page" id="slide-8">
+    <div class="slide-body">
+      <p class="kicker">Business model</p>
+      <h2 class="slide-title">Multiple revenue opportunities across the housing ecosystem.</h2>
+      <div class="grid-2" style="flex:1">
+        <div>
+          <h3 style="font-size:0.9rem;color:var(--forest)">Published / productized monetization</h3>
+          <p class="tiny" style="margin-bottom:0.35rem">Live pricing &amp; product surfaces — realization amounts not disclosed</p>
+          <ol style="font-size:0.78rem;color:var(--slate);margin:0;padding-left:1.1rem;columns:1">
+            <li>Property listing subscriptions (landlord Free / Pro / Premium)</li>
+            <li>Property manager &amp; agency subscriptions</li>
+            <li>Premium placement / listing boosts</li>
+            <li>Service-provider subscription tiers</li>
+            <li>NyumbaSearch Plus (tenant)</li>
+            <li>Contact unlock fees</li>
+            <li>Paid property verification</li>
+            <li>Advertising packages</li>
+            <li>Finance &amp; insurance referral pathways</li>
+            <li>Property-management module billing (product exists)</li>
+          </ol>
+          <p class="tiny" style="margin-top:0.55rem"><span class="tag tag-claim">Important</span> Current revenue is <strong>not publicly disclosed</strong>. Do not infer run-rate from price cards alone.</p>
+        </div>
+        <div class="card" style="box-shadow:none;background:linear-gradient(180deg,#f0fdf4,#fff)">
+          <h3 style="font-size:0.95rem">Revenue flywheel</h3>
+          <div class="flow" style="flex-direction:column;align-items:flex-start;gap:0.35rem;margin-top:0.5rem">
+            <span class="step">Tenant activity</span><span class="arrow">↓</span>
+            <span class="step">Property demand</span><span class="arrow">↓</span>
+            <span class="step">Landlord participation</span><span class="arrow">↓</span>
+            <span class="step">More listings</span><span class="arrow">↓</span>
+            <span class="step">More users &amp; service providers</span><span class="arrow">↓</span>
+            <span class="step">More transactions → monetization</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Current vs planned: productized ≠ recognized revenue</span><span>08 / Model</span></div>
+  </section>
+
+  <!-- SLIDE 9 -->
+  <section class="deck-page" id="slide-9">
+    <div class="slide-body">
+      <p class="kicker">Property management</p>
+      <h2 class="slide-title">From finding a home to managing the home.</h2>
+      <p class="slide-sub">Property management expands NyumbaSearch from discovery into recurring-revenue property technology.</p>
+      <div class="grid-2">
+        <div>
+          <div class="flow" style="margin-bottom:0.9rem">
+            <span class="step">Properties</span><span class="arrow">→</span>
+            <span class="step">Units</span><span class="arrow">→</span>
+            <span class="step">Tenants</span><span class="arrow">→</span>
+            <span class="step">Leases</span><span class="arrow">→</span>
+            <span class="step">Rent</span>
+          </div>
+          <ul style="font-size:0.82rem;color:var(--slate);padding-left:1.1rem">
+            <li>Manager portal with approval-gated onboarding</li>
+            <li>Published manager plans from KES 2,500–10,000 / month</li>
+            <li>Rent workflows designed around M-Pesa / payment recording</li>
+            <li>Operational path: invoices, payment records, portfolio dashboards</li>
+            <li>Separate PM module tiers exist in product architecture</li>
+          </ul>
+          <p class="tiny">Landlord dashboards require authenticated access — public screenshot shows portal landing &amp; value proposition.</p>
+        </div>
+        <div class="shot" style="height:390px;position:relative">
+          <img src="assets/crops/landlord.jpg" alt="Landlord portal" />
+          <span class="anno" style="left:12px;bottom:12px">Live landlord portal landing</span>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Discovery → operations</span><span>09 / Property management</span></div>
+  </section>
+
+  <!-- SLIDE 10 -->
+  <section class="deck-page" id="slide-10">
+    <div class="slide-body">
+      <p class="kicker">Competitive landscape</p>
+      <h2 class="slide-title">Moving beyond listings toward an integrated housing platform.</h2>
+      <p class="slide-sub">Category comparison — not a claim that every competitor lacks every feature.</p>
+      <table class="table matrix">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>Traditional agents</th>
+            <th>Listing / classified sites</th>
+            <th>Social housing groups</th>
+            <th>PM software</th>
+            <th>NyumbaSearch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Property discovery</td><td class="partial">Partial</td><td class="yes">Strong</td><td class="partial">Partial</td><td class="no">Limited</td><td class="yes">Core</td></tr>
+          <tr><td>Verification workflow</td><td class="partial">Varies</td><td class="partial">Varies</td><td class="no">Weak</td><td class="no">Limited</td><td class="yes">Productized</td></tr>
+          <tr><td>Direct owner contact</td><td class="partial">Often mediated</td><td class="partial">Varies</td><td class="partial">Informal</td><td class="no">N/A</td><td class="yes">Designed-in</td></tr>
+          <tr><td>Property management</td><td class="partial">Manual</td><td class="no">Rare</td><td class="no">No</td><td class="yes">Core</td><td class="yes">In-platform</td></tr>
+          <tr><td>Service providers</td><td class="no">Ad hoc</td><td class="partial">Sometimes</td><td class="no">Ad hoc</td><td class="no">Rare</td><td class="yes">Directory live</td></tr>
+          <tr><td>Payments (M-Pesa oriented)</td><td class="partial">Offline</td><td class="partial">Varies</td><td class="no">No</td><td class="partial">Varies</td><td class="yes">Productized</td></tr>
+          <tr><td>Local Nairobi focus</td><td class="yes">Yes</td><td class="partial">Varies</td><td class="yes">Yes</td><td class="partial">Varies</td><td class="yes">Primary</td></tr>
+          <tr><td>Housing ecosystem breadth</td><td class="no">Narrow</td><td class="partial">Listing-led</td><td class="no">Narrow</td><td class="partial">Ops-led</td><td class="yes">Combined</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="slide-footer"><span>Advantage = combination, not a single feature monopoly claim</span><span>10 / Competition</span></div>
+  </section>
+
+  <!-- SLIDE 11 -->
+  <section class="deck-page" id="slide-11">
+    <div class="slide-body">
+      <p class="kicker">Go-to-market</p>
+      <h2 class="slide-title">Building supply and demand simultaneously.</h2>
+      <div class="grid-2" style="flex:1">
+        <div class="card" style="box-shadow:none;border-color:#a7f3d0">
+          <h3 style="font-size:1.05rem;color:var(--forest)">Supply</h3>
+          <ul style="font-size:0.85rem;color:var(--slate);padding-left:1.1rem">
+            <li>Direct landlord acquisition</li>
+            <li>Property managers &amp; agencies</li>
+            <li>Real-estate companies &amp; developers</li>
+            <li>Student residences / multi-unit operators</li>
+            <li>Service-provider onboarding</li>
+            <li>On-ground acquisition &amp; ops verification</li>
+          </ul>
+        </div>
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:1.05rem">Demand</h3>
+          <ul style="font-size:0.85rem;color:var(--slate);padding-left:1.1rem">
+            <li>Social distribution &amp; community channels</li>
+            <li>Student / young professional networks</li>
+            <li>SEO &amp; product-led web discovery</li>
+            <li>Referral loops between tenants and owners</li>
+            <li>Partnership distribution (campus, employers, banks)</li>
+            <li>App distribution when store listing is live</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:0.9rem;font-size:0.85rem;color:var(--slate)"><strong>Marketplace flywheel:</strong> denser verified supply improves search quality → more tenant activity → stronger conversion for owners → more professional operators join → richer services and monetization.</p>
+    </div>
+    <div class="slide-footer"><span>Cold-start strategy: controlled supply quality over unchecked volume</span><span>11 / GTM</span></div>
+  </section>
+
+  <!-- SLIDE 12 -->
+  <section class="deck-page" id="slide-12">
+    <div class="slide-body">
+      <p class="kicker">Partnership opportunity</p>
+      <h2 class="slide-title">Strategic partnerships can accelerate the housing ecosystem.</h2>
+      <div class="grid-2" style="margin-bottom:0.85rem">
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:0.95rem">Banks &amp; financial institutions</h3>
+          <p style="font-size:0.78rem;color:var(--slate)">Customer acquisition near housing intent · mortgage / personal loan leads · payment infrastructure · SME relationships with landlords &amp; managers · insights from housing journeys. <em>No regulatory integration claimed unless contracted.</em></p>
+        </div>
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:0.95rem">Insurance</h3>
+          <p style="font-size:0.78rem;color:var(--slate)">Tenant contents, landlord property, rent-related protection, referral distribution at move-in. Live quote-request surface already exists on-site.</p>
+        </div>
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:0.95rem">Real estate &amp; developers</h3>
+          <p style="font-size:0.78rem;color:var(--slate)">Verified digital distribution, tenant acquisition, portfolio visibility, property-management tooling.</p>
+        </div>
+        <div class="card" style="box-shadow:none">
+          <h3 style="font-size:0.95rem">Service providers</h3>
+          <p style="font-size:0.78rem;color:var(--slate)">Marketplace exposure timed to the moment tenants secure a home.</p>
+        </div>
+      </div>
+      <div class="flow" style="justify-content:center">
+        <span class="step">Partner</span><span class="arrow">↔</span>
+        <span class="step" style="background:#ecfdf5;border-color:#86efac">NyumbaSearch</span><span class="arrow">↔</span>
+        <span class="step">Customer</span>
+      </div>
+    </div>
+    <div class="slide-footer"><span>Full models in Strategic Partnership Proposal</span><span>12 / Partnerships</span></div>
+  </section>
+
+  <!-- SLIDE 13 -->
+  <section class="deck-page" id="slide-13">
+    <div class="slide-body">
+      <p class="kicker">Why now</p>
+      <h2 class="slide-title">The housing market is becoming digital.</h2>
+      <div class="why-grid">
+        <div class="card"><h4>Urbanization</h4><p>Continued city growth sustains rental demand. <span class="tag tag-ext">Ext.</span></p></div>
+        <div class="card"><h4>Smartphones</h4><p>Search and messaging already happen on phones — product can meet users there.</p></div>
+        <div class="card"><h4>Digital payments</h4><p>M-Pesa rails make subscriptions, unlocks and rent workflows practical.</p></div>
+        <div class="card"><h4>Fintech / PropTech</h4><p>Adjacent infrastructure makes referrals and embedded services feasible.</p></div>
+        <div class="card"><h4>Trust expectations</h4><p>Users increasingly expect verification before committing deposits or travel.</p></div>
+        <div class="card"><h4>Ops digitization</h4><p>Managers need systems beyond spreadsheets as portfolios grow.</p></div>
+        <div class="card"><h4>Services timing</h4><p>Move-in is a natural distribution moment for insurance, finance and home services.</p></div>
+        <div class="card"><h4>NyumbaSearch position</h4><p>Live multi-sided product already spanning discovery, trust, services and ops entry points.</p></div>
+      </div>
+      <p style="margin-top:1rem;font-size:0.88rem;color:var(--slate)">The transition will not be won by another thin listings clone. It will be won by platforms that earn trust and stay useful after the lease starts.</p>
+    </div>
+    <div class="slide-footer"><span>Timing thesis</span><span>13 / Why now</span></div>
+  </section>
+
+  <!-- SLIDE 14 -->
+  <section class="deck-page" id="slide-14">
+    <div class="slide-body">
+      <p class="kicker">Investment / partnership opportunity</p>
+      <h2 class="slide-title">Partner with us to build the next generation of African housing infrastructure.</h2>
+      <div class="grid-2">
+        <div>
+          <h3 style="font-size:1rem">What we are exploring</h3>
+          <ul style="font-size:0.85rem;color:var(--slate);padding-left:1.1rem">
+            <li>Strategic investment</li>
+            <li>Venture / angel capital</li>
+            <li>Corporate &amp; distribution partnerships</li>
+            <li>Technology partnerships</li>
+            <li>Financial-services &amp; insurance partnerships</li>
+            <li>Real-estate supply partnerships</li>
+            <li>Market expansion support</li>
+          </ul>
+          <div class="callout" style="margin-top:1rem">
+            <strong>Investment opportunity</strong>
+            Terms available upon discussion. No fundraising amount, valuation, or use-of-funds percentages are stated here because they have not been publicly fixed for this package.
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;background:#f8fafc">
+          <h3 style="font-size:1rem">Capital would typically support</h3>
+          <p class="tiny">Categories — not allocated percentages</p>
+          <ul style="font-size:0.82rem;color:var(--slate);padding-left:1.1rem">
+            <li>Product development (trust, PM, mobile distribution)</li>
+            <li>Supply acquisition &amp; verification operations</li>
+            <li>Demand growth &amp; partnerships</li>
+            <li>Team capacity</li>
+            <li>Infrastructure &amp; compliance</li>
+          </ul>
+          <h3 style="font-size:1rem;margin-top:1rem">Why this team</h3>
+          <p style="font-size:0.82rem;color:var(--slate)"><strong>Faith Wanjiku</strong> — Co-founder &amp; Product · <strong>Kevin Buluma</strong> — Co-founder &amp; Engineering · Ops verification function. Public about page; fuller bios available in diligence.</p>
+        </div>
+      </div>
+    </div>
+    <div class="slide-footer"><span>No fabricated raise size or valuation</span><span>14 / Opportunity</span></div>
+  </section>
+
+  <!-- SLIDE 15 -->
+  <section class="deck-page" id="slide-15">
+    <div class="slide-body" style="justify-content:center;align-items:flex-start">
+      <p class="kicker">Next step</p>
+      <h2 class="slide-title" style="font-size:2.2rem;max-width:18ch">Let's explore what we can build together.</h2>
+      <p class="slide-sub" style="font-size:1.05rem">We are seeking a 30-minute strategic conversation to explore investment, partnership and market expansion opportunities.</p>
+      <div class="grid-3" style="width:100%;margin-top:0.5rem">
+        <div class="card" style="box-shadow:none">
+          <p class="tiny">Website</p>
+          <p style="font-size:1rem;font-weight:700;margin:0"><a href="https://nyumbasearch.com">nyumbasearch.com</a></p>
+          <img src="assets/qr-website.png" alt="QR" style="width:110px;margin-top:0.75rem" />
+        </div>
+        <div class="card" style="box-shadow:none">
+          <p class="tiny">App</p>
+          <p style="font-size:0.9rem;margin:0">Google Play listing for <code>ke.co.nyumbasearch.app</code> — not publicly live as of 11 Aug 2026. Use the web app today.</p>
+        </div>
+        <div class="card" style="box-shadow:none;background:#ecfdf5;border-color:#86efac">
+          <p class="tiny">Contact</p>
+          <p style="margin:0;font-weight:700">nyumbasearch101@gmail.com</p>
+          <p style="margin:0.25rem 0 0">0714725598</p>
+          <p style="margin:0.55rem 0 0;font-size:0.82rem">Faith Wanjiku · Kevin Buluma</p>
+          <a class="btn" style="margin-top:0.85rem" href="mailto:nyumbasearch101@gmail.com?subject=NyumbaSearch%2030-minute%20strategic%20conversation">Request a 30-minute meeting</a>
+        </div>
+      </div>
+      <p style="margin-top:1.4rem;font-size:1.05rem;font-weight:700;color:var(--forest)">Let's schedule a 30-minute conversation.</p>
+    </div>
+    <div class="slide-footer"><span>Confidential · NyumbaSearch</span><span>15 / Ask</span></div>
+  </section>
+</body>
+</html>
