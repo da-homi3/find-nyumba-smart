@@ -179,3 +179,14 @@ CREATE POLICY location_sources_public_read ON public.location_sources
 GRANT SELECT ON public.locations TO anon, authenticated;
 GRANT SELECT ON public.location_aliases TO anon, authenticated;
 GRANT SELECT ON public.location_sources TO anon, authenticated;
+
+-- properties uses column-level SELECT (see close_pii_exposure). New columns need
+-- an explicit grant or anon browse queries fail with 42501.
+GRANT SELECT (
+  location_id,
+  county_location_id,
+  constituency_location_id,
+  ward_location_id,
+  location_match_confidence,
+  location_needs_review
+) ON public.properties TO anon, authenticated;

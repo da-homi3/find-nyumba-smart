@@ -39,6 +39,11 @@ export const PROPERTY_DETAIL_COLUMNS_LEGACY =
 
 export function isMissingRevenueColumnError(message: string | undefined): boolean {
   if (!message) return false;
+  // Column-level privilege gaps (PII lockdown) often surface as table permission
+  // denied without naming the column — fall back to the legacy projection.
+  if (message.includes("permission denied") && message.includes("properties")) {
+    return true;
+  }
   return (
     message.includes("featured_until") ||
     message.includes("boost_package") ||
@@ -55,6 +60,7 @@ export function isMissingRevenueColumnError(message: string | undefined): boolea
     message.includes("plus_expires_at") ||
     message.includes("location_id") ||
     message.includes("county_location_id") ||
+    message.includes("constituency_location_id") ||
     message.includes("ward_location_id")
   );
 }
