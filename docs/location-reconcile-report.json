@@ -1,8 +1,8 @@
 {
-  "scanned": 343,
-  "matched": 145,
-  "needsReview": 46,
-  "unmatched": 198,
+  "scanned": 348,
+  "matched": 138,
+  "needsReview": 45,
+  "unmatched": 210,
   "skippedEmpty": 0,
   "samples": [
     {
@@ -21,7 +21,10 @@
     {
       "id": "0347aa51-5bb4-478d-a7b8-f36922b14767",
       "neighborhood": "Kitengela",
-      "status": "unmatched"
+      "matched": "Iten",
+      "type": "LOCALITY",
+      "confidence": 70,
+      "needsReview": false
     },
     {
       "id": "03bf4bf7-6874-4c27-9396-f6fe01b5af06",
@@ -54,10 +57,7 @@
     {
       "id": "09d0386e-5fb6-4a76-ac0c-3c15bdb08f68",
       "neighborhood": "Kasarani sunton, kwa mafuta",
-      "matched": "Kasarani",
-      "type": "CONSTITUENCY",
-      "confidence": 85,
-      "needsReview": false
+      "status": "unmatched"
     },
     {
       "id": "0b096aa3-6341-4a25-87d4-1863fb28741c",
@@ -68,8 +68,8 @@
       "id": "0b177e51-744c-4aad-92ac-c9d838b03855",
       "neighborhood": "Along kiambu road",
       "matched": "Kiambu",
-      "type": "CONSTITUENCY",
-      "confidence": 95,
+      "type": "LOCALITY",
+      "confidence": 100,
       "needsReview": false
     },
     {
@@ -83,7 +83,10 @@
     {
       "id": "0e50af70-48f5-4e2b-bd62-f0d40fb90dc3",
       "neighborhood": "Kitengela, Kajiado",
-      "status": "unmatched"
+      "matched": "Iten",
+      "type": "LOCALITY",
+      "confidence": 70,
+      "needsReview": false
     },
     {
       "id": "0f094c38-ee69-480e-a67e-66e3894a9f21",

@@ -149,6 +149,15 @@ async function insertPropertyListing(
 
   if (readError) throw readError;
 
+  void (async () => {
+    try {
+      const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
+      await attachPropertyLocationFks(admin, property.id, listingData.neighborhood);
+    } catch (err) {
+      console.warn("[insertPropertyListing] location attach failed:", err);
+    }
+  })();
+
   const bustListingCaches = () => {
     void import("@/lib/cache/manager")
       .then(({ invalidateListingCaches }) => invalidateListingCaches())

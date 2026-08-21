@@ -1,3 +1,4 @@
+export { attachPropertyLocationFks } from "./attach-property";
 export { normalizeLocationName, slugifyLocationName, countyLookupKey, parsePlaceQuery } from "./normalize";
 export { searchLocationsDb } from "./search";
 export { resolveLocation } from "./resolve";

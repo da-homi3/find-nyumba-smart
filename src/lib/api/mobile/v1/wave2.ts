@@ -15,7 +15,7 @@ const ACTIVE_PORTALS = ["tenant", "landlord", "agency", "manager", "admin", "car
 type ActivePortal = (typeof ACTIVE_PORTALS)[number];
 
 const PROPERTY_LIST_SELECT =
-  "id, title, description, rent_kes, deposit_kes, is_active, is_vacant, neighborhood, address, property_type, bedrooms, bathrooms, amenities, images, video_url, tour_url, authenticity_score, owner_id, organization_id, updated_at, created_at";
+  "id, title, description, rent_kes, deposit_kes, is_active, is_vacant, neighborhood, address, property_type, bedrooms, bathrooms, amenities, images, video_url, tour_url, authenticity_score, owner_id, organization_id, location_id, updated_at, created_at";
 
 async function requireListerRole(admin: MobileAdmin, userId: string): Promise<Response | null> {
   for (const role of LISTER_ROLES) {
@@ -101,6 +101,7 @@ type PropertyPatchBody = {
   amenities?: unknown;
   video_url?: unknown;
   tour_url?: unknown;
+  location_id?: unknown;
 };
 
 type PropertyUpdate = Database["public"]["Tables"]["properties"]["Update"];
@@ -304,6 +305,21 @@ async function handlePatchProperty(req: Request, propertyId: string): Promise<Re
   if (error) {
     console.error("mobile property patch:", error.message);
     return mobileError("Could not update property", "PROPERTY_ERROR", 500);
+  }
+
+  if (typeof patch.neighborhood === "string" || typeof body.location_id === "string") {
+    const locationId =
+      typeof body.location_id === "string" ? parseUuid(body.location_id) : null;
+    const neighborhood =
+      typeof patch.neighborhood === "string"
+        ? patch.neighborhood
+        : typeof row.neighborhood === "string"
+          ? row.neighborhood
+          : "";
+    if (neighborhood || locationId) {
+      const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
+      await attachPropertyLocationFks(auth.admin, propertyId, neighborhood, locationId);
+    }
   }
 
   return mobileJson({ apiVersion: "v1", property: row });

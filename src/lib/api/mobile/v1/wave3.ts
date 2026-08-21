@@ -13,7 +13,7 @@ import { z } from "zod";
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 const PROPERTY_SAFE_SELECT =
-  "id, title, description, rent_kes, is_active, is_vacant, neighborhood, property_type, bedrooms, bathrooms, images, owner_id, organization_id, pricing_mode, updated_at, created_at";
+  "id, title, description, rent_kes, is_active, is_vacant, neighborhood, property_type, bedrooms, bathrooms, images, owner_id, organization_id, pricing_mode, location_id, updated_at, created_at";
 
 const CHECKOUT_PAYMENT_TYPES = [
   "tenant_plus",
@@ -282,46 +282,8 @@ async function attachLocationFks(
   neighborhood: string,
   locationId?: string,
 ): Promise<void> {
-  try {
-    const { createPublicClient } = await import("@/lib/api/public-client");
-    const { resolveLocation } = await import("@/lib/locations/resolve");
-    const { getLocationAncestors } = await import("@/lib/locations/hierarchy");
-    const { asLooseDb } = await import("@/lib/db/loose-client");
-    const db = asLooseDb(admin);
-
-    let resolvedId = locationId ?? null;
-    let confidence = locationId ? 90 : 0;
-    let needsReview = !locationId;
-    if (!resolvedId) {
-      const hit = await resolveLocation(createPublicClient(), neighborhood);
-      if (!hit) return;
-      resolvedId = hit.id;
-      confidence = hit.matchConfidence;
-      needsReview = hit.needsReview;
-    }
-
-    const ancestors = await getLocationAncestors(createPublicClient(), resolvedId);
-    const { getLocationById } = await import("@/lib/locations/hierarchy");
-    const self = await getLocationById(createPublicClient(), resolvedId);
-    const chain = self ? [self, ...ancestors] : ancestors;
-    const county = chain.find((a) => a.type === "COUNTY");
-    const constituency = chain.find((a) => a.type === "CONSTITUENCY");
-    const ward = chain.find((a) => a.type === "WARD");
-
-    await db
-      .from("properties")
-      .update({
-        location_id: resolvedId,
-        county_location_id: county?.id ?? null,
-        constituency_location_id: constituency?.id ?? null,
-        ward_location_id: ward?.id ?? null,
-        location_match_confidence: confidence,
-        location_needs_review: needsReview,
-      })
-      .eq("id", propertyId);
-  } catch (err) {
-    console.warn("mobile property location attach:", err);
-  }
+  const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
+  await attachPropertyLocationFks(admin, propertyId, neighborhood, locationId);
 }
 
 async function handleCreateProperty(req: Request): Promise<Response> {
