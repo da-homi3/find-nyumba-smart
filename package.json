@@ -75,6 +75,7 @@
     "refresh:location-inventory": "node scripts/refresh-location-inventory.mjs",
     "seed:county-polygons": "node scripts/seed-county-polygons.mjs",
     "seed:osm-roads": "node scripts/seed-osm-major-roads.mjs",
+    "seed:location-aliases": "node scripts/seed-location-aliases.mjs",
     "config:cloudflare": "node scripts/sync-wrangler-env.mjs",
     "env:migrate": "node scripts/migrate-lovable-env.mjs",
     "ai:test": "node scripts/test-gemini.mjs",

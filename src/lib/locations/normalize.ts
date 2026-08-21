@@ -55,21 +55,68 @@ export function editDistance(a: string, b: string): number {
   return prev[b.length]!;
 }
 
+/** Strip noise landlords often append to free-text neighborhoods. */
+export function scrubPlaceNoise(raw: string): string {
+  return String(raw ?? "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
+    .replace(/\b(shopping\s+mall|stage|roundabout|junction|area|estate|road|rd|hwy|highway|way)\b/gi, " ")
+    .replace(/[,;/|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const COUNTY_HINTS = new Set([
+  "nairobi",
+  "nairobi city",
+  "kiambu",
+  "mombasa",
+  "nakuru",
+  "kisumu",
+  "machakos",
+  "kajiado",
+  "kilifi",
+  "kwale",
+  "kitui",
+  "nyeri",
+  "meru",
+  "uasin gishu",
+  "kakamega",
+]);
+
 /** Split "Kilimani Nairobi" / "Kilimani, Nairobi" into place + optional county hint. */
 export function parsePlaceQuery(q: string): { place: string; countyHint: string | null } {
   const raw = q.trim();
   if (!raw) return { place: "", countyHint: null };
+
   const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
   if (comma.length >= 2) {
-    return { place: comma[0]!, countyHint: comma.slice(1).join(" ") };
+    const head = scrubPlaceNoise(comma[0]!);
+    const tailNorm = normalizeLocationName(comma.slice(1).join(" "));
+    const countyHint = COUNTY_HINTS.has(tailNorm) ? comma.slice(1).join(" ") : null;
+    // Prefer the first comma segment (usually the neighbourhood); fall back to scrubbed full text.
+    const place = head || scrubPlaceNoise(raw);
+    return { place, countyHint };
   }
-  const parts = raw.split(/\s+/);
+
+  const scrubbed = scrubPlaceNoise(raw);
+  const parts = scrubbed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     const last = parts[parts.length - 1]!;
-    const countyish = ["nairobi", "kiambu", "mombasa", "nakuru", "kisumu", "machakos", "kajiado"];
-    if (countyish.includes(normalizeLocationName(last))) {
+    if (COUNTY_HINTS.has(normalizeLocationName(last))) {
       return { place: parts.slice(0, -1).join(" "), countyHint: last };
     }
+    // Two-word county names at the end (e.g. "Runda Nairobi City" already handled via normalize).
+    if (parts.length >= 3) {
+      const lastTwo = normalizeLocationName(`${parts[parts.length - 2]} ${parts[parts.length - 1]}`);
+      if (COUNTY_HINTS.has(lastTwo)) {
+        return {
+          place: parts.slice(0, -2).join(" "),
+          countyHint: `${parts[parts.length - 2]} ${parts[parts.length - 1]}`,
+        };
+      }
+    }
   }
-  return { place: raw, countyHint: null };
+  return { place: scrubbed || raw, countyHint: null };
 }

@@ -43,20 +43,63 @@ function normalizeName(name) {
     .replace(/\s+/g, " ");
 }
 
+function scrubPlaceNoise(raw) {
+  return String(raw ?? "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
+    .replace(/\b(shopping\s+mall|stage|roundabout|junction|area|estate|road|rd|hwy|highway|way)\b/gi, " ")
+    .replace(/[,;/|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const COUNTY_HINTS = new Set([
+  "nairobi",
+  "nairobi city",
+  "kiambu",
+  "mombasa",
+  "nakuru",
+  "kisumu",
+  "machakos",
+  "kajiado",
+  "kilifi",
+  "kwale",
+  "kitui",
+  "nyeri",
+  "meru",
+  "uasin gishu",
+  "kakamega",
+]);
+
 function parsePlace(q) {
   const raw = String(q ?? "").trim();
   if (!raw) return { place: "", countyHint: null };
   const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
-  if (comma.length >= 2) return { place: comma[0], countyHint: comma.slice(1).join(" ") };
-  const parts = raw.split(/\s+/);
+  if (comma.length >= 2) {
+    const head = scrubPlaceNoise(comma[0]);
+    const tailNorm = normalizeName(comma.slice(1).join(" "));
+    const countyHint = COUNTY_HINTS.has(tailNorm) ? comma.slice(1).join(" ") : null;
+    return { place: head || scrubPlaceNoise(raw), countyHint };
+  }
+  const scrubbed = scrubPlaceNoise(raw);
+  const parts = scrubbed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     const last = parts[parts.length - 1];
-    const countyish = ["nairobi", "kiambu", "mombasa", "nakuru", "kisumu", "machakos", "kajiado"];
-    if (countyish.includes(normalizeName(last))) {
+    if (COUNTY_HINTS.has(normalizeName(last))) {
       return { place: parts.slice(0, -1).join(" "), countyHint: last };
     }
+    if (parts.length >= 3) {
+      const lastTwo = normalizeName(`${parts[parts.length - 2]} ${parts[parts.length - 1]}`);
+      if (COUNTY_HINTS.has(lastTwo)) {
+        return {
+          place: parts.slice(0, -2).join(" "),
+          countyHint: `${parts[parts.length - 2]} ${parts[parts.length - 1]}`,
+        };
+      }
+    }
   }
-  return { place: raw, countyHint: null };
+  return { place: scrubbed || raw, countyHint: null };
 }
 
 const env = loadEnv();

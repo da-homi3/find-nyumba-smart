@@ -767,6 +767,15 @@ export const updateProperty = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
 
+    void (async () => {
+      try {
+        const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
+        await attachPropertyLocationFks(admin, propertyId, listingPayload.neighborhood);
+      } catch (err) {
+        console.warn("[updateProperty] location attach failed:", err);
+      }
+    })();
+
     if (
       before &&
       typeof listingPayload.rent_kes === "number" &&

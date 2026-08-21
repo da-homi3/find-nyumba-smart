@@ -32,6 +32,22 @@ describe("location normalize", () => {
     expect(parsePlaceQuery("Ruaka").countyHint).toBeNull();
     expect(parsePlaceQuery("CBD").place).toBe("CBD");
   });
+
+  it("scrubs landlord noise without inventing places", () => {
+    expect(parsePlaceQuery("Gigiri(UN ZONE)")).toEqual({
+      place: "Gigiri",
+      countyHint: null,
+    });
+    expect(parsePlaceQuery("Kileleshwa, vihiga road")).toEqual({
+      place: "Kileleshwa",
+      countyHint: null,
+    });
+    expect(parsePlaceQuery("Along Ngong road")).toEqual({
+      place: "Ngong",
+      countyHint: null,
+    });
+    expect(parsePlaceQuery("Runda, Kiambu").countyHint?.toLowerCase()).toBe("kiambu");
+  });
 });
 
 describe("location seed acceptance", () => {

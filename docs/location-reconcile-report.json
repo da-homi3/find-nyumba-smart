@@ -1,8 +1,8 @@
 {
   "scanned": 348,
-  "matched": 138,
-  "needsReview": 45,
-  "unmatched": 210,
+  "matched": 163,
+  "needsReview": 39,
+  "unmatched": 185,
   "skippedEmpty": 0,
   "samples": [
     {
@@ -57,7 +57,10 @@
     {
       "id": "09d0386e-5fb6-4a76-ac0c-3c15bdb08f68",
       "neighborhood": "Kasarani sunton, kwa mafuta",
-      "status": "unmatched"
+      "matched": "Kasarani",
+      "type": "CONSTITUENCY",
+      "confidence": 85,
+      "needsReview": false
     },
     {
       "id": "0b096aa3-6341-4a25-87d4-1863fb28741c",
