@@ -92,6 +92,8 @@ async function insertPropertyListing(
     latitude: addressEnrichment.latitude,
     longitude: addressEnrichment.longitude,
   };
+  const selectedLocationId = listingData.location_id ?? null;
+  delete (listingData as { location_id?: string | null }).location_id;
 
   const duplicateHash = await computeListingFingerprint({
     title: listingData.title,
@@ -152,7 +154,12 @@ async function insertPropertyListing(
   void (async () => {
     try {
       const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-      await attachPropertyLocationFks(admin, property.id, listingData.neighborhood);
+      await attachPropertyLocationFks(
+        admin,
+        property.id,
+        listingData.neighborhood,
+        selectedLocationId,
+      );
     } catch (err) {
       console.warn("[insertPropertyListing] location attach failed:", err);
     }
@@ -726,6 +733,8 @@ export const updateProperty = createServerFn({ method: "POST" })
       latitude: addressEnrichment.latitude,
       longitude: addressEnrichment.longitude,
     };
+    const selectedLocationId = listingPayload.location_id ?? null;
+    delete (listingPayload as { location_id?: string | null }).location_id;
 
     const duplicateHash = await computeListingFingerprint({
       title: listingPayload.title,
@@ -770,7 +779,12 @@ export const updateProperty = createServerFn({ method: "POST" })
     void (async () => {
       try {
         const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-        await attachPropertyLocationFks(admin, propertyId, listingPayload.neighborhood);
+        await attachPropertyLocationFks(
+          admin,
+          propertyId,
+          listingPayload.neighborhood,
+          selectedLocationId,
+        );
       } catch (err) {
         console.warn("[updateProperty] location attach failed:", err);
       }

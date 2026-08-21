@@ -101,6 +101,8 @@ export const propertyPayloadBaseSchema = z.object({
   address: z.string().trim().nullable().optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
+  /** Optional first-party locations.id from PlaceSearch / landlord picker. */
+  location_id: z.string().uuid().nullable().optional(),
   rent_kes: z.number().int().positive(),
   rent_kes_max: z.number().int().positive().nullable().optional(),
   deposit_kes: z.number().int().nonnegative().nullable().optional(),

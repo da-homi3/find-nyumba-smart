@@ -180,7 +180,10 @@ function ListingWizardDetailsTab({
             required
             list="kenya-locations"
             value={form.neighborhood}
-            onChange={(e) => update("neighborhood", e.target.value)}
+            onChange={(e) => {
+              update("neighborhood", e.target.value);
+              update("location_id", null);
+            }}
             placeholder="e.g. Kilimani or Nyali, Mombasa"
             className={inputCls}
           />
@@ -484,6 +487,7 @@ function ListingWizardLocationTab({
         update("longitude", lng);
       }}
       onNeighborhoodSelect={(value) => update("neighborhood", value)}
+      onLocationIdSelect={(id) => update("location_id", id)}
     />
   );
 }

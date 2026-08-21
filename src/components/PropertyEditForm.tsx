@@ -90,6 +90,7 @@ export function PropertyEditForm({
     title: "",
     property_type: "one_bedroom" as PropertyType,
     neighborhood: "",
+    location_id: null as string | null,
     address: "",
     contact_phones: [""] as string[],
     contact_name: "",
@@ -116,6 +117,7 @@ export function PropertyEditForm({
       title: property.title,
       property_type: property.property_type,
       neighborhood: property.neighborhood,
+      location_id: property.location_id ?? null,
       address: property.address ?? "",
       contact_phones: (() => {
         const phones = phonesFromProperty(property);
@@ -161,6 +163,7 @@ export function PropertyEditForm({
           title: resolveTitle(),
           property_type: form.property_type,
           neighborhood: form.neighborhood.trim(),
+          location_id: form.location_id,
           address: form.address.trim() || null,
           latitude: form.latitude,
           longitude: form.longitude,
@@ -557,6 +560,7 @@ export function PropertyEditForm({
               update("longitude", lng);
             }}
             onNeighborhoodSelect={(value) => update("neighborhood", value)}
+            onLocationIdSelect={(id) => update("location_id", id)}
           />
         )}
 

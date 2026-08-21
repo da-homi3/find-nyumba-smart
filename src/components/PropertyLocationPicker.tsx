@@ -23,6 +23,8 @@ type PropertyLocationPickerProps = Readonly<{
   address?: string;
   onChange: (lat: number, lng: number) => void;
   onNeighborhoodSelect?: (neighborhood: string) => void;
+  /** First-party locations.id when the landlord picks a NyumbaSearch place. */
+  onLocationIdSelect?: (locationId: string | null) => void;
   className?: string;
 }>;
 
@@ -33,6 +35,7 @@ export function PropertyLocationPicker({
   address,
   onChange,
   onNeighborhoodSelect,
+  onLocationIdSelect,
   className,
 }: PropertyLocationPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -50,6 +53,8 @@ export function PropertyLocationPicker({
   onChangeRef.current = onChange;
   const onNeighborhoodSelectRef = useRef(onNeighborhoodSelect);
   onNeighborhoodSelectRef.current = onNeighborhoodSelect;
+  const onLocationIdSelectRef = useRef(onLocationIdSelect);
+  onLocationIdSelectRef.current = onLocationIdSelect;
   const lastAutoNeighborhoodRef = useRef<string>("");
   const neighborhoodManualRef = useRef(Boolean(neighborhood?.trim()));
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -254,6 +259,7 @@ export function PropertyLocationPicker({
     } else if (result.kind === "neighborhood" || result.kind === "locality") {
       onNeighborhoodSelect?.(result.label);
     }
+    onLocationIdSelect?.(result.locationId ?? null);
     const map = mapInstance.current;
     if (!map) return;
     void syncPropertyLocationPin(map, markerRef, result.lng, result.lat, onChangeRef.current).then(

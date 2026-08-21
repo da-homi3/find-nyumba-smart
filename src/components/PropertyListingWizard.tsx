@@ -391,6 +391,7 @@ export type ListingFormState = {
   title: string;
   property_type: PropertyType;
   neighborhood: string;
+  location_id: string | null;
   address: string;
   contact_phones: string[];
   contact_name: string;
@@ -532,6 +533,7 @@ function buildListingPayload(
     title,
     property_type: form.property_type,
     neighborhood: form.neighborhood,
+    location_id: form.location_id,
     address: form.address || null,
     latitude: form.latitude,
     longitude: form.longitude,
@@ -880,6 +882,7 @@ export function PropertyListingWizard({
     title: "",
     property_type: "one_bedroom" as PropertyType,
     neighborhood: "",
+    location_id: null,
     address: "",
     contact_phones: [""],
     contact_name: "",

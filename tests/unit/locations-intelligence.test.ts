@@ -42,10 +42,12 @@ describe("location normalize", () => {
       place: "Kileleshwa",
       countyHint: null,
     });
-    expect(parsePlaceQuery("Along Ngong road")).toEqual({
-      place: "Ngong",
+    expect(parsePlaceQuery("Along Ngong Road")).toEqual({
+      place: "Ngong Road",
       countyHint: null,
     });
+    expect(parsePlaceQuery("Ngong Road").place).toBe("Ngong Road");
+    expect(parsePlaceQuery("Karen near tangaza university").place).toBe("Karen");
     expect(parsePlaceQuery("Runda, Kiambu").countyHint?.toLowerCase()).toBe("kiambu");
   });
 });

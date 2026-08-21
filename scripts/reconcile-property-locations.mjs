@@ -48,7 +48,8 @@ function scrubPlaceNoise(raw) {
     .replace(/\([^)]*\)/g, " ")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
-    .replace(/\b(shopping\s+mall|stage|roundabout|junction|area|estate|road|rd|hwy|highway|way)\b/gi, " ")
+    .replace(/\s+(near|opposite|behind|beside|off|along)\s+.+$/i, "")
+    .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
     .replace(/[,;/|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -182,28 +183,37 @@ function typeBoost(t) {
 
 function findCandidates(neighborhood, lat, lng) {
   const { place, countyHint } = parsePlace(neighborhood);
-  const q = normalizeName(place);
-  if (q.length < 2) return [];
+  const primary = normalizeName(place);
+  if (primary.length < 2) return [];
+
+  const variants = [primary];
+  const parts = primary.split(" ").filter(Boolean);
+  if (parts.length >= 2) variants.push(parts[0]);
+  if (parts.length >= 3) variants.push(parts.slice(0, 2).join(" "));
 
   const scored = [];
   const seen = new Set();
-  for (const [norm, list] of byNorm) {
-    let base = 0;
-    if (norm === q) base = 100;
-    else if (norm.startsWith(q)) base = 88;
-    else if (norm.includes(q) || q.includes(norm)) base = 70;
-    else continue;
-    for (const loc of list) {
-      if (seen.has(loc.id)) continue;
-      seen.add(loc.id);
-      let score = base + typeBoost(loc.location_type) + (loc.is_official ? 5 : 0);
-      if (lat != null && lng != null && loc.latitude != null && loc.longitude != null) {
-        const d = haversineKm(lat, lng, loc.latitude, loc.longitude);
-        if (d < 5) score += 20;
-        else if (d < 20) score += 10;
-        else if (d > 80) score -= 25;
+  for (const q of variants) {
+    const variantPenalty = q === primary ? 0 : q.split(" ").length === 1 ? 18 : 10;
+    for (const [norm, list] of byNorm) {
+      let base = 0;
+      if (norm === q) base = 100;
+      else if (norm.startsWith(q)) base = 88;
+      else if (norm.includes(q) || q.includes(norm)) base = 70;
+      else continue;
+      base = Math.max(0, base - variantPenalty);
+      for (const loc of list) {
+        if (seen.has(loc.id)) continue;
+        seen.add(loc.id);
+        let score = base + typeBoost(loc.location_type) + (loc.is_official ? 5 : 0);
+        if (lat != null && lng != null && loc.latitude != null && loc.longitude != null) {
+          const d = haversineKm(lat, lng, loc.latitude, loc.longitude);
+          if (d < 5) score += 20;
+          else if (d < 20) score += 10;
+          else if (d > 80) score -= 25;
+        }
+        scored.push({ loc, score });
       }
-      scored.push({ loc, score });
     }
   }
 

@@ -55,13 +55,15 @@ export function editDistance(a: string, b: string): number {
   return prev[b.length]!;
 }
 
-/** Strip noise landlords often append to free-text neighborhoods. */
+/** Strip noise landlords often append — keep names like "Ngong Road" intact. */
 export function scrubPlaceNoise(raw: string): string {
   return String(raw ?? "")
     .replace(/\([^)]*\)/g, " ")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
-    .replace(/\b(shopping\s+mall|stage|roundabout|junction|area|estate|road|rd|hwy|highway|way)\b/gi, " ")
+    // Drop trailing landmark clauses: "Karen near tangaza university"
+    .replace(/\s+(near|opposite|behind|beside|off|along)\s+.+$/i, "")
+    .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
     .replace(/[,;/|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
