@@ -109,6 +109,7 @@ type CreatePropertyBody = {
   deposit_kes?: unknown;
   address?: unknown;
   video_url?: unknown;
+  location_id?: unknown;
 };
 
 type ParsedCreateProperty = {
@@ -125,6 +126,7 @@ type ParsedCreateProperty = {
   depositKes?: number;
   address?: string;
   videoUrl?: string;
+  locationId?: string;
 };
 
 function parseNonNegInt(value: unknown, field: string): number | Response {
@@ -188,6 +190,10 @@ function applyOptionalCreateFields(
   }
 
   applyOptionalTextFields(body, parsed);
+  if (typeof body.location_id === "string") {
+    const id = parseUuid(body.location_id);
+    if (id) parsed.locationId = id;
+  }
   return parsed;
 }
 
@@ -270,6 +276,54 @@ function toPropertyInsert(userId: string, parsed: ParsedCreateProperty) {
   return insert;
 }
 
+async function attachLocationFks(
+  admin: MobileAdmin,
+  propertyId: string,
+  neighborhood: string,
+  locationId?: string,
+): Promise<void> {
+  try {
+    const { createPublicClient } = await import("@/lib/api/public-client");
+    const { resolveLocation } = await import("@/lib/locations/resolve");
+    const { getLocationAncestors } = await import("@/lib/locations/hierarchy");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const db = asLooseDb(admin);
+
+    let resolvedId = locationId ?? null;
+    let confidence = locationId ? 90 : 0;
+    let needsReview = !locationId;
+    if (!resolvedId) {
+      const hit = await resolveLocation(createPublicClient(), neighborhood);
+      if (!hit) return;
+      resolvedId = hit.id;
+      confidence = hit.matchConfidence;
+      needsReview = hit.needsReview;
+    }
+
+    const ancestors = await getLocationAncestors(createPublicClient(), resolvedId);
+    const { getLocationById } = await import("@/lib/locations/hierarchy");
+    const self = await getLocationById(createPublicClient(), resolvedId);
+    const chain = self ? [self, ...ancestors] : ancestors;
+    const county = chain.find((a) => a.type === "COUNTY");
+    const constituency = chain.find((a) => a.type === "CONSTITUENCY");
+    const ward = chain.find((a) => a.type === "WARD");
+
+    await db
+      .from("properties")
+      .update({
+        location_id: resolvedId,
+        county_location_id: county?.id ?? null,
+        constituency_location_id: constituency?.id ?? null,
+        ward_location_id: ward?.id ?? null,
+        location_match_confidence: confidence,
+        location_needs_review: needsReview,
+      })
+      .eq("id", propertyId);
+  } catch (err) {
+    console.warn("mobile property location attach:", err);
+  }
+}
+
 async function handleCreateProperty(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
@@ -296,6 +350,8 @@ async function handleCreateProperty(req: Request): Promise<Response> {
     console.error("mobile property create:", error.message);
     return mobileError("Could not create property", "PROPERTY_ERROR", 500);
   }
+
+  await attachLocationFks(auth.admin, row.id, parsed.neighborhood, parsed.locationId);
 
   return mobileJson({ apiVersion: "v1", property: row }, 201);
 }

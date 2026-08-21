@@ -72,6 +72,7 @@
     "seed:listings": "node scripts/seed-listings.mjs",
     "seed:locations": "node scripts/seed-kenya-locations.mjs",
     "reconcile:locations": "node scripts/reconcile-property-locations.mjs",
+    "refresh:location-inventory": "node scripts/refresh-location-inventory.mjs",
     "seed:county-polygons": "node scripts/seed-county-polygons.mjs",
     "seed:osm-roads": "node scripts/seed-osm-major-roads.mjs",
     "config:cloudflare": "node scripts/sync-wrangler-env.mjs",

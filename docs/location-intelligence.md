@@ -42,6 +42,15 @@ node scripts/seed-building-footprints.mjs path/to/buildings.geojson
 - **Admin**: Control Center → **Locations** (aliases, activate/deactivate, demand, audit)
 - **SEO**: static Nairobi slugs preserved; localities ≥3 listings; **wards ≥1 listing** nationally; empty pages `noindex`
 - **Demand**: search + view aggregation in admin Locations tab
+- **Flutter**: landlord create-listing neighborhood autocomplete via BFF search; create attaches location FKs
+
+## Inventory refresh
+
+```bash
+npm run refresh:location-inventory
+```
+
+Updates `locations.inventory_count` from active property FKs (+ neighborhood text fallback). Report: `docs/location-inventory-report.json`.
 
 ## KeNHA / KURA note
 
