@@ -185,6 +185,7 @@ export async function resolveAreaFromSlug(slug: string): Promise<GeoArea | null>
       name: String(row.name),
       locationId: row.id,
       inventoryCount: inventory,
+      type: String(row.location_type),
     };
   } catch {
     return null;

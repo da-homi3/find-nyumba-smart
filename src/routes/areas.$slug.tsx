@@ -128,7 +128,14 @@ function AreaPage() {
           <Link to="/tenant/map" className="font-semibold text-primary">
             Open map →
           </Link>
-          <Link to="/tenant" search={{ neighborhood: area.name }} className="text-muted-foreground">
+          <Link
+            to="/tenant"
+            search={{
+              neighborhood: area.name,
+              ...(area.locationId ? { locationId: area.locationId } : {}),
+            }}
+            className="text-muted-foreground"
+          >
             All filters
           </Link>
         </div>

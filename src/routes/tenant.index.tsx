@@ -54,6 +54,7 @@ import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
+  locationId: z.string().uuid().optional(),
   maxPrice: z.coerce.number().optional(),
   type: z.string().optional(),
   q: z.string().optional(),
@@ -66,7 +67,14 @@ export const Route = createFileRoute("/tenant/")({
     const neighborhood = search.neighborhood;
     if (!neighborhood || neighborhood === "All") return;
     // Pure neighbourhood browse → dedicated GEO landing URL (avoids duplicate indexables).
-    if (search.q || search.type || search.maxPrice || (search.purpose && search.purpose !== "all")) {
+    // Keep /tenant when locationId or other filters are active so FK ranking applies.
+    if (
+      search.q ||
+      search.type ||
+      search.maxPrice ||
+      search.locationId ||
+      (search.purpose && search.purpose !== "all")
+    ) {
       return;
     }
     const area = areaFromName(neighborhood);
@@ -108,7 +116,7 @@ function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFi
   const types = search.type ? [search.type as PropertyType] : [];
   const neighborhood = search.neighborhood ?? "All";
   const listingPurpose = search.purpose ?? "all";
-  const scopeFilterActive = types.length > 0 || neighborhood !== "All";
+  const scopeFilterActive = types.length > 0 || neighborhood !== "All" || Boolean(search.locationId);
   return {
     ...defaultTenantFilters,
     minRent: scopeFilterActive ? 0 : defaultTenantFilters.minRent,
@@ -116,6 +124,7 @@ function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFi
       ? TENANT_MAX_RENT
       : (search.maxPrice ?? defaultTenantFilters.maxRent),
     neighborhood,
+    locationId: search.locationId,
     types,
     listingPurpose,
   };
@@ -409,6 +418,7 @@ function TenantHome() {
         search: (prev) => ({
           ...prev,
           neighborhood: next.neighborhood !== "All" ? next.neighborhood : undefined,
+          locationId: next.locationId || undefined,
           maxPrice: next.maxRent < TENANT_MAX_RENT ? next.maxRent : undefined,
           type: next.types[0] || undefined,
           purpose: next.listingPurpose !== "all" ? next.listingPurpose : undefined,

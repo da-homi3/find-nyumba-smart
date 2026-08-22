@@ -10,6 +10,7 @@ import {
   countyWideFilterValue,
   parseCountyWideFilter,
 } from "@/data/kenya-locations";
+import { PlaceSearchField } from "@/components/PlaceSearchField";
 import { formatRentBudget } from "@/lib/format-rent-budget";
 import { TENANT_MAX_RENT, TENANT_MIN_RENT, TENANT_RENT_STEP } from "@/lib/tenant-filter-defaults";
 
@@ -180,6 +181,31 @@ export function TenantFiltersBar({
               ))}
             </select>
           </label>
+
+          <div className="w-full min-w-0 flex-[1.2] text-xs sm:min-w-40">
+            <span className="mb-1 block font-medium text-muted-foreground">Area</span>
+            <PlaceSearchField
+              value={filters.neighborhood === "All" ? "" : filters.neighborhood}
+              onValueChange={(value) => {
+                if (!value.trim()) {
+                  onChange({ neighborhood: "All", locationId: undefined });
+                  return;
+                }
+                onChange({ neighborhood: value, locationId: undefined });
+              }}
+              onSelectPlace={(place) => {
+                const label = place.neighborhood ?? place.label;
+                onChange({
+                  neighborhood: label,
+                  locationId: place.locationId,
+                });
+              }}
+              onClear={() => onChange({ neighborhood: "All", locationId: undefined })}
+              placeholder="Kilimani, Rongai, Ngong Road…"
+              className="rounded-lg border bg-card px-2 py-0.5"
+              compact
+            />
+          </div>
 
           <label className="w-[calc(50%-0.375rem)] text-xs sm:w-auto">
             <span className="mb-1 block font-medium text-muted-foreground">Beds</span>

@@ -6,7 +6,8 @@ import {
   slugifyLocationName,
 } from "@/lib/locations/normalize";
 import { shouldIndexArea, areaFromSlug, areaSlug } from "@/lib/seo/areas";
-import { SEO_INVENTORY_THRESHOLD } from "@/lib/locations/types";
+import { SEO_INVENTORY_THRESHOLD, SEO_WARD_INVENTORY_THRESHOLD } from "@/lib/locations/types";
+import { classifyLocationMatch, compareByLocationTier } from "@/lib/locations/match-tiers";
 import seedReport from "../../docs/location-seed-report.json";
 
 describe("location normalize", () => {
@@ -113,5 +114,71 @@ describe("SEO area inventory gating", () => {
       }),
     ).toBe(true);
     expect(areaSlug("Ngong Road")).toBe("ngong-road");
+  });
+
+  it("indexes wards with ≥1 listing (national ward SEO)", () => {
+    expect(
+      shouldIndexArea({
+        slug: "riruta",
+        name: "Riruta",
+        type: "WARD",
+        inventoryCount: SEO_WARD_INVENTORY_THRESHOLD,
+      }),
+    ).toBe(true);
+    expect(
+      shouldIndexArea({
+        slug: "riruta",
+        name: "Riruta",
+        type: "WARD",
+        inventoryCount: 0,
+      }),
+    ).toBe(false);
+    // Without type, ward-threshold must not apply (regression for resolveAreaFromSlug).
+    expect(
+      shouldIndexArea({
+        slug: "riruta",
+        name: "Riruta",
+        inventoryCount: 1,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("location match tiers", () => {
+  const filterId = "11111111-1111-1111-1111-111111111111";
+
+  it("ranks inside > near > marketed_as", () => {
+    expect(
+      classifyLocationMatch({
+        filterLocationId: filterId,
+        property: { location_id: filterId, neighborhood: "Kilimani" },
+      }),
+    ).toBe("inside");
+
+    expect(
+      classifyLocationMatch({
+        filterNeighborhood: "Kilimani",
+        property: { neighborhood: "Kilimani Area", location_id: null },
+      }),
+    ).toBe("marketed_as");
+
+    expect(
+      classifyLocationMatch({
+        filterLocationId: filterId,
+        filterLat: -1.28,
+        filterLng: 36.78,
+        property: {
+          location_id: null,
+          neighborhood: "Elsewhere",
+          latitude: -1.285,
+          longitude: 36.785,
+        },
+        nearKm: 5,
+      }),
+    ).toBe("near");
+
+    expect(
+      compareByLocationTier({ tier: "inside" }, { tier: "near" }),
+    ).toBeLessThan(0);
   });
 });
