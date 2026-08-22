@@ -52,6 +52,20 @@ const ALIAS_MAP = [
   { name: "Rosslyn", aliases: ["rosslyn lone tree", "roslyn"] },
   { name: "Kasarani", aliases: ["kasarani sunton", "sunton kasarani"] },
   { name: "Kileleshwa", aliases: ["kileleshwa road"] },
+  { name: "Waiyaki Way", aliases: ["along waiyaki way", "waiyaki way", "waiyaki wat", "regen waiyaki way"] },
+  { name: "Riruta", aliases: ["riruta satellite"] },
+  { name: "Peponi Road", aliases: ["peponi", "peponi rd"] },
+  { name: "Kitisuru", aliases: ["new kitisuru", "kitisuru estate"] },
+  { name: "Ridgeways", aliases: ["ridge way", "ridgeways estate"] },
+  { name: "Tatu City", aliases: ["tatu", "tatu city kiambu"] },
+  { name: "Bamburi", aliases: ["bamburi mombasa"] },
+  { name: "Kamiti Road", aliases: ["kamiti", "along kamiti road"] },
+  { name: "Membley", aliases: ["brookview membley", "143 brookview"] },
+  { name: "Kinoo", aliases: ["kinoo 87", "along waiyaki way kinoo"] },
+  { name: "Uthiru", aliases: ["waiyaki way uthiru"] },
+  { name: "Ngumo", aliases: ["ngummo", "ngummo west estate", "ngumo west"] },
+  { name: "Nyari", aliases: ["nyari estate"] },
+  { name: "Mwihoko", aliases: ["mwihoko estate"] },
 ];
 
 const env = loadEnv();
@@ -67,7 +81,15 @@ for (const entry of ALIAS_MAP) {
     .select("id,name")
     .eq("is_active", true)
     .ilike("name", entry.name)
-    .in("location_type", ["NEIGHBOURHOOD", "LOCALITY", "ESTATE", "TOWN"])
+    .in("location_type", [
+      "NEIGHBOURHOOD",
+      "LOCALITY",
+      "ESTATE",
+      "TOWN",
+      "CITY",
+      "WARD",
+      "ROAD",
+    ])
     .limit(1)
     .maybeSingle();
   if (!loc) {

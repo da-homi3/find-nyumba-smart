@@ -51,8 +51,13 @@ export function typeBoost(type: LocationType): number {
     case "LOCALITY":
     case "ESTATE":
       return 25;
+    case "TOWN":
+    case "CITY":
+      return 18;
     case "WARD":
       return 15;
+    case "ROAD":
+      return 12;
     case "CONSTITUENCY":
       return 10;
     case "COUNTY":

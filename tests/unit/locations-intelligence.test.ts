@@ -48,6 +48,8 @@ describe("location normalize", () => {
     });
     expect(parsePlaceQuery("Ngong Road").place).toBe("Ngong Road");
     expect(parsePlaceQuery("Karen near tangaza university").place).toBe("Karen");
+    expect(parsePlaceQuery("87, waiyaki way").place.toLowerCase()).toBe("waiyaki way");
+    expect(parsePlaceQuery("Along waiyaki way").place.toLowerCase()).toBe("waiyaki way");
     expect(parsePlaceQuery("Runda, Kiambu").countyHint?.toLowerCase()).toBe("kiambu");
   });
 });

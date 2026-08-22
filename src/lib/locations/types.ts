@@ -93,6 +93,7 @@ export const SEARCHABLE_TYPES: LocationType[] = [
   "ESTATE",
   "TOWN",
   "CITY",
+  "ROAD",
 ];
 
 export const SEO_AREA_TYPES: LocationType[] = [

@@ -1,8 +1,8 @@
 {
   "scanned": 348,
-  "matched": 277,
-  "needsReview": 10,
-  "unmatched": 71,
+  "matched": 322,
+  "needsReview": 32,
+  "unmatched": 26,
   "skippedEmpty": 0,
   "samples": [
     {
@@ -16,16 +16,16 @@
     {
       "id": "0313aafd-dbfb-4c11-acf0-64e17577262b",
       "neighborhood": "Along kenyatta road",
-      "matched": "Yatta",
-      "type": "CONSTITUENCY",
-      "confidence": 60,
-      "needsReview": true
+      "matched": "Kenyatta Road",
+      "type": "ROAD",
+      "confidence": 100,
+      "needsReview": false
     },
     {
       "id": "0347aa51-5bb4-478d-a7b8-f36922b14767",
       "neighborhood": "Kitengela",
       "matched": "Kitengela",
-      "type": "NEIGHBOURHOOD",
+      "type": "LOCALITY",
       "confidence": 100,
       "needsReview": false
     },
@@ -56,7 +56,10 @@
     {
       "id": "0732d232-ad99-45c4-93d5-d1c8c47f14e5",
       "neighborhood": "Waiyaki way ,muhuri road",
-      "status": "unmatched"
+      "matched": "Waiyaki Way",
+      "type": "ROAD",
+      "confidence": 100,
+      "needsReview": false
     },
     {
       "id": "08c8cfd3-a973-4be3-8cef-c73e1ccfa7cf",
@@ -77,15 +80,15 @@
     {
       "id": "0b096aa3-6341-4a25-87d4-1863fb28741c",
       "neighborhood": "Ngong, VET",
-      "matched": "Ngong Road",
-      "type": "NEIGHBOURHOOD",
+      "matched": "Ngong",
+      "type": "LOCALITY",
       "confidence": 100,
-      "needsReview": false
+      "needsReview": true
     },
     {
       "id": "0b177e51-744c-4aad-92ac-c9d838b03855",
       "neighborhood": "Along kiambu road",
-      "matched": "Kiambu",
+      "matched": "Kiambu Road",
       "type": "LOCALITY",
       "confidence": 100,
       "needsReview": false
@@ -102,7 +105,7 @@
       "id": "0e50af70-48f5-4e2b-bd62-f0d40fb90dc3",
       "neighborhood": "Kitengela, Kajiado",
       "matched": "Kitengela",
-      "type": "NEIGHBOURHOOD",
+      "type": "LOCALITY",
       "confidence": 100,
       "needsReview": false
     },
@@ -165,13 +168,16 @@
     {
       "id": "16a5e34e-ccd9-43ac-b0bb-d3d4a401ae45",
       "neighborhood": "Riruta, naivasha road",
-      "status": "unmatched"
+      "matched": "Riruta",
+      "type": "WARD",
+      "confidence": 100,
+      "needsReview": false
     },
     {
       "id": "170703ab-2707-49a7-9dd3-0d0ab0fb4910",
       "neighborhood": "New runda, kiambu road",
       "matched": "Runda",
-      "type": "NEIGHBOURHOOD",
+      "type": "LOCALITY",
       "confidence": 100,
       "needsReview": false
     },
@@ -179,14 +185,17 @@
       "id": "1744c285-9b2e-4c85-8fd4-b4c93758d61b",
       "neighborhood": "Runda, Kiambu",
       "matched": "Runda",
-      "type": "NEIGHBOURHOOD",
+      "type": "LOCALITY",
       "confidence": 100,
       "needsReview": false
     },
     {
       "id": "1852ca3f-3f89-4b13-a15a-ae6a8a51caca",
       "neighborhood": "87, waiyaki way",
-      "status": "unmatched"
+      "matched": "Waiyaki Way",
+      "type": "ROAD",
+      "confidence": 100,
+      "needsReview": false
     },
     {
       "id": "194f760e-135e-4c02-bc52-036a2bdcdf93",

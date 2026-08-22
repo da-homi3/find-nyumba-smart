@@ -52,6 +52,12 @@ export async function attachPropertyLocationFks(
         location_needs_review: needsReview,
       })
       .eq("id", propertyId);
+
+    const { recountLocationInventory } = await import("@/lib/locations/inventory");
+    await recountLocationInventory(
+      admin,
+      [resolvedId, county?.id, constituency?.id, ward?.id].filter(Boolean) as string[],
+    );
   } catch (err) {
     console.warn("[attachPropertyLocationFks]", err);
   }

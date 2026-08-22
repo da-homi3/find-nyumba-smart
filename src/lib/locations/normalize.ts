@@ -55,12 +55,24 @@ export function editDistance(a: string, b: string): number {
   return prev[b.length]!;
 }
 
+/** True when a comma/segment head is a house number or other non-place token. */
+export function isNonPlaceHead(segment: string): boolean {
+  const t = String(segment ?? "").trim();
+  if (!t) return true;
+  if (/^\d+[a-z]?$/i.test(t)) return true;
+  if (/^(plot|house|apt|apartment|flat|unit|door|no|number)\b/i.test(t)) return true;
+  const letters = t.replace(/[^a-zA-Z]/g, "");
+  return letters.length < 2;
+}
+
 /** Strip noise landlords often append — keep names like "Ngong Road" intact. */
 export function scrubPlaceNoise(raw: string): string {
   return String(raw ?? "")
     .replace(/\([^)]*\)/g, " ")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
+    // Drop leading plot/house numbers: "87 Waiyaki Way"
+    .replace(/^\d+[a-z]?\s+/i, "")
     // Drop trailing landmark clauses: "Karen near tangaza university"
     .replace(/\s+(near|opposite|behind|beside|off|along)\s+.+$/i, "")
     .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
@@ -94,10 +106,13 @@ export function parsePlaceQuery(q: string): { place: string; countyHint: string 
 
   const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
   if (comma.length >= 2) {
-    const head = scrubPlaceNoise(comma[0]!);
-    const tailNorm = normalizeLocationName(comma.slice(1).join(" "));
-    const countyHint = COUNTY_HINTS.has(tailNorm) ? comma.slice(1).join(" ") : null;
-    // Prefer the first comma segment (usually the neighbourhood); fall back to scrubbed full text.
+    // Skip house-number heads: "87, waiyaki way" → Waiyaki Way
+    let headIdx = 0;
+    while (headIdx < comma.length - 1 && isNonPlaceHead(comma[headIdx]!)) headIdx += 1;
+    const head = scrubPlaceNoise(comma[headIdx]!);
+    const tailParts = comma.slice(headIdx + 1);
+    const tailNorm = normalizeLocationName(tailParts.join(" "));
+    const countyHint = COUNTY_HINTS.has(tailNorm) ? tailParts.join(" ") : null;
     const place = head || scrubPlaceNoise(raw);
     return { place, countyHint };
   }

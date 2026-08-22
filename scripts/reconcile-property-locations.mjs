@@ -48,11 +48,21 @@ function scrubPlaceNoise(raw) {
     .replace(/\([^)]*\)/g, " ")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
+    .replace(/^\d+[a-z]?\s+/i, "")
     .replace(/\s+(near|opposite|behind|beside|off|along)\s+.+$/i, "")
     .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
     .replace(/[,;/|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isNonPlaceHead(segment) {
+  const t = String(segment ?? "").trim();
+  if (!t) return true;
+  if (/^\d+[a-z]?$/i.test(t)) return true;
+  if (/^(plot|house|apt|apartment|flat|unit|door|no|number)\b/i.test(t)) return true;
+  const letters = t.replace(/[^a-zA-Z]/g, "");
+  return letters.length < 2;
 }
 
 const COUNTY_HINTS = new Set([
@@ -78,9 +88,12 @@ function parsePlace(q) {
   if (!raw) return { place: "", countyHint: null };
   const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
   if (comma.length >= 2) {
-    const head = scrubPlaceNoise(comma[0]);
-    const tailNorm = normalizeName(comma.slice(1).join(" "));
-    const countyHint = COUNTY_HINTS.has(tailNorm) ? comma.slice(1).join(" ") : null;
+    let headIdx = 0;
+    while (headIdx < comma.length - 1 && isNonPlaceHead(comma[headIdx])) headIdx += 1;
+    const head = scrubPlaceNoise(comma[headIdx]);
+    const tailParts = comma.slice(headIdx + 1);
+    const tailNorm = normalizeName(tailParts.join(" "));
+    const countyHint = COUNTY_HINTS.has(tailNorm) ? tailParts.join(" ") : null;
     return { place: head || scrubPlaceNoise(raw), countyHint };
   }
   const scrubbed = scrubPlaceNoise(raw);
@@ -124,43 +137,62 @@ const report = {
 
 /** Prefetch searchable locations into memory for fast matching. */
 console.log("Loading locations…");
-const { data: locs, error: locErr } = await admin
-  .from("locations")
-  .select(
-    "id,parent_id,name,normalized_name,slug,location_type,latitude,longitude,confidence_score,is_official",
-  )
-  .eq("is_active", true)
-  .in("location_type", [
-    "NEIGHBOURHOOD",
-    "LOCALITY",
-    "ESTATE",
-    "WARD",
-    "CONSTITUENCY",
-    "COUNTY",
-    "TOWN",
-  ])
-  .limit(8000);
-if (locErr) throw locErr;
+const LOC_TYPES = [
+  "NEIGHBOURHOOD",
+  "LOCALITY",
+  "ESTATE",
+  "WARD",
+  "CONSTITUENCY",
+  "COUNTY",
+  "TOWN",
+  "CITY",
+  "ROAD",
+];
+const locs = [];
+for (let from = 0; ; from += 1000) {
+  const { data, error: locErr } = await admin
+    .from("locations")
+    .select(
+      "id,parent_id,name,normalized_name,slug,location_type,latitude,longitude,confidence_score,is_official",
+    )
+    .eq("is_active", true)
+    .in("location_type", LOC_TYPES)
+    .order("id", { ascending: true })
+    .range(from, from + 999);
+  if (locErr) throw locErr;
+  const batch = data ?? [];
+  locs.push(...batch);
+  if (batch.length < 1000) break;
+}
 
-const { data: aliases } = await admin
-  .from("location_aliases")
-  .select("location_id,normalized_alias")
-  .limit(10000);
+const aliases = [];
+for (let from = 0; ; from += 1000) {
+  const { data, error: aliasErr } = await admin
+    .from("location_aliases")
+    .select("location_id,normalized_alias")
+    .order("id", { ascending: true })
+    .range(from, from + 999);
+  if (aliasErr) throw aliasErr;
+  const batch = data ?? [];
+  aliases.push(...batch);
+  if (batch.length < 1000) break;
+}
 
-const byId = new Map((locs ?? []).map((l) => [l.id, l]));
+const byId = new Map(locs.map((l) => [l.id, l]));
 const byNorm = new Map();
-for (const l of locs ?? []) {
+for (const l of locs) {
   const list = byNorm.get(l.normalized_name) ?? [];
   list.push(l);
   byNorm.set(l.normalized_name, list);
 }
-for (const a of aliases ?? []) {
+for (const a of aliases) {
   const loc = byId.get(a.location_id);
   if (!loc) continue;
   const list = byNorm.get(a.normalized_alias) ?? [];
   list.push(loc);
   byNorm.set(a.normalized_alias, list);
 }
+console.log(`  loaded ${locs.length} locations, ${aliases.length} aliases`);
 
 function haversineKm(aLat, aLng, bLat, bLng) {
   const toRad = (d) => (d * Math.PI) / 180;
@@ -176,7 +208,9 @@ function haversineKm(aLat, aLng, bLat, bLng) {
 function typeBoost(t) {
   if (t === "NEIGHBOURHOOD" || t === "LOCALITY" || t === "ESTATE") return 25;
   if (t === "WARD") return 15;
+  if (t === "ROAD") return 12;
   if (t === "CONSTITUENCY") return 10;
+  if (t === "TOWN" || t === "CITY") return 18;
   if (t === "COUNTY") return 5;
   return 0;
 }
