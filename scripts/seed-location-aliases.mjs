@@ -75,6 +75,8 @@ const ALIAS_MAP = [
   { name: "Kangundo Road", aliases: ["saika heights", "kangundo road", "kagundo road", "kagundo"] },
   { name: "Mombasa Road", aliases: ["next gen mall", "enzi heights"] },
   { name: "Malindi", aliases: ["sunpark road malindi", "sunpark road"] },
+  { name: "Naivasha-Mai Mahiu-Limuru Road", aliases: ["naivasha road", "along naivasha road", "naivasha rd"] },
+  { name: "Kiambu Road", aliases: ["along kiambu road", "thindigua kiambu", "thindigua"] },
 ];
 
 const env = loadEnv();
@@ -85,22 +87,23 @@ const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABA
 let inserted = 0;
 let skipped = 0;
 for (const entry of ALIAS_MAP) {
-  const { data: loc } = await admin
+  const preferRoad = /\b(road|way|rd)\b/i.test(entry.name);
+  const types = preferRoad
+    ? ["ROAD", "NEIGHBOURHOOD", "LOCALITY", "ESTATE", "TOWN", "CITY", "WARD"]
+    : ["NEIGHBOURHOOD", "LOCALITY", "ESTATE", "TOWN", "CITY", "WARD", "ROAD"];
+  const { data: candidates } = await admin
     .from("locations")
-    .select("id,name")
+    .select("id,name,location_type")
     .eq("is_active", true)
     .ilike("name", entry.name)
-    .in("location_type", [
-      "NEIGHBOURHOOD",
-      "LOCALITY",
-      "ESTATE",
-      "TOWN",
-      "CITY",
-      "WARD",
-      "ROAD",
-    ])
-    .limit(1)
-    .maybeSingle();
+    .in("location_type", types)
+    .limit(5);
+  const loc =
+    (preferRoad
+      ? (candidates ?? []).find((c) => c.location_type === "ROAD")
+      : null) ??
+    (candidates ?? [])[0] ??
+    null;
   if (!loc) {
     console.warn("skip missing place", entry.name);
     skipped += 1;

@@ -7,6 +7,7 @@ import {
   listAdminLocations,
   removeAdminLocationAlias,
   setAdminLocationActive,
+  setAdminPropertyLocationReview,
 } from "@/lib/api/admin-locations.functions";
 import { MapPin, Search, AlertTriangle } from "lucide-react";
 
@@ -61,6 +62,16 @@ export function AdminLocationsTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const reviewAction = useMutation({
+    mutationFn: (payload: { propertyId: string; action: "confirm" | "clear" }) =>
+      setAdminPropertyLocationReview({ data: payload }),
+    onSuccess: (_d, vars) => {
+      toast.success(vars.action === "confirm" ? "Match confirmed" : "Location cleared");
+      qc.invalidateQueries({ queryKey: ["admin-location-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -77,6 +88,49 @@ export function AdminLocationsTab() {
             </p>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-2xl border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <AlertTriangle className="h-4 w-4 text-amber-600" /> Needs review
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Matched listings with low confidence or ambiguity — confirm or clear.
+        </p>
+        <ul className="mt-3 max-h-72 space-y-2 overflow-y-auto text-xs">
+          {(overview?.reviewSamples ?? []).map((row) => (
+            <li key={row.id as string} className="border-t pt-2">
+              <span className="font-medium text-foreground">{String(row.neighborhood)}</span>
+              <span className="mt-0.5 block text-muted-foreground">
+                {String(row.title ?? "Untitled")} · conf{" "}
+                {row.location_match_confidence ?? "—"}
+              </span>
+              <div className="mt-1.5 flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground"
+                  onClick={() =>
+                    reviewAction.mutate({ propertyId: row.id as string, action: "confirm" })
+                  }
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border px-2.5 py-1 text-[11px] font-semibold"
+                  onClick={() =>
+                    reviewAction.mutate({ propertyId: row.id as string, action: "clear" })
+                  }
+                >
+                  Clear
+                </button>
+              </div>
+            </li>
+          ))}
+          {!overviewLoading && (overview?.reviewSamples?.length ?? 0) === 0 ? (
+            <li className="text-muted-foreground">No listings awaiting review.</li>
+          ) : null}
+        </ul>
       </div>
 
       <div className="rounded-2xl border bg-card p-4">

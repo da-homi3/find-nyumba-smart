@@ -1,7 +1,7 @@
 {
   "scanned": 348,
   "matched": 348,
-  "needsReview": 13,
+  "needsReview": 0,
   "unmatched": 0,
   "skippedEmpty": 0,
   "samples": [
@@ -89,7 +89,7 @@
       "id": "0b177e51-744c-4aad-92ac-c9d838b03855",
       "neighborhood": "Along kiambu road",
       "matched": "Kiambu Road",
-      "type": "LOCALITY",
+      "type": "ROAD",
       "confidence": 100,
       "needsReview": false
     },
@@ -168,8 +168,8 @@
     {
       "id": "16a5e34e-ccd9-43ac-b0bb-d3d4a401ae45",
       "neighborhood": "Riruta, naivasha road",
-      "matched": "Riruta",
-      "type": "WARD",
+      "matched": "Naivasha-Mai Mahiu-Limuru Road",
+      "type": "ROAD",
       "confidence": 100,
       "needsReview": false
     },
@@ -177,7 +177,7 @@
       "id": "170703ab-2707-49a7-9dd3-0d0ab0fb4910",
       "neighborhood": "New runda, kiambu road",
       "matched": "Kiambu Road",
-      "type": "LOCALITY",
+      "type": "ROAD",
       "confidence": 100,
       "needsReview": false
     },

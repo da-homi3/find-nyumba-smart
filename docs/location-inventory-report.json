@@ -1,16 +1,16 @@
 {
   "scannedActiveProperties": 337,
-  "locationsWithInventory": 120,
+  "locationsWithInventory": 111,
   "textMatchedWithoutFk": 0,
-  "rowsUpdated": 120,
+  "rowsUpdated": 111,
   "top": [
     {
       "id": "2d217118-b6fd-491e-ab74-df6ffa92f3f7",
-      "count": 200
+      "count": 196
     },
     {
       "id": "ff65087e-78af-40ab-83c3-ef308290eea0",
-      "count": 56
+      "count": 46
     },
     {
       "id": "2659d47a-df27-43ff-b854-985f9c27cb7f",
@@ -18,7 +18,7 @@
     },
     {
       "id": "59fc54b0-c164-4b59-b547-0853234a125b",
-      "count": 24
+      "count": 23
     },
     {
       "id": "f29a5843-03b2-462f-bf79-1e21a11ebb72",
@@ -33,36 +33,36 @@
       "count": 15
     },
     {
-      "id": "8c9d6fd8-1913-49d3-a66b-149f3c92d7b1",
+      "id": "d4b9d735-36b3-4fec-a648-d37bec3f61ba",
+      "count": 15
+    },
+    {
+      "id": "4568e5d9-4250-4346-a273-8d875c78b817",
       "count": 14
     },
     {
-      "id": "ee9e44fa-d2ac-4903-a7a2-a1d8cf3e20e5",
-      "count": 12
-    },
-    {
       "id": "49430059-6dbc-4465-a4f1-2f7a3fcd5b37",
+      "count": 14
+    },
+    {
+      "id": "8c9d6fd8-1913-49d3-a66b-149f3c92d7b1",
       "count": 12
     },
     {
-      "id": "d4b9d735-36b3-4fec-a648-d37bec3f61ba",
-      "count": 12
-    },
-    {
-      "id": "6a23fa7b-5588-48a1-a7a8-53e1a21458ca",
-      "count": 12
+      "id": "02d0415f-f1b1-4bc1-bb44-7838918a5d0a",
+      "count": 11
     },
     {
       "id": "a09249c9-b033-407e-9205-d1daebc379e6",
       "count": 10
     },
     {
-      "id": "02d0415f-f1b1-4bc1-bb44-7838918a5d0a",
+      "id": "6a23fa7b-5588-48a1-a7a8-53e1a21458ca",
       "count": 10
     },
     {
-      "id": "0ae3579e-a839-4aaa-8c08-780d24591782",
-      "count": 10
+      "id": "acdbcfd2-4d02-4a85-96c5-f56044898053",
+      "count": 9
     }
   ]
 }

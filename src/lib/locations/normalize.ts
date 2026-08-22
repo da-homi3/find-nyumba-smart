@@ -73,12 +73,15 @@ export function scrubPlaceNoise(raw: string): string {
     .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
     // Drop leading plot/house numbers: "87 Waiyaki Way"
     .replace(/^\d+[a-z]?\s+/i, "")
-    // Drop trailing landmark clauses: "Karen near tangaza university"
-    .replace(/\s+(near|opposite|behind|beside|off|along)\s+.+$/i, "")
     .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
     .replace(/[,;/|]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** True when the query is road-oriented (prefer ROAD rows over towns of the same name). */
+export function queryLooksLikeRoad(q: string): boolean {
+  return /\b(road|rd|way|highway|hwy|bypass|link)\b/i.test(String(q ?? ""));
 }
 
 const COUNTY_HINTS = new Set([
@@ -133,6 +136,27 @@ export function parsePlaceQuery(q: string): {
   }
 
   const scrubbed = scrubPlaceNoise(raw);
+  // "Thindigua along kiambu road" → place + road alternate (don't invent Thindigua).
+  const alongNear = scrubbed.match(
+    /^(.+?)\s+(?:along|near|opposite|behind|beside|off)\s+(.+)$/i,
+  );
+  if (alongNear) {
+    const head = alongNear[1]!.trim();
+    const tail = alongNear[2]!.trim();
+    const parts = head.split(/\s+/).filter(Boolean);
+    let countyHint: string | null = null;
+    let place = head;
+    if (parts.length >= 2) {
+      const last = parts[parts.length - 1]!;
+      if (COUNTY_HINTS.has(normalizeLocationName(last))) {
+        place = parts.slice(0, -1).join(" ");
+        countyHint = last;
+      }
+    }
+    const alternates = tail && normalizeLocationName(tail) !== normalizeLocationName(place) ? [tail] : [];
+    return { place, countyHint, alternates };
+  }
+
   const parts = scrubbed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     const last = parts[parts.length - 1]!;

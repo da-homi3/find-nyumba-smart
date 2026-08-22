@@ -1,5 +1,5 @@
 import type { LocationsDb } from "./db";
-import { haversineKm, normalizeLocationName, parsePlaceQuery, editDistance } from "./normalize";
+import { haversineKm, normalizeLocationName, parsePlaceQuery, editDistance, queryLooksLikeRoad } from "./normalize";
 import { toPublicLocation, typeBoost } from "./format";
 import type { LocationRow, LocationSearchHit } from "./types";
 import { SEARCHABLE_TYPES } from "./types";
@@ -51,6 +51,7 @@ export async function searchLocationsDb(
   for (let qi = 0; qi < queries.length; qi += 1) {
     const query = queries[qi]!;
     const altPenalty = qi === 0 ? 0 : 12;
+    const roadIntent = queryLooksLikeRoad(query);
 
     let nameQuery = supabase
       .from("locations")
@@ -79,8 +80,14 @@ export async function searchLocationsDb(
       const row = raw as unknown as LocationRow;
       const { score, via } = scoreNameMatch(row.normalized_name, query);
       if (score <= 0) continue;
-      const boosted =
+      let boosted =
         Math.max(0, score - altPenalty) + typeBoost(row.location_type) + (row.is_official ? 5 : 0);
+      if (roadIntent) {
+        if (row.location_type === "ROAD") boosted += 28;
+        else if (["LOCALITY", "TOWN", "CITY", "CONSTITUENCY"].includes(row.location_type)) {
+          boosted -= 30;
+        }
+      }
       const prev = byId.get(row.id);
       if (!prev || boosted > prev.score) byId.set(row.id, { row, score: boosted, via });
     }
@@ -92,7 +99,13 @@ export async function searchLocationsDb(
       const aliasNorm = String((alias as { normalized_alias: string }).normalized_alias ?? "");
       const { score } = scoreNameMatch(aliasNorm, query);
       if (score <= 0) continue;
-      const boosted = Math.max(0, score - altPenalty) + typeBoost(loc.location_type) + 8;
+      let boosted = Math.max(0, score - altPenalty) + typeBoost(loc.location_type) + 8;
+      if (roadIntent) {
+        if (loc.location_type === "ROAD") boosted += 28;
+        else if (["LOCALITY", "TOWN", "CITY", "CONSTITUENCY"].includes(loc.location_type)) {
+          boosted -= 30;
+        }
+      }
       const prev = byId.get(loc.id);
       if (!prev || boosted > prev.score) {
         byId.set(loc.id, { row: loc, score: boosted, via: "alias" });
@@ -104,25 +117,50 @@ export async function searchLocationsDb(
 
   if (countyHint) {
     const hint = normalizeLocationName(countyHint);
-    const parentIds = [...new Set(hits.map((h) => h.row.parent_id).filter(Boolean))] as string[];
-    if (parentIds.length) {
+    const matchesHint = (normalizedName: string, name: string) => {
+      const pn = normalizeLocationName(normalizedName || name);
+      return pn.includes(hint) || hint.includes(pn);
+    };
+    const parentCache = new Map<
+      string,
+      { id: string; parent_id: string | null; normalized_name: string; name: string }
+    >();
+    let frontier = [
+      ...new Set(hits.map((h) => h.row.parent_id).filter(Boolean)),
+    ] as string[];
+    while (frontier.length) {
       const { data: parents } = await supabase
         .from("locations")
-        .select("id,normalized_name,name")
-        .in("id", parentIds);
-      const parentMap = new Map((parents ?? []).map((p) => [p.id as string, p]));
-      hits = hits.filter((h) => {
-        if (!h.row.parent_id) return true;
-        const p = parentMap.get(h.row.parent_id);
-        if (!p) return true;
-        const pn = String(p.normalized_name ?? "");
-        return (
-          pn.includes(hint) ||
-          hint.includes(pn) ||
-          normalizeLocationName(String(p.name ?? "")).includes(hint)
-        );
-      });
+        .select("id,parent_id,normalized_name,name")
+        .in("id", frontier);
+      const next: string[] = [];
+      for (const p of parents ?? []) {
+        const id = p.id as string;
+        parentCache.set(id, {
+          id,
+          parent_id: (p.parent_id as string | null) ?? null,
+          normalized_name: String(p.normalized_name ?? ""),
+          name: String(p.name ?? ""),
+        });
+        if (p.parent_id && !parentCache.has(p.parent_id as string)) {
+          next.push(p.parent_id as string);
+        }
+      }
+      frontier = [...new Set(next)];
     }
+    hits = hits.filter((h) => {
+      if (matchesHint(h.row.normalized_name, h.row.name)) return true;
+      let pid = h.row.parent_id;
+      const seen = new Set<string>();
+      while (pid && !seen.has(pid)) {
+        seen.add(pid);
+        const p = parentCache.get(pid);
+        if (!p) return false;
+        if (matchesHint(p.normalized_name, p.name)) return true;
+        pid = p.parent_id;
+      }
+      return false;
+    });
   }
 
   const withDist: LocationSearchHit[] = hits.map(({ row, score, via }) => {

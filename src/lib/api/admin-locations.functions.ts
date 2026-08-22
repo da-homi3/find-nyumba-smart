@@ -73,11 +73,20 @@ export const getAdminLocationOverview = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(40);
 
+    const { data: reviewSamples } = await db
+      .from("properties")
+      .select("id,title,neighborhood,location_id,location_match_confidence,created_at")
+      .eq("location_needs_review", true)
+      .not("location_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(40);
+
     return {
       counts,
       needsReview: needsReview ?? 0,
       unmatched: unmatched ?? 0,
       unmatchedSamples: unmatchedSamples ?? [],
+      reviewSamples: reviewSamples ?? [],
       recentAudit: recentAudit ?? [],
       demand,
       popularQueries,
@@ -210,6 +219,53 @@ export const removeAdminLocationAlias = createServerFn({ method: "POST" })
       actor_id: userId,
       action: "alias_remove",
       details: { alias: data.alias },
+    });
+    return { ok: true };
+  });
+
+export const setAdminPropertyLocationReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      propertyId: z.string().uuid(),
+      /** Confirm current match, or clear FKs back to unmatched. */
+      action: z.enum(["confirm", "clear"]),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const db = asLooseDb(supabaseAdmin);
+
+    if (data.action === "confirm") {
+      const { error } = await db
+        .from("properties")
+        .update({ location_needs_review: false })
+        .eq("id", data.propertyId)
+        .not("location_id", "is", null);
+      if (error) throw error;
+    } else {
+      const { error } = await db
+        .from("properties")
+        .update({
+          location_id: null,
+          county_location_id: null,
+          constituency_location_id: null,
+          ward_location_id: null,
+          location_match_confidence: null,
+          location_needs_review: true,
+        })
+        .eq("id", data.propertyId);
+      if (error) throw error;
+    }
+
+    await db.from("location_audit_events").insert({
+      location_id: null,
+      actor_id: userId,
+      action: data.action === "confirm" ? "property_location_confirm" : "property_location_clear",
+      details: { propertyId: data.propertyId },
     });
     return { ok: true };
   });

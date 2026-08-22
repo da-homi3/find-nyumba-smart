@@ -49,7 +49,6 @@ function scrubPlaceNoise(raw) {
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
     .replace(/^\d+[a-z]?\s+/i, "")
-    .replace(/\s+(near|opposite|behind|beside|off|along)\s+.+$/i, "")
     .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
     .replace(/[,;/|]+/g, " ")
     .replace(/\s+/g, " ")
@@ -108,6 +107,15 @@ function parsePlace(q) {
     return { place, countyHint, alternates };
   }
   const scrubbed = scrubPlaceNoise(raw);
+  const alongNear = scrubbed.match(
+    /^(.+?)\s+(?:along|near|opposite|behind|beside|off)\s+(.+)$/i,
+  );
+  if (alongNear) {
+    const head = alongNear[1].trim();
+    const tail = alongNear[2].trim();
+    const alternates = tail && normalizeName(tail) !== normalizeName(head) ? [tail] : [];
+    return { place: head, countyHint: null, alternates };
+  }
   const parts = scrubbed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     const last = parts[parts.length - 1];
@@ -227,60 +235,80 @@ function typeBoost(t) {
   return 0;
 }
 
+function queryLooksLikeRoad(q) {
+  return /\b(road|rd|way|highway|hwy|bypass|link)\b/.test(q);
+}
+
 function findCandidates(neighborhood, lat, lng) {
   const { place, countyHint, alternates } = parsePlace(neighborhood);
   const seeds = [place, ...(alternates ?? [])].map((p) => normalizeName(p)).filter((p) => p.length >= 2);
   if (!seeds.length) return [];
 
-  const scored = [];
-  const seen = new Set();
+  const bestById = new Map();
   for (let si = 0; si < seeds.length; si += 1) {
     const primary = seeds[si];
     const seedPenalty = si === 0 ? 0 : 12;
+    const roadIntent = queryLooksLikeRoad(primary);
     const variants = [primary];
     const parts = primary.split(" ").filter(Boolean);
-    if (parts.length >= 2) variants.push(parts[0]);
-    if (parts.length >= 3) variants.push(parts.slice(0, 2).join(" "));
+    // Only use prefix variants when not a road query — "naivasha" alone steals from "naivasha road".
+    if (!roadIntent) {
+      if (parts.length >= 2) variants.push(parts[0]);
+      if (parts.length >= 3) variants.push(parts.slice(0, 2).join(" "));
+    }
 
     for (const q of variants) {
       const variantPenalty = q === primary ? 0 : q.split(" ").length === 1 ? 18 : 10;
       for (const [norm, list] of byNorm) {
         let base = 0;
         if (norm === q) base = 100;
-        else if (norm.startsWith(q)) base = 88;
-        else if (norm.includes(q) || q.includes(norm)) base = 70;
+        else if (norm.startsWith(q) && q.length >= 4) base = 88;
+        else if (q.length >= 5 && (norm.includes(q) || q.includes(norm))) base = 70;
         else continue;
         base = Math.max(0, base - variantPenalty - seedPenalty);
         for (const loc of list) {
-          if (seen.has(loc.id)) continue;
-          seen.add(loc.id);
           let score = base + typeBoost(loc.location_type) + (loc.is_official ? 5 : 0);
+          if (roadIntent) {
+            if (loc.location_type === "ROAD") score += 28;
+            else if (["LOCALITY", "TOWN", "CITY", "CONSTITUENCY"].includes(loc.location_type)) {
+              score -= 30;
+            }
+          }
           if (lat != null && lng != null && loc.latitude != null && loc.longitude != null) {
             const d = haversineKm(lat, lng, loc.latitude, loc.longitude);
             if (d < 5) score += 20;
             else if (d < 20) score += 10;
             else if (d > 80) score -= 25;
           }
-          scored.push({ loc, score });
+          const prev = bestById.get(loc.id);
+          if (!prev || score > prev.score) bestById.set(loc.id, { loc, score });
         }
       }
     }
   }
 
-  scored.sort((a, b) => b.score - a.score);
-  let top = scored.slice(0, 8);
+  let top = [...bestById.values()].sort((a, b) => b.score - a.score).slice(0, 8);
 
   if (countyHint) {
     const hint = normalizeName(countyHint);
     const filtered = top.filter((c) => {
+      if (c.loc.normalized_name.includes(hint) || hint.includes(c.loc.normalized_name)) return true;
       let p = byId.get(c.loc.parent_id);
-      for (let i = 0; i < 4 && p; i++) {
-        if (p.normalized_name.includes(hint) || hint.includes(p.normalized_name)) return true;
+      for (let i = 0; i < 6 && p; i++) {
+        if (
+          p.normalized_name.includes(hint) ||
+          hint.includes(p.normalized_name) ||
+          (p.location_type === "COUNTY" &&
+            (p.normalized_name.includes(hint) || hint.includes(p.normalized_name)))
+        ) {
+          return true;
+        }
         p = byId.get(p.parent_id);
       }
-      return c.loc.normalized_name.includes(hint);
+      return false;
     });
-    if (filtered.length) top = filtered;
+    // Hard filter: never keep a match outside the hinted county.
+    top = filtered;
   }
 
   return top;
@@ -387,9 +415,16 @@ for (;;) {
     let best = candidates[0];
     let second = candidates[1];
 
-    // Prefer urban places over roads when scores are close.
+    // Prefer roads when the query is road-like; otherwise prefer urban over roads.
     const URBAN = new Set(["NEIGHBOURHOOD", "LOCALITY", "ESTATE", "TOWN", "CITY", "WARD"]);
-    if (best && !URBAN.has(best.loc.location_type)) {
+    const roadIntent = queryLooksLikeRoad(neighborhood);
+    if (best && roadIntent && best.loc.location_type !== "ROAD") {
+      const road = candidates.find((c) => c.loc.location_type === "ROAD");
+      if (road && road.score >= best.score - 20) {
+        best = road;
+        second = candidates.find((c) => c.loc.id !== road.loc.id) ?? null;
+      }
+    } else if (best && !roadIntent && !URBAN.has(best.loc.location_type)) {
       const urban = candidates.find((c) => URBAN.has(c.loc.location_type));
       if (urban && urban.score >= best.score - 12) {
         best = urban;
