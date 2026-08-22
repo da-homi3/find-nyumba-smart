@@ -15,7 +15,62 @@ export async function tryHandleWave22(
   rest: string,
   method: string,
 ): Promise<Response | null> {
-  if (method !== "GET") return null;
+  const upper = method.toUpperCase();
+
+  // Explicit place pick for demand analytics (parity with web /api/locations/select).
+  if (rest === "/locations/select" && (upper === "POST" || upper === "GET")) {
+    let selectedId = "";
+    let q = "";
+    let source = "mobile";
+    if (upper === "POST") {
+      try {
+        const body = (await req.json()) as {
+          location_id?: string;
+          locationId?: string;
+          id?: string;
+          q?: string;
+          source?: string;
+        };
+        selectedId = String(body.location_id ?? body.locationId ?? body.id ?? "").trim();
+        q = String(body.q ?? "").trim();
+        source = String(body.source ?? "mobile").trim() || "mobile";
+      } catch {
+        return mobileError("Invalid JSON body", "VALIDATION", 400);
+      }
+    } else {
+      const url = new URL(req.url);
+      selectedId = (url.searchParams.get("location_id") ?? url.searchParams.get("id") ?? "").trim();
+      q = url.searchParams.get("q")?.trim() ?? "";
+      source = url.searchParams.get("source")?.trim() || "mobile";
+    }
+    const uuidOk =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        selectedId,
+      );
+    if (!uuidOk) return mobileError("location_id required", "VALIDATION", 400);
+
+    void (async () => {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { asLooseDb } = await import("@/lib/db/loose-client");
+        const { normalizeLocationName } = await import("@/lib/locations/normalize");
+        await asLooseDb(supabaseAdmin).from("location_search_events").insert({
+          query: q || selectedId,
+          normalized_query: normalizeLocationName(q || selectedId),
+          selected_location_id: selectedId,
+          result_count: 1,
+          lat: null,
+          lng: null,
+          source,
+        });
+      } catch {
+        // non-blocking
+      }
+    })();
+    return mobileJson({ apiVersion: "v1", ok: true });
+  }
+
+  if (upper !== "GET") return null;
 
   // Allow anonymous browse for location search (same as web /api/locations).
   if (rest === "/locations/search") {
