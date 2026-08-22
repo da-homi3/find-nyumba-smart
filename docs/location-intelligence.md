@@ -39,18 +39,21 @@ node scripts/seed-building-footprints.mjs path/to/buildings.geojson
 
 - **APIs**: `/api/locations/*` + Mobile BFF `/api/mobile/v1/locations/*`
 - **Ranking tiers**: `inside` → `near` → `marketed_as` when a place filter is active
-- **Admin**: Control Center → **Locations** (aliases, activate/deactivate, demand, audit)
+- **Admin**: Control Center → **Locations** (aliases, activate/deactivate, demand, unmatched queue, audit)
 - **SEO**: static Nairobi slugs preserved; localities ≥3 listings; **wards ≥1 listing** nationally; empty pages `noindex`
 - **Demand**: search + view aggregation in admin Locations tab
-- **Flutter**: landlord create-listing neighborhood autocomplete via BFF search; create attaches location FKs
+- **Flutter**: landlord create/edit listing neighborhood autocomplete via BFF; create/patch attach location FKs
+- **Daily cron**: unlinked listings get text resolve, then pin PIP / nearest-centroid fallback; inventory recount on attach
 
 ## Inventory refresh
 
 ```bash
 npm run refresh:location-inventory
+npm run reconcile:locations
+npm run seed:location-aliases
 ```
 
-Updates `locations.inventory_count` from active property FKs (+ neighborhood text fallback). Report: `docs/location-inventory-report.json`.
+Updates `locations.inventory_count` from active property FKs (+ neighborhood text fallback). Attach also recounts touched locations. Report: `docs/location-inventory-report.json`.
 
 ## KeNHA / KURA note
 

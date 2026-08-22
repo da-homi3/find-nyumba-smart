@@ -1,8 +1,8 @@
 {
   "scanned": 348,
-  "matched": 341,
-  "needsReview": 31,
-  "unmatched": 7,
+  "matched": 348,
+  "needsReview": 13,
+  "unmatched": 0,
   "skippedEmpty": 0,
   "samples": [
     {
@@ -83,7 +83,7 @@
       "matched": "Ngong",
       "type": "LOCALITY",
       "confidence": 100,
-      "needsReview": true
+      "needsReview": false
     },
     {
       "id": "0b177e51-744c-4aad-92ac-c9d838b03855",

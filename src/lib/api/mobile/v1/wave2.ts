@@ -318,7 +318,11 @@ async function handlePatchProperty(req: Request, propertyId: string): Promise<Re
           : "";
     if (neighborhood || locationId) {
       const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-      await attachPropertyLocationFks(auth.admin, propertyId, neighborhood, locationId);
+      await attachPropertyLocationFks(auth.admin, propertyId, neighborhood, {
+        locationId,
+        latitude: typeof row.latitude === "number" ? row.latitude : null,
+        longitude: typeof row.longitude === "number" ? row.longitude : null,
+      });
     }
   }
 

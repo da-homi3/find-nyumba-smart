@@ -154,12 +154,11 @@ async function insertPropertyListing(
   void (async () => {
     try {
       const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-      await attachPropertyLocationFks(
-        admin,
-        property.id,
-        listingData.neighborhood,
-        selectedLocationId,
-      );
+      await attachPropertyLocationFks(admin, property.id, listingData.neighborhood, {
+        locationId: selectedLocationId,
+        latitude: listingData.latitude ?? null,
+        longitude: listingData.longitude ?? null,
+      });
     } catch (err) {
       console.warn("[insertPropertyListing] location attach failed:", err);
     }
@@ -779,12 +778,11 @@ export const updateProperty = createServerFn({ method: "POST" })
     void (async () => {
       try {
         const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-        await attachPropertyLocationFks(
-          admin,
-          propertyId,
-          listingPayload.neighborhood,
-          selectedLocationId,
-        );
+        await attachPropertyLocationFks(admin, propertyId, listingPayload.neighborhood, {
+          locationId: selectedLocationId,
+          latitude: listingPayload.latitude ?? null,
+          longitude: listingPayload.longitude ?? null,
+        });
       } catch (err) {
         console.warn("[updateProperty] location attach failed:", err);
       }

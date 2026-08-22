@@ -25,7 +25,7 @@ export async function runLocationMaintenanceCron(admin: SupabaseClient): Promise
     const { data: rows, error } = await db
       .from("properties")
       .select(
-        "id,neighborhood,location_id,ward_location_id,constituency_location_id,county_location_id",
+        "id,neighborhood,latitude,longitude,location_id,ward_location_id,constituency_location_id,county_location_id",
       )
       .eq("is_active", true)
       .is("location_id", null)
@@ -42,7 +42,10 @@ export async function runLocationMaintenanceCron(admin: SupabaseClient): Promise
       const neighborhood = String(row.neighborhood ?? "").trim();
       if (neighborhood.length < 2) continue;
       try {
-        await attachPropertyLocationFks(admin, row.id as string, neighborhood);
+        await attachPropertyLocationFks(admin, row.id as string, neighborhood, {
+          latitude: typeof row.latitude === "number" ? row.latitude : null,
+          longitude: typeof row.longitude === "number" ? row.longitude : null,
+        });
         const { data: after } = await db
           .from("properties")
           .select(

@@ -13,7 +13,7 @@ import { z } from "zod";
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 const PROPERTY_SAFE_SELECT =
-  "id, title, description, rent_kes, is_active, is_vacant, neighborhood, property_type, bedrooms, bathrooms, images, owner_id, organization_id, pricing_mode, location_id, updated_at, created_at";
+  "id, title, description, rent_kes, is_active, is_vacant, neighborhood, property_type, bedrooms, bathrooms, images, owner_id, organization_id, pricing_mode, location_id, latitude, longitude, updated_at, created_at";
 
 const CHECKOUT_PAYMENT_TYPES = [
   "tenant_plus",
@@ -280,10 +280,14 @@ async function attachLocationFks(
   admin: MobileAdmin,
   propertyId: string,
   neighborhood: string,
-  locationId?: string,
+  opts?: { locationId?: string; latitude?: number | null; longitude?: number | null },
 ): Promise<void> {
   const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-  await attachPropertyLocationFks(admin, propertyId, neighborhood, locationId);
+  await attachPropertyLocationFks(admin, propertyId, neighborhood, {
+    locationId: opts?.locationId ?? null,
+    latitude: opts?.latitude ?? null,
+    longitude: opts?.longitude ?? null,
+  });
 }
 
 async function handleCreateProperty(req: Request): Promise<Response> {
@@ -313,7 +317,11 @@ async function handleCreateProperty(req: Request): Promise<Response> {
     return mobileError("Could not create property", "PROPERTY_ERROR", 500);
   }
 
-  await attachLocationFks(auth.admin, row.id, parsed.neighborhood, parsed.locationId);
+  await attachLocationFks(auth.admin, row.id, parsed.neighborhood, {
+    locationId: parsed.locationId,
+    latitude: typeof row.latitude === "number" ? row.latitude : null,
+    longitude: typeof row.longitude === "number" ? row.longitude : null,
+  });
 
   return mobileJson({ apiVersion: "v1", property: row }, 201);
 }

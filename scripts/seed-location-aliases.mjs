@@ -72,7 +72,7 @@ const ALIAS_MAP = [
   { name: "Spring Valley", aliases: ["grevillea grove", "grevilllea grove"] },
   { name: "Nyari", aliases: ["enaki town", "nyari estate"] },
   { name: "Muguga", aliases: ["kahuru muguga"] },
-  { name: "Kangundo Road", aliases: ["saika heights", "kangundo road"] },
+  { name: "Kangundo Road", aliases: ["saika heights", "kangundo road", "kagundo road", "kagundo"] },
   { name: "Mombasa Road", aliases: ["next gen mall", "enzi heights"] },
   { name: "Malindi", aliases: ["sunpark road malindi", "sunpark road"] },
 ];

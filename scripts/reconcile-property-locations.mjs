@@ -305,6 +305,65 @@ function pickType(chain, self, type) {
   return chain.find((a) => a.location_type === type)?.id ?? null;
 }
 
+async function resolveFromPin(lat, lng) {
+  if (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  try {
+    const { data: pip, error } = await admin.rpc("locations_containing_point", { lat, lng });
+    if (!error && Array.isArray(pip) && pip.length > 0) {
+      const pick = (t) => pip.find((r) => r.location_type === t);
+      const hit =
+        pick("NEIGHBOURHOOD") ||
+        pick("LOCALITY") ||
+        pick("ESTATE") ||
+        pick("WARD") ||
+        pick("CONSTITUENCY") ||
+        pick("COUNTY");
+      if (hit && byId.has(hit.id)) {
+        return { loc: byId.get(hit.id), confidence: 88, method: "polygon" };
+      }
+      if (hit) {
+        return { loc: hit, confidence: 88, method: "polygon" };
+      }
+    }
+  } catch {
+    // RPC unavailable — centroid fallback below
+  }
+
+  const types = ["NEIGHBOURHOOD", "LOCALITY", "WARD", "ESTATE"];
+  let best = null;
+  for (const t of types) {
+    const d = (t === "WARD" ? 15 : 10) / 111;
+    const { data } = await admin
+      .from("locations")
+      .select(
+        "id,parent_id,name,normalized_name,slug,location_type,latitude,longitude,confidence_score,is_official",
+      )
+      .eq("is_active", true)
+      .eq("location_type", t)
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      .gte("latitude", lat - d)
+      .lte("latitude", lat + d)
+      .gte("longitude", lng - d)
+      .lte("longitude", lng + d)
+      .limit(40);
+    for (const loc of data ?? []) {
+      const dist = haversineKm(lat, lng, loc.latitude, loc.longitude);
+      const maxKm = t === "WARD" ? 15 : 10;
+      if (dist > maxKm) continue;
+      const score = 70 - dist * 3 + typeBoost(t);
+      if (!best || score > best.score) best = { loc, score, dist };
+    }
+  }
+  if (!best || best.score < 55) return null;
+  return {
+    loc: best.loc,
+    confidence: Math.min(65, Math.round(best.score)),
+    method: "nearest_centroid",
+  };
+}
+
 console.log("Reconciling properties…");
 let offset = 0;
 for (;;) {
@@ -325,10 +384,52 @@ for (;;) {
     }
 
     const candidates = findCandidates(neighborhood, row.latitude, row.longitude);
-    const best = candidates[0];
-    const second = candidates[1];
+    let best = candidates[0];
+    let second = candidates[1];
+
+    // Prefer urban places over roads when scores are close.
+    const URBAN = new Set(["NEIGHBOURHOOD", "LOCALITY", "ESTATE", "TOWN", "CITY", "WARD"]);
+    if (best && !URBAN.has(best.loc.location_type)) {
+      const urban = candidates.find((c) => URBAN.has(c.loc.location_type));
+      if (urban && urban.score >= best.score - 12) {
+        best = urban;
+        second = candidates.find((c) => c.loc.id !== urban.loc.id) ?? null;
+      }
+    }
 
     if (!best || best.score < 55) {
+      // Pin fallback: PostGIS PIP, then nearest ward/locality centroid.
+      const pin = await resolveFromPin(row.latitude, row.longitude);
+      if (pin) {
+        const chain = ancestorsOf(pin.loc);
+        const confidence = pin.confidence;
+        const needsReview = pin.method !== "polygon" || confidence < 80;
+        const patch = {
+          location_id: pin.loc.id,
+          county_location_id: pickType(chain, pin.loc, "COUNTY"),
+          constituency_location_id: pickType(chain, pin.loc, "CONSTITUENCY"),
+          ward_location_id: pickType(chain, pin.loc, "WARD"),
+          location_match_confidence: confidence,
+          location_needs_review: needsReview,
+        };
+        const { error: upErr } = await admin.from("properties").update(patch).eq("id", row.id);
+        if (upErr) throw upErr;
+        report.matched += 1;
+        if (needsReview) report.needsReview += 1;
+        if (report.samples.length < 25) {
+          report.samples.push({
+            id: row.id,
+            neighborhood,
+            matched: pin.loc.name,
+            type: pin.loc.location_type,
+            confidence,
+            needsReview,
+            via: pin.method,
+          });
+        }
+        continue;
+      }
+
       report.unmatched += 1;
       await admin
         .from("properties")
@@ -352,7 +453,8 @@ for (;;) {
       second.score >= best.score - 8 &&
       second.loc.name.toLowerCase() !== best.loc.name.toLowerCase();
     const confidence = Math.min(100, Math.round(best.score));
-    const needsReview = Boolean(ambiguous) || confidence < 70;
+    const needsReview =
+      (Boolean(ambiguous) && confidence < 90) || confidence < 70;
     const chain = ancestorsOf(best.loc);
 
     const patch = {
