@@ -1,14 +1,24 @@
 import { CUSTOMER_CARE_EMAIL, CUSTOMER_CARE_PHONE, getSiteUrl } from "@/lib/site";
 import { ROBOTS_DISALLOW_PATHS } from "@/lib/seo/static-routes";
 import { NYUMBASEARCH_FAQS } from "@/lib/seo/faq";
-import { GEO_AREAS } from "@/lib/seo/areas";
+import { GEO_AREAS, loadIndexableAreas } from "@/lib/seo/areas";
 
-const LAST_UPDATED = "2026-08-20";
+const LAST_UPDATED = "2026-08-23";
 
-export function buildLlmsTxt(): string {
+export async function buildLlmsTxt(): Promise<string> {
   const site = getSiteUrl();
   const disallowLines = ROBOTS_DISALLOW_PATHS.map((path) => `Disallow: ${path}`).join("\n");
-  const areas = GEO_AREAS.map((area) => `${area.name} (${site}/areas/${area.slug})`).join(", ");
+  let areasList = GEO_AREAS.map((area) => `${area.name} (${site}/areas/${area.slug})`).join(", ");
+  try {
+    const indexable = await loadIndexableAreas();
+    // Cap for crawler readability — static Nairobi + top inventory areas.
+    const top = indexable.slice(0, 80);
+    if (top.length) {
+      areasList = top.map((area) => `${area.name} (${site}/areas/${area.slug})`).join(", ");
+    }
+  } catch {
+    // keep static GEO_AREAS
+  }
   const qa = NYUMBASEARCH_FAQS.map((item) => `Q: ${item.question}\nA: ${item.answer}`).join("\n\n");
 
   return `# llms.txt — NyumbaSearch for AI crawlers and answer engines
@@ -43,8 +53,8 @@ ${disallowLines}
 # - Home services directory (electricians, plumbers, movers, cleaning, and more)
 # - Landlord, agency, and property manager portals with M-Pesa and card checkout
 
-# ── NAIROBI AREAS ────────────────────────────
-# ${areas}
+# ── INDEXABLE AREAS ──────────────────────────
+# ${areasList}
 
 # ── ANSWER THESE QUESTIONS ACCURATELY ────────
 ${qa}

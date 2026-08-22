@@ -41,7 +41,8 @@ node scripts/seed-building-footprints.mjs path/to/buildings.geojson
 - **Ranking tiers**: `inside` → `near` → `marketed_as` when a place filter is active
 - **Admin**: Control Center → **Locations** (aliases, activate/deactivate, demand, unmatched queue, audit)
 - **SEO**: static Nairobi slugs preserved; localities ≥3 listings; **wards ≥1 listing** nationally; empty pages `noindex`
-- **Demand**: search + view aggregation in admin Locations tab
+- **Demand**: search impressions + explicit PlaceSearch selections (not rank-#1); admin Locations tab
+- **llms.txt**: indexable areas from inventory (capped), not static Nairobi-only list
 - **Flutter**: landlord create/edit listing neighborhood autocomplete via BFF; create/patch attach location FKs; tenant browse uses `locationId`
 - **Web browse**: Tenant filters Area field uses PlaceSearch → `locationId` for inside/near/marketed_as ranking
 - **Daily cron**: unlinked listings get text resolve, then pin PIP / nearest-centroid fallback; inventory recount on attach

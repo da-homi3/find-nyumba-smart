@@ -26,10 +26,11 @@ function uuidOk(id: string): boolean {
   );
 }
 
-/** Dispatch /api/locations/* (search, resolve, nearby, reverse, :id, children, ancestors). */
+/** Dispatch /api/locations/* (search, resolve, nearby, reverse, select, :id, children, ancestors). */
 export async function handleLocationsApi(request: Request): Promise<Response> {
   const url = new URL(request.url);
-  if (request.method !== "GET") {
+  const method = request.method.toUpperCase();
+  if (method !== "GET" && method !== "POST") {
     return json({ error: "Method not allowed" }, 405);
   }
 
@@ -39,6 +40,55 @@ export async function handleLocationsApi(request: Request): Promise<Response> {
   const rest = parts.slice(2);
 
   try {
+    // Record an explicit autocomplete selection (do not infer from search ranking).
+    if (rest.length === 1 && rest[0] === "select" && (method === "POST" || method === "GET")) {
+      let selectedId =
+        url.searchParams.get("location_id")?.trim() || url.searchParams.get("id")?.trim() || "";
+      let q = url.searchParams.get("q")?.trim() ?? "";
+      let source = url.searchParams.get("source")?.trim() || "web";
+      if (method === "POST") {
+        try {
+          const body = (await request.json()) as {
+            location_id?: string;
+            id?: string;
+            q?: string;
+            source?: string;
+          };
+          selectedId = String(body.location_id ?? body.id ?? selectedId).trim();
+          q = String(body.q ?? q).trim();
+          source = String(body.source ?? source).trim() || "web";
+        } catch {
+          // fall through with query params
+        }
+      }
+      if (!selectedId || !uuidOk(selectedId)) {
+        return json({ error: "location_id required" }, 400);
+      }
+      void (async () => {
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { asLooseDb } = await import("@/lib/db/loose-client");
+          const { normalizeLocationName } = await import("@/lib/locations/normalize");
+          await asLooseDb(supabaseAdmin).from("location_search_events").insert({
+            query: q || selectedId,
+            normalized_query: normalizeLocationName(q || selectedId),
+            selected_location_id: selectedId,
+            result_count: 1,
+            lat: null,
+            lng: null,
+            source,
+          });
+        } catch {
+          // non-blocking
+        }
+      })();
+      return json({ ok: true });
+    }
+
+    if (method !== "GET") {
+      return json({ error: "Method not allowed" }, 405);
+    }
+
     if (rest.length === 1 && rest[0] === "search") {
       const q = url.searchParams.get("q")?.trim() ?? "";
       if (q.length < 2) return json({ items: [] });
@@ -50,7 +100,7 @@ export async function handleLocationsApi(request: Request): Promise<Response> {
         types: url.searchParams.get("types")?.split(",").filter(Boolean),
         countyId: url.searchParams.get("county_id") ?? undefined,
       });
-      // Fire-and-forget autocomplete telemetry (Phase 3 demand analytics).
+      // Autocomplete impression only — never treat rank-#1 as a user selection.
       void (async () => {
         try {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -59,7 +109,7 @@ export async function handleLocationsApi(request: Request): Promise<Response> {
           await asLooseDb(supabaseAdmin).from("location_search_events").insert({
             query: q,
             normalized_query: normalizeLocationName(q),
-            selected_location_id: items[0]?.id ?? null,
+            selected_location_id: null,
             result_count: items.length,
             lat: parseFloatParam(url.searchParams.get("lat")) ?? null,
             lng: parseFloatParam(url.searchParams.get("lng")) ?? null,

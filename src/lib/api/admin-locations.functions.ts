@@ -270,6 +270,63 @@ export const setAdminPropertyLocationReview = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const attachAdminUnmatchedProperty = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    z.object({
+      propertyId: z.string().uuid(),
+      locationId: z.string().uuid(),
+      /** When true, also add the property neighborhood free-text as an alias on the place. */
+      addAlias: z.boolean().optional(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = getAuthContext(context);
+    await requireRole(supabase, userId, "admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { asLooseDb } = await import("@/lib/db/loose-client");
+    const db = asLooseDb(supabaseAdmin);
+
+    const { data: property, error: propErr } = await db
+      .from("properties")
+      .select("id,neighborhood")
+      .eq("id", data.propertyId)
+      .maybeSingle();
+    if (propErr) throw propErr;
+    if (!property) throw new Error("Property not found");
+
+    const neighborhood = String(property.neighborhood ?? "").trim();
+    if (data.addAlias && neighborhood.length >= 2) {
+      const normalized = normalizeLocationName(neighborhood);
+      await db.from("location_aliases").upsert(
+        {
+          location_id: data.locationId,
+          alias: neighborhood,
+          normalized_alias: normalized,
+          alias_kind: "colloquial",
+        },
+        { onConflict: "location_id,normalized_alias" },
+      );
+    }
+
+    const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
+    await attachPropertyLocationFks(supabaseAdmin, data.propertyId, neighborhood, {
+      locationId: data.locationId,
+    });
+
+    await db.from("location_audit_events").insert({
+      location_id: data.locationId,
+      actor_id: userId,
+      action: "property_location_attach",
+      details: {
+        propertyId: data.propertyId,
+        neighborhood,
+        addAlias: Boolean(data.addAlias),
+      },
+    });
+    return { ok: true };
+  });
+
 export const setAdminLocationActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(

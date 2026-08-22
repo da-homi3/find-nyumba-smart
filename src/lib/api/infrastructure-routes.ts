@@ -577,8 +577,9 @@ function handleRobotsTxt(): Response {
   });
 }
 
-function handleLlmsTxt(): Response {
-  return new Response(buildLlmsTxt(), {
+async function handleLlmsTxt(): Promise<Response> {
+  const body = await buildLlmsTxt();
+  return new Response(body, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "public, max-age=86400",

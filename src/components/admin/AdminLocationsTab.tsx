@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   addAdminLocationAlias,
+  attachAdminUnmatchedProperty,
   getAdminLocationOverview,
   listAdminLocations,
   removeAdminLocationAlias,
@@ -10,6 +11,7 @@ import {
   setAdminPropertyLocationReview,
 } from "@/lib/api/admin-locations.functions";
 import { MapPin, Search, AlertTriangle } from "lucide-react";
+import { PlaceSearchField } from "@/components/PlaceSearchField";
 
 export function AdminLocationsTab() {
   const qc = useQueryClient();
@@ -67,6 +69,16 @@ export function AdminLocationsTab() {
       setAdminPropertyLocationReview({ data: payload }),
     onSuccess: (_d, vars) => {
       toast.success(vars.action === "confirm" ? "Match confirmed" : "Location cleared");
+      qc.invalidateQueries({ queryKey: ["admin-location-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const attachUnmatched = useMutation({
+    mutationFn: (payload: { propertyId: string; locationId: string; addAlias: boolean }) =>
+      attachAdminUnmatchedProperty({ data: payload }),
+    onSuccess: () => {
+      toast.success("Listing attached to place");
       qc.invalidateQueries({ queryKey: ["admin-location-overview"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -138,10 +150,10 @@ export function AdminLocationsTab() {
           <AlertTriangle className="h-4 w-4 text-amber-600" /> Unmatched listings
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Free-text neighborhoods with no location_id — add an alias to an existing place, then
-          re-reconcile. Do not invent places.
+          Free-text neighborhoods with no location_id — pick an existing place to attach (optional
+          alias). Do not invent places.
         </p>
-        <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-xs">
+        <ul className="mt-3 max-h-96 space-y-3 overflow-y-auto text-xs">
           {(overview?.unmatchedSamples ?? []).map((row) => (
             <li key={row.id as string} className="border-t pt-2">
               <span className="font-medium text-foreground">{String(row.neighborhood)}</span>
@@ -149,6 +161,27 @@ export function AdminLocationsTab() {
                 {String(row.title ?? "Untitled")} ·{" "}
                 {row.created_at ? new Date(String(row.created_at)).toLocaleDateString() : "—"}
               </span>
+              <div className="mt-1.5">
+                <PlaceSearchField
+                  value=""
+                  onValueChange={() => {}}
+                  onSelectPlace={(place) => {
+                    const locationId = place.locationId ?? (place.source === "nyumba" ? place.id : null);
+                    if (!locationId) {
+                      toast.error("Pick a NyumbaSearch place (not Mapbox-only)");
+                      return;
+                    }
+                    attachUnmatched.mutate({
+                      propertyId: row.id as string,
+                      locationId,
+                      addAlias: true,
+                    });
+                  }}
+                  placeholder="Attach to existing place…"
+                  className="rounded-lg border bg-background px-2 py-0.5"
+                  compact
+                />
+              </div>
             </li>
           ))}
           {!overviewLoading && (overview?.unmatchedSamples?.length ?? 0) === 0 ? (

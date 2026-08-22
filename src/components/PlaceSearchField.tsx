@@ -256,6 +256,21 @@ export function PlaceSearchField({
     setOpen(false);
     setResults([]);
     setActiveIndex(-1);
+    if (place.locationId || (place.source === "nyumba" && place.id)) {
+      const locationId = place.locationId ?? place.id;
+      void fetch("/api/locations/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          location_id: locationId,
+          q: place.neighborhood ?? place.label,
+          source: "web",
+        }),
+        keepalive: true,
+      }).catch(() => {
+        /* non-blocking demand telemetry */
+      });
+    }
     if (showNearbyAfterSelect) {
       setNearby(
         nearbyKenyaLocations(place.lat, place.lng, {
