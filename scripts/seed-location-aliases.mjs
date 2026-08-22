@@ -42,8 +42,8 @@ const ALIAS_MAP = [
   { name: "Gigiri", aliases: ["gigiri un zone", "un zone gigiri", "gigiri un"] },
   { name: "Runda", aliases: ["new runda", "runda kiambu", "runda estate"] },
   { name: "Ngong Road", aliases: ["along ngong road", "ngong rd", "race course ngong"] },
-  { name: "Westlands", aliases: ["westland", "waiyaki westlands"] },
-  { name: "Karen", aliases: ["karen tangaza", "near tangaza university"] },
+  { name: "Westlands", aliases: ["westland", "waiyaki westlands", "brookside westlands"] },
+  { name: "Karen", aliases: ["karen tangaza", "near tangaza university", "bogani road karen", "bogani karen"] },
   { name: "Lavington", aliases: ["lavington area"] },
   { name: "Spring Valley", aliases: ["springvalley"] },
   { name: "Donholm", aliases: ["don holm", "donholm phase"] },
@@ -66,6 +66,15 @@ const ALIAS_MAP = [
   { name: "Ngumo", aliases: ["ngummo", "ngummo west estate", "ngumo west"] },
   { name: "Nyari", aliases: ["nyari estate"] },
   { name: "Mwihoko", aliases: ["mwihoko estate"] },
+  { name: "Ongata Rongai", aliases: ["ongata", "acacia ongata rongai", "laiser hill"] },
+  { name: "Rongai", aliases: ["exciting area rongai", "exciting area"] },
+  { name: "Kilimani", aliases: ["denis prit", "dennis pritt", "dennis pritt road"] },
+  { name: "Spring Valley", aliases: ["grevillea grove", "grevilllea grove"] },
+  { name: "Nyari", aliases: ["enaki town", "nyari estate"] },
+  { name: "Muguga", aliases: ["kahuru muguga"] },
+  { name: "Kangundo Road", aliases: ["saika heights", "kangundo road"] },
+  { name: "Mombasa Road", aliases: ["next gen mall", "enzi heights"] },
+  { name: "Malindi", aliases: ["sunpark road malindi", "sunpark road"] },
 ];
 
 const env = loadEnv();

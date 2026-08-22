@@ -33,61 +33,70 @@ export async function searchLocationsDb(
   supabase: LocationsDb,
   options: LocationSearchOptions,
 ): Promise<LocationSearchHit[]> {
-  const { place, countyHint } = parsePlaceQuery(options.q);
-  const query = normalizeLocationName(place);
-  if (query.length < 2) return [];
+  const { place, countyHint, alternates } = parsePlaceQuery(options.q);
+  const queries = [
+    normalizeLocationName(place),
+    ...alternates.map((a) => normalizeLocationName(a)),
+  ].filter((q) => q.length >= 2);
+  if (!queries.length) return [];
 
   const limit = Math.min(Math.max(options.limit ?? 12, 1), 40);
   const types = options.types?.length ? options.types : [...SEARCHABLE_TYPES];
-
-  let nameQuery = supabase
-    .from("locations")
-    .select(SELECT_COLS)
-    .eq("is_active", true)
-    .in("location_type", types)
-    .ilike("normalized_name", `%${query}%`)
-    .limit(60);
-
-  if (options.countyId) {
-    nameQuery = nameQuery.eq("parent_id", options.countyId);
-  }
-
-  const [{ data: nameRows }, { data: aliasRows }] = await Promise.all([
-    nameQuery,
-    supabase
-      .from("location_aliases")
-      .select(
-        "location_id,normalized_alias,locations!inner(id,parent_id,name,normalized_name,slug,location_type,latitude,longitude,is_official,confidence_score,inventory_count,source,is_active)",
-      )
-      .ilike("normalized_alias", `%${query}%`)
-      .limit(40),
-  ]);
 
   const byId = new Map<
     string,
     { row: LocationRow; score: number; via: LocationSearchHit["matchVia"] }
   >();
 
-  for (const raw of nameRows ?? []) {
-    const row = raw as unknown as LocationRow;
-    const { score, via } = scoreNameMatch(row.normalized_name, query);
-    if (score <= 0) continue;
-    const boosted = score + typeBoost(row.location_type) + (row.is_official ? 5 : 0);
-    const prev = byId.get(row.id);
-    if (!prev || boosted > prev.score) byId.set(row.id, { row, score: boosted, via });
-  }
+  for (let qi = 0; qi < queries.length; qi += 1) {
+    const query = queries[qi]!;
+    const altPenalty = qi === 0 ? 0 : 12;
 
-  for (const alias of aliasRows ?? []) {
-    const loc = (alias as { locations: LocationRow & { is_active: boolean } }).locations;
-    if (!loc?.is_active) continue;
-    if (!types.includes(loc.location_type)) continue;
-    const aliasNorm = String((alias as { normalized_alias: string }).normalized_alias ?? "");
-    const { score } = scoreNameMatch(aliasNorm, query);
-    if (score <= 0) continue;
-    const boosted = score + typeBoost(loc.location_type) + 8;
-    const prev = byId.get(loc.id);
-    if (!prev || boosted > prev.score) {
-      byId.set(loc.id, { row: loc, score: boosted, via: "alias" });
+    let nameQuery = supabase
+      .from("locations")
+      .select(SELECT_COLS)
+      .eq("is_active", true)
+      .in("location_type", types)
+      .ilike("normalized_name", `%${query}%`)
+      .limit(60);
+
+    if (options.countyId) {
+      nameQuery = nameQuery.eq("parent_id", options.countyId);
+    }
+
+    const [{ data: nameRows }, { data: aliasRows }] = await Promise.all([
+      nameQuery,
+      supabase
+        .from("location_aliases")
+        .select(
+          "location_id,normalized_alias,locations!inner(id,parent_id,name,normalized_name,slug,location_type,latitude,longitude,is_official,confidence_score,inventory_count,source,is_active)",
+        )
+        .ilike("normalized_alias", `%${query}%`)
+        .limit(40),
+    ]);
+
+    for (const raw of nameRows ?? []) {
+      const row = raw as unknown as LocationRow;
+      const { score, via } = scoreNameMatch(row.normalized_name, query);
+      if (score <= 0) continue;
+      const boosted =
+        Math.max(0, score - altPenalty) + typeBoost(row.location_type) + (row.is_official ? 5 : 0);
+      const prev = byId.get(row.id);
+      if (!prev || boosted > prev.score) byId.set(row.id, { row, score: boosted, via });
+    }
+
+    for (const alias of aliasRows ?? []) {
+      const loc = (alias as { locations: LocationRow & { is_active: boolean } }).locations;
+      if (!loc?.is_active) continue;
+      if (!types.includes(loc.location_type)) continue;
+      const aliasNorm = String((alias as { normalized_alias: string }).normalized_alias ?? "");
+      const { score } = scoreNameMatch(aliasNorm, query);
+      if (score <= 0) continue;
+      const boosted = Math.max(0, score - altPenalty) + typeBoost(loc.location_type) + 8;
+      const prev = byId.get(loc.id);
+      if (!prev || boosted > prev.score) {
+        byId.set(loc.id, { row: loc, score: boosted, via: "alias" });
+      }
     }
   }
 

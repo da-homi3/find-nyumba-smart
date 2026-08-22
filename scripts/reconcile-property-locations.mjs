@@ -85,7 +85,7 @@ const COUNTY_HINTS = new Set([
 
 function parsePlace(q) {
   const raw = String(q ?? "").trim();
-  if (!raw) return { place: "", countyHint: null };
+  if (!raw) return { place: "", countyHint: null, alternates: [] };
   const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
   if (comma.length >= 2) {
     let headIdx = 0;
@@ -94,14 +94,25 @@ function parsePlace(q) {
     const tailParts = comma.slice(headIdx + 1);
     const tailNorm = normalizeName(tailParts.join(" "));
     const countyHint = COUNTY_HINTS.has(tailNorm) ? tailParts.join(" ") : null;
-    return { place: head || scrubPlaceNoise(raw), countyHint };
+    const place = head || scrubPlaceNoise(raw);
+    const alternates = [];
+    for (const seg of tailParts) {
+      if (isNonPlaceHead(seg)) continue;
+      const scrubbed = scrubPlaceNoise(seg);
+      if (!scrubbed) continue;
+      const norm = normalizeName(scrubbed);
+      if (COUNTY_HINTS.has(norm)) continue;
+      if (normalizeName(place) === norm) continue;
+      alternates.push(scrubbed);
+    }
+    return { place, countyHint, alternates };
   }
   const scrubbed = scrubPlaceNoise(raw);
   const parts = scrubbed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     const last = parts[parts.length - 1];
     if (COUNTY_HINTS.has(normalizeName(last))) {
-      return { place: parts.slice(0, -1).join(" "), countyHint: last };
+      return { place: parts.slice(0, -1).join(" "), countyHint: last, alternates: [] };
     }
     if (parts.length >= 3) {
       const lastTwo = normalizeName(`${parts[parts.length - 2]} ${parts[parts.length - 1]}`);
@@ -109,11 +120,12 @@ function parsePlace(q) {
         return {
           place: parts.slice(0, -2).join(" "),
           countyHint: `${parts[parts.length - 2]} ${parts[parts.length - 1]}`,
+          alternates: [],
         };
       }
     }
   }
-  return { place: scrubbed || raw, countyHint: null };
+  return { place: scrubbed || raw, countyHint: null, alternates: [] };
 }
 
 const env = loadEnv();
@@ -216,37 +228,41 @@ function typeBoost(t) {
 }
 
 function findCandidates(neighborhood, lat, lng) {
-  const { place, countyHint } = parsePlace(neighborhood);
-  const primary = normalizeName(place);
-  if (primary.length < 2) return [];
-
-  const variants = [primary];
-  const parts = primary.split(" ").filter(Boolean);
-  if (parts.length >= 2) variants.push(parts[0]);
-  if (parts.length >= 3) variants.push(parts.slice(0, 2).join(" "));
+  const { place, countyHint, alternates } = parsePlace(neighborhood);
+  const seeds = [place, ...(alternates ?? [])].map((p) => normalizeName(p)).filter((p) => p.length >= 2);
+  if (!seeds.length) return [];
 
   const scored = [];
   const seen = new Set();
-  for (const q of variants) {
-    const variantPenalty = q === primary ? 0 : q.split(" ").length === 1 ? 18 : 10;
-    for (const [norm, list] of byNorm) {
-      let base = 0;
-      if (norm === q) base = 100;
-      else if (norm.startsWith(q)) base = 88;
-      else if (norm.includes(q) || q.includes(norm)) base = 70;
-      else continue;
-      base = Math.max(0, base - variantPenalty);
-      for (const loc of list) {
-        if (seen.has(loc.id)) continue;
-        seen.add(loc.id);
-        let score = base + typeBoost(loc.location_type) + (loc.is_official ? 5 : 0);
-        if (lat != null && lng != null && loc.latitude != null && loc.longitude != null) {
-          const d = haversineKm(lat, lng, loc.latitude, loc.longitude);
-          if (d < 5) score += 20;
-          else if (d < 20) score += 10;
-          else if (d > 80) score -= 25;
+  for (let si = 0; si < seeds.length; si += 1) {
+    const primary = seeds[si];
+    const seedPenalty = si === 0 ? 0 : 12;
+    const variants = [primary];
+    const parts = primary.split(" ").filter(Boolean);
+    if (parts.length >= 2) variants.push(parts[0]);
+    if (parts.length >= 3) variants.push(parts.slice(0, 2).join(" "));
+
+    for (const q of variants) {
+      const variantPenalty = q === primary ? 0 : q.split(" ").length === 1 ? 18 : 10;
+      for (const [norm, list] of byNorm) {
+        let base = 0;
+        if (norm === q) base = 100;
+        else if (norm.startsWith(q)) base = 88;
+        else if (norm.includes(q) || q.includes(norm)) base = 70;
+        else continue;
+        base = Math.max(0, base - variantPenalty - seedPenalty);
+        for (const loc of list) {
+          if (seen.has(loc.id)) continue;
+          seen.add(loc.id);
+          let score = base + typeBoost(loc.location_type) + (loc.is_official ? 5 : 0);
+          if (lat != null && lng != null && loc.latitude != null && loc.longitude != null) {
+            const d = haversineKm(lat, lng, loc.latitude, loc.longitude);
+            if (d < 5) score += 20;
+            else if (d < 20) score += 10;
+            else if (d > 80) score -= 25;
+          }
+          scored.push({ loc, score });
         }
-        scored.push({ loc, score });
       }
     }
   }

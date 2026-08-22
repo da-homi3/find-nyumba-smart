@@ -100,9 +100,14 @@ const COUNTY_HINTS = new Set([
 ]);
 
 /** Split "Kilimani Nairobi" / "Kilimani, Nairobi" into place + optional county hint. */
-export function parsePlaceQuery(q: string): { place: string; countyHint: string | null } {
+export function parsePlaceQuery(q: string): {
+  place: string;
+  countyHint: string | null;
+  /** Extra comma segments to try when the primary place is unknown (existing places only). */
+  alternates: string[];
+} {
   const raw = q.trim();
-  if (!raw) return { place: "", countyHint: null };
+  if (!raw) return { place: "", countyHint: null, alternates: [] };
 
   const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
   if (comma.length >= 2) {
@@ -114,7 +119,17 @@ export function parsePlaceQuery(q: string): { place: string; countyHint: string 
     const tailNorm = normalizeLocationName(tailParts.join(" "));
     const countyHint = COUNTY_HINTS.has(tailNorm) ? tailParts.join(" ") : null;
     const place = head || scrubPlaceNoise(raw);
-    return { place, countyHint };
+    const alternates: string[] = [];
+    for (const seg of tailParts) {
+      if (isNonPlaceHead(seg)) continue;
+      const scrubbed = scrubPlaceNoise(seg);
+      if (!scrubbed) continue;
+      const norm = normalizeLocationName(scrubbed);
+      if (COUNTY_HINTS.has(norm)) continue;
+      if (normalizeLocationName(place) === norm) continue;
+      alternates.push(scrubbed);
+    }
+    return { place, countyHint, alternates };
   }
 
   const scrubbed = scrubPlaceNoise(raw);
@@ -122,7 +137,7 @@ export function parsePlaceQuery(q: string): { place: string; countyHint: string 
   if (parts.length >= 2) {
     const last = parts[parts.length - 1]!;
     if (COUNTY_HINTS.has(normalizeLocationName(last))) {
-      return { place: parts.slice(0, -1).join(" "), countyHint: last };
+      return { place: parts.slice(0, -1).join(" "), countyHint: last, alternates: [] };
     }
     // Two-word county names at the end (e.g. "Runda Nairobi City" already handled via normalize).
     if (parts.length >= 3) {
@@ -131,9 +146,10 @@ export function parsePlaceQuery(q: string): { place: string; countyHint: string 
         return {
           place: parts.slice(0, -2).join(" "),
           countyHint: `${parts[parts.length - 2]} ${parts[parts.length - 1]}`,
+          alternates: [],
         };
       }
     }
   }
-  return { place: scrubbed || raw, countyHint: null };
+  return { place: scrubbed || raw, countyHint: null, alternates: [] };
 }

@@ -23,10 +23,12 @@ describe("location normalize", () => {
     expect(parsePlaceQuery("Kilimani Nairobi")).toEqual({
       place: "Kilimani",
       countyHint: "Nairobi",
+      alternates: [],
     });
     expect(parsePlaceQuery("Kangemi, Nairobi")).toEqual({
       place: "Kangemi",
       countyHint: "Nairobi",
+      alternates: [],
     });
     expect(parsePlaceQuery("westland").place.toLowerCase()).toBe("westland");
     expect(parsePlaceQuery("Ruaka").countyHint).toBeNull();
@@ -37,20 +39,30 @@ describe("location normalize", () => {
     expect(parsePlaceQuery("Gigiri(UN ZONE)")).toEqual({
       place: "Gigiri",
       countyHint: null,
+      alternates: [],
     });
     expect(parsePlaceQuery("Kileleshwa, vihiga road")).toEqual({
       place: "Kileleshwa",
       countyHint: null,
+      alternates: ["vihiga road"],
     });
     expect(parsePlaceQuery("Along Ngong Road")).toEqual({
       place: "Ngong Road",
       countyHint: null,
+      alternates: [],
     });
     expect(parsePlaceQuery("Ngong Road").place).toBe("Ngong Road");
     expect(parsePlaceQuery("Karen near tangaza university").place).toBe("Karen");
     expect(parsePlaceQuery("87, waiyaki way").place.toLowerCase()).toBe("waiyaki way");
     expect(parsePlaceQuery("Along waiyaki way").place.toLowerCase()).toBe("waiyaki way");
-    expect(parsePlaceQuery("Runda, Kiambu").countyHint?.toLowerCase()).toBe("kiambu");
+    expect(parsePlaceQuery("Bogani road, karen").alternates.map((a) => a.toLowerCase())).toContain(
+      "karen",
+    );
+    expect(parsePlaceQuery("Runda, Kiambu")).toEqual({
+      place: "Runda",
+      countyHint: "Kiambu",
+      alternates: [],
+    });
   });
 });
 

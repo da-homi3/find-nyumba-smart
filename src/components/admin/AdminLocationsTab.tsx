@@ -81,6 +81,30 @@ export function AdminLocationsTab() {
 
       <div className="rounded-2xl border bg-card p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <AlertTriangle className="h-4 w-4 text-amber-600" /> Unmatched listings
+        </h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Free-text neighborhoods with no location_id — add an alias to an existing place, then
+          re-reconcile. Do not invent places.
+        </p>
+        <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-xs">
+          {(overview?.unmatchedSamples ?? []).map((row) => (
+            <li key={row.id as string} className="border-t pt-2">
+              <span className="font-medium text-foreground">{String(row.neighborhood)}</span>
+              <span className="mt-0.5 block text-muted-foreground">
+                {String(row.title ?? "Untitled")} ·{" "}
+                {row.created_at ? new Date(String(row.created_at)).toLocaleDateString() : "—"}
+              </span>
+            </li>
+          ))}
+          {!overviewLoading && (overview?.unmatchedSamples?.length ?? 0) === 0 ? (
+            <li className="text-muted-foreground">All active listings have a location match.</li>
+          ) : null}
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border bg-card p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
           <Search className="h-4 w-4 text-primary" /> Location demand (30d)
         </h3>
         <div className="mt-3 overflow-x-auto">

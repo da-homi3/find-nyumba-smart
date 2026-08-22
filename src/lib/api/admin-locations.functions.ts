@@ -65,10 +65,19 @@ export const getAdminLocationOverview = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
 
+    const { data: unmatchedSamples } = await db
+      .from("properties")
+      .select("id,title,neighborhood,created_at")
+      .is("location_id", null)
+      .not("neighborhood", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(40);
+
     return {
       counts,
       needsReview: needsReview ?? 0,
       unmatched: unmatched ?? 0,
+      unmatchedSamples: unmatchedSamples ?? [],
       recentAudit: recentAudit ?? [],
       demand,
       popularQueries,

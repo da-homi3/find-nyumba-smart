@@ -1,8 +1,8 @@
 {
   "scanned": 348,
-  "matched": 322,
-  "needsReview": 32,
-  "unmatched": 26,
+  "matched": 341,
+  "needsReview": 31,
+  "unmatched": 7,
   "skippedEmpty": 0,
   "samples": [
     {
@@ -176,7 +176,7 @@
     {
       "id": "170703ab-2707-49a7-9dd3-0d0ab0fb4910",
       "neighborhood": "New runda, kiambu road",
-      "matched": "Runda",
+      "matched": "Kiambu Road",
       "type": "LOCALITY",
       "confidence": 100,
       "needsReview": false
