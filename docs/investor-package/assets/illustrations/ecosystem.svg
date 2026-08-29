@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" fill="none">
+  <rect width="480" height="320" rx="20" fill="#f0fdf4"/>
+  <circle cx="240" cy="160" r="52" fill="#086b2e"/>
+  <path d="M228 148h24v36h-24z" fill="#fff"/>
+  <path d="M216 184h48l-24-28-24 28z" fill="#ffd54f"/>
+  <text x="240" y="230" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#086b2e">NyumbaSearch</text>
+  <g font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#334155">
+    <rect x="24" y="40" width="110" height="56" rx="12" fill="#fff" stroke="#a7f3d0"/>
+    <text x="79" y="72" text-anchor="middle">Tenants</text>
+    <rect x="346" y="40" width="110" height="56" rx="12" fill="#fff" stroke="#a7f3d0"/>
+    <text x="401" y="72" text-anchor="middle">Landlords</text>
+    <rect x="24" y="224" width="110" height="56" rx="12" fill="#fff" stroke="#a7f3d0"/>
+    <text x="79" y="256" text-anchor="middle">Managers</text>
+    <rect x="346" y="224" width="110" height="56" rx="12" fill="#fff" stroke="#a7f3d0"/>
+    <text x="401" y="256" text-anchor="middle">Services</text>
+  </g>
+  <path d="M134 68 L206 130" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M346 68 L274 130" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M134 252 L206 190" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M346 252 L274 190" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 3"/>
+</svg>

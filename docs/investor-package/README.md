@@ -10,7 +10,7 @@ Start here: **[index.html](./index.html)**
 |---|----------|------|
 | 0 | Research & data integrity | [00-RESEARCH-NOTES.md](./00-RESEARCH-NOTES.md) |
 | 1 | One-page executive summary | [01-executive-summary.html](./01-executive-summary.html) |
-| 2 | Investor deck (15 slides) | [02-investor-deck.html](./02-investor-deck.html) |
+| 2 | Investor deck (20 slides) | [02-investor-deck.html](./02-investor-deck.html) · [PPTX](./NyumbaSearch-Investor-Deck.pptx) · [PDF](./NyumbaSearch-Investor-Deck.pdf) |
 | 3 | Product screenshot book | [03-product-showcase.html](./03-product-showcase.html) |
 | 4 | Strategic partnership proposal | [04-strategic-partnership.html](./04-strategic-partnership.html) |
 | 5 | Bank / FI brief | [05-bank-financial.html](./05-bank-financial.html) |

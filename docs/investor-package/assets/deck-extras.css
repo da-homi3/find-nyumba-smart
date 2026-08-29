@@ -1,0 +1,203 @@
+/* Investor deck — charts, comparisons, illustrations */
+.deck-page { --deck-green: #086b2e; --deck-lime: #16a34a; --deck-gold: #ffd54f; --deck-cocoa: #4A2713; }
+
+.illus-wrap {
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #f8fafc, #fff);
+  padding: 0.75rem;
+  overflow: hidden;
+}
+.illus-wrap img, .illus-wrap svg { width: 100%; height: auto; display: block; }
+
+.sector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+}
+.sector-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+}
+.sector-card h4 { font-size: 0.82rem; color: var(--forest); margin: 0 0 0.35rem; }
+.sector-card p, .sector-card li { font-size: 0.68rem; color: var(--slate); margin: 0; }
+.sector-card ul { margin: 0.25rem 0 0; padding-left: 1rem; }
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.55rem;
+  height: 200px;
+  padding: 0.5rem 0.25rem 0;
+}
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; height: 100%; justify-content: flex-end; }
+.bar {
+  width: 100%;
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, var(--deck-lime), var(--deck-green));
+  min-height: 8px;
+}
+.bar-col .yr { font-size: 0.62rem; font-weight: 700; color: var(--muted); }
+.bar-col .val { font-size: 0.62rem; font-weight: 800; color: var(--forest); }
+
+.donut-wrap { display: flex; align-items: center; gap: 1rem; }
+.donut {
+  width: 140px; height: 140px; border-radius: 50%;
+  background: conic-gradient(
+    #086b2e 0 35%,
+    #16a34a 35% 60%,
+    #4A2713 60% 80%,
+    #ffd54f 80% 95%,
+    #94a3b8 95% 100%
+  );
+  position: relative;
+  flex-shrink: 0;
+}
+.donut::after {
+  content: '';
+  position: absolute; inset: 28%;
+  background: #fff; border-radius: 50%;
+}
+.donut-legend { font-size: 0.65rem; color: var(--slate); }
+.donut-legend li { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; list-style: none; }
+.donut-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.compare-cols {
+  display: grid;
+  grid-template-columns: 1fr 48px 1fr;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.compare-box {
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+}
+.compare-box.today { background: #f1f5f9; border: 1px solid var(--line); }
+.compare-box.future { background: linear-gradient(160deg, #ecfdf5, #f0fdf4); border: 1px solid #86efac; }
+.compare-box h3 { font-size: 0.85rem; margin-bottom: 0.5rem; }
+.compare-stat { display: flex; justify-content: space-between; font-size: 0.72rem; padding: 0.3rem 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.compare-stat strong { color: var(--forest); }
+.compare-arrow {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; color: var(--forest); font-weight: 800;
+}
+
+.funds-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+.funds-pie {
+  width: 200px; height: 200px; border-radius: 50%; margin: 0 auto;
+  background: conic-gradient(
+    #086b2e 0 30%,
+    #16a34a 30% 50%,
+    #4A2713 50% 70%,
+    #ffd54f 70% 85%,
+    #64748b 85% 95%,
+    #cbd5e1 95% 100%
+  );
+  position: relative;
+}
+.funds-pie::after {
+  content: '$1.5M';
+  position: absolute; inset: 30%;
+  background: #fff; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.95rem; font-weight: 800; color: var(--forest);
+}
+.funds-list { font-size: 0.72rem; }
+.funds-list li { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
+
+.partner-pills {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+.partner-pill {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem;
+  text-align: center;
+}
+.partner-pill .icon { font-size: 1.4rem; margin-bottom: 0.25rem; }
+.partner-pill h4 { font-size: 0.72rem; margin: 0 0 0.2rem; color: var(--forest); }
+.partner-pill p { font-size: 0.62rem; color: var(--muted); margin: 0; }
+
+.phone-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  flex: 1;
+}
+.phone-frame {
+  background: #0f172a;
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+}
+.phone-frame .screen {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  flex: 1;
+  min-height: 200px;
+}
+.phone-frame .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.phone-frame .cap { font-size: 0.58rem; color: #fff; text-align: center; margin-top: 4px; font-weight: 600; }
+
+.ask-hero {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--forest);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.ask-sub { font-size: 0.95rem; color: var(--slate); margin-top: 0.35rem; }
+
+.cover-v2 {
+  background:
+    linear-gradient(135deg, rgba(8,107,46,0.94) 0%, rgba(10,143,61,0.88) 45%, rgba(74,39,19,0.82) 100%);
+  color: white;
+}
+.cover-v2 .pill-tags {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;
+}
+.cover-v2 .pill-tags span {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.comp-table td, .comp-table th { font-size: 0.62rem; padding: 0.45rem 0.5rem; }
+.comp-table .check { color: var(--forest); font-weight: 800; }
+.comp-table .cross { color: #cbd5e1; }
+.comp-table .ny-col { background: #f0fdf4; font-weight: 700; }
+
+.roadmap {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.55rem;
+}
+.roadmap-phase {
+  border-radius: 12px;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.roadmap-phase.active { border-color: #86efac; background: #f0fdf4; }
+.roadmap-phase .yr { font-size: 0.62rem; font-weight: 800; color: var(--forest); }
+.roadmap-phase h4 { font-size: 0.75rem; margin: 0.25rem 0; }
+.roadmap-phase p { font-size: 0.62rem; color: var(--muted); margin: 0; }
