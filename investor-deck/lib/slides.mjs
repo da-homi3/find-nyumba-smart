@@ -1,6 +1,7 @@
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { C, FONT, TRACTION, REVENUE, ASK } from './theme.mjs';
+import { C, FONT, REVENUE, ASK, FUTURE } from './theme.mjs';
+import { tractionMetrics, barHeights } from './analytics.mjs';
 import {
   footer, kicker, title, body, darkSlide, lightSlide, offWhiteSlide,
   tag, metricCard, phoneMock, arrowRight, footnote,
@@ -155,46 +156,61 @@ export function slide05Product(pptx, t) {
 export function slide06Traction(pptx, t) {
   const s = pptx.addSlide();
   offWhiteSlide(s);
-  kicker(s, 'Traction', 0.42, t);
+  const A = tractionMetrics();
+  kicker(s, 'Traction & current analytics', 0.42, t);
   title(s, 'Early product-market signal — with a live platform.', 0.68, 8.9, 26, C.text, t);
 
   const metrics = [
-    [TRACTION.homes, 'VERIFIED\nHOMES'],
-    [TRACTION.neighbourhoods, 'NEIGHBOUR-\nHOODS'],
-    [TRACTION.providers, 'TRUSTED SERVICE\nPROVIDERS'],
-    [TRACTION.users, 'USERS /\nTENANTS'],
-    [TRACTION.accounts, 'LISTING\nACCOUNTS'],
-    [TRACTION.leads, 'LEAD\nACTIONS'],
+    [A.homes, 'VERIFIED\nHOMES', 'LIVE'],
+    [A.neighbourhoods, 'NEIGHBOUR-\nHOODS', 'LIVE'],
+    [A.providers, 'TRUSTED SERVICE\nPROVIDERS', 'LIVE'],
+    [A.users, 'USERS /\nTENANTS', 'INTERNAL'],
+    [A.accounts, 'LISTING\nACCOUNTS', 'INTERNAL'],
+    [A.leads, 'LEAD\nACTIONS', 'INTERNAL'],
   ];
   metrics.forEach((m, i) => {
     const col = i % 3;
     const row = Math.floor(i / 3);
-    metricCard(s, { x: 0.55 + col * 3.05, y: 1.45 + row * 1.35, w: 2.85, h: 1.15, num: m[0], label: m[1], tracker: t, name: `metric-${i}` });
+    const x = 0.55 + col * 3.05;
+    const y = 1.42 + row * 1.32;
+    metricCard(s, { x, y, w: 2.85, h: 1.12, num: m[0], label: m[1], tracker: t, name: `metric-${i}` });
+    const badgeColor = m[2] === 'LIVE' ? C.green : C.gold;
+    s.addShape('roundRect', {
+      x: x + 1.85, y: y + 0.08, w: 0.75, h: 0.18,
+      fill: { color: m[2] === 'LIVE' ? C.lightGreen : 'FFF7ED' }, rectRadius: 0.04,
+    });
+    s.addText(m[2], {
+      x: x + 1.85, y: y + 0.09, w: 0.75, h: 0.16, fontSize: 5.5, bold: true, color: badgeColor, align: 'center', fontFace: FONT,
+    });
   });
 
-  // mini dashboard bars
-  const bars = [
-    { label: 'Homes', val: 0.65 },
-    { label: 'Users', val: 0.35 },
-    { label: 'Providers', val: 0.55 },
-    { label: 'Accounts', val: 0.2 },
-    { label: 'Leads', val: 0.4 },
-  ];
-  t.track(0.55, 4.15, 5.5, 0.85, 'dashboard');
-  s.addShape('roundRect', { x: 0.55, y: 4.15, w: 5.5, h: 0.85, fill: { color: C.white }, line: { color: 'D8E3DC', width: 0.5 }, rectRadius: 0.06 });
-  s.addText('Operational signal (illustrative)', { x: 0.7, y: 4.2, w: 3, h: 0.2, fontSize: 8, bold: true, color: C.text, fontFace: FONT });
+  // Live platform snapshot
+  t.track(0.55, 3.95, 5.5, 0.55, 'live-snapshot');
+  s.addShape('roundRect', { x: 0.55, y: 3.95, w: 5.5, h: 0.55, fill: { color: C.white }, line: { color: 'D8E3DC', width: 0.5 }, rectRadius: 0.06 });
+  s.addText('Live platform snapshot (nyumbasearch.com)', { x: 0.7, y: 4.0, w: 5, h: 0.18, fontSize: 8, bold: true, color: C.text, fontFace: FONT });
+  const snap = [
+    A.browseHomes ? `${A.browseHomes} homes in tenant browse` : null,
+    A.categories ? `${A.categories} service categories with providers` : null,
+    A.sitemap ? `${A.sitemap} indexed property pages` : null,
+  ].filter(Boolean).join('  ·  ');
+  s.addText(snap, { x: 0.7, y: 4.2, w: 5.2, h: 0.25, fontSize: 7.5, color: C.muted, fontFace: FONT });
+
+  const bars = barHeights();
+  t.track(0.55, 4.58, 5.5, 0.42, 'dashboard');
+  s.addText('Relative platform activity', { x: 0.7, y: 4.55, w: 3, h: 0.15, fontSize: 7, color: C.muted, fontFace: FONT });
   bars.forEach((b, i) => {
     const bx = 0.75 + i * 1.05;
-    s.addShape('rect', { x: bx, y: 4.75 - b.val * 0.45, w: 0.55, h: b.val * 0.45, fill: { color: C.green } });
-    s.addText(b.label, { x: bx, y: 4.78, w: 0.55, h: 0.15, fontSize: 6.5, color: C.muted, align: 'center', fontFace: FONT });
+    const h = Math.max(0.08, b.val * 0.35);
+    s.addShape('rect', { x: bx, y: 4.88 - h, w: 0.55, h, fill: { color: C.green } });
+    s.addText(b.label, { x: bx, y: 4.9, w: 0.55, h: 0.12, fontSize: 6, color: C.muted, align: 'center', fontFace: FONT });
   });
 
-  t.track(6.3, 4.0, 3.15, 1.0, 'takeaway');
-  s.addShape('roundRect', { x: 6.3, y: 4.0, w: 3.15, h: 1.0, fill: { color: C.navy }, rectRadius: 0.08 });
+  t.track(6.3, 3.95, 3.15, 1.05, 'takeaway');
+  s.addShape('roundRect', { x: 6.3, y: 3.95, w: 3.15, h: 1.05, fill: { color: C.navy }, rectRadius: 0.08 });
   s.addText('The product is live. Supply is being built. The next growth phase is distribution, repeat usage and monetization.', {
-    x: 6.45, y: 4.15, w: 2.85, h: 0.75, fontSize: 9, color: C.white, fontFace: FONT,
+    x: 6.45, y: 4.1, w: 2.85, h: 0.8, fontSize: 9, color: C.white, fontFace: FONT,
   });
-  footnote(s, TRACTION.label, 5.05, t);
+  footnote(s, A.label, 5.02, t);
   footer(s, 6, t);
 }
 
@@ -310,7 +326,7 @@ export function slide09BusinessModel(pptx, t) {
     s.addText(e.price, { x: x + 0.4, y: y + 0.38, w: 3.7, h: 0.22, fontSize: 9, bold: true, color: C.navy, fontFace: FONT });
     s.addText(e.items, { x: x + 0.4, y: y + 0.62, w: 3.7, h: 0.65, fontSize: 8, color: C.muted, fontFace: FONT });
   });
-  footnote(s, 'Illustrative pricing assumptions — subject to validation. Current revenue: not disclosed / early monetization stage.', 4.75, t);
+  footnote(s, 'Illustrative pricing assumptions — subject to validation. Full-sector activation estimate: ' + REVENUE.fullActivation + ' annually. Current revenue: not disclosed.', 4.75, t);
   footer(s, 9, t);
 }
 
@@ -368,6 +384,7 @@ export function slide10Revenue(pptx, t) {
 export function slide11Progress(pptx, t) {
   const s = pptx.addSlide();
   lightSlide(s);
+  const A = tractionMetrics();
   kicker(s, 'Progress vs. potential', 0.42, t);
   title(s, 'From early traction to a scaled housing network.', 0.68, 8.9, 26, C.text, t);
 
@@ -376,9 +393,10 @@ export function slide11Progress(pptx, t) {
   s.addText('WHERE WE ARE TODAY', { x: 0.7, y: 1.58, w: 3.7, h: 0.25, fontSize: 10, bold: true, color: C.text, fontFace: FONT });
   s.addText('August 2026 · CURRENT', { x: 0.7, y: 1.82, w: 3.7, h: 0.2, fontSize: 8, color: C.green, fontFace: FONT });
   const today = [
-    `${TRACTION.homes} verified homes`, `${TRACTION.users} users / tenants`,
-    `${TRACTION.accounts} listing accounts`, `${TRACTION.leads} lead actions`,
-    `${TRACTION.providers} service providers`, 'Live product · early marketplace signal',
+    `${A.homes} verified homes`, `${A.neighbourhoods} neighbourhoods`,
+    `${A.providers} service providers`, `${A.users} users / tenants`,
+    `${A.accounts} listing accounts`, `${A.leads} lead actions`,
+    'Live product · manager portal · services marketplace',
   ];
   s.addText(today.map((l) => ({ text: l, options: { bullet: true, breakLine: true } })), {
     x: 0.75, y: 2.1, w: 3.6, h: 2.2, fontSize: 9, color: C.muted, fontFace: FONT,
@@ -391,9 +409,9 @@ export function slide11Progress(pptx, t) {
   s.addText('WHERE WE ARE HEADED', { x: 5.3, y: 1.58, w: 4.0, h: 0.25, fontSize: 10, bold: true, color: C.navy, fontFace: FONT });
   s.addText('3–5 year potential · TARGET', { x: 5.3, y: 1.82, w: 4.0, h: 0.2, fontSize: 8, color: C.green, fontFace: FONT });
   const future = [
-    '50,000+ verified homes', '250,000+ active users',
-    '5,000+ property owners/managers', '10,000+ service providers',
-    'High monthly transaction volume', 'Regional expansion',
+    `${FUTURE.homes} verified homes`, `${FUTURE.users} active users`,
+    `${FUTURE.accounts} property owners/managers`, `${FUTURE.providers} service providers`,
+    `${FUTURE.revenue} illustrative annual revenue`, 'Regional expansion across Africa',
   ];
   s.addText(future.map((l) => ({ text: l, options: { bullet: true, breakLine: true } })), {
     x: 5.35, y: 2.1, w: 3.95, h: 2.2, fontSize: 9, color: C.text, fontFace: FONT,
@@ -411,6 +429,7 @@ export function slide11Progress(pptx, t) {
 
 export function slide12Competition(pptx, t) {
   const s = pptx.addSlide();
+  const A = tractionMetrics();
   lightSlide(s);
   kicker(s, 'Competitive landscape', 0.42, t);
   title(s, 'We compete with discovery channels — but our ambition is broader.', 0.68, 8.9, 24, C.text, t);
@@ -423,7 +442,7 @@ export function slide12Competition(pptx, t) {
     ['End-to-end tenancy tools', 'Limited', 'Limited', 'Limited', 'No', 'In-platform'],
     ['Rent collection', 'Limited', 'Limited', 'No', 'No', 'Productized'],
     ['Property management SaaS', 'No', 'No', 'No', 'No', 'In-platform'],
-    ['Home services', 'Limited', 'Partial', 'Partial', 'Ad hoc', `${TRACTION.providers} live`],
+    ['Home services', 'Limited', 'Partial', 'Partial', 'Ad hoc', `${A.providers} live`],
     ['Financial integration', 'Limited', 'Limited', 'No', 'No', 'Referral paths'],
     ['All-in-one ecosystem', 'Listing-led', 'Listing-led', 'Classifieds', 'Informal', 'Combined'],
   ];
@@ -455,6 +474,7 @@ export function slide12Competition(pptx, t) {
 
 export function slide13Partnerships(pptx, t) {
   const s = pptx.addSlide();
+  const A = tractionMetrics();
   offWhiteSlide(s);
   kicker(s, 'Partnership strategy', 0.42, t);
   title(s, 'Distribution is the next growth engine.', 0.68, 8.9, 28, C.text, t);
@@ -464,7 +484,7 @@ export function slide13Partnerships(pptx, t) {
     { n: '02', title: 'Banks & financial institutions', desc: 'Rent payments · savings · insurance · mortgages · customer acquisition', tag: 'Pipeline / strategic target' },
     { n: '03', title: 'Property owners & managers', desc: 'Portfolio onboarding · lead generation · PM SaaS · rent collection', tag: 'Active supply channel' },
     { n: '04', title: 'Corporate & housing partners', desc: 'Employee housing · relocation · institutional accommodation', tag: 'Future opportunity' },
-    { n: '05', title: 'Service providers', desc: 'Movers · cleaners · repairs · security · solar · interior', tag: `${TRACTION.providers} live today` },
+    { n: '05', title: 'Service providers', desc: 'Movers · cleaners · repairs · security · solar · interior', tag: `${A.providers} live today` },
   ];
   partners.forEach((p, i) => {
     const col = i % 2;

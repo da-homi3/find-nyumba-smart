@@ -7,6 +7,7 @@ import PptxGenJS from 'pptxgenjs';
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import { BboxTracker } from './lib/helpers.mjs';
 import { ALL_SLIDES } from './lib/slides.mjs';
 
@@ -15,6 +16,9 @@ const OUT = join(__dirname, 'NyumbaSearch_Investor_Deck_August_2026.pptx');
 const QC_REPORT = join(__dirname, 'qc-report.json');
 
 async function main() {
+  console.log('Fetching live analytics…');
+  execSync('node investor-deck/fetch-analytics.mjs', { stdio: 'inherit', cwd: join(__dirname, '..') });
+
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
   pptx.author = 'NyumbaSearch';

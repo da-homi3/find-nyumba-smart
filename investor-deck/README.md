@@ -36,16 +36,20 @@ node investor-deck/render-preview.mjs
 
 ## Data integrity
 
-### Current traction (August 2026 — from supplied materials)
+### Current traction (August 2026)
 
-| Metric | Value | Status |
+| Metric | Value | Source |
 |--------|-------|--------|
-| Verified homes | 263+ | Current |
-| Neighbourhoods | 182+ | Current |
-| Service providers | 214+ | Current (also verified live on nyumbasearch.com /services) |
-| Users / tenants | 132+ | Current (internal — requires confirmation) |
-| Listing accounts | 24+ | Current (internal) |
-| Lead actions | 109+ | Current (internal) |
+| Verified homes | **336+** | Live site · homepage |
+| Neighbourhoods | **219+** | Live site · homepage |
+| Service providers | **214+** | Live site · /services |
+| Tenant browse inventory | **300+** | Live site · /tenant |
+| Indexed property pages | **336+** | sitemap.xml |
+| Users / tenants | **132+** | Internal · requires confirmation |
+| Listing accounts | **24+** | Internal · requires confirmation |
+| Lead actions | **109+** | Internal · requires confirmation |
+
+Refresh live numbers: `npm run investor:analytics`
 
 **Current revenue:** Not disclosed / early monetization stage.
 

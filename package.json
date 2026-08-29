@@ -83,8 +83,9 @@
     "test:portals": "node scripts/e2e-all-portals.mjs",
     "test:dashboards": "node scripts/dashboard-full-e2e.mjs",
     "test": "npm run test:unit && npm run test:routes && npm run test:smoke && npm run test:e2e && npm run test:portals && npm run test:dashboards",
+    "investor:analytics": "node investor-deck/fetch-analytics.mjs",
     "investor:deck": "node investor-deck/build-deck.mjs",
-    "investor:deck:preview": "node investor-deck/build-deck.mjs && node investor-deck/render-preview.mjs",
+    "investor:deck:preview": "node investor-deck/build-deck.mjs && node investor-deck/render-preview.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "^1.0.2",
