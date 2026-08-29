@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 280" fill="none">
+  <rect width="900" height="280" rx="16" fill="#F4F7F5"/>
+  <g font-family="Arial,sans-serif" font-weight="700">
+    <rect x="30" y="40" width="170" height="90" rx="12" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="115" y="72" text-anchor="middle" fill="#19995C" font-size="14">DISCOVER</text>
+    <text x="115" y="95" text-anchor="middle" fill="#5B6C77" font-size="10">Map · budget · area</text>
+    <rect x="240" y="40" width="170" height="90" rx="12" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="325" y="72" text-anchor="middle" fill="#19995C" font-size="14">VERIFY</text>
+    <text x="325" y="95" text-anchor="middle" fill="#5B6C77" font-size="10">Owners · risk signals</text>
+    <rect x="450" y="40" width="170" height="90" rx="12" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="535" y="72" text-anchor="middle" fill="#19995C" font-size="14">MANAGE</text>
+    <text x="535" y="95" text-anchor="middle" fill="#5B6C77" font-size="10">Rent · leases · tenants</text>
+    <rect x="660" y="40" width="170" height="90" rx="12" fill="#19995C"/>
+    <text x="745" y="72" text-anchor="middle" fill="#FAFCFA" font-size="14">SERVE</text>
+    <text x="745" y="95" text-anchor="middle" fill="#E1F4E9" font-size="10">Trusted home services</text>
+  </g>
+  <path d="M200 85 H240 M410 85 H450 M620 85 H660" stroke="#91D64D" stroke-width="3" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#91D64D"/></marker></defs>
+  <text x="450" y="175" text-anchor="middle" fill="#1B2B36" font-size="16" font-weight="700" font-family="Arial,sans-serif">From discovery to move-in and beyond.</text>
+  <rect x="120" y="200" width="200" height="55" rx="10" fill="#fff" stroke="#D8E3DC"/>
+  <text x="220" y="232" text-anchor="middle" fill="#08192B" font-size="11" font-weight="700" font-family="Arial,sans-serif">Tenants</text>
+  <rect x="350" y="200" width="200" height="55" rx="10" fill="#fff" stroke="#D8E3DC"/>
+  <text x="450" y="232" text-anchor="middle" fill="#08192B" font-size="11" font-weight="700" font-family="Arial,sans-serif">Property owners</text>
+  <rect x="580" y="200" width="200" height="55" rx="10" fill="#fff" stroke="#D8E3DC"/>
+  <text x="680" y="232" text-anchor="middle" fill="#08192B" font-size="11" font-weight="700" font-family="Arial,sans-serif">Service providers</text>
+</svg>

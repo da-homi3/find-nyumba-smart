@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" fill="none">
+  <circle cx="350" cy="350" r="300" fill="#F4F7F5"/>
+  <circle cx="350" cy="350" r="55" fill="#19995C"/>
+  <text x="350" y="345" text-anchor="middle" fill="#FAFCFA" font-size="11" font-weight="700" font-family="Arial,sans-serif">Nyumba</text>
+  <text x="350" y="360" text-anchor="middle" fill="#FAFCFA" font-size="11" font-weight="700" font-family="Arial,sans-serif">Search</text>
+  <g font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#1B2B36">
+    <circle cx="350" cy="80" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="350" y="84" text-anchor="middle">More owners</text>
+    <circle cx="580" cy="200" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="580" y="196" text-anchor="middle">More</text><text x="580" y="210" text-anchor="middle">homes</text>
+    <circle cx="620" cy="420" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="620" y="424" text-anchor="middle">More users</text>
+    <circle cx="480" cy="590" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="480" y="586" text-anchor="middle">More</text><text x="480" y="600" text-anchor="middle">transactions</text>
+    <circle cx="220" cy="590" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="220" y="586" text-anchor="middle">More</text><text x="220" y="600" text-anchor="middle">services</text>
+    <circle cx="80" cy="420" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="80" y="416" text-anchor="middle">More</text><text x="80" y="430" text-anchor="middle">providers</text>
+    <circle cx="120" cy="200" r="42" fill="#E1F4E9" stroke="#3AB570"/>
+    <text x="120" y="196" text-anchor="middle">More</text><text x="120" y="210" text-anchor="middle">trust</text>
+  </g>
+  <path d="M350 122 Q430 150 540 185" stroke="#91D64D" stroke-width="2" fill="none"/>
+  <path d="M618 242 Q640 320 600 380" stroke="#91D64D" stroke-width="2" fill="none"/>
+  <path d="M580 455 Q520 540 460 560" stroke="#91D64D" stroke-width="2" fill="none"/>
+  <path d="M400 590 Q300 580 250 540" stroke="#91D64D" stroke-width="2" fill="none"/>
+  <path d="M180 555 Q100 500 95 420" stroke="#91D64D" stroke-width="2" fill="none"/>
+  <path d="M95 380 Q90 280 150 220" stroke="#91D64D" stroke-width="2" fill="none"/>
+  <path d="M160 165 Q240 110 310 95" stroke="#91D64D" stroke-width="2" fill="none"/>
+</svg>

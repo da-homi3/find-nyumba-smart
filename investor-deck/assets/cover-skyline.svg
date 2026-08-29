@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0F2A44"/>
+      <stop offset="100%" stop-color="#08192B"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#19995C" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#91D64D" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <ellipse cx="400" cy="420" rx="360" ry="80" fill="url(#glow)"/>
+  <!-- skyline -->
+  <rect x="40" y="260" width="55" height="140" fill="#16324A" rx="2"/>
+  <rect x="105" y="220" width="70" height="180" fill="#1B3D57" rx="2"/>
+  <rect x="190" y="180" width="90" height="220" fill="#0F2A44" rx="2"/>
+  <rect x="300" y="200" width="65" height="200" fill="#16324A" rx="2"/>
+  <rect x="385" y="150" width="110" height="250" fill="#1B3D57" rx="2"/>
+  <rect x="515" y="210" width="75" height="190" fill="#16324A" rx="2"/>
+  <rect x="610" y="240" width="60" height="160" fill="#0F2A44" rx="2"/>
+  <rect x="690" y="270" width="70" height="130" fill="#1B3D57" rx="2"/>
+  <!-- windows -->
+  <g fill="#91D64D" opacity="0.55">
+    <rect x="405" y="175" width="8" height="10"/><rect x="420" y="175" width="8" height="10"/>
+    <rect x="435" y="175" width="8" height="10"/><rect x="450" y="175" width="8" height="10"/>
+    <rect x="405" y="195" width="8" height="10"/><rect x="420" y="195" width="8" height="10"/>
+    <rect x="435" y="195" width="8" height="10"/><rect x="450" y="195" width="8" height="10"/>
+    <rect x="210" y="200" width="7" height="9"/><rect x="225" y="200" width="7" height="9"/>
+    <rect x="240" y="200" width="7" height="9"/><rect x="255" y="200" width="7" height="9"/>
+  </g>
+  <!-- map pins -->
+  <circle cx="250" cy="120" r="18" fill="#19995C" opacity="0.9"/>
+  <path d="M250 138 L242 155 H258 Z" fill="#19995C"/>
+  <circle cx="250" cy="120" r="6" fill="#FAFCFA"/>
+  <circle cx="520" cy="95" r="14" fill="#3AB570" opacity="0.85"/>
+  <path d="M520 109 L514 122 H526 Z" fill="#3AB570"/>
+  <!-- phone -->
+  <rect x="580" y="95" width="120" height="210" rx="16" fill="#FAFCFA" stroke="#19995C" stroke-width="3"/>
+  <rect x="595" y="115" width="90" height="14" rx="7" fill="#E1F4E9"/>
+  <rect x="595" y="140" width="90" height="55" rx="6" fill="#E1F4E9"/>
+  <rect x="595" y="205" width="42" height="42" rx="6" fill="#19995C" opacity="0.2"/>
+  <rect x="643" y="205" width="42" height="42" rx="6" fill="#19995C" opacity="0.35"/>
+  <circle cx="650" cy="120" r="4" fill="#19995C"/>
+  <!-- home icon -->
+  <circle cx="120" cy="110" r="36" fill="#19995C" opacity="0.25"/>
+  <path d="M108 118 L120 102 L132 118 V132 H108 Z" fill="#91D64D"/>
+  <rect x="112" y="122" width="16" height="10" fill="#FAFCFA"/>
+</svg>
