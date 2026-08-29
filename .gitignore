@@ -35,6 +35,7 @@ dist-ssr
 
 .env
 sendgrid.env
+docs/video-tutorial/.session.json
 
 # ffmpeg.wasm core copied from node_modules on install/build (~32MB)
 public/ffmpeg/
