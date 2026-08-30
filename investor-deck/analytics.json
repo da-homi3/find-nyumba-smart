@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-08-30T00:39:02.728Z",
+  "live": {
+    "source": "live_site",
+    "fetchedAt": "2026-08-30T00:38:52.036Z",
+    "homepage": {
+      "verifiedHomes": 336,
+      "neighborhoods": 219
+    },
+    "tenantBrowse": {
+      "homesListed": 300
+    },
+    "services": {
+      "providers": 214,
+      "categoriesWithProviders": 24
+    },
+    "sitemap": {
+      "propertyPages": 336
+    }
+  },
+  "database": null,
+  "deck": {
+    "verifiedHomes": 336,
+    "neighbourhoods": 219,
+    "serviceProviders": 214,
+    "browseHomes": 300,
+    "sitemapIndexed": 336,
+    "users": 132,
+    "listingAccounts": 24,
+    "leadActions": 109,
+    "serviceCategories": 24,
+    "display": {
+      "verifiedHomes": "336+",
+      "neighbourhoods": "219+",
+      "serviceProviders": "214+",
+      "browseHomes": "300+",
+      "users": "132+",
+      "listingAccounts": "24+",
+      "leadActions": "109+"
+    },
+    "sources": {
+      "verifiedHomes": "Live site · homepage · Aug 2026",
+      "neighbourhoods": "Live site · homepage · Aug 2026",
+      "serviceProviders": "Live site · /services · Aug 2026",
+      "users": "Internal · requires confirmation",
+      "listingAccounts": "Internal · requires confirmation",
+      "leadActions": "Internal · requires confirmation"
+    },
+    "fetchedAt": "2026-08-30T00:38:52.036Z"
+  }
+}

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NyumbaSearch — Product Showcase</title>
+  <link rel="stylesheet" href="assets/package.css" />
+  <style>
+    .gallery { display: grid; gap: 1.5rem; }
+    .shot-card { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow: var(--shadow); }
+    .shot-card .frame { background:#0b1220; }
+    .shot-card img { width:100%; }
+    .shot-card .cap { padding:1rem 1.15rem 1.2rem; }
+    .shot-card h3 { font-size:1.05rem; }
+    .device {
+      max-width: 320px; margin: 0 auto; border: 10px solid #111; border-radius: 28px; overflow:hidden; background:#000;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><img src="assets/logo.png" alt="" /><strong>Product Showcase</strong></a>
+      <div class="nav-links"><a href="02-investor-deck.html">Deck</a><a href="index.html">Hub</a></div>
+    </div>
+  </nav>
+  <header class="hero-band">
+    <div class="inner">
+      <p class="tiny" style="color:rgba(255,255,255,0.75)">Document 3 · Live captures · 11 August 2026</p>
+      <h1>Product screenshot book</h1>
+      <p>High-resolution captures from the live NyumbaSearch product. No stock UI. No redesigned fiction.</p>
+    </div>
+  </header>
+  <main class="wrap gallery">
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/01-homepage-hero.jpg" alt="Homepage hero" /></div>
+      <div class="cap"><h3>1. Homepage</h3><p class="small muted">Brand-forward hero: verified property owners, search entry, list-your-property CTA.</p></div>
+    </article>
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/02-tenant-clean.jpg" alt="Property discovery" /></div>
+      <div class="cap"><h3>2–3. Property discovery &amp; search</h3><p class="small muted">Tenant browse with filters, verification badges, neighbourhoods, and live inventory counter.</p></div>
+    </article>
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/03-map-clean.jpg" alt="Map search" /></div>
+      <div class="cap"><h3>4. Map discovery</h3><p class="small muted">Location-based exploration on /tenant/map.</p></div>
+    </article>
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/16-property-clean.jpg" alt="Property detail" /></div>
+      <div class="cap"><h3>5–8. Property detail, media, verification &amp; intelligence</h3><p class="small muted">Photos/video, Verified / Business Verified, water-security-internet-commute signals, contact unlock, AI assistant, services/finance/insurance entry points.</p></div>
+    </article>
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/10-landlord-clean.png" alt="Landlord portal" /></div>
+      <div class="cap"><h3>9–10. Landlord onboarding &amp; portal</h3><p class="small muted">Public landlord portal: analytics, leads, plans, approval-gated account creation. Authenticated dashboards are not publicly scrapable.</p></div>
+    </article>
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/11-manager.png" alt="Property manager portal" /></div>
+      <div class="cap"><h3>11–12. Property management entry</h3><p class="small muted">Manager portal positioning for multi-landlord portfolios and lead routing. Rent dashboards require signed-in access.</p></div>
+    </article>
+    <article class="shot-card">
+      <div class="frame"><img src="screenshots/04-services-clean.jpg" alt="Services" /></div>
+      <div class="cap"><h3>13–14. Service provider discovery</h3><p class="small muted">214 providers across 24 categories — electricians to movers, solar, mama fua, gas delivery.</p></div>
+    </article>
+    <div class="grid-3">
+      <article class="shot-card">
+        <div class="cap"><h3>15. Mobile experience</h3><p class="small muted">Responsive web — primary distribution today.</p></div>
+        <div class="device"><img src="screenshots/13-mobile-home.jpg" alt="Mobile home" /></div>
+        <div class="cap"><p class="tiny">Homepage · mobile viewport</p></div>
+      </article>
+      <article class="shot-card">
+        <div class="device" style="margin-top:3.2rem"><img src="screenshots/14-mobile-tenant.png" alt="Mobile tenant" /></div>
+        <div class="cap"><p class="tiny">Tenant discovery · mobile</p></div>
+      </article>
+      <article class="shot-card">
+        <div class="device" style="margin-top:3.2rem"><img src="screenshots/15-mobile-services.png" alt="Mobile services" /></div>
+        <div class="cap"><p class="tiny">Services · mobile</p></div>
+      </article>
+    </div>
+    <div class="grid-2">
+      <article class="shot-card">
+        <div class="frame"><img src="assets/crops/pricing.jpg" alt="Pricing" /></div>
+        <div class="cap"><h3>Pricing</h3><p class="small muted">Transparent landlord, manager, agency, boost and Plus plans.</p></div>
+      </article>
+      <article class="shot-card">
+        <div class="frame"><img src="assets/crops/verify.jpg" alt="Verify" /></div>
+        <div class="cap"><h3>Paid verification</h3><p class="small muted">Site inspection tiers — Basic / Standard / Express.</p></div>
+      </article>
+    </div>
+    <p class="footnote">Raw PNG captures live in <code>screenshots/</code>. Crops for deck use in <code>assets/crops/</code>. Authenticated landlord/PM internal dashboards intentionally excluded from public capture.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NyumbaSearch — Executive Summary</title>
+  <link rel="stylesheet" href="assets/package.css" />
+  <style>
+    @page { size: A4; margin: 12mm; }
+    .exec {
+      max-width: 900px;
+      margin: 1.5rem auto 3rem;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .exec-head {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 1rem;
+      padding: 1.4rem 1.5rem;
+      background: linear-gradient(135deg, #086b2e, #0a8f3d 60%, #4A2713);
+      color: white;
+    }
+    .exec-head h1 { font-size: 1.7rem; }
+    .exec-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 0;
+    }
+    .exec-main { padding: 1.1rem 1.35rem 1.35rem; }
+    .exec-side {
+      padding: 1.1rem 1.2rem 1.35rem;
+      background: #f8fafc;
+      border-left: 1px solid var(--line);
+    }
+    .block { margin-bottom: 0.95rem; }
+    .block h2 {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--jade);
+      margin-bottom: 0.3rem;
+    }
+    .block p, .block li { font-size: 0.82rem; color: var(--slate); margin: 0; }
+    .block ul { margin: 0.25rem 0 0; padding-left: 1.1rem; }
+    .block li { margin-bottom: 0.2rem; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .metrics .metric { padding: 0.7rem 0.75rem; box-shadow: none; }
+    .metrics .num { font-size: 1.55rem; }
+    .ask-box {
+      margin-top: 0.75rem;
+      padding: 0.85rem;
+      border-radius: 12px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+    }
+    @media (max-width: 800px) {
+      .exec-head, .exec-grid { grid-template-columns: 1fr; }
+      .exec-side { border-left: 0; border-top: 1px solid var(--line); }
+    }
+    @media print {
+      .nav { display: none; }
+      .exec { border: 0; box-shadow: none; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav no-print">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><img src="assets/logo.png" alt="" /><strong>Executive Summary</strong></a>
+      <div class="nav-links">
+        <a href="02-investor-deck.html">Deck</a>
+        <a href="index.html">Package hub</a>
+      </div>
+    </div>
+  </nav>
+
+  <article class="exec">
+    <header class="exec-head">
+      <div>
+        <div style="display:flex;align-items:center;gap:0.65rem;margin-bottom:0.6rem">
+          <img src="assets/logo.png" alt="NyumbaSearch" style="width:40px;height:40px;border-radius:9px;background:#fff" />
+          <div>
+            <div style="font-family:var(--font-display);font-weight:800;font-size:1.05rem">NYUMBASEARCH</div>
+            <div style="font-size:0.72rem;opacity:0.85">nyumbasearch.com · Nairobi, Kenya</div>
+          </div>
+        </div>
+        <h1>Digital Infrastructure for the African Housing Journey</h1>
+        <p style="margin:0.55rem 0 0;font-size:0.88rem;opacity:0.92;max-width:48ch">
+          NyumbaSearch is building a digital housing ecosystem designed to make property discovery, verification, management and housing-related services more accessible, trusted and efficient.
+        </p>
+      </div>
+      <div style="align-self:end;text-align:right;font-size:0.78rem;opacity:0.9">
+        <div>Confidential · August 2026</div>
+        <div style="margin-top:0.35rem">One-page briefing</div>
+      </div>
+    </header>
+
+    <div class="exec-grid">
+      <div class="exec-main">
+        <div class="block">
+          <h2>1. Company</h2>
+          <p>NyumbaSearch is a Kenyan housing technology platform connecting tenants with verified property owners, landlords, property managers and home-service providers. The product spans discovery, trust, direct contact, post-move services, and property operations — positioned as an emerging digital housing ecosystem, not a classifieds site alone.</p>
+        </div>
+        <div class="block">
+          <h2>2. Problem</h2>
+          <p>Finding and securing housing in Nairobi still depends on fragmented WhatsApp groups, informal agents, and listings that are hard to trust. Tenants waste time verifying vacancy and legitimacy. Landlords and managers lack coherent digital tools for visibility, tenant acquisition and day-to-day operations. Housing-adjacent services remain disconnected from the move-in moment.</p>
+        </div>
+        <div class="block">
+          <h2>3. Solution</h2>
+          <p>One platform for the housing journey: map-first discovery, staged verification, direct owner contact, neighbourhood intelligence (water, security, internet, commute), service-provider discovery, and property-management tooling for operators who need recurring operational infrastructure.</p>
+        </div>
+        <div class="block">
+          <h2>4. Product</h2>
+          <ul>
+            <li>Tenant: search, map, property detail, saved flows, Plus scam-risk signals, AI assistant</li>
+            <li>Supply: landlord / agency / manager portals with approval-gated listing access</li>
+            <li>Trust: verification badges, paid site inspection options, business verification states</li>
+            <li>Ecosystem: 24 home-service categories, finance &amp; insurance referral surfaces, M-Pesa checkout messaging</li>
+          </ul>
+        </div>
+        <div class="block">
+          <h2>5. Traction</h2>
+          <p>Early-stage supply-side network with publicly observable inventory and services density. Historical growth chart not disclosed.</p>
+        </div>
+        <div class="block">
+          <h2>6. Business model</h2>
+          <p><strong>Published monetization surfaces:</strong> landlord/manager/agency subscriptions, listing boosts, NyumbaSearch Plus, contact unlocks, paid verification, service-provider tiers, advertising packages, finance/insurance referral pathways, property-management module billing. <em>Current realized revenue is not publicly disclosed.</em></p>
+        </div>
+        <div class="block">
+          <h2>7. Market opportunity</h2>
+          <p>Kenya’s real-estate sector remains a material share of GDP amid rapid urbanization and a persistent housing supply gap. Discovery and property operations are still largely offline or fragmented — creating room for trusted digital infrastructure focused first on Nairobi rental demand. <span class="tag tag-ext">External market data</span> See deck for cited sources and illustrative TAM/SAM/SOM methodology.</p>
+        </div>
+        <div class="block">
+          <h2>8. Competitive advantage</h2>
+          <ul>
+            <li>Combination of discovery + verification workflow + direct contact + services + PM tooling</li>
+            <li>Approval-controlled supply accounts (not open self-serve listing spam)</li>
+            <li>Local product design: M-Pesa, neighbourhood signals, Kenyan service categories</li>
+            <li>Live product depth already spanning tenant, landlord, manager and services surfaces</li>
+          </ul>
+        </div>
+      </div>
+
+      <aside class="exec-side">
+        <div class="block">
+          <h2>Traction highlights</h2>
+          <div class="metrics">
+            <div class="metric">
+              <div class="num">295+</div>
+              <div class="label">Live listings</div>
+              <div class="note"><span class="tag tag-live">Verified live</span><br />11 Aug 2026 · /tenant</div>
+            </div>
+            <div class="metric">
+              <div class="num">214</div>
+              <div class="label">Service providers</div>
+              <div class="note"><span class="tag tag-live">Verified live</span><br />/services</div>
+            </div>
+            <div class="metric">
+              <div class="num">324</div>
+              <div class="label">Sitemap properties</div>
+              <div class="note"><span class="tag tag-live">Verified live</span></div>
+            </div>
+            <div class="metric">
+              <div class="num">136</div>
+              <div class="label">Users</div>
+              <div class="note"><span class="tag tag-internal">Internal</span><br />Requires confirmation</div>
+            </div>
+          </div>
+          <p class="tiny" style="margin-top:0.55rem">Also internal: 22 listing accounts — requires confirmation. App store downloads: not publicly disclosed (Play listing not live).</p>
+        </div>
+
+        <div class="block">
+          <h2>9. Partnership / investment opportunity</h2>
+          <p>Strategic capital, corporate distribution, banking/insurance referral partnerships, real-estate supply partnerships, and technology collaborators who can accelerate trust, payments and market expansion.</p>
+        </div>
+
+        <div class="ask-box">
+          <h2 style="color:var(--forest)">10. The ask</h2>
+          <p style="font-size:0.84rem;color:var(--ink)"><strong>Investment opportunity: terms available upon discussion.</strong></p>
+          <p style="font-size:0.8rem;margin-top:0.4rem;color:var(--slate)">We are seeking a 30-minute strategic conversation to explore investment, partnership and market expansion.</p>
+        </div>
+
+        <div class="block" style="margin-top:1rem">
+          <h2>11. Contact</h2>
+          <p><strong>Faith Wanjiku</strong> — Co-founder &amp; Product<br />
+          <strong>Kevin Buluma</strong> — Co-founder &amp; Engineering</p>
+          <p style="margin-top:0.45rem">nyumbasearch101@gmail.com<br />0714725598<br />
+          <a href="https://nyumbasearch.com">nyumbasearch.com</a></p>
+        </div>
+      </aside>
+    </div>
+  </article>
+</body>
+</html>
