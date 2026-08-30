@@ -577,33 +577,76 @@ export function slide15Roadmap(pptx, t) {
 
 export function slide16Closing(pptx, t) {
   const s = pptx.addSlide();
-  darkSlide(s);
-  kicker(s, 'Investment opportunity', 0.42, t);
-  title(s, 'The next home infrastructure layer.', 0.68, 8.9, 30, C.white, t);
-  body(s, 'NyumbaSearch is building more than a property marketplace.', 0.55, 1.22, 8.9, 0.28, { size: 12, color: C.offWhite }, t, 'close-1');
-  body(s, 'We are building a trusted ecosystem connecting people, properties, payments and home services.', 0.55, 1.52, 8.9, 0.38, { size: 11, color: C.muted }, t, 'close-2');
+  const roomPath = join(ASSETS, 'closing-living-room.jpg');
 
-  const pillars = [
-    { name: 'DISCOVER', desc: 'Find the right home.' },
-    { name: 'VERIFY', desc: 'Move with confidence.' },
-    { name: 'MANAGE', desc: 'Operate the tenancy.' },
-    { name: 'SERVE', desc: 'Access trusted services.' },
+  // Warm base fill
+  t.track(0, 0, 10, 5.625, 'bg');
+  s.addShape('rect', { x: 0, y: 0, w: 10, h: 5.625, fill: { color: C.cocoaDark } });
+
+  // Living room photo — right side only (no baked-in text)
+  t.track(4.85, 0, 5.15, 5.625, 'photo');
+  s.addImage({
+    path: roomPath,
+    x: 4.85, y: 0, w: 5.15, h: 5.625,
+    sizing: { type: 'cover', w: 5.15, h: 5.625 },
+  });
+
+  // Brown gradient panel — left text area (matches reference)
+  t.track(0, 0, 6.2, 5.625, 'panel');
+  s.addShape('rect', {
+    x: 0, y: 0, w: 6.2, h: 5.625,
+    fill: { color: C.cocoaDark, transparency: 5 },
+  });
+  s.addShape('rect', {
+    x: 4.6, y: 0, w: 1.6, h: 5.625,
+    fill: { color: C.cocoaDark, transparency: 50 },
+  });
+
+  // THANK YOU headline
+  t.track(0.65, 1.05, 5.2, 0.7, 'thankyou');
+  s.addText('THANK YOU!', {
+    x: 0.65, y: 1.05, w: 5.2, h: 0.7,
+    fontSize: 36, bold: true, color: C.white, fontFace: FONT, valign: 'top',
+  });
+
+  // Tagline
+  t.track(0.65, 1.82, 5.0, 0.45, 'tagline');
+  s.addText('Building the housing infrastructure\nAfrica deserves.', {
+    x: 0.65, y: 1.82, w: 5.0, h: 0.45,
+    fontSize: 13, color: 'E8DDD4', fontFace: FONT, valign: 'top',
+  });
+
+  // Contact rows — single layer, generous vertical spacing
+  const contacts = [
+    { sym: 'www', label: 'nyumbasearch.com' },
+    { sym: '@', label: 'nyumbasearch101@gmail.com' },
+    { sym: '+', label: '+254714725598' },
+    { sym: '•', label: 'Nairobi, Kenya' },
   ];
-  pillars.forEach((p, i) => {
-    const x = 0.55 + i * 2.35;
-    t.track(x, 2.2, 2.15, 0.95, `pillar-${i}`);
-    s.addShape('roundRect', { x, y: 2.2, w: 2.15, h: 0.95, fill: { color: C.navy2 }, line: { color: C.green2, width: 0.5 }, rectRadius: 0.08 });
-    s.addText(p.name, { x, y: 2.32, w: 2.15, h: 0.28, fontSize: 10, bold: true, color: C.lime, align: 'center', fontFace: FONT });
-    s.addText(p.desc, { x, y: 2.62, w: 2.15, h: 0.35, fontSize: 8.5, color: C.offWhite, align: 'center', fontFace: FONT });
+  const startY = 2.55;
+  const rowH = 0.54;
+
+  contacts.forEach((c, i) => {
+    const y = startY + i * rowH;
+    t.track(0.65, y, 5.0, rowH - 0.06, `contact-${i}`);
+
+    s.addShape('ellipse', {
+      x: 0.65, y: y + 0.07, w: 0.36, h: 0.36,
+      fill: { color: C.cocoaDark, transparency: 35 },
+      line: { color: 'FFFFFF', width: 1.2 },
+    });
+    s.addText(c.sym, {
+      x: 0.65, y: y + 0.1, w: 0.36, h: 0.3,
+      fontSize: c.sym === 'www' ? 6.5 : 11,
+      bold: c.sym === 'www',
+      align: 'center', color: C.white, fontFace: FONT, valign: 'middle',
+    });
+    s.addText(c.label, {
+      x: 1.15, y: y + 0.1, w: 4.5, h: 0.32,
+      fontSize: 12, color: C.white, fontFace: FONT, valign: 'middle',
+    });
   });
 
-  t.track(0.55, 3.4, 8.9, 0.45, 'cta');
-  s.addShape('roundRect', { x: 0.55, y: 3.4, w: 8.9, h: 0.45, fill: { color: C.green }, rectRadius: 0.08 });
-  s.addText('Partner with us. Invest in the infrastructure of Africa\'s housing journey.', {
-    x: 0.55, y: 3.48, w: 8.9, h: 0.32, fontSize: 11, bold: true, color: C.white, align: 'center', fontFace: FONT,
-  });
-
-  body(s, 'NyumbaSearch  ·  nyumbasearch.com  ·  August 2026\nLess stress. Better homes. Stronger communities.', 0.55, 4.1, 8.9, 0.55, { size: 10, color: C.muted, align: 'center' }, t, 'close-footer');
   footer(s, 16, t);
 }
 

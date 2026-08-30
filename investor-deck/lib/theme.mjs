@@ -12,6 +12,9 @@ export const C = {
   lightGreen: 'E1F4E9',
   gold: 'E0AA3E',
   red: 'DC2626',
+  cocoa: '4A2713',
+  cocoaDark: '3D1F0F',
+  warmTan: 'C4A574',
 };
 
 export const FONT = 'Arial';
