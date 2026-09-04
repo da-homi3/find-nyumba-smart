@@ -1,16 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type SubmitEvent } from "react";
-import type { User } from "@supabase/supabase-js";
+import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
-import { withTimeout, withTimeoutOrThrow } from "@/lib/auth/with-timeout";
-import { resolvePostLoginPath, type AppRole, type PortalId } from "@/lib/portal-guard";
+import { withTimeoutOrThrow } from "@/lib/auth/with-timeout";
+import { completePostAuthNavigation } from "@/lib/auth/post-login";
+import { useAuth } from "@/hooks/use-auth";
 import {
   type AccountRole,
-  DASHBOARD_APPROVAL_ROLES,
   isPrivilegedAccountRole,
   ORG_REQUIRED_ROLES,
   organizationFieldLabel,
@@ -52,30 +51,6 @@ export const Route = createFileRoute("/auth/")({
     }),
   component: TenantAuth,
 });
-
-async function resolveRoles(user: User): Promise<string[]> {
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-  return (data ?? []).map((r) => r.role as string);
-}
-
-type PortalAppRow = { requested_role: string; status: string; created_at: string };
-
-async function loadPortalApplications(userId: string): Promise<PortalAppRow[]> {
-  const { data } = await supabase
-    .from("portal_applications")
-    .select("requested_role, status, created_at")
-    .eq("user_id", userId);
-  return (data ?? []) as PortalAppRow[];
-}
-
-async function loadActivePortal(userId: string): Promise<PortalId> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("active_portal")
-    .eq("id", userId)
-    .maybeSingle();
-  return (data?.active_portal as PortalId) ?? "tenant";
-}
 
 function signupSubtitle(role: AccountRole): string {
   if (role === "landlord") {
@@ -183,7 +158,7 @@ async function handleEmailSignup(opts: {
     },
   });
 
-  const { error: signInError } = await withTimeoutOrThrow(
+  const { data, error: signInError } = await withTimeoutOrThrow(
     supabase.auth.signInWithPassword({
       email: cleanEmail,
       password: cleanPassword,
@@ -192,6 +167,7 @@ async function handleEmailSignup(opts: {
     "Sign-in timed out. Check your connection and try again.",
   );
   if (signInError) throw signInError;
+  if (!data.user) throw new Error("Sign in failed");
 
   if (signupResult.foundingMember) {
     toast.success(
@@ -218,7 +194,7 @@ async function handleEmailSignup(opts: {
   markSignupTourPending("tenant");
   toast.success("Welcome to NyumbaSearch!");
   kickEnsureTenantAccount("after signup");
-  globalThis.location.href = "/tenant";
+  await completePostAuthNavigation({ userId: data.user.id });
 }
 
 async function handleEmailSignin(opts: {
@@ -246,36 +222,9 @@ async function handleEmailSignin(opts: {
   if (error) throw error;
   if (!data.user) throw new Error("Sign in failed");
 
-  // Parallel role/app reads — avoid stacking timeouts after a successful auth.
-  const [roles, apps] = await Promise.all([
-    withTimeout(resolveRoles(data.user), 6_000, [] as string[]),
-    withTimeout(loadPortalApplications(data.user.id), 6_000, [] as PortalAppRow[]),
-  ]);
-
   kickEnsureTenantAccount("after signin");
-
-  const hasApprovedDashboardRole = roles.some((r) => DASHBOARD_APPROVAL_ROLES.has(r));
-  const hasTenantRole = roles.includes("tenant");
-  const hasPendingListerApp = apps.some((a) => a.status === "pending");
-  // Only hold brand-new lister applicants (no tenant/dashboard role yet).
-  // Tenants who applied for landlord/manager/agency must still sign in normally.
-  if (hasPendingListerApp && !hasApprovedDashboardRole && !hasTenantRole) {
-    opts.navigate({ to: "/auth/pending" });
-    return;
-  }
-
-  const activePortal = await withTimeout(
-    loadActivePortal(data.user.id),
-    3_000,
-    "tenant" as PortalId,
-  );
-
-  globalThis.location.href = resolvePostLoginPath(
-    roles as AppRole[],
-    activePortal,
-    opts.redirect,
-    apps,
-  );
+  toast.success("Signed in");
+  await completePostAuthNavigation({ userId: data.user.id, redirect: opts.redirect });
 }
 
 type AuthMode = "signin" | "signup" | "reset";
@@ -299,9 +248,22 @@ function authHardStopMessage(isSignup: boolean): string {
   return "Sign-in is taking too long. Check your connection and try again.";
 }
 
+/** Already signed-in users should not stay on /auth (back button, bookmarks). */
+function useAuthPageSessionRedirect(redirect?: string) {
+  const { user, loading, rolesReady } = useAuth();
+  const redirectedRef = useRef(false);
+
+  useEffect(() => {
+    if (loading || !rolesReady || !user || redirectedRef.current) return;
+    redirectedRef.current = true;
+    void completePostAuthNavigation({ userId: user.id, redirect });
+  }, [user, loading, rolesReady, redirect]);
+}
+
 function TenantAuth() {
   const { redirect, signupFor, mode: modeParam, ref: refCode } = Route.useSearch();
   const navigate = useNavigate();
+  useAuthPageSessionRedirect(redirect);
   const [mode, setMode] = useState<AuthMode>(
     modeParam === "reset" ? "reset" : (modeParam ?? "signin"),
   );

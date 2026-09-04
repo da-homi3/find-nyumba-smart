@@ -96,22 +96,14 @@ function GlowOrb({
   });
 
   return (
-    <mesh
-      ref={mesh}
-      position={position}
-      scale={scale}
-      geometry={geometry}
-      material={material}
-    />
+    <mesh ref={mesh} position={position} scale={scale} geometry={geometry} material={material} />
   );
 }
 
 function CameraRig({ intensity }: Readonly<{ intensity: number }>) {
   useFrame((state) => {
-    state.camera.position.x +=
-      (state.pointer.x * 0.4 * intensity - state.camera.position.x) * 0.02;
-    state.camera.position.y +=
-      (state.pointer.y * 0.2 * intensity - state.camera.position.y) * 0.02;
+    state.camera.position.x += (state.pointer.x * 0.4 * intensity - state.camera.position.x) * 0.02;
+    state.camera.position.y += (state.pointer.y * 0.2 * intensity - state.camera.position.y) * 0.02;
     state.camera.lookAt(0, 0, 0);
   });
   return null;
@@ -140,7 +132,12 @@ export function HeroScene3D({ budget = "full" }: Readonly<{ budget?: MotionBudge
       <CameraRig intensity={lite ? 0.35 : 1} />
       <FloatingParticles count={particleCount} size={particleSize} opacity={particleOpacity} />
       <GlowOrb position={[-3, 1, -2]} color="#1EB88A" scale={lite ? 2.1 : 2} opacity={orbOpacity} />
-      <GlowOrb position={[3, -1, -3]} color="#F6AD55" scale={lite ? 1.5 : 1.4} opacity={orbOpacity} />
+      <GlowOrb
+        position={[3, -1, -3]}
+        color="#F6AD55"
+        scale={lite ? 1.5 : 1.4}
+        opacity={orbOpacity}
+      />
       <GlowOrb
         position={[0, 2, -4]}
         color="#12856B"

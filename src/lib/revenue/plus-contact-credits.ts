@@ -14,13 +14,15 @@ async function recordCreditLedger(
     listingId?: string;
   },
 ) {
-  const { error } = await asLooseDb(db).from("contact_credit_ledger").insert({
-    user_id: input.userId,
-    delta: input.delta,
-    remaining: input.remaining,
-    reason: input.reason,
-    listing_id: input.listingId ?? null,
-  });
+  const { error } = await asLooseDb(db)
+    .from("contact_credit_ledger")
+    .insert({
+      user_id: input.userId,
+      delta: input.delta,
+      remaining: input.remaining,
+      reason: input.reason,
+      listing_id: input.listingId ?? null,
+    });
   if (error) console.warn("[plus-credits] ledger:", error.message);
 }
 
@@ -72,10 +74,35 @@ export async function consumePlusContactCredits(
 ): Promise<{ ok: boolean; remaining: number }> {
   const cost = Math.max(1, Math.trunc(credits));
   const loose = asLooseDb(db);
+
+  const { data: rpcRows, error: rpcError } = await loose.rpc("consume_plus_contact_credits", {
+    _user_id: userId,
+    _cost: cost,
+  });
+
+  if (!rpcError && Array.isArray(rpcRows) && rpcRows[0]) {
+    const row = rpcRows[0] as { ok?: boolean; remaining?: number };
+    const remaining = Math.max(0, Number(row.remaining) || 0);
+    if (row.ok) {
+      await recordCreditLedger(db, {
+        userId,
+        delta: -cost,
+        remaining,
+        reason: "consume_unlock",
+      });
+      return { ok: true, remaining };
+    }
+    return { ok: false, remaining };
+  }
+
+  if (rpcError && !/consume_plus_contact_credits/i.test(rpcError.message)) {
+    console.warn("[plus-credits] rpc consume failed:", rpcError.message);
+  }
+
   const current = await getPlusContactCredits(db, userId);
   if (current < cost) return { ok: false, remaining: current };
 
-  const { data, error } = await loose
+  const { data: updated, error } = await loose
     .from("profiles")
     .update({ plus_contact_credits: current - cost })
     .eq("id", userId)
@@ -83,10 +110,13 @@ export async function consumePlusContactCredits(
     .select("plus_contact_credits")
     .maybeSingle();
 
-  if (error || !data) {
+  if (error || !updated) {
     return { ok: false, remaining: current };
   }
-  const remaining = Math.max(0, Number((data as { plus_contact_credits?: number }).plus_contact_credits) || 0);
+  const remaining = Math.max(
+    0,
+    Number((updated as { plus_contact_credits?: number }).plus_contact_credits) || 0,
+  );
   await recordCreditLedger(db, {
     userId,
     delta: -cost,
@@ -105,7 +135,10 @@ export async function adjustPlusContactCredits(
   const current = await getPlusContactCredits(db, userId);
   const next = Math.max(0, current + delta);
   const loose = asLooseDb(db);
-  const { error } = await loose.from("profiles").update({ plus_contact_credits: next }).eq("id", userId);
+  const { error } = await loose
+    .from("profiles")
+    .update({ plus_contact_credits: next })
+    .eq("id", userId);
   if (error) {
     console.warn("[plus-credits] adjust failed:", error.message);
     return current;

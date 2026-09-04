@@ -1,5 +1,6 @@
 import listingPlaceholder from "@/assets/listing-placeholder.jpg";
 import listingPlaceholders from "@/data/listing-placeholders.json";
+import { optimizeImageUrlForServeMode } from "@/lib/app-client";
 
 /** Fabricated or dead Unsplash IDs from early seed data. */
 const BROKEN_UNSPLASH_PATTERNS = [
@@ -37,7 +38,7 @@ export function normalizeListingImageUrl(url: string, seed: string): string {
   if (!trimmed || isBrokenListingImageUrl(trimmed)) {
     return listingPlaceholderUrl(seed);
   }
-  return trimmed;
+  return optimizeImageUrlForServeMode(trimmed);
 }
 
 export function normalizePropertyImages(

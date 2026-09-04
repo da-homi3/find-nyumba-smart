@@ -65,7 +65,11 @@ function NotificationsPage() {
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="font-display text-2xl font-semibold">Notifications</h1>
         <p className="mt-2 text-sm text-muted-foreground">Sign in to see your updates.</p>
-        <Link to="/auth" className="mt-4 inline-block text-sm font-semibold text-primary">
+        <Link
+          to="/auth"
+          search={{ mode: "signin", redirect: "/notifications" }}
+          className="mt-4 inline-block text-sm font-semibold text-primary"
+        >
           Sign in →
         </Link>
       </div>

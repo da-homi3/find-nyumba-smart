@@ -6,6 +6,8 @@ import {
   HOMEPAGE_DESCRIPTION,
 } from "@/lib/site";
 import { NAIROBI_GEO, NYUMBASEARCH_FAQS } from "@/lib/seo/faq";
+import { getOrganizationSameAs } from "@/lib/social/profiles";
+import { PLAY_STORE_URL } from "@/components/AppDownloadBanner";
 
 /** Brand strings Google should map to the official site for queries like "nyumbasearch". */
 export const BRAND_NAME = "NyumbaSearch";
@@ -34,6 +36,7 @@ function nairobiPlace() {
 export function buildHomepageJsonLd() {
   const site = getSiteUrl();
   const logoUrl = getBrandLogoUrl();
+  const sameAs = getOrganizationSameAs(PLAY_STORE_URL);
   const geo = {
     "@type": "GeoCoordinates",
     latitude: NAIROBI_GEO.latitude,
@@ -97,7 +100,19 @@ export function buildHomepageJsonLd() {
           "Kenya apartments",
           "verified landlords",
           "home services Kenya",
+          "Kenyan proptech",
         ],
+        ...(sameAs.length ? { sameAs } : {}),
+      },
+      {
+        "@type": "MobileApplication",
+        "@id": `${site}/#mobileapp`,
+        name: "NyumbaSearch",
+        operatingSystem: "Android",
+        applicationCategory: "RealEstateApplication",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "KES" },
+        url: PLAY_STORE_URL,
+        publisher: { "@id": `${site}/#organization` },
       },
       {
         "@type": "RealEstateAgent",

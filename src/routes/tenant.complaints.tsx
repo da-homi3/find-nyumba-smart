@@ -47,7 +47,11 @@ function TenantComplaintsPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           Sign in after accepting a landlord invite to file complaints.
         </p>
-        <Link to="/auth" className="mt-4 inline-block text-sm font-semibold text-primary">
+        <Link
+          to="/auth"
+          search={{ mode: "signin", redirect: "/tenant/complaints" }}
+          className="mt-4 inline-block text-sm font-semibold text-primary"
+        >
           Sign in →
         </Link>
       </div>

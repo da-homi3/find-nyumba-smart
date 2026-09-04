@@ -20,7 +20,10 @@ function loadEnv() {
     if (eq === -1) continue;
     const k = t.slice(0, eq).trim();
     if (env[k] === undefined) {
-      env[k] = t.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+      env[k] = t
+        .slice(eq + 1)
+        .trim()
+        .replace(/^["']|["']$/g, "");
     }
   }
   return env;
@@ -43,7 +46,10 @@ const ALIAS_MAP = [
   { name: "Runda", aliases: ["new runda", "runda kiambu", "runda estate"] },
   { name: "Ngong Road", aliases: ["along ngong road", "ngong rd", "race course ngong"] },
   { name: "Westlands", aliases: ["westland", "waiyaki westlands", "brookside westlands"] },
-  { name: "Karen", aliases: ["karen tangaza", "near tangaza university", "bogani road karen", "bogani karen"] },
+  {
+    name: "Karen",
+    aliases: ["karen tangaza", "near tangaza university", "bogani road karen", "bogani karen"],
+  },
   { name: "Lavington", aliases: ["lavington area"] },
   { name: "Spring Valley", aliases: ["springvalley"] },
   { name: "Donholm", aliases: ["don holm", "donholm phase"] },
@@ -52,7 +58,10 @@ const ALIAS_MAP = [
   { name: "Rosslyn", aliases: ["rosslyn lone tree", "roslyn"] },
   { name: "Kasarani", aliases: ["kasarani sunton", "sunton kasarani"] },
   { name: "Kileleshwa", aliases: ["kileleshwa road"] },
-  { name: "Waiyaki Way", aliases: ["along waiyaki way", "waiyaki way", "waiyaki wat", "regen waiyaki way"] },
+  {
+    name: "Waiyaki Way",
+    aliases: ["along waiyaki way", "waiyaki way", "waiyaki wat", "regen waiyaki way"],
+  },
   { name: "Riruta", aliases: ["riruta satellite"] },
   { name: "Peponi Road", aliases: ["peponi", "peponi rd"] },
   { name: "Kitisuru", aliases: ["new kitisuru", "kitisuru estate"] },
@@ -75,14 +84,21 @@ const ALIAS_MAP = [
   { name: "Kangundo Road", aliases: ["saika heights", "kangundo road", "kagundo road", "kagundo"] },
   { name: "Mombasa Road", aliases: ["next gen mall", "enzi heights"] },
   { name: "Malindi", aliases: ["sunpark road malindi", "sunpark road"] },
-  { name: "Naivasha-Mai Mahiu-Limuru Road", aliases: ["naivasha road", "along naivasha road", "naivasha rd"] },
+  {
+    name: "Naivasha-Mai Mahiu-Limuru Road",
+    aliases: ["naivasha road", "along naivasha road", "naivasha rd"],
+  },
   { name: "Kiambu Road", aliases: ["along kiambu road", "thindigua kiambu", "thindigua"] },
 ];
 
 const env = loadEnv();
-const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const admin = createClient(
+  env.SUPABASE_URL ?? env.VITE_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false },
+  },
+);
 
 let inserted = 0;
 let skipped = 0;
@@ -99,9 +115,7 @@ for (const entry of ALIAS_MAP) {
     .in("location_type", types)
     .limit(5);
   const loc =
-    (preferRoad
-      ? (candidates ?? []).find((c) => c.location_type === "ROAD")
-      : null) ??
+    (preferRoad ? (candidates ?? []).find((c) => c.location_type === "ROAD") : null) ??
     (candidates ?? [])[0] ??
     null;
   if (!loc) {

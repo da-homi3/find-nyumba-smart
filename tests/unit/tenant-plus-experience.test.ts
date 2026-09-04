@@ -48,9 +48,7 @@ describe("computeTenantScore", () => {
   });
 
   it("ignores disabled rules", () => {
-    const rules = TENANT_SCORE_RULES.map((r) =>
-      r.id === "income" ? { ...r, enabled: false } : r,
-    );
+    const rules = TENANT_SCORE_RULES.map((r) => (r.id === "income" ? { ...r, enabled: false } : r));
     const full = computeTenantScore(
       {
         phoneVerified: true,

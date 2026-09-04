@@ -65,9 +65,8 @@ async function insertPropertyListing(
   options?: { skipListingCap?: boolean },
 ): Promise<Property> {
   if (!options?.skipListingCap) {
-    const { getListingCap, countActiveListings, listingCapReachedMessage } = await import(
-      "@/lib/promo/listing-cap"
-    );
+    const { getListingCap, countActiveListings, listingCapReachedMessage } =
+      await import("@/lib/promo/listing-cap");
     const [cap, activeCount] = await Promise.all([
       getListingCap(admin, ownerUserId),
       countActiveListings(admin, ownerUserId),
@@ -585,7 +584,6 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .eq("role", "admin")
       .maybeSingle();
 
-    const plus = await getTenantPlusStatus(admin, userId);
     const { data: unlock } = await admin
       .from("contact_unlocks")
       .select("id")
@@ -593,7 +591,8 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       .eq("listing_id", data.propertyId)
       .maybeSingle();
 
-    if (!adminRole && plus.tenantPlan !== "plus" && !unlock) {
+    // Plus does not bypass the unlock wallet — credits must be spent via unlockListingContact.
+    if (!adminRole && !unlock) {
       return {
         phone: null,
         phones: [] as string[],
@@ -649,9 +648,8 @@ export const updatePropertyVacancy = createServerFn({ method: "POST" })
     await assertPropertyAccess(supabase, userId, property, roles);
 
     if (data.isVacant && !property.is_active) {
-      const { getListingCap, countActiveListings, listingCapReachedMessage } = await import(
-        "@/lib/promo/listing-cap"
-      );
+      const { getListingCap, countActiveListings, listingCapReachedMessage } =
+        await import("@/lib/promo/listing-cap");
       const [cap, activeCount] = await Promise.all([
         getListingCap(admin, userId),
         countActiveListings(admin, userId),

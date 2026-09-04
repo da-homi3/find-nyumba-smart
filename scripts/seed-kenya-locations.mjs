@@ -401,7 +401,11 @@ for (const loc of localities) {
   if (hit?.id && loc.county !== loc.name) {
     pushAlias(hit.id, `${loc.name}, ${loc.county}`, "search");
   }
-  if (hit?.id && countyLookupKey(loc.county) === "nairobi city" && normalizeName(loc.name) !== "nairobi") {
+  if (
+    hit?.id &&
+    countyLookupKey(loc.county) === "nairobi city" &&
+    normalizeName(loc.name) !== "nairobi"
+  ) {
     pushAlias(hit.id, `${loc.name} Nairobi`, "search");
   }
 }

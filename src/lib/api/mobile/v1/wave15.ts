@@ -1,14 +1,12 @@
 import type { Database } from "@/integrations/supabase/types";
+import { parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
+import { assertListerRole, requireTenantMobile } from "@/lib/api/mobile/v1/guards";
 import {
   mobileError,
   mobileJson,
   requireMobileBearer,
-  userHasRole,
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
-import { parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
 
 const PROVIDER_CATEGORIES = [
   "electricians",
@@ -52,19 +50,12 @@ function matchUuidPath(rest: string, prefix: string, suffix = ""): string | null
   return parseUuid(idPart);
 }
 
-async function requireLandlordRole(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  if (await userHasRole(admin, userId, "landlord" as AppRole)) return null;
-  if (await userHasRole(admin, userId, "agency" as AppRole)) return null;
-  if (await userHasRole(admin, userId, "manager" as AppRole)) return null;
-  return mobileError("Lister role required", "FORBIDDEN", 403);
-}
-
 // ── Landlord analytics ───────────────────────────────────────────────────────
 
 async function handleLandlordAnalytics(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requireLandlordRole(auth.admin, auth.userId);
+  const roleErr = await assertListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const [{ data: properties, error: pErr }, { data: leads, error: lErr }] = await Promise.all([
@@ -128,17 +119,36 @@ async function handleLandlordAnalytics(req: Request): Promise<Response> {
 // ── Compare listings ─────────────────────────────────────────────────────────
 
 async function handleCompareListings(req: Request): Promise<Response> {
+  const auth = await requireTenantMobile(req);
+  if (auth instanceof Response) return auth;
+
   const body = await parseJsonBody<{ ids?: string[] }>(req);
   if (body instanceof Response) return body;
   const ids = Array.isArray(body.ids)
     ? body.ids.filter((id): id is string => typeof id === "string" && !!parseUuid(id))
     : [];
-  if (ids.length < 2 || ids.length > 4) {
-    return mobileError("Provide 2–4 property ids", "BAD_REQUEST", 400);
+  if (ids.length < 2 || ids.length > 8) {
+    return mobileError("Provide 2–8 property ids", "BAD_REQUEST", 400);
   }
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
+  const unique = [...new Set(ids)];
+  const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
+  const { maxComparedProperties, TENANT_PLUS_CONFIG } =
+    await import("@/lib/revenue/tenant-plus-config");
+  const plus = await getTenantPlusStatus(auth.admin, auth.userId);
+  const isPlus = plus.tenantPlan === "plus";
+  const cap = maxComparedProperties(isPlus);
+  if (unique.length > cap) {
+    return mobileError(
+      isPlus
+        ? `You can compare up to ${cap} homes at once.`
+        : `Free plan compares up to ${TENANT_PLUS_CONFIG.freeCompareLimit} homes. Upgrade to Tenant Plus to compare more.`,
+      isPlus ? "BAD_REQUEST" : "PLUS_REQUIRED",
+      isPlus ? 400 : 403,
+    );
+  }
+
+  const { data, error } = await auth.admin
     .from("properties")
     .select(
       "id, title, neighborhood, rent_kes, property_type, bedrooms, bathrooms, is_verified, images, amenities, description",
@@ -156,7 +166,7 @@ async function handleCompareListings(req: Request): Promise<Response> {
 // ── Saved searches / alerts ──────────────────────────────────────────────────
 
 async function handleListSavedSearches(req: Request): Promise<Response> {
-  const auth = await requireMobileBearer(req);
+  const auth = await requireTenantMobile(req);
   if (auth instanceof Response) return auth;
 
   const { data, error } = await auth.admin
@@ -209,7 +219,7 @@ function parseSavedSearchCreateInput(body: {
 }
 
 async function handleCreateSavedSearch(req: Request): Promise<Response> {
-  const auth = await requireMobileBearer(req);
+  const auth = await requireTenantMobile(req);
   if (auth instanceof Response) return auth;
 
   const body = await parseJsonBody<{
@@ -252,7 +262,7 @@ async function handleCreateSavedSearch(req: Request): Promise<Response> {
 }
 
 async function handlePatchSavedSearch(req: Request, id: string): Promise<Response> {
-  const auth = await requireMobileBearer(req);
+  const auth = await requireTenantMobile(req);
   if (auth instanceof Response) return auth;
 
   const body = await parseJsonBody<{ name?: string; alertEnabled?: boolean }>(req);
@@ -278,7 +288,7 @@ async function handlePatchSavedSearch(req: Request, id: string): Promise<Respons
 }
 
 async function handleDeleteSavedSearch(req: Request, id: string): Promise<Response> {
-  const auth = await requireMobileBearer(req);
+  const auth = await requireTenantMobile(req);
   if (auth instanceof Response) return auth;
 
   const { error } = await auth.admin

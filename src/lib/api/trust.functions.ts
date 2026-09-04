@@ -5,7 +5,14 @@ import { getAuthContext } from "@/lib/api/server-context";
 
 const submitVerificationSchema = z
   .object({
-    verificationType: z.enum(["phone", "identity", "business", "ownership", "employment", "income"]),
+    verificationType: z.enum([
+      "phone",
+      "identity",
+      "business",
+      "ownership",
+      "employment",
+      "income",
+    ]),
     documents: z.array(z.string().url()).default([]),
     notes: z.string().trim().max(1000).optional(),
   })
@@ -90,12 +97,8 @@ export const reportScam = createServerFn({ method: "POST" })
     const { supabase, userId } = getAuthContext(context);
 
     // Auto-moderation check: flag if keywords include typical rental scams
-    const lowercaseDetails = (data.details ?? "").toLowerCase();
-    const isAutoFlagged =
-      lowercaseDetails.includes("viewing fee") ||
-      lowercaseDetails.includes("pay before") ||
-      lowercaseDetails.includes("booking fee") ||
-      data.reason.toLowerCase().includes("viewing fee");
+    const { isScamAutoFlagged } = await import("@/lib/trust/scam-auto-flag");
+    const isAutoFlagged = isScamAutoFlagged(data.reason, data.details);
 
     const status = isAutoFlagged ? "reviewed" : "pending";
 
@@ -113,7 +116,8 @@ export const reportScam = createServerFn({ method: "POST" })
 
     if (error) throw error;
 
-    // Record fraud signal for auto-flagged reports
+    // Record fraud signal for auto-flagged reports (admin review only —
+    // never auto-deactivate: a single reporter could take any listing offline).
     if (isAutoFlagged) {
       const admin = await adminClient();
       await admin.from("fraud_signals").insert({
@@ -123,15 +127,6 @@ export const reportScam = createServerFn({ method: "POST" })
         severity: "high",
         details: { reason: data.reason, autoFlagged: true },
       });
-    }
-
-    // If auto-flagged, set property is_active to false until landlord reviews
-    if (isAutoFlagged) {
-      const admin = await adminClient();
-      await admin.from("properties").update({ is_active: false }).eq("id", data.propertyId);
-      void import("@/lib/cache/manager")
-        .then(({ invalidateListingCaches }) => invalidateListingCaches())
-        .catch(() => undefined);
     }
 
     return { report: row, autoFlagged: isAutoFlagged };

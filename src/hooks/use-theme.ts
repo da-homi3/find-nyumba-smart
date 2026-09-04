@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { BRAND_THEME_COLOR_DARK, BRAND_THEME_COLOR_LIGHT } from "@/lib/brand";
 
 const STORAGE_KEY = "nyumba-theme";
 
@@ -22,6 +23,13 @@ function applyTheme(theme: ResolvedTheme) {
   const root = document.documentElement;
   root.classList.toggle("dark", theme === "dark");
   root.classList.toggle("light-mode", theme === "light");
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute(
+      "content",
+      theme === "dark" ? BRAND_THEME_COLOR_DARK : BRAND_THEME_COLOR_LIGHT,
+    );
+  }
 }
 
 export function useTheme() {

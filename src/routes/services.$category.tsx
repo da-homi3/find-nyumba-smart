@@ -18,6 +18,7 @@ import { trackProviderAnalytics } from "@/lib/provider-analytics";
 import { useState } from "react";
 import { KENYA_LOCATION_LABELS, matchLocation } from "@/data/kenya-locations";
 import { buildPageHead } from "@/lib/seo/head";
+import { getServiceCategoryContent } from "@/lib/seo/service-category-content";
 
 const VALID_CATEGORIES = new Set<string>(SERVICE_CATEGORIES.map((c) => c.id));
 
@@ -52,11 +53,10 @@ export const Route = createFileRoute("/services/$category")({
     const areaServed = countyLabel
       ? { "@type": "AdministrativeArea", name: countyLabel }
       : { "@type": "Country", name: "Kenya" };
-    return buildPageHead({
-      title,
-      description,
-      path: `/services/${params.category}`,
-      jsonLd: {
+    const content = getServiceCategoryContent(params.category);
+    const providers = loaderData?.providers ?? [];
+    const jsonLd: object[] = [
+      {
         "@context": "https://schema.org",
         "@type": "Service",
         name: `${label} in ${place}`,
@@ -65,6 +65,54 @@ export const Route = createFileRoute("/services/$category")({
         serviceType: label,
         provider: { "@type": "Organization", name: "NyumbaSearch" },
       },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: "https://nyumbasearch.com/" },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Services",
+            item: "https://nyumbasearch.com/services",
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: label,
+            item: `https://nyumbasearch.com/services/${params.category}`,
+          },
+        ],
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: content.faqs.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
+    ];
+    if (providers.length > 0) {
+      jsonLd.push({
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: `${label} on NyumbaSearch`,
+        numberOfItems: providers.length,
+        itemListElement: providers.slice(0, 12).map((p, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: p.businessName,
+          url: `https://nyumbasearch.com/services/provider/${p.id}`,
+        })),
+      });
+    }
+    return buildPageHead({
+      title,
+      description,
+      path: `/services/${params.category}`,
+      jsonLd,
     });
   },
   component: CategoryPage,
@@ -95,7 +143,7 @@ function CategoryPage() {
 
   return (
     <PublicPageShell>
-      <main className="mx-auto max-w-4xl px-5 py-12">
+      <div className="mx-auto max-w-4xl px-5 py-12">
         <Link to="/services" className="text-sm font-medium text-primary hover:underline">
           ← All services
         </Link>
@@ -109,6 +157,27 @@ function CategoryPage() {
         </p>
 
         <ServiceCountyFilter selectedCounty={selectedCounty} onChange={handleCountyChange} />
+
+        <section className="mt-6 rounded-2xl border bg-card p-5">
+          <h2 className="text-sm font-semibold">How to hire {meta?.label?.toLowerCase() ?? "providers"}</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+            {getServiceCategoryContent(category).hireTips.map((tip) => (
+              <li key={tip}>{tip}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mt-4 rounded-2xl border bg-card p-5">
+          <h2 className="text-sm font-semibold">Frequently asked</h2>
+          <dl className="mt-3 space-y-3">
+            {getServiceCategoryContent(category).faqs.map((faq) => (
+              <div key={faq.question}>
+                <dt className="text-xs font-semibold text-foreground">{faq.question}</dt>
+                <dd className="mt-1 text-xs text-muted-foreground leading-relaxed">{faq.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
         {showingPlaceholders ? (
           <p className="mt-4 rounded-xl border border-dashed bg-secondary/30 px-4 py-3 text-sm text-muted-foreground">
@@ -171,7 +240,7 @@ function CategoryPage() {
             Join as a service provider
           </Link>
         </div>
-      </main>
+      </div>
     </PublicPageShell>
   );
 }

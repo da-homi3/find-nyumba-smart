@@ -38,7 +38,8 @@ export function PremiumFeatureLock({ title, body, compact = false }: Readonly<Pr
             </span>
           </p>
           <p className="text-xs text-muted-foreground">
-            Save {pricing.savingsKes.toLocaleString()} · {pricing.effectiveMonthlyKes.toLocaleString()}
+            Save {pricing.savingsKes.toLocaleString()} ·{" "}
+            {pricing.effectiveMonthlyKes.toLocaleString()}
             /month equivalent, or {pricing.monthlyKes.toLocaleString()}/month
           </p>
           <Link

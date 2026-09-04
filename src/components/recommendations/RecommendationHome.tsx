@@ -50,11 +50,17 @@ export function RecommendationHome({
     );
   }
 
-  const top = data.shelves.find((s) => s.id === "recommended_for_you")?.items[0]
-    ?? data.shelves[0]?.items[0];
+  const top =
+    data.shelves.find((s) => s.id === "recommended_for_you")?.items[0] ?? data.shelves[0]?.items[0];
   const byId = Object.fromEntries(data.shelves.map((s) => [s.id, s]));
   const homeShelfIds = isPlus
-    ? (["recommended_for_you", "new_in_your_areas", "from_providers_you_follow", "price_drops", "near_preferred_locations"] as const)
+    ? ([
+        "recommended_for_you",
+        "new_in_your_areas",
+        "from_providers_you_follow",
+        "price_drops",
+        "near_preferred_locations",
+      ] as const)
     : (["based_on_your_search", "similar_to_shortlist", "just_listed"] as const);
   const homeShelves = homeShelfIds.map((id) => byId[id]).filter(Boolean);
 
@@ -71,7 +77,8 @@ export function RecommendationHome({
         <article className="rounded-2xl border bg-card p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary">New matches</p>
           <p className="mt-1 text-sm">
-            {data.newMatchCount} {data.newMatchCount === 1 ? "property matches" : "properties match"} your preferences
+            {data.newMatchCount}{" "}
+            {data.newMatchCount === 1 ? "property matches" : "properties match"} your preferences
           </p>
         </article>
       ) : null}
@@ -85,7 +92,9 @@ export function RecommendationHome({
         <article className="rounded-2xl border bg-card p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Explore</p>
           <p className="mt-1 text-sm">Homes near {data.exploreLocation}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Nearby areas — not a change to your search</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Nearby areas — not a change to your search
+          </p>
         </article>
       ) : null}
       {!isPlus ? (
@@ -105,7 +114,9 @@ function TopMatchHero({ item, plus }: Readonly<{ item: HydratedRecItem; plus: bo
   return (
     <article className="rounded-2xl border bg-card p-4">
       <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Your top match</p>
-      {plus ? <MatchScore score={item.matchScore} reasons={item.reasons} discovery={item.discovery} /> : null}
+      {plus ? (
+        <MatchScore score={item.matchScore} reasons={item.reasons} discovery={item.discovery} />
+      ) : null}
       <h3 className="mt-2 font-display text-lg font-semibold">
         {p.bedrooms} Bedroom {prettyType(p.property_type)}
       </h3>
@@ -117,7 +128,11 @@ function TopMatchHero({ item, plus }: Readonly<{ item: HydratedRecItem; plus: bo
         className="mt-3 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         onClick={() => {
           void recordRecommendationEvent({
-            data: { eventName: "recommendation_click", propertyId: p.id, shelfId: "recommended_for_you" },
+            data: {
+              eventName: "recommendation_click",
+              propertyId: p.id,
+              shelfId: "recommended_for_you",
+            },
           });
         }}
       >
@@ -167,16 +182,27 @@ function RecShelf({
   );
 }
 
-function RecPropertyCard({
-  item,
-  plus,
-}: Readonly<{ item: HydratedRecItem; plus: boolean }>) {
+function RecPropertyCard({ item, plus }: Readonly<{ item: HydratedRecItem; plus: boolean }>) {
   const p = item.property as Property;
   const qc = useQueryClient();
   const hide = useMutation({
-    mutationFn: (action: "not_interested" | "not_my_location" | "too_expensive" | "too_small" | "already_rented" | "not_my_property_type" | "hide" | "dont_recommend_provider") =>
+    mutationFn: (
+      action:
+        | "not_interested"
+        | "not_my_location"
+        | "too_expensive"
+        | "too_small"
+        | "already_rented"
+        | "not_my_property_type"
+        | "hide"
+        | "dont_recommend_provider",
+    ) =>
       recordRecommendationFeedback({
-        data: { action, propertyId: p.id, ownerId: action === "dont_recommend_provider" ? p.owner_id ?? undefined : undefined },
+        data: {
+          action,
+          propertyId: p.id,
+          ownerId: action === "dont_recommend_provider" ? (p.owner_id ?? undefined) : undefined,
+        },
       }),
     onSuccess: () => {
       toast.success("We'll show fewer homes like this");
@@ -200,28 +226,60 @@ function RecPropertyCard({
       <PropertyCard p={p} />
       {plus ? (
         <div className="flex flex-wrap gap-2 px-3 pb-3 text-[11px]">
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("not_interested")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("not_interested")}
+          >
             Not interested
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("not_my_location")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("not_my_location")}
+          >
             Not my location
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("too_expensive")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("too_expensive")}
+          >
             Too expensive
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("too_small")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("too_small")}
+          >
             Too small
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("already_rented")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("already_rented")}
+          >
             Already rented
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("not_my_property_type")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("not_my_property_type")}
+          >
             Not my type
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("hide")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("hide")}
+          >
             Hide
           </button>
-          <button type="button" className="text-muted-foreground" onClick={() => hide.mutate("dont_recommend_provider")}>
+          <button
+            type="button"
+            className="text-muted-foreground"
+            onClick={() => hide.mutate("dont_recommend_provider")}
+          >
             Don't recommend this provider
           </button>
         </div>
@@ -350,7 +408,11 @@ export function RecOnboardingCard() {
         const feed = await getRecommendationFeed({ data: {} });
         const top = feed.shelves.find((s) => s.id === "recommended_for_you") ?? feed.shelves[0];
         setReady({
-          count: Math.max(feed.newMatchCount, top?.items.length ?? 0, feed.portfolioMatchCount ?? 0),
+          count: Math.max(
+            feed.newMatchCount,
+            top?.items.length ?? 0,
+            feed.portfolioMatchCount ?? 0,
+          ),
           scores: (top?.items ?? []).slice(0, 3).map((item) => item.matchScore),
         });
       } catch {
@@ -364,9 +426,7 @@ export function RecOnboardingCard() {
     return (
       <div className="mt-4 rounded-2xl border bg-card p-4">
         <p className="font-display text-lg font-semibold">Your home search is ready.</p>
-        <p className="mt-2 text-sm">
-          We found {ready.count || "several"} potential matches
-        </p>
+        <p className="mt-2 text-sm">We found {ready.count || "several"} potential matches</p>
         {ready.scores.length > 0 ? (
           <p className="mt-2 text-sm">
             Your top matches: {ready.scores.map((score) => `${score}%`).join("  ")}
@@ -473,7 +533,11 @@ export function HowRecommendationsWork({ text }: Readonly<{ text: string }>) {
   const [open, setOpen] = useState(false);
   return (
     <div className="text-xs text-muted-foreground">
-      <button type="button" className="font-semibold text-primary" onClick={() => setOpen((v) => !v)}>
+      <button
+        type="button"
+        className="font-semibold text-primary"
+        onClick={() => setOpen((v) => !v)}
+      >
         How recommendations work
       </button>
       {open ? <p className="mt-2">{text}</p> : null}

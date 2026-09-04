@@ -1,5 +1,9 @@
 import staticRoutes from "./staticRoutes.json";
-import { SEO_AREA_TYPES, SEO_INVENTORY_THRESHOLD, SEO_WARD_INVENTORY_THRESHOLD } from "@/lib/locations/types";
+import {
+  SEO_AREA_TYPES,
+  SEO_INVENTORY_THRESHOLD,
+  SEO_WARD_INVENTORY_THRESHOLD,
+} from "@/lib/locations/types";
 
 export type GeoArea = {
   slug: string;

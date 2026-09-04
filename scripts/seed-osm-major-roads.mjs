@@ -26,7 +26,10 @@ function loadEnv() {
     if (eq === -1) continue;
     const k = t.slice(0, eq).trim();
     if (env[k] === undefined) {
-      env[k] = t.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+      env[k] = t
+        .slice(eq + 1)
+        .trim()
+        .replace(/^["']|["']$/g, "");
     }
   }
   return env;
@@ -81,7 +84,8 @@ async function loadRoads() {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
           Accept: "application/json",
-          "User-Agent": "NyumbaSearchLocationSeed/1.0 (kenya major roads; contact: ops@nyumbasearch)",
+          "User-Agent":
+            "NyumbaSearchLocationSeed/1.0 (kenya major roads; contact: ops@nyumbasearch)",
         },
         body: `data=${encodeURIComponent(OVERPASS)}`,
         signal: ctrl.signal,
@@ -102,9 +106,13 @@ async function loadRoads() {
 }
 
 const env = loadEnv();
-const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const admin = createClient(
+  env.SUPABASE_URL ?? env.VITE_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false },
+  },
+);
 
 await admin.from("location_sources").upsert(
   {

@@ -13,9 +13,13 @@ const BASE =
   "https://nyumbasearch.com";
 
 const routeTree = readFileSync(join(root, "src", "routeTree.gen.ts"), "utf8");
-const fullPathsRegex = /fullPaths:\s*([\s\S]*?)\s*id:/;
-const pathMatch = fullPathsRegex.exec(routeTree);
-const rawBlock = pathMatch?.[1] ?? "";
+const fullPathsStart = routeTree.indexOf("fullPaths:");
+const fullPathsEnd =
+  fullPathsStart >= 0 ? routeTree.indexOf("fileRoutesByTo:", fullPathsStart) : -1;
+const rawBlock =
+  fullPathsStart >= 0 && fullPathsEnd > fullPathsStart
+    ? routeTree.slice(fullPathsStart + "fullPaths:".length, fullPathsEnd)
+    : "";
 const routes = [...new Set([...rawBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]))];
 
 /** Expand dynamic segments with a live property id when possible. */
@@ -63,7 +67,10 @@ function expandPath(path) {
     path
       .replaceAll("$id", SAMPLE_UUID)
       .replaceAll("$propertyId", SAMPLE_UUID)
+      .replaceAll("$requestId", SAMPLE_UUID)
+      .replaceAll("$ownerId", SAMPLE_UUID)
       .replaceAll("$category", "movers")
+      .replaceAll("$slug", "kilimani")
       .replace(/\/$/, "") || "/"
   );
 }

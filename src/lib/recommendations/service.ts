@@ -1,5 +1,8 @@
 import { getPlatformSetting } from "@/lib/revenue/platform-settings";
-import { DEFAULT_RECOMMENDATION_WEIGHTS, HOW_RECOMMENDATIONS_WORK } from "@/lib/recommendations/config";
+import {
+  DEFAULT_RECOMMENDATION_WEIGHTS,
+  HOW_RECOMMENDATIONS_WORK,
+} from "@/lib/recommendations/config";
 import {
   buildShelves,
   diversify,
@@ -136,47 +139,50 @@ export async function buildRecommendationFeed(input: {
   const admin = asLooseDb(supabaseAdmin);
   const weights = await loadRecommendationWeights();
 
-  const [prefs, hidden, savedRows, viewRows, searchRows, inquiryRows, listingRows] = await Promise.all([
-    loadPrefs(admin, input.userId),
-    loadHidden(admin, input.userId),
-    supabaseAdmin
-      .from("saved_properties")
-      .select("property_id, created_at")
-      .eq("user_id", input.userId)
-      .limit(40),
-    supabaseAdmin
-      .from("property_views")
-      .select("property_id, created_at")
-      .eq("viewer_id", input.userId)
-      .order("created_at", { ascending: false })
-      .limit(40),
-    supabaseAdmin
-      .from("search_events")
-      .select("neighborhood, created_at")
-      .eq("user_id", input.userId)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    supabaseAdmin
-      .from("inquiries")
-      .select("landlord_id, created_at")
-      .eq("tenant_id", input.userId)
-      .not("landlord_id", "is", null)
-      .limit(30),
-    (async () => {
-      let query = supabaseAdmin
-        .from("properties")
-        .select(CANDIDATE_COLUMNS)
-        .eq("is_active", true)
-        .eq("is_vacant", true)
+  const [prefs, hidden, savedRows, viewRows, searchRows, inquiryRows, listingRows] =
+    await Promise.all([
+      loadPrefs(admin, input.userId),
+      loadHidden(admin, input.userId),
+      supabaseAdmin
+        .from("saved_properties")
+        .select("property_id, created_at")
+        .eq("user_id", input.userId)
+        .limit(40),
+      supabaseAdmin
+        .from("property_views")
+        .select("property_id, created_at")
+        .eq("viewer_id", input.userId)
         .order("created_at", { ascending: false })
-        .limit(weights.maxCandidates);
-      if (input.ownerScope) query = query.eq("owner_id", input.ownerScope);
-      return query;
-    })(),
-  ]);
+        .limit(40),
+      supabaseAdmin
+        .from("search_events")
+        .select("neighborhood, created_at")
+        .eq("user_id", input.userId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from("inquiries")
+        .select("landlord_id, created_at")
+        .eq("tenant_id", input.userId)
+        .not("landlord_id", "is", null)
+        .limit(30),
+      (async () => {
+        let query = supabaseAdmin
+          .from("properties")
+          .select(CANDIDATE_COLUMNS)
+          .eq("is_active", true)
+          .eq("is_vacant", true)
+          .order("created_at", { ascending: false })
+          .limit(weights.maxCandidates);
+        if (input.ownerScope) query = query.eq("owner_id", input.ownerScope);
+        return query;
+      })(),
+    ]);
 
   const resetAt = (prefs?.recs_reset_at as string | null) ?? null;
-  const candidates = ((listingRows.data ?? []) as unknown as Record<string, unknown>[]).map(asRecProperty);
+  const candidates = ((listingRows.data ?? []) as unknown as Record<string, unknown>[]).map(
+    asRecProperty,
+  );
   const byId = new Map(candidates.map((p) => [p.id, p]));
 
   const savedIds = (savedRows.data ?? [])
@@ -187,7 +193,10 @@ export async function buildRecommendationFeed(input: {
     .map((r) => r.property_id);
   const missing = [...new Set([...savedIds, ...viewedIds])].filter((id) => !byId.has(id));
   if (missing.length > 0) {
-    const extra = await supabaseAdmin.from("properties").select(CANDIDATE_COLUMNS).in("id", missing);
+    const extra = await supabaseAdmin
+      .from("properties")
+      .select(CANDIDATE_COLUMNS)
+      .in("id", missing);
     for (const row of (extra.data ?? []) as unknown as Record<string, unknown>[]) {
       const rec = asRecProperty(row);
       byId.set(rec.id, rec);
@@ -209,9 +218,7 @@ export async function buildRecommendationFeed(input: {
     amenities: [],
   };
 
-  const priceDrops = input.plus
-    ? await loadPriceDrops([...savedIds, ...viewedIds])
-    : [];
+  const priceDrops = input.plus ? await loadPriceDrops([...savedIds, ...viewedIds]) : [];
 
   const behavior: BehaviorSignals = {
     viewed: viewedIds.map((id) => byId.get(id)).filter((p): p is RecProperty => Boolean(p)),
@@ -235,7 +242,9 @@ export async function buildRecommendationFeed(input: {
     resetAt,
   };
 
-  const needs = personalizationEnabled ? mergeNeeds(explicit, inferNeedsFromBehavior(behavior)) : explicit;
+  const needs = personalizationEnabled
+    ? mergeNeeds(explicit, inferNeedsFromBehavior(behavior))
+    : explicit;
 
   const scored: ScoredRecommendation[] = [];
   for (const property of candidates) {
@@ -257,12 +266,15 @@ export async function buildRecommendationFeed(input: {
       });
 
   const providers =
-    input.plus && !input.ownerScope ? await buildProviderRecs(admin, candidates, needs, weights) : [];
+    input.plus && !input.ownerScope
+      ? await buildProviderRecs(admin, candidates, needs, weights)
+      : [];
 
   const portfolioMatchCount = input.ownerScope
     ? scored.filter((item) => item.matchScore >= 70).length
     : null;
-  const newMatchCount = shelves.find((s) => s.id === "new_in_your_areas" || s.id === "just_listed")?.items.length ?? 0;
+  const newMatchCount =
+    shelves.find((s) => s.id === "new_in_your_areas" || s.id === "just_listed")?.items.length ?? 0;
   const exploreLocation = needs.locations[0] ?? null;
 
   return {
@@ -293,7 +305,8 @@ function scoreProviderGroup(
   needs: TenantNeeds,
 ): ProviderRecommendation | null {
   if (list.length < 3) return null;
-  const inBudget = needs.budgetMax ? list.filter((p) => p.rentKes <= needs.budgetMax * 1.1) : list;
+  const budgetMax = needs.budgetMax;
+  const inBudget = budgetMax != null ? list.filter((p) => p.rentKes <= budgetMax * 1.1) : list;
   if (inBudget.length === 0) return null;
   const inLoc = list.filter((p) => matchesPreferredLocation(p, needs));
   const areas = [...new Set(list.map((p) => p.neighborhood).filter(Boolean))].slice(0, 4);
@@ -314,8 +327,12 @@ function scoreProviderGroup(
     areas,
     reasons: [
       `${inBudget.length} properties within your budget`,
-      inLoc.length > 0 ? `${inLoc.length} in your preferred locations` : "Active listings on NyumbaSearch",
-      list.some((p) => p.bedrooms === needs.bedrooms) ? "Homes in your preferred size" : "Varied unit mix",
+      inLoc.length > 0
+        ? `${inLoc.length} in your preferred locations`
+        : "Active listings on NyumbaSearch",
+      list.some((p) => p.bedrooms === needs.bedrooms)
+        ? "Homes in your preferred size"
+        : "Varied unit mix",
     ],
     specialties: areas.slice(0, 3),
   };
@@ -340,13 +357,11 @@ async function buildProviderRecs(
     const rec = scoreProviderGroup(ownerId, list, needs);
     if (rec) out.push(rec);
   }
-  const ranked = out.toSorted((a, b) => b.matchScore - a.matchScore).slice(0, 3);
+  const ranked = [...out].sort((a, b) => b.matchScore - a.matchScore).slice(0, 3);
   const ids = ranked.map((p) => p.ownerId);
   if (ids.length === 0) return ranked;
   const { data: profiles } = await admin.from("profiles").select("id, full_name").in("id", ids);
-  const nameById = new Map(
-    (profiles ?? []).map((p) => [asText(p.id), asText(p.full_name).trim()]),
-  );
+  const nameById = new Map((profiles ?? []).map((p) => [asText(p.id), asText(p.full_name).trim()]));
   return ranked.map((p) => ({
     ...p,
     name: nameById.get(p.ownerId) || "Verified provider",
@@ -412,7 +427,9 @@ export async function buildMoreLikeThis(input: {
     .eq("is_vacant", true)
     .order("created_at", { ascending: false })
     .limit(weights.maxCandidates);
-  const candidates = ((listingRows ?? []) as unknown as Record<string, unknown>[]).map(asRecProperty);
+  const candidates = ((listingRows ?? []) as unknown as Record<string, unknown>[]).map(
+    asRecProperty,
+  );
   const hidden = input.userId
     ? await loadHidden(asLooseDb(supabaseAdmin), input.userId)
     : { hiddenPropertyIds: [] as string[] };
@@ -437,13 +454,15 @@ export async function recordRecommendationFeedback(input: {
   const { asLooseDb } = await import("@/lib/db/loose-client");
   const { recordProductEventCore } = await import("@/lib/analytics/product-events");
   try {
-    await asLooseDb(supabaseAdmin).from("recommendation_feedback").insert({
-      user_id: input.userId,
-      property_id: input.propertyId ?? null,
-      owner_id: input.ownerId ?? null,
-      action: input.action,
-      created_at: new Date().toISOString(),
-    });
+    await asLooseDb(supabaseAdmin)
+      .from("recommendation_feedback")
+      .insert({
+        user_id: input.userId,
+        property_id: input.propertyId ?? null,
+        owner_id: input.ownerId ?? null,
+        action: input.action,
+        created_at: new Date().toISOString(),
+      });
   } catch (err) {
     console.warn("[recommendations] feedback table:", err);
   }
@@ -497,4 +516,3 @@ export function attachProperties(
   for (const p of properties) propertyById[p.id] = p;
   return { ...feed, propertyById };
 }
-

@@ -15,10 +15,9 @@ export const saveAccountPhoneFn = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("profiles").upsert(
-      { id: userId, phone, updated_at: new Date().toISOString() },
-      { onConflict: "id" },
-    );
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: userId, phone, updated_at: new Date().toISOString() }, { onConflict: "id" });
     if (error) throw new Error(error.message);
 
     const { data: existing } = await supabaseAdmin.auth.admin.getUserById(userId);

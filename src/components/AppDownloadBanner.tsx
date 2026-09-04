@@ -12,12 +12,7 @@ const DISMISS_KEY = "nyumba-app-banner-dismissed-v1";
 
 function PlayBadge({ className }: Readonly<{ className?: string }>) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 135 40"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
+    <svg className={className} viewBox="0 0 135 40" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <rect width="135" height="40" rx="6" fill="#000" />
       <path
         fill="#EA4335"
@@ -31,17 +26,8 @@ function PlayBadge({ className }: Readonly<{ className?: string }>) {
         fill="#4285F4"
         d="M34.1 18.1c0-1-.5-1.8-1.2-2.2L21.6 9.5l-2.8 2.8 4.1 4.1.1-.1 10.6 6c.1-.2.5-.4.5-1.2z"
       />
-      <path
-        fill="#34A853"
-        d="M21.6 20.5 18.8 17.7 10.5 29c.5.5 1.2.6 1.9.2l12.1-6.9-2.9-1.8z"
-      />
-      <text
-        x="42"
-        y="15"
-        fill="#fff"
-        fontFamily="Arial, Helvetica, sans-serif"
-        fontSize="8"
-      >
+      <path fill="#34A853" d="M21.6 20.5 18.8 17.7 10.5 29c.5.5 1.2.6 1.9.2l12.1-6.9-2.9-1.8z" />
+      <text x="42" y="15" fill="#fff" fontFamily="Arial, Helvetica, sans-serif" fontSize="8">
         GET IT ON
       </text>
       <text

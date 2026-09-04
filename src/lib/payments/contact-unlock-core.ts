@@ -74,15 +74,15 @@ export async function getListingUnlockStateCore(
   const rent = property?.rent_kes ?? 0;
   const fee = unlockFeeForRent(rent);
   const isPlus = plus.tenantPlan === "plus";
-  const { TENANT_PLUS_CONFIG, contactCreditsForFee } = await import(
-    "@/lib/revenue/tenant-plus-config"
-  );
+  const { TENANT_PLUS_CONFIG, contactCreditsForFee } =
+    await import("@/lib/revenue/tenant-plus-config");
   const { getPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
   const plusContactCredits = isPlus ? await getPlusContactCredits(admin, userId) : 0;
   const creditsRequired = contactCreditsForFee(fee);
-  const plusCanCover = isPlus && TENANT_PLUS_CONFIG.flags.contactCreditsEnabled
-    ? plusContactCredits >= creditsRequired
-    : isPlus && !TENANT_PLUS_CONFIG.flags.contactCreditsEnabled;
+  const plusCanCover =
+    isPlus && TENANT_PLUS_CONFIG.flags.contactCreditsEnabled
+      ? plusContactCredits >= creditsRequired
+      : isPlus && !TENANT_PLUS_CONFIG.flags.contactCreditsEnabled;
 
   let contactPhones: string[] = [];
   if (unlock) {
@@ -125,12 +125,14 @@ async function unlockWithPlus(
   listingId: string,
   contactPhone: string,
   contactPhones: string[],
+  /** Listing unlock fee — stored so admin refunds restore the correct credit band. */
+  feeKes = 0,
 ) {
   await admin.from("contact_unlocks").insert({
     user_id: userId,
     listing_id: listingId,
     method: "plus",
-    fee_charged: 0,
+    fee_charged: feeKes,
   });
   void notifyContactUnlockEmails(admin, {
     userId,
@@ -309,17 +311,15 @@ export async function unlockListingContactCore(
   const fee = unlockFeeForRent(property?.rent_kes ?? 0);
 
   if (plus.tenantPlan === "plus") {
-    const { TENANT_PLUS_CONFIG, contactCreditsForFee } = await import(
-      "@/lib/revenue/tenant-plus-config"
-    );
+    const { TENANT_PLUS_CONFIG, contactCreditsForFee } =
+      await import("@/lib/revenue/tenant-plus-config");
     if (!TENANT_PLUS_CONFIG.flags.contactCreditsEnabled) {
       if (!contactPhone) return NO_CONTACT;
-      return unlockWithPlus(admin, userId, data.listingId, contactPhone, contactPhones);
+      return unlockWithPlus(admin, userId, data.listingId, contactPhone, contactPhones, fee);
     }
     const cost = contactCreditsForFee(fee);
-    const { consumePlusContactCredits, getPlusContactCredits } = await import(
-      "@/lib/revenue/plus-contact-credits"
-    );
+    const { consumePlusContactCredits, getPlusContactCredits } =
+      await import("@/lib/revenue/plus-contact-credits");
     const remaining = await getPlusContactCredits(admin, userId);
     if (remaining >= cost) {
       if (!contactPhone) return NO_CONTACT;
@@ -331,6 +331,7 @@ export async function unlockListingContactCore(
           data.listingId,
           contactPhone,
           contactPhones,
+          fee,
         );
         return { ...result, plusContactCredits: consumed.remaining, creditsUsed: cost };
       }

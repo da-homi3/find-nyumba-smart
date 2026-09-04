@@ -32,7 +32,7 @@ export function VerifiedSection() {
   return (
     <section
       id="verification-section"
-      className="relative overflow-hidden border-y border-white/6 bg-(--surface-0)"
+      className="relative overflow-hidden border-y border-border bg-background"
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
@@ -356,6 +356,37 @@ export function LandlordBand() {
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             Open Landlord Portal <ArrowRight className="h-4 w-4" />
+          </Link>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/** Homepage conversion band for Tenant Plus (KSh 700 / 1,800). */
+export function TenantPlusBand() {
+  return (
+    <section className="border-t bg-primary text-primary-foreground">
+      <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-5 py-12 sm:px-6 md:flex-row md:items-center">
+        <ScrollReveal>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/70">
+            Tenant Plus
+          </p>
+          <h3 className="mt-2 font-display text-2xl font-semibold">
+            AI matching, messaging, and contact credits
+          </h3>
+          <p className="mt-1 max-w-xl text-sm text-primary-foreground/80">
+            From KSh 700/month — or KSh 1,800 for 3 months (save KSh 300). Unlimited saves, search
+            alerts, and in-app landlord messaging.
+          </p>
+        </ScrollReveal>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+          <Link
+            to="/tenant/checkout"
+            search={{ plan: "plus" }}
+            className="inline-flex items-center gap-2 rounded-xl bg-background px-6 py-3 text-sm font-semibold text-foreground hover:opacity-90"
+          >
+            Get Tenant Plus <ArrowRight className="h-4 w-4" />
           </Link>
         </motion.div>
       </div>

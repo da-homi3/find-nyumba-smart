@@ -113,6 +113,12 @@ export function PropertyReviewsSection({
         )}
       </div>
 
+      {isTenant ? (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Reviews are limited to tenants who completed a viewing or tenancy on this property.
+        </p>
+      ) : null}
+
       {/* Overview stats */}
       <div className="mt-4 grid grid-cols-2 gap-4 rounded-2xl border bg-card p-4 sm:grid-cols-5">
         <div className="text-center sm:border-r">
@@ -143,6 +149,10 @@ export function PropertyReviewsSection({
       {showForm && (
         <div className="mt-6 rounded-2xl border bg-card p-5 animate-in fade-in duration-200">
           <h3 className="font-display text-sm font-semibold">Share your rental experience</h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            You can submit only after a completed viewing or active/completed tenancy. Book a
+            viewing first if you have not visited yet.
+          </p>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[
               { label: "Overall Rating", val: ratingOverall, set: setRatingOverall },

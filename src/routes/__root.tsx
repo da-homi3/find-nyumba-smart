@@ -13,7 +13,7 @@ import { AnimatePresence } from "framer-motion";
 
 import appCss from "../styles.css?url";
 import "@/lib/random-uuid";
-import { reportClientError } from "@/lib/error-reporting";
+import { reportClientError, installGlobalClientErrorReporting } from "@/lib/error-reporting";
 import {
   clearChunkReloadGuard,
   installVitePreloadRecovery,
@@ -45,6 +45,7 @@ import { shouldShowTenantBottomNav } from "@/lib/tenant-mobile-nav";
 import { registerPwaServiceWorker } from "@/lib/register-pwa";
 import { WebPushBootstrap } from "@/components/WebPushBootstrap";
 import { InstallAppBanner } from "@/components/InstallAppBanner";
+import { THEME_INIT_SCRIPT } from "@/lib/theme-init";
 
 const AmbientBackdrop = lazy(() =>
   import("@/components/motion/AmbientBackdrop").then((m) => ({ default: m.AmbientBackdrop })),
@@ -208,8 +209,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en-KE" className="dark">
+    <html lang="en-KE" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body className="min-h-screen overflow-x-clip antialiased">
@@ -295,6 +297,7 @@ function RootComponent() {
 
   useEffect(() => {
     installVitePreloadRecovery();
+    installGlobalClientErrorReporting();
     clearChunkReloadGuard();
     // Defer SW registration so it never races first paint / listings fetch.
     const timer = globalThis.setTimeout(() => {

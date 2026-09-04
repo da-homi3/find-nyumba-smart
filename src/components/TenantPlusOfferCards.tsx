@@ -15,10 +15,16 @@ export function TenantPlusOfferCards({ selected, onSelect }: Readonly<Props>) {
     staleTime: 60_000,
   });
   const pricing = data ?? getPlusPricing();
+  const credits = pricing.contactCreditsPerMonth;
   return (
     <div className="grid gap-3">
       <p className="text-sm text-muted-foreground">
         Find your home faster, smarter, and with more confidence.
+      </p>
+      <p className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-foreground">
+        Plus includes <strong>{credits} contact credits / month</strong>. Each credit unlocks one
+        landlord phone (higher-fee listings may use 2–5 credits). Extra unlocks stay pay-as-you-go
+        via M-Pesa.
       </p>
       <button
         type="button"
@@ -30,7 +36,9 @@ export function TenantPlusOfferCards({ selected, onSelect }: Readonly<Props>) {
         <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
           Best value · 3-month offer
         </p>
-        <p className="mt-1 font-display text-2xl font-semibold">{formatKes(pricing.quarterlyKes)}</p>
+        <p className="mt-1 font-display text-2xl font-semibold">
+          {formatKes(pricing.quarterlyKes)}
+        </p>
         <p className="text-sm text-muted-foreground">
           <span className="line-through">{formatKes(pricing.quarterlyRegularKes)}</span>
           {" · "}
@@ -40,8 +48,9 @@ export function TenantPlusOfferCards({ selected, onSelect }: Readonly<Props>) {
           That&apos;s {formatKes(pricing.effectiveMonthlyKes)}/month
         </p>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          {formatKes(pricing.monthlyKes)} × 3 = {formatKes(pricing.quarterlyRegularKes)} regular.
-          Offer {formatKes(pricing.quarterlyKes)}.
+          {credits * 3} contact credits over 3 months ({credits}/mo).{" "}
+          {formatKes(pricing.monthlyKes)} × 3 = {formatKes(pricing.quarterlyRegularKes)} regular —
+          offer {formatKes(pricing.quarterlyKes)}.
         </p>
       </button>
       <button
@@ -51,12 +60,16 @@ export function TenantPlusOfferCards({ selected, onSelect }: Readonly<Props>) {
           selected === "monthly" ? "border-primary bg-primary/10" : "border-border"
         }`}
       >
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Monthly</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Monthly
+        </p>
         <p className="mt-1 font-display text-xl font-semibold">
           {formatKes(pricing.monthlyKes)}
           <span className="text-sm font-normal text-muted-foreground"> / month</span>
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Flexible monthly access</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {credits} contact credits each month · flexible cancel
+        </p>
       </button>
     </div>
   );

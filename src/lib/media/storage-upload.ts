@@ -207,7 +207,8 @@ async function withUploadRetries(work: (attempt: number) => Promise<void>): Prom
       lastError = err instanceof Error ? err : new Error(String(err));
       if (lastError.message === "Upload cancelled") throw lastError;
       const status = parseStatusFromMessage(lastError.message);
-      const retry = attempt < MAX_UPLOAD_ATTEMPTS && isRetryableUploadFailure(lastError.message, status);
+      const retry =
+        attempt < MAX_UPLOAD_ATTEMPTS && isRetryableUploadFailure(lastError.message, status);
       if (!retry) throw lastError;
       await sleep(500 * attempt);
     }

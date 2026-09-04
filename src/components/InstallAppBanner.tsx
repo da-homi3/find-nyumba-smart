@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { Download, X } from "lucide-react";
+import { shouldSkipAuthGate } from "@/lib/auth/auth-gate";
 import { isStandaloneDisplay } from "@/lib/register-pwa";
 
 const DISMISS_KEY = "nyumba-install-banner-dismissed";
@@ -15,11 +17,13 @@ type BeforeInstallPromptEvent = Event & {
  * Standalone PWA + Android WebView already have no browser chrome.
  */
 export function InstallAppBanner() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [visible, setVisible] = useState(false);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (shouldSkipAuthGate(pathname)) return;
     if (isStandaloneDisplay()) return;
     if (sessionStorage.getItem(DISMISS_KEY) === "1") return;
 
@@ -34,7 +38,7 @@ export function InstallAppBanner() {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+  }, [pathname]);
 
   if (!visible) return null;
 

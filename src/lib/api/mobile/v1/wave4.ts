@@ -1,4 +1,6 @@
 import { parseUuid, parseJsonBody } from "@/lib/api/mobile/v1/helpers";
+import type { Database } from "@/integrations/supabase/types";
+import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 import {
   mobileError,
   mobileJson,
@@ -6,22 +8,10 @@ import {
   userHasRole,
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
-import type { Database } from "@/integrations/supabase/types";
 import { MAINTENANCE_CATEGORIES, MAINTENANCE_PRIORITIES } from "@/lib/maintenance/state-machine";
 import { asPmDb } from "@/lib/pm/access";
 import { notifyOwnerNewMaintenance } from "@/lib/maintenance/notify";
 import { notifyOwnerNewComplaint } from "@/lib/pm/complaints-notify";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
-
-const LISTER_ROLES = ["landlord", "agency", "manager", "admin"] as const;
-
-async function requireListerOrAdmin(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  for (const role of LISTER_ROLES) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Lister role required", "FORBIDDEN", 403);
-}
 
 async function activeTenantLeaseContext(admin: ReturnType<typeof asPmDb>, userId: string) {
   const { data: tenants } = await admin
@@ -327,7 +317,7 @@ async function assertOwnsProperty(
   userId: string,
   propertyId: string,
 ): Promise<Response | { images: string[] }> {
-  const roleErr = await requireListerOrAdmin(admin, userId);
+  const roleErr = await assertPortalListerRole(admin, userId);
   if (roleErr) return roleErr;
 
   const { data: row, error } = await admin

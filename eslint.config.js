@@ -18,6 +18,7 @@ export default [
       "src/integrations/supabase/types.ts",
       "tmp_*.js",
       "tmp-verify/**",
+      "tmp-social/**",
       "route-report.json",
     ],
   },

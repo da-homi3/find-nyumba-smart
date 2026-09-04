@@ -44,9 +44,7 @@ export async function tryHandleWave22(
       source = url.searchParams.get("source")?.trim() || "mobile";
     }
     const uuidOk =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        selectedId,
-      );
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedId);
     if (!uuidOk) return mobileError("location_id required", "VALIDATION", 400);
 
     void (async () => {
@@ -54,15 +52,17 @@ export async function tryHandleWave22(
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { asLooseDb } = await import("@/lib/db/loose-client");
         const { normalizeLocationName } = await import("@/lib/locations/normalize");
-        await asLooseDb(supabaseAdmin).from("location_search_events").insert({
-          query: q || selectedId,
-          normalized_query: normalizeLocationName(q || selectedId),
-          selected_location_id: selectedId,
-          result_count: 1,
-          lat: null,
-          lng: null,
-          source,
-        });
+        await asLooseDb(supabaseAdmin)
+          .from("location_search_events")
+          .insert({
+            query: q || selectedId,
+            normalized_query: normalizeLocationName(q || selectedId),
+            selected_location_id: selectedId,
+            result_count: 1,
+            lat: null,
+            lng: null,
+            source,
+          });
       } catch {
         // non-blocking
       }

@@ -13,6 +13,7 @@ import {
   Plug,
   Crown,
   Briefcase,
+  FileText,
   Gift,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,6 +31,7 @@ const nav = [
   { to: "/landlord/import", label: "Bulk import", icon: Upload },
   { to: "/landlord/integrations", label: "API & integrations", icon: Plug },
   { to: "/landlord/leads", label: "Messages", icon: Inbox },
+  { to: "/landlord/applications", label: "Applications", icon: FileText },
   { to: "/landlord/caretakers", label: "Caretakers", icon: KeyRound },
   { to: "/landlord/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },

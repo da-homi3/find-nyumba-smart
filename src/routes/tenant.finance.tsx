@@ -99,8 +99,9 @@ function TenantFinanceToolsPage() {
                 </label>
               </div>
               <p className="mt-3 text-sm">
-                Suggested rent cap (30% of income): <strong>{formatKes(afford.suggestedMax)}</strong>
-                . Housing share {afford.housingShare}%. Leftover after rent+expenses:{" "}
+                Suggested rent cap (30% of income):{" "}
+                <strong>{formatKes(afford.suggestedMax)}</strong>. Housing share{" "}
+                {afford.housingShare}%. Leftover after rent+expenses:{" "}
                 <strong>{formatKes(afford.leftover)}</strong>.
               </p>
             </section>
@@ -171,7 +172,9 @@ function TenantFinanceToolsPage() {
                         {p.name} — {p.product}
                       </p>
                       {p.eligibility ? (
-                        <p className="mt-1 text-xs text-muted-foreground">Eligibility: {p.eligibility}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Eligibility: {p.eligibility}
+                        </p>
                       ) : null}
                       {p.disclosure ? (
                         <p className="mt-1 text-xs text-muted-foreground">{p.disclosure}</p>

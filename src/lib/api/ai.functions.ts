@@ -3,11 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  firstRegexMatch,
-  getAuthContext,
-  JSON_OBJECT_RE,
-} from "@/lib/api/server-context";
+import { firstRegexMatch, getAuthContext, JSON_OBJECT_RE } from "@/lib/api/server-context";
 
 import { callGeminiChat } from "@/lib/api/ai-client";
 
@@ -39,17 +35,16 @@ export const getAIPropertyRecommendations = createServerFn({ method: "POST" })
     const { supabase, userId } = getAuthContext(context);
     const { requirePlus } = await import("@/lib/payments/require-plus");
     await requirePlus(supabase, userId);
-    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
-    const { checkRateLimit: limitUser } = await import("@/lib/api/rate-limit");
-    limitUser(`ai-user:${userId}`, {
-      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
-      windowMs: 60_000,
-    });
+    const { assertAiUserRateLimit } = await import("@/lib/api/ai-rate-limit");
+    await assertAiUserRateLimit(userId);
     const { logAiUsage } = await import("@/lib/ai/usage-log");
-    const { buildRecommendationFeed, hydrateRecommendationFeed } = await import(
-      "@/lib/recommendations/service"
-    );
-    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+    const { buildRecommendationFeed, hydrateRecommendationFeed } =
+      await import("@/lib/recommendations/service");
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .maybeSingle();
     const feed = await buildRecommendationFeed({
       userId,
       plus: true,
@@ -76,16 +71,13 @@ export const getAIValuation = createServerFn({ method: "POST" })
     const { supabase: authed, userId } = getAuthContext(context);
     const { requirePlus } = await import("@/lib/payments/require-plus");
     await requirePlus(authed, userId);
-    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
+    const { assertAiUserRateLimit } = await import("@/lib/api/ai-rate-limit");
+    await assertAiUserRateLimit(userId);
     const { logAiUsage } = await import("@/lib/ai/usage-log");
     logAiUsage({ userId, feature: "valuation", ok: true });
 
     const { checkRateLimit } = await import("@/lib/api/rate-limit");
     checkRateLimit(`ai-valuation:${data.propertyId}`);
-    checkRateLimit(`ai-user:${userId}`, {
-      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
-      windowMs: 60_000,
-    });
 
     const { createPublicClient, PROPERTY_DETAIL_COLUMNS } = await import("@/lib/api/public-client");
     const supabase = createPublicClient();
@@ -249,11 +241,8 @@ export const getAssistantReply = createServerFn({ method: "POST" })
     const { supabase, userId } = getAuthContext(context);
     const { requirePlus } = await import("@/lib/payments/require-plus");
     await requirePlus(supabase, userId);
-    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
-    checkRateLimit(`ai-user:${userId}`, {
-      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
-      windowMs: 60_000,
-    });
+    const { assertAiUserRateLimit } = await import("@/lib/api/ai-rate-limit");
+    await assertAiUserRateLimit(userId);
     const { logAiUsage } = await import("@/lib/ai/usage-log");
     logAiUsage({ userId, feature: "assistant", ok: true });
 
@@ -425,12 +414,8 @@ export const getAIChatResponse = createServerFn({ method: "POST" })
     const { supabase, userId } = getAuthContext(context);
     const { requirePlus } = await import("@/lib/payments/require-plus");
     await requirePlus(supabase, userId);
-    const { TENANT_PLUS_CONFIG } = await import("@/lib/revenue/tenant-plus-config");
-    const { checkRateLimit } = await import("@/lib/api/rate-limit");
-    checkRateLimit(`ai-user:${userId}`, {
-      max: TENANT_PLUS_CONFIG.aiRequestsPerMinute,
-      windowMs: 60_000,
-    });
+    const { assertAiUserRateLimit } = await import("@/lib/api/ai-rate-limit");
+    await assertAiUserRateLimit(userId);
     const { logAiUsage } = await import("@/lib/ai/usage-log");
     logAiUsage({ userId, feature: "property-chat", ok: true });
     return answerPropertyAiChat(data);

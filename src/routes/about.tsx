@@ -1,7 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
+import { SocialProfileLinks } from "@/components/SocialProfileLinks";
 import { buildPageHead } from "@/lib/seo/head";
 import { NYUMBASEARCH_FAQS } from "@/lib/seo/faq";
+import {
+  SOCIAL_BIO_TEMPLATE,
+  SOCIAL_DISPLAY_NAME,
+  getConfiguredSocialProfiles,
+} from "@/lib/social/profiles";
 
 export const Route = createFileRoute("/about")({
   head: () =>
@@ -30,6 +36,7 @@ const TEAM = [
 ];
 
 function AboutPage() {
+  const socialProfiles = getConfiguredSocialProfiles();
   return (
     <PublicPageShell>
       <main className="mx-auto max-w-3xl px-5 py-16">
@@ -70,12 +77,32 @@ function AboutPage() {
         </section>
 
         <section className="mt-12">
+          <h2 className="font-display text-2xl font-semibold">Follow NyumbaSearch</h2>
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+            {socialProfiles.length > 0
+              ? "Find apartment tours, neighbourhood guides, and rental tips on our official channels."
+              : "We are expanding our social channels for property tours and Nairobi rental guides. The website and Android app remain the canonical sources for live listings."}
+          </p>
+          {socialProfiles.length > 0 ? (
+            <SocialProfileLinks className="mt-4" variant="default" />
+          ) : (
+            <p className="mt-3 rounded-xl border bg-muted/30 p-4 text-xs text-muted-foreground">
+              Suggested profile name: <strong>{SOCIAL_DISPLAY_NAME}</strong>
+              <br />
+              Suggested bio: {SOCIAL_BIO_TEMPLATE}
+            </p>
+          )}
+        </section>
+
+        <section className="mt-12">
           <h2 className="font-display text-2xl font-semibold">Questions people ask</h2>
           <dl className="mt-6 space-y-6">
             {NYUMBASEARCH_FAQS.map((item) => (
               <div key={item.question}>
                 <dt className="font-semibold">{item.question}</dt>
-                <dd className="mt-2 text-sm text-muted-foreground leading-relaxed">{item.answer}</dd>
+                <dd className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                  {item.answer}
+                </dd>
               </div>
             ))}
           </dl>

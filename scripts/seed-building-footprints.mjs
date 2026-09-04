@@ -36,7 +36,10 @@ function loadEnv() {
     if (eq === -1) continue;
     const k = t.slice(0, eq).trim();
     if (env[k] === undefined) {
-      env[k] = t.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+      env[k] = t
+        .slice(eq + 1)
+        .trim()
+        .replace(/^["']|["']$/g, "");
     }
   }
   return env;
@@ -76,9 +79,13 @@ function centroidOf(geometry) {
 }
 
 const env = loadEnv();
-const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const admin = createClient(
+  env.SUPABASE_URL ?? env.VITE_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false },
+  },
+);
 
 const geojson = JSON.parse(readFileSync(filePath, "utf8"));
 const features = geojson.features ?? [];

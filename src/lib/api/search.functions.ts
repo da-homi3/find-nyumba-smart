@@ -107,9 +107,8 @@ export const updateSavedSearch = createServerFn({ method: "POST" })
 export const compareProperties = createServerFn({ method: "POST" })
   .inputValidator(z.object({ ids: z.array(z.string().uuid()).min(2).max(8) }))
   .handler(async ({ data }) => {
-    const { TENANT_PLUS_CONFIG, maxComparedProperties } = await import(
-      "@/lib/revenue/tenant-plus-config"
-    );
+    const { TENANT_PLUS_CONFIG, maxComparedProperties } =
+      await import("@/lib/revenue/tenant-plus-config");
     let isPlus = false;
     try {
       const { getRequest } = await import("@tanstack/react-start/server");

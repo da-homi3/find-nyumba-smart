@@ -5,7 +5,11 @@ vi.mock("@/lib/revenue/subscription-store", () => ({
   hasPaidMarketplacePortalAccess: vi.fn(),
 }));
 
-import { baseListingCap, listingCapReachedMessage, resolveListingCap } from "@/lib/promo/listing-cap";
+import {
+  baseListingCap,
+  listingCapReachedMessage,
+  resolveListingCap,
+} from "@/lib/promo/listing-cap";
 
 describe("resolveListingCap", () => {
   it("does not grant listings on the free plan even with bonus slots", () => {

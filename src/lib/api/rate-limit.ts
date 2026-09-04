@@ -15,6 +15,7 @@ export const RATE_LIMITS = {
   payment: { max: 12, windowMs: 120_000 },
   advertiseCheckout: { max: 30, windowMs: 60_000 },
   mpesa: { max: 12, windowMs: 120_000 },
+  pesapal: { max: 30, windowMs: 120_000 },
   stk: { max: 12, windowMs: 120_000 },
   stkPhone: { max: 15, windowMs: 120_000 },
   login: { max: 10, windowMs: 60_000 },

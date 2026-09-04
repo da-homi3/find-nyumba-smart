@@ -41,6 +41,8 @@ export function listingsCacheKey(data?: PropertySearchFilters): string {
     f.pricingMode ?? "",
     f.verifiedOnly ? "v1" : "",
     f.minBedrooms != null ? String(f.minBedrooms) : "",
+    f.parking ? "pk1" : "",
+    f.petFriendly ? "pf1" : "",
     f.maxImages != null ? `mi${f.maxImages}` : "",
   ];
   if (f.sortBy === "nearby" && f.originLat != null && f.originLng != null) {
@@ -144,11 +146,17 @@ function applySearchTermFilter(query: PropertyQuery, rawQuery: string | undefine
     .slice(0, 100);
   if (!term) return query;
 
-  // Quote values so spaces (e.g. "2 bedroom") don't break PostgREST `.or()` parsing.
+  const ftsTerm = term.replaceAll(/[':&|!<>]/g, " ").replace(/\s+/g, " ").trim();
+  // Prefer GIN-backed FTS (migration 20260904160000). Falls back to ilike if term too short.
+  if (ftsTerm.length >= 2) {
+    return query.textSearch("search_vector", ftsTerm, {
+      type: "websearch",
+      config: "english",
+    });
+  }
+
   const pattern = `"*${term}*"`;
   const parts = [`title.ilike.${pattern}`, `neighborhood.ilike.${pattern}`];
-
-  // Only OR an exact property_type when the term is a known enum — invalid enums 500.
   const typeTerm = term.toLowerCase().replaceAll(" ", "_");
   const aliases: Record<string, string> = {
     "1_bedroom": "one_bedroom",
@@ -160,7 +168,6 @@ function applySearchTermFilter(query: PropertyQuery, rawQuery: string | undefine
   if ((PROPERTY_TYPES as readonly string[]).includes(resolvedType)) {
     parts.push(`property_type.eq.${resolvedType}`);
   }
-
   return query.or(parts.join(","));
 }
 
@@ -216,6 +223,8 @@ function applyListingFilters(query: PropertyQuery, data: PropertySearchFilters |
   if (maxRent) next = next.lte("rent_kes", maxRent);
   if (data?.verifiedOnly) next = next.eq("is_verified", true);
   if (data?.minBedrooms) next = next.gte("bedrooms", data.minBedrooms);
+  if (data?.parking) next = next.contains("amenities", ["Parking"]);
+  if (data?.petFriendly) next = next.contains("amenities", ["Pet friendly"]);
   if (data?.minAuthenticityScore) {
     next = next.gte("authenticity_score", data.minAuthenticityScore);
   }
@@ -331,9 +340,8 @@ export async function queryListingsDirect(
       data?.countyLocationId ||
       data?.neighborhood
     ) {
-      const { classifyLocationMatch, compareByLocationTier } = await import(
-        "@/lib/locations/match-tiers"
-      );
+      const { classifyLocationMatch, compareByLocationTier } =
+        await import("@/lib/locations/match-tiers");
       const filterId =
         data.locationId ??
         data.wardLocationId ??

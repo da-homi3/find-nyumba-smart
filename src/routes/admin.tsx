@@ -1,9 +1,11 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { createPortalBeforeLoad } from "@/lib/route-guards/create-portal-before-load";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
+  beforeLoad: createPortalBeforeLoad("admin"),
   component: AdminLayout,
 });
 

@@ -41,9 +41,13 @@ function normalizeName(name) {
 }
 
 const env = loadEnv();
-const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const admin = createClient(
+  env.SUPABASE_URL ?? env.VITE_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false },
+  },
+);
 
 const counts = new Map();
 function bump(id, n = 1) {
@@ -104,7 +108,10 @@ for (;;) {
   const rows = data ?? [];
   if (!rows.length) break;
   for (const row of rows) {
-    const place = String(row.neighborhood ?? "").split(",")[0]?.trim() ?? "";
+    const place =
+      String(row.neighborhood ?? "")
+        .split(",")[0]
+        ?.trim() ?? "";
     const key = normalizeName(place);
     const id = byNorm.get(key);
     if (id) {
@@ -160,7 +167,10 @@ if (token && ref) {
   }
 } else {
   // Slow path: per-row updates (no token).
-  await admin.from("locations").update({ inventory_count: 0 }).neq("id", "00000000-0000-0000-0000-000000000000");
+  await admin
+    .from("locations")
+    .update({ inventory_count: 0 })
+    .neq("id", "00000000-0000-0000-0000-000000000000");
   for (const [id, c] of counts) {
     const { error } = await admin.from("locations").update({ inventory_count: c }).eq("id", id);
     if (!error) updated += 1;
@@ -178,6 +188,9 @@ const report = {
     .map(([id, count]) => ({ id, count })),
 };
 
-writeFileSync(join(root, "docs", "location-inventory-report.json"), JSON.stringify(report, null, 2));
+writeFileSync(
+  join(root, "docs", "location-inventory-report.json"),
+  JSON.stringify(report, null, 2),
+);
 console.log(JSON.stringify(report, null, 2));
 console.log("✓ location inventory refreshed");

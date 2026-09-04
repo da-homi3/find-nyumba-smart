@@ -12,6 +12,7 @@ import {
   toggleSavedProperty,
 } from "@/lib/api/nyumba.functions";
 import { recordTenantLead } from "@/lib/api/revenue.functions";
+import { listMyPropertyApplications } from "@/lib/api/rental-application.functions";
 import { reportScam } from "@/lib/api/trust.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { pushRecentlyViewed } from "@/lib/recently-viewed";
@@ -46,6 +47,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
   }, [navigate, authSearch]);
 
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -62,6 +64,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     setChatInput("");
     setChatLoading(false);
     setIsBookingOpen(false);
+    setIsApplyOpen(false);
     setReportOpen(false);
     setReportDetails("");
     setReportReason("Suspicious listing");
@@ -130,6 +133,21 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
         .slice(0, 4);
     },
   });
+
+  const { data: myApplications = [] } = useQuery({
+    queryKey: ["tenant-applications", user?.id],
+    enabled: !!user,
+    staleTime: 30_000,
+    queryFn: () => listMyPropertyApplications(),
+  });
+
+  const activeApplication = useMemo(
+    () =>
+      myApplications.find(
+        (app) => app.property_id === id && app.status !== "withdrawn" && app.status !== "rejected",
+      ),
+    [myApplications, id],
+  );
 
   const { data: landlordContact } = useQuery({
     queryKey: ["landlord-contact", p?.owner_id, id, user?.id],
@@ -364,6 +382,23 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     setIsBookingOpen(true);
   };
 
+  const openApply = () => {
+    if (!user) {
+      toast.error("Sign in to apply for this property");
+      redirectToAuth();
+      return;
+    }
+    if (!p?.owner_id) {
+      toast.error("Applications are not available for this listing yet.");
+      return;
+    }
+    if (activeApplication) {
+      toast.info(`Application already ${activeApplication.status.replaceAll("_", " ")}`);
+      return;
+    }
+    setIsApplyOpen(true);
+  };
+
   return {
     user,
     p,
@@ -379,6 +414,9 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     valLoading,
     isBookingOpen,
     setIsBookingOpen,
+    isApplyOpen,
+    setIsApplyOpen,
+    activeApplication,
     chatMessages,
     chatInput,
     setChatInput,
@@ -399,6 +437,7 @@ export function usePropertyDetail(id: string, initialProperty?: Property | null)
     openReportForm,
     submitReport,
     openBooking,
+    openApply,
     redirectToAuth,
   };
 }

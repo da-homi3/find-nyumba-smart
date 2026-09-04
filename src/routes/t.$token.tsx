@@ -19,12 +19,7 @@ function PublicTenantCardPage() {
     <div className="min-h-screen bg-background">
       <SiteNav variant="light" />
       <main className="mx-auto max-w-md px-5 py-12">
-        <PublicTenantCardBody
-          data={data}
-          isLoading={isLoading}
-          isError={isError}
-          error={error}
-        />
+        <PublicTenantCardBody data={data} isLoading={isLoading} isError={isError} error={error} />
       </main>
     </div>
   );

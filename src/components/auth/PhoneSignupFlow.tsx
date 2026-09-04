@@ -14,6 +14,7 @@ import {
   organizationFieldPlaceholder,
 } from "@/lib/account-roles";
 import { normalizeAuthCredentials } from "@/lib/auth/credentials";
+import { completePostAuthNavigation } from "@/lib/auth/post-login";
 import { SIGNUP_POLICY_VERSION } from "@/lib/auth/signup-policy";
 import { withTimeoutOrThrow } from "@/lib/auth/with-timeout";
 import {
@@ -142,7 +143,7 @@ async function finishPhoneSignup(opts: {
     },
   });
 
-  const { error: signInError } = await withTimeoutOrThrow(
+  const { data: signInData, error: signInError } = await withTimeoutOrThrow(
     supabase.auth.signInWithPassword({
       email: cleanEmail,
       password: cleanPassword,
@@ -151,6 +152,7 @@ async function finishPhoneSignup(opts: {
     "Sign-in timed out. Check your connection and try again.",
   );
   if (signInError) throw signInError;
+  if (!signInData.user) throw new Error("Sign in failed");
 
   if (signupResult.foundingMember) {
     toast.success(
@@ -172,7 +174,7 @@ async function finishPhoneSignup(opts: {
   markSignupTourPending("tenant");
   toast.success("Welcome to NyumbaSearch!");
   kickEnsureTenantAccount("after phone signup");
-  globalThis.location.href = "/tenant";
+  await completePostAuthNavigation({ userId: signInData.user.id });
 }
 
 export function PhoneSignupFlow({

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { classifyLocationMatch, compareByLocationTier, tierRank } from "@/lib/locations/match-tiers";
+import {
+  classifyLocationMatch,
+  compareByLocationTier,
+  tierRank,
+} from "@/lib/locations/match-tiers";
 
 describe("location match tiers", () => {
   it("ranks inside > near > marketed_as > none", () => {

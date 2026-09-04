@@ -105,7 +105,7 @@ export const TOUR_DEFINITIONS: Record<TourId, TourDefinition> = {
       {
         target: '[data-tour="tenant-profile-plus"]',
         title: "NyumbaSearch Plus",
-        body: "Upgrade for unlimited contact unlocks, scam-risk scores, and early access to new listings.",
+        body: "Upgrade for monthly contact credits, scam-risk scores, and early access to new listings.",
         placement: "top",
       },
     ],

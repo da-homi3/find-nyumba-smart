@@ -88,7 +88,10 @@ function AdminLendersPanel() {
           Plus finance tools. Include a disclosure for regulated products.
         </p>
       </div>
-      <form onSubmit={onSubmit} className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2">
+      <form
+        onSubmit={onSubmit}
+        className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2"
+      >
         <AdminField label="Lender / partner name">
           <input
             required

@@ -130,7 +130,10 @@ export const listAdminLocations = createServerFn({ method: "POST" })
 
     const ids = (rows ?? []).map((r) => r.id as string);
     const { data: aliases } = ids.length
-      ? await db.from("location_aliases").select("location_id,alias,alias_kind").in("location_id", ids)
+      ? await db
+          .from("location_aliases")
+          .select("location_id,alias,alias_kind")
+          .in("location_id", ids)
       : { data: [] as Array<{ location_id: string; alias: string; alias_kind: string }> };
 
     const aliasMap = new Map<string, Array<{ alias: string; kind: string }>>();

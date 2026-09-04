@@ -8,6 +8,12 @@ const root = join(__dirname, "..");
 
 const staticRoutes = JSON.parse(readFileSync(join(root, "src/lib/seo/staticRoutes.json"), "utf8"));
 
+/** Keep in sync with HOMEPAGE_PROPERTY_CATEGORIES ids in homepage-categories.ts */
+function loadPropertyCategoryIds() {
+  const src = readFileSync(join(root, "src/lib/landing/homepage-categories.ts"), "utf8");
+  return [...src.matchAll(/^\s*id:\s*"([a-z0-9_]+)"/gm)].map((m) => m[1]);
+}
+
 function loadEnv() {
   const env = {};
   const path = join(root, ".env");
@@ -33,11 +39,15 @@ const site = (
   "https://nyumbasearch.com"
 ).replace(/\/$/, "");
 
+const categoryIds = loadPropertyCategoryIds();
 const staticPaths = [
   ...staticRoutes.sitemapPaths.filter((path) => path !== "/areas" && !path.startsWith("/areas/")),
   "/areas",
   ...(staticRoutes.geoAreas ?? []).map((area) => `/areas/${area.slug}`),
   ...staticRoutes.serviceCategories.map((c) => `/services/${c}`),
+  ...categoryIds.map((id) => `/categories/${id}`),
+  "/guides",
+  ...(staticRoutes.geoAreas ?? []).map((area) => `/guides/${area.slug}`),
 ];
 
 function urlEntry(loc, { lastmod, changefreq, priority }) {
@@ -91,6 +101,7 @@ async function fetchActivePropertyIds() {
 function sitemapPriority(path) {
   if (path === "") return "1.0";
   if (path.startsWith("/areas")) return "0.9";
+  if (path.startsWith("/categories")) return "0.88";
   if (path.startsWith("/services")) return "0.85";
   return "0.8";
 }

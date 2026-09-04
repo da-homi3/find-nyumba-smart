@@ -45,7 +45,8 @@ function AdminRevenuePage() {
       <section className="mt-6 rounded-2xl border bg-card p-5">
         <h2 className="text-sm font-semibold">Tenant Plus commercial config</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Live values from platform settings (admin Tenant Plus tab). Checkout charges these amounts.
+          Live values from platform settings (admin Tenant Plus tab). Checkout charges these
+          amounts.
         </p>
         <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
           <div>
@@ -78,9 +79,7 @@ function AdminRevenuePage() {
         </dl>
       </section>
 
-      {isLoading ? (
-        <p className="mt-8 text-sm text-muted-foreground">Loading revenue…</p>
-      ) : null}
+      {isLoading ? <p className="mt-8 text-sm text-muted-foreground">Loading revenue…</p> : null}
       {isError ? (
         <p className="mt-8 text-sm text-destructive">Could not load revenue stats.</p>
       ) : null}

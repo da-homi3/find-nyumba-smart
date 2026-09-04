@@ -61,10 +61,13 @@ export async function reverseGeocode(
   }
 
   try {
-    const { data: pip, error } = await supabase.rpc("locations_containing_point" as never, {
-      lat,
-      lng,
-    } as never);
+    const { data: pip, error } = await supabase.rpc(
+      "locations_containing_point" as never,
+      {
+        lat,
+        lng,
+      } as never,
+    );
     if (!error && Array.isArray(pip) && pip.length > 0) {
       const rows = pip as LocationRow[];
       const pick = (t: string) => {
@@ -99,9 +102,7 @@ export async function reverseGeocode(
         : locality
       : (neighbourhood ?? locality);
 
-  const confidence = county
-    ? Math.max(35, Math.round(75 - (county.distanceKm ?? 0) * 1.5))
-    : 0;
+  const confidence = county ? Math.max(35, Math.round(75 - (county.distanceKm ?? 0) * 1.5)) : 0;
 
   return {
     county: county?.loc ?? null,

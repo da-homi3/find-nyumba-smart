@@ -49,15 +49,16 @@ export async function getLocationAncestors(
   for (let i = 0; i < 8 && currentId; i += 1) {
     if (seen.has(currentId)) break;
     seen.add(currentId);
-    const { data } = await supabase
+    const result = await supabase
       .from("locations")
       .select(SELECT_COLS)
       .eq("id", currentId)
       .maybeSingle();
+    const data = result.data as (LocationRow & { parent_id: string | null }) | null;
     if (!data) break;
-    const pub = toPublicLocation(data as unknown as LocationRow);
+    const pub = toPublicLocation(data);
     if (pub.id !== id) chain.push(pub);
-    currentId = (data as { parent_id: string | null }).parent_id;
+    currentId = data.parent_id;
   }
   return chain.reverse();
 }

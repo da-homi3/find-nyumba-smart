@@ -54,8 +54,8 @@ function AreasIndexPage() {
           Homes for rent by neighbourhood
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground leading-relaxed">
-          Browse verified vacant houses and apartments. Area pages are listed only where NyumbaSearch
-          has live inventory — including stable Nairobi neighbourhood URLs.
+          Browse verified vacant houses and apartments. Area pages are listed only where
+          NyumbaSearch has live inventory — including stable Nairobi neighbourhood URLs.
         </p>
         <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {areas.map((area) => (

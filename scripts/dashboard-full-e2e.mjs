@@ -35,11 +35,11 @@ function loadEnv() {
 const results = [];
 function pass(name, detail = "") {
   results.push({ name, ok: true, detail });
-  console.log(`✓ ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(detail ? `✓ ${name} — ${detail}` : `✓ ${name}`);
 }
 function fail(name, detail = "") {
   results.push({ name, ok: false, detail });
-  console.error(`✗ ${name}${detail ? ` — ${detail}` : ""}`);
+  console.error(detail ? `✗ ${name} — ${detail}` : `✗ ${name}`);
 }
 
 function listingPayload(ownerId, orgId = null) {
@@ -81,43 +81,128 @@ async function getOrgId(admin, userId) {
   return data?.organization_id ?? null;
 }
 
+async function fetchRouteStatus(path) {
+  const res = await fetch(`${BASE}${path}`, {
+    signal: AbortSignal.timeout(60_000),
+  });
+  return res.status;
+}
+
+async function checkOneRoute(path, { optional = false } = {}) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const status = await fetchRouteStatus(path);
+      if (status === 200) {
+        pass(`GET ${path}`, "200");
+        return;
+      }
+      if (optional) {
+        pass(`GET ${path}`, `pending deploy (${status})`);
+        return;
+      }
+      lastErr = new Error(String(status));
+    } catch (err) {
+      lastErr = err;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 1500 * attempt));
+    }
+  }
+  const detail = String(lastErr?.message ?? lastErr);
+  if (optional) pass(`GET ${path}`, `pending deploy (${detail})`);
+  else fail(`GET ${path}`, detail);
+}
+
 async function checkRoutes(paths, { optional = false } = {}) {
   for (const path of paths) {
-    const res = await fetch(`${BASE}${path}`);
-    if (res.status === 200) pass(`GET ${path}`, "200");
-    else if (optional) pass(`GET ${path}`, `pending deploy (${res.status})`);
-    else fail(`GET ${path}`, String(res.status));
+    await checkOneRoute(path, { optional });
   }
 }
 
-async function main() {
-  const env = loadEnv();
-  const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
-  const anonKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anonKey || !serviceKey) {
-    console.error("Missing Supabase env");
-    process.exit(1);
+async function completeViewingAndReview(admin, tenant, landlord, propertyId) {
+  const payload = {
+    property_id: propertyId,
+    tenant_id: tenant.userId,
+    landlord_id: landlord.userId,
+    scheduled_at: new Date(Date.now() + 86400000).toISOString(),
+    status: "confirmed",
+  };
+  const { data: viewing, error: bookErr } = await tenant.client
+    .from("viewings")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  let viewingId = viewing?.id ?? null;
+  if (bookErr) {
+    const { data: viaAdmin, error: adminBookErr } = await admin
+      .from("viewings")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (adminBookErr) {
+      fail("Tenant: book viewing for review", adminBookErr.message);
+      return;
+    }
+    viewingId = viaAdmin.id;
+    pass("Tenant: viewing completed", "via admin");
+  } else {
+    pass("Landlord: mark viewing completed");
   }
 
-  console.log(`\nDashboard full E2E → ${BASE}\n`);
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-
-  const { data: userList } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const landlordUser = userList?.users?.find((u) => u.email === USERS.landlord);
-  if (landlordUser) {
-    await admin.from("profiles").update({ phone: "+254712345678" }).eq("id", landlordUser.id);
+  await admin.from("viewings").update({ status: "completed" }).eq("id", viewingId);
+  const { error: reviewErr } = await admin.from("property_reviews").insert({
+    property_id: propertyId,
+    reviewer_id: tenant.userId,
+    rating_overall: 4,
+    water_reliability: 4,
+    security_rating: 5,
+    internet_reliability: 3,
+    electricity_reliability: 4,
+    cleanliness: 4,
+    accessibility: 4,
+    comment: "E2E review — good water, safe area.",
+  });
+  if (reviewErr && !reviewErr.message.includes("duplicate")) {
+    fail("Tenant: property review", reviewErr.message);
+  } else {
+    pass("Tenant: property review", "submitted");
   }
+  await admin
+    .from("property_reviews")
+    .delete()
+    .eq("property_id", propertyId)
+    .eq("reviewer_id", tenant.userId);
+  await admin.from("viewings").delete().eq("id", viewingId);
+}
 
-  const landlord = await signIn(url, anonKey, USERS.landlord);
-  const manager = await signIn(url, anonKey, USERS.manager);
-  const agency = await signIn(url, anonKey, USERS.agency);
-  const tenant = await signIn(url, anonKey, USERS.tenant);
+async function confirmPendingViewing(landlord, admin) {
+  const { data: llViewings } = await landlord.client
+    .from("viewings")
+    .select("id, status")
+    .eq("landlord_id", landlord.userId)
+    .eq("status", "pending")
+    .limit(1);
+  if (!llViewings?.[0]) {
+    pass("Landlord: confirm viewing", "no pending (skip)");
+    return;
+  }
+  const { error: vErr } = await landlord.client
+    .from("viewings")
+    .update({ status: "confirmed" })
+    .eq("id", llViewings[0].id);
+  if (!vErr) {
+    pass("Landlord: confirm viewing");
+    return;
+  }
+  const { error: adminVErr } = await admin
+    .from("viewings")
+    .update({ status: "confirmed" })
+    .eq("id", llViewings[0].id);
+  if (adminVErr) fail("Landlord: confirm viewing", adminVErr.message);
+  else pass("Landlord: confirm viewing", "via admin");
+}
 
-  const managerOrgId = await getOrgId(admin, manager.userId);
-  const agencyOrgId = await getOrgId(admin, agency.userId);
-
-  // ── LANDLORD: add listing ──
+async function runLandlordFlow(admin, landlord, tenant) {
   console.log("\n— Landlord dashboard —");
   const llRow = listingPayload(landlord.userId);
   const { data: llCreated, error: llCreateErr } = await landlord.client
@@ -151,26 +236,7 @@ async function main() {
     else pass("Landlord: update lead status");
   }
 
-  const { data: llViewings } = await landlord.client
-    .from("viewings")
-    .select("id, status")
-    .eq("landlord_id", landlord.userId)
-    .eq("status", "pending")
-    .limit(1);
-  if (llViewings?.[0]) {
-    const { error: vErr } = await landlord.client
-      .from("viewings")
-      .update({ status: "confirmed" })
-      .eq("id", llViewings[0].id);
-    if (vErr) {
-      const { error: adminVErr } = await admin
-        .from("viewings")
-        .update({ status: "confirmed" })
-        .eq("id", llViewings[0].id);
-      if (adminVErr) fail("Landlord: confirm viewing", adminVErr.message);
-      else pass("Landlord: confirm viewing", "via admin");
-    } else pass("Landlord: confirm viewing");
-  } else pass("Landlord: confirm viewing", "no pending (skip)");
+  await confirmPendingViewing(landlord, admin);
 
   const { count: ctCount } = await admin
     .from("caretakers")
@@ -187,171 +253,132 @@ async function main() {
   if (llPhone?.phone) pass("Landlord: contact phone", llPhone.phone);
   else fail("Landlord: contact phone", "missing on profile");
 
-  // Viewing → completed → tenant review
   if (llCreated?.id) {
-    const { data: viewing, error: bookErr } = await tenant.client
-      .from("viewings")
-      .insert({
-        property_id: llCreated.id,
-        tenant_id: tenant.userId,
-        landlord_id: landlord.userId,
-        scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-        status: "confirmed",
-      })
-      .select("id")
-      .single();
-    if (bookErr) {
-      const { data: viaAdmin, error: adminBookErr } = await admin
-        .from("viewings")
-        .insert({
-          property_id: llCreated.id,
-          tenant_id: tenant.userId,
-          landlord_id: landlord.userId,
-          scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-          status: "confirmed",
-        })
-        .select("id")
-        .single();
-      if (adminBookErr) fail("Tenant: book viewing for review", adminBookErr.message);
-      else {
-        await admin.from("viewings").update({ status: "completed" }).eq("id", viaAdmin.id);
-        pass("Tenant: viewing completed", "via admin");
-        const { error: reviewErr } = await admin.from("property_reviews").insert({
-          property_id: llCreated.id,
-          reviewer_id: tenant.userId,
-          rating_overall: 4,
-          water_reliability: 4,
-          security_rating: 5,
-          internet_reliability: 3,
-          electricity_reliability: 4,
-          cleanliness: 4,
-          accessibility: 4,
-          comment: "E2E review — good water, safe area.",
-        });
-        if (reviewErr && !reviewErr.message.includes("duplicate"))
-          fail("Tenant: property review", reviewErr.message);
-        else pass("Tenant: property review", "submitted");
-        await admin
-          .from("property_reviews")
-          .delete()
-          .eq("property_id", llCreated.id)
-          .eq("reviewer_id", tenant.userId);
-        await admin.from("viewings").delete().eq("id", viaAdmin.id);
-      }
-    } else if (viewing?.id) {
-      await admin.from("viewings").update({ status: "completed" }).eq("id", viewing.id);
-      pass("Landlord: mark viewing completed");
-      const { error: reviewErr } = await admin.from("property_reviews").insert({
-        property_id: llCreated.id,
-        reviewer_id: tenant.userId,
-        rating_overall: 4,
-        water_reliability: 4,
-        security_rating: 5,
-        internet_reliability: 3,
-        electricity_reliability: 4,
-        cleanliness: 4,
-        accessibility: 4,
-        comment: "E2E review",
-      });
-      if (reviewErr && !reviewErr.message.includes("duplicate"))
-        fail("Tenant: property review", reviewErr.message);
-      else pass("Tenant: property review", "submitted");
-      await admin
-        .from("property_reviews")
-        .delete()
-        .eq("property_id", llCreated.id)
-        .eq("reviewer_id", tenant.userId);
-      await admin.from("viewings").delete().eq("id", viewing.id);
-    }
+    await completeViewingAndReview(admin, tenant, landlord, llCreated.id);
   }
 
-  // ── MANAGER: add listing ──
+  return { llCreated, llRow };
+}
+
+async function runManagerFlow(admin, manager, managerOrgId, llRow) {
   console.log("\n— Property manager dashboard —");
   if (!managerOrgId) {
     fail("Manager: org", "missing");
-  } else {
-    const mgrRow = listingPayload(manager.userId, managerOrgId);
-    const { data: mgrCreated, error: mgrCreateErr } = await manager.client
+    return;
+  }
+  const mgrRow = listingPayload(manager.userId, managerOrgId);
+  const { data: mgrCreated, error: mgrCreateErr } = await manager.client
+    .from("properties")
+    .insert(mgrRow)
+    .select("id")
+    .single();
+  if (mgrCreateErr) {
+    const { data: viaAdmin, error: adminErr } = await admin
       .from("properties")
       .insert(mgrRow)
       .select("id")
       .single();
-    if (mgrCreateErr) {
-      const { data: viaAdmin, error: adminErr } = await admin
-        .from("properties")
-        .insert(mgrRow)
-        .select("id")
-        .single();
-      if (adminErr)
-        fail("Manager: create listing", mgrCreateErr.message + " / " + adminErr.message);
-      else {
-        pass("Manager: create listing", viaAdmin.id.slice(0, 8) + " (admin)");
-        llRow._mgrCleanup = viaAdmin.id;
-      }
+    if (adminErr) {
+      fail("Manager: create listing", mgrCreateErr.message + " / " + adminErr.message);
     } else {
-      pass("Manager: create listing", mgrCreated.id.slice(0, 8));
-      llRow._mgrCleanup = mgrCreated.id;
+      pass("Manager: create listing", viaAdmin.id.slice(0, 8) + " (admin)");
+      llRow._mgrCleanup = viaAdmin.id;
     }
-
-    const { data: mgrProps } = await manager.client
-      .from("properties")
-      .select("id")
-      .eq("organization_id", managerOrgId);
-    pass("Manager: portfolio", `${mgrProps?.length ?? 0} properties`);
-
-    const mgrPropIds = (mgrProps ?? []).map((p) => p.id);
-    const { data: mgrLeads } = await admin
-      .from("inquiries")
-      .select("id")
-      .in("property_id", mgrPropIds.length ? mgrPropIds : ["00000000-0000-4000-8000-000000000000"]);
-    pass("Manager: leads", `${mgrLeads?.length ?? 0} inquiries`);
-
-    if (llRow._mgrCleanup) {
-      const { error: vacErr } = await admin
-        .from("properties")
-        .update({ is_vacant: false })
-        .eq("id", llRow._mgrCleanup);
-      if (vacErr) fail("Manager: mark filled", vacErr.message);
-      else pass("Manager: mark filled");
-      await admin.from("properties").update({ is_vacant: true }).eq("id", llRow._mgrCleanup);
-    }
+  } else {
+    pass("Manager: create listing", mgrCreated.id.slice(0, 8));
+    llRow._mgrCleanup = mgrCreated.id;
   }
 
-  // ── AGENCY: add listing ──
+  const { data: mgrProps } = await manager.client
+    .from("properties")
+    .select("id")
+    .eq("organization_id", managerOrgId);
+  pass("Manager: portfolio", `${mgrProps?.length ?? 0} properties`);
+
+  const mgrPropIds = (mgrProps ?? []).map((p) => p.id);
+  const { data: mgrLeads } = await admin
+    .from("inquiries")
+    .select("id")
+    .in("property_id", mgrPropIds.length ? mgrPropIds : ["00000000-0000-4000-8000-000000000000"]);
+  pass("Manager: leads", `${mgrLeads?.length ?? 0} inquiries`);
+
+  if (llRow._mgrCleanup) {
+    const { error: vacErr } = await admin
+      .from("properties")
+      .update({ is_vacant: false })
+      .eq("id", llRow._mgrCleanup);
+    if (vacErr) fail("Manager: mark filled", vacErr.message);
+    else pass("Manager: mark filled");
+    await admin.from("properties").update({ is_vacant: true }).eq("id", llRow._mgrCleanup);
+  }
+}
+
+async function runAgencyFlow(admin, agency, agencyOrgId) {
   console.log("\n— Agency dashboard —");
   if (!agencyOrgId) {
     fail("Agency: org", "missing");
-  } else {
-    const agRow = listingPayload(agency.userId, agencyOrgId);
-    const { data: agCreated, error: agCreateErr } = await agency.client
-      .from("properties")
-      .insert(agRow)
-      .select("id")
-      .single();
-    if (agCreateErr) fail("Agency: create listing", agCreateErr.message);
-    else pass("Agency: create listing", agCreated.id.slice(0, 8));
+    return;
+  }
+  const agRow = listingPayload(agency.userId, agencyOrgId);
+  const { data: agCreated, error: agCreateErr } = await agency.client
+    .from("properties")
+    .insert(agRow)
+    .select("id")
+    .single();
+  if (agCreateErr) fail("Agency: create listing", agCreateErr.message);
+  else pass("Agency: create listing", agCreated.id.slice(0, 8));
 
-    const { data: agList } = await agency.client
-      .from("properties")
-      .select("id")
-      .eq("organization_id", agencyOrgId);
-    pass("Agency: list properties", `${agList?.length ?? 0} total`);
+  const { data: agList } = await agency.client
+    .from("properties")
+    .select("id")
+    .eq("organization_id", agencyOrgId);
+  pass("Agency: list properties", `${agList?.length ?? 0} total`);
 
-    const { data: team } = await admin
-      .from("organization_members")
-      .select("user_id")
-      .eq("organization_id", agencyOrgId);
-    pass("Agency: team roster", `${team?.length ?? 0} members`);
+  const { data: team } = await admin
+    .from("organization_members")
+    .select("user_id")
+    .eq("organization_id", agencyOrgId);
+  pass("Agency: team roster", `${team?.length ?? 0} members`);
 
-    const agPropIds = (agList ?? []).map((p) => p.id);
-    const { data: agLeads } = await admin
-      .from("inquiries")
-      .select("id")
-      .in("property_id", agPropIds.length ? agPropIds : ["00000000-0000-4000-8000-000000000000"]);
-    pass("Agency: leads", `${agLeads?.length ?? 0} inquiries`);
+  const agPropIds = (agList ?? []).map((p) => p.id);
+  const { data: agLeads } = await admin
+    .from("inquiries")
+    .select("id")
+    .in("property_id", agPropIds.length ? agPropIds : ["00000000-0000-4000-8000-000000000000"]);
+  pass("Agency: leads", `${agLeads?.length ?? 0} inquiries`);
+}
+
+async function main() {
+  const env = loadEnv();
+  const url = env.SUPABASE_URL ?? env.VITE_SUPABASE_URL;
+  const anonKey = env.SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !anonKey || !serviceKey) {
+    console.error("Missing Supabase env");
+    process.exit(1);
   }
 
-  // ── TENANT: verify new listings visible ──
+  console.log(`\nDashboard full E2E → ${BASE}\n`);
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  const { data: userList } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const landlordUser = userList?.users?.find((u) => u.email === USERS.landlord);
+  if (landlordUser) {
+    await admin.from("profiles").update({ phone: "+254712345678" }).eq("id", landlordUser.id);
+  }
+
+  const landlord = await signIn(url, anonKey, USERS.landlord);
+  const manager = await signIn(url, anonKey, USERS.manager);
+  const agency = await signIn(url, anonKey, USERS.agency);
+  const tenant = await signIn(url, anonKey, USERS.tenant);
+
+  const managerOrgId = await getOrgId(admin, manager.userId);
+  const agencyOrgId = await getOrgId(admin, agency.userId);
+
+  const { llCreated, llRow } = await runLandlordFlow(admin, landlord, tenant);
+  await runManagerFlow(admin, manager, managerOrgId, llRow);
+  await runAgencyFlow(admin, agency, agencyOrgId);
+
   console.log("\n— Tenant discovery —");
   const { count: publicCount } = await admin
     .from("properties")
@@ -360,12 +387,13 @@ async function main() {
   pass("Tenant: active listings in DB", String(publicCount ?? 0));
 
   if (llCreated?.id) {
-    const res = await fetch(`${BASE}/tenant/property/${llCreated.id}`);
+    const res = await fetch(`${BASE}/tenant/property/${llCreated.id}`, {
+      signal: AbortSignal.timeout(60_000),
+    });
     if (res.ok) pass("Tenant: new listing page", llCreated.title.slice(0, 30));
     else fail("Tenant: new listing page", String(res.status));
   }
 
-  // ── HTTP dashboard routes ──
   console.log("\n— Dashboard routes —");
   await checkRoutes([
     "/landlord/dashboard",
@@ -408,7 +436,6 @@ async function main() {
     fail("Revenue routes in routeTree", "missing");
   }
 
-  // Cleanup E2E listings (keep smoke data)
   if (llCreated?.id) await admin.from("properties").delete().eq("id", llCreated.id);
   if (llRow._mgrCleanup) await admin.from("properties").delete().eq("id", llRow._mgrCleanup);
 
@@ -421,7 +448,9 @@ async function main() {
   console.log("\nAll dashboard features operational.\n");
 }
 
-main().catch((e) => {
+try {
+  await main();
+} catch (e) {
   console.error(e);
   process.exit(1);
-});
+}

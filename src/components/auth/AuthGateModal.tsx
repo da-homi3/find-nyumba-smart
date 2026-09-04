@@ -21,6 +21,7 @@ import { isKenyanPhone } from "@/lib/phone";
 import { validatePasswordPair } from "@/lib/validate-password";
 import { authSubmitLabel, errorMessage } from "@/lib/utils";
 import { normalizeAuthCredentials } from "@/lib/auth/credentials";
+import { completePostAuthNavigation } from "@/lib/auth/post-login";
 
 const inputCls =
   "w-full rounded-xl border bg-background px-4 py-3 text-base outline-none focus:ring-2 focus:ring-ring sm:text-sm";
@@ -51,13 +52,13 @@ export function AuthGateModal() {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    if (loading) return;
-    if (user) {
-      clearAuthGateDismiss();
+    if (shouldSkipAuthGate(pathname)) {
       setOpen(false);
       return;
     }
-    if (shouldSkipAuthGate(pathname)) {
+    if (loading) return;
+    if (user) {
+      clearAuthGateDismiss();
       setOpen(false);
       return;
     }
@@ -108,11 +109,12 @@ export function AuthGateModal() {
       },
     });
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: cleanEmail,
       password: cleanPassword,
     });
     if (signInError) throw signInError;
+    if (!signInData.user) throw new Error("Sign in failed");
 
     void ensureTenantAccount().catch((err) => {
       console.warn("[auth-gate] ensureTenantAccount:", err);
@@ -120,8 +122,8 @@ export function AuthGateModal() {
 
     markSignupTourPending("tenant");
     toast.success("Welcome to NyumbaSearch!");
-    clearAuthGateDismiss();
-    globalThis.location.href = "/tenant";
+    setOpen(false);
+    await completePostAuthNavigation({ userId: signInData.user.id });
   }
 
   async function handleSignin() {
@@ -144,14 +146,12 @@ export function AuthGateModal() {
       console.warn("[auth-gate] ensureTenantAccount:", err);
     });
 
-    clearAuthGateDismiss();
     toast.success("Signed in");
     setOpen(false);
-    if (pathname === "/" || pathname.startsWith("/auth")) {
-      globalThis.location.href = "/tenant";
-    } else {
-      globalThis.location.reload();
-    }
+    await completePostAuthNavigation({
+      userId: data.user.id,
+      redirect: pathname === "/" || pathname.startsWith("/auth") ? "/tenant" : pathname,
+    });
   }
 
   function onSubmit(e: SubmitEvent<HTMLFormElement>) {

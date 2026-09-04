@@ -27,6 +27,8 @@ export type TenantFilters = {
   locationId?: string;
   waterGoodOnly: boolean;
   verifiedLevel2Plus: boolean;
+  parking: boolean;
+  petFriendly: boolean;
   bedrooms: number | null;
   sort: TenantSort;
 };
@@ -258,6 +260,26 @@ export function TenantFiltersBar({
               className="accent-primary"
             />
             <span>Verified L2+</span>
+          </label>
+
+          <label className="flex w-[calc(50%-0.375rem)] items-center gap-1.5 pb-1 text-xs font-medium sm:w-auto">
+            <input
+              type="checkbox"
+              checked={filters.parking}
+              onChange={(e) => onChange({ parking: e.target.checked })}
+              className="accent-primary"
+            />
+            <span>Parking</span>
+          </label>
+
+          <label className="flex w-[calc(50%-0.375rem)] items-center gap-1.5 pb-1 text-xs font-medium sm:w-auto">
+            <input
+              type="checkbox"
+              checked={filters.petFriendly}
+              onChange={(e) => onChange({ petFriendly: e.target.checked })}
+              className="accent-primary"
+            />
+            <span>Pet friendly</span>
           </label>
 
           <motion.span

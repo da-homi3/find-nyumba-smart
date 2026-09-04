@@ -94,16 +94,21 @@ export const reportContactIssue = createServerFn({ method: "POST" })
       .eq("listing_id", data.listingId)
       .maybeSingle();
     if (!unlock) throw new Error("Unlock this contact before reporting an issue.");
-    const { error } = await asLooseDb(supabaseAdmin).from("contact_issues").insert({
-      user_id: userId,
-      listing_id: data.listingId,
-      reason: data.reason,
-      details: data.details ?? null,
-      status: "pending",
-    });
+    const { error } = await asLooseDb(supabaseAdmin)
+      .from("contact_issues")
+      .insert({
+        user_id: userId,
+        listing_id: data.listingId,
+        reason: data.reason,
+        details: data.details ?? null,
+        status: "pending",
+      });
     if (error) throw error;
     const { recordProductEventCore } = await import("@/lib/analytics/product-events");
-    void recordProductEventCore(userId, "contact_reported", { listingId: data.listingId, reason: data.reason });
+    void recordProductEventCore(userId, "contact_reported", {
+      listingId: data.listingId,
+      reason: data.reason,
+    });
     return {
       reported: true,
       message:

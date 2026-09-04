@@ -1019,99 +1019,101 @@ export function PropertyListingWizard({
         </div>
       ) : null}
 
-      {listingBlocked && !entitlementsLoading ? <ListingSubscribePaywall portal={listingPortal} /> : null}
+      {listingBlocked && !entitlementsLoading ? (
+        <ListingSubscribePaywall portal={listingPortal} />
+      ) : null}
 
       {listingBlocked || (!skipListingPaywall && entitlementsLoading) ? null : (
         <>
-      {busy ? (
-        <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
-          Upload in progress
-          {uploadProgress != null ? ` · ${uploadProgress}%` : ""}. Keep this tab open — switching
-          apps is fine, but closing the page will cancel it.
-        </div>
-      ) : null}
+          {busy ? (
+            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              Upload in progress
+              {uploadProgress != null ? ` · ${uploadProgress}%` : ""}. Keep this tab open —
+              switching apps is fine, but closing the page will cancel it.
+            </div>
+          ) : null}
 
-      <div
-        className="mt-6 flex gap-1 overflow-x-auto border-b pb-px"
-        role="tablist"
-        aria-label="Listing sections"
-      >
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const selected = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              disabled={busy}
-              onClick={() => {
-                if (busy) return;
-                switchTab(tab.id);
-              }}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition",
-                selected
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-                busy && "cursor-not-allowed opacity-60",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <form
-        onSubmit={isLastTab ? onSubmit : goNext}
-        className="mt-6 space-y-5 rounded-2xl border bg-card p-6 shadow-soft"
-      >
-        <ListingWizardTabContent
-          activeTab={activeTab}
-          form={form}
-          update={update}
-          busy={busy}
-          requireContactPhone={adminOwned}
-          imageFiles={imageFiles}
-          videoFile={videoFile}
-          tourFile={tourFile}
-          uploadProgress={uploadProgress}
-          uploadPhase={uploadPhase}
-          onPickImages={onPickImages}
-          onPickVideo={onPickVideo}
-          onPickTour={onPickTour}
-          removeImageAt={removeImageAt}
-          setVideoFile={setVideoFile}
-          setTourFile={setTourFile}
-        />
-
-        <div className="flex gap-2 border-t pt-4">
-          {tabIndex > 0 && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                if (busy) return;
-                setActiveTab(TABS[tabIndex - 1].id);
-              }}
-              className="flex-1 rounded-xl border py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Back
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={busy}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
+          <div
+            className="mt-6 flex gap-1 overflow-x-auto border-b pb-px"
+            role="tablist"
+            aria-label="Listing sections"
           >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {getSubmitLabel(isLastTab, uploading, uploadProgress, loading, uploadPhase)}
-          </button>
-        </div>
-      </form>
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const selected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  disabled={busy}
+                  onClick={() => {
+                    if (busy) return;
+                    switchTab(tab.id);
+                  }}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition",
+                    selected
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                    busy && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <form
+            onSubmit={isLastTab ? onSubmit : goNext}
+            className="mt-6 space-y-5 rounded-2xl border bg-card p-6 shadow-soft"
+          >
+            <ListingWizardTabContent
+              activeTab={activeTab}
+              form={form}
+              update={update}
+              busy={busy}
+              requireContactPhone={adminOwned}
+              imageFiles={imageFiles}
+              videoFile={videoFile}
+              tourFile={tourFile}
+              uploadProgress={uploadProgress}
+              uploadPhase={uploadPhase}
+              onPickImages={onPickImages}
+              onPickVideo={onPickVideo}
+              onPickTour={onPickTour}
+              removeImageAt={removeImageAt}
+              setVideoFile={setVideoFile}
+              setTourFile={setTourFile}
+            />
+
+            <div className="flex gap-2 border-t pt-4">
+              {tabIndex > 0 && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    if (busy) return;
+                    setActiveTab(TABS[tabIndex - 1].id);
+                  }}
+                  className="flex-1 rounded-xl border py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Back
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={busy}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60"
+              >
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {getSubmitLabel(isLastTab, uploading, uploadProgress, loading, uploadPhase)}
+              </button>
+            </div>
+          </form>
         </>
       )}
     </div>

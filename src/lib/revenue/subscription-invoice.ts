@@ -55,7 +55,11 @@ export function invoiceNumber(audience: InvoiceAudience, userId: string, monthKe
   return `NS-${prefix}-${monthKey.replace("-", "")}-${short}`;
 }
 
-export function payUrlForInvoice(audience: InvoiceAudience, planId: string, invoiceNo: string): string {
+export function payUrlForInvoice(
+  audience: InvoiceAudience,
+  planId: string,
+  invoiceNo: string,
+): string {
   const ref = encodeURIComponent(invoiceNo);
   if (audience === "provider") {
     return `${getSiteUrl()}/services/provider/dashboard?plan=${encodeURIComponent(planId)}&ref=invoice&invoice=${ref}`;
@@ -80,11 +84,13 @@ export function benefitsForAudience(audience: InvoiceAudience): string[] {
     ];
   }
   const plan = catalogForPortal(audience).find((p) => p.id === PORTAL_UPGRADE_PLAN[audience]);
-  return plan?.features ?? [
-    "Publish listings so tenants can find your homes",
-    "See who saved and inquired on your properties",
-    "Message interested tenants directly",
-  ];
+  return (
+    plan?.features ?? [
+      "Publish listings so tenants can find your homes",
+      "See who saved and inquired on your properties",
+      "Message interested tenants directly",
+    ]
+  );
 }
 
 export function planForAudience(
@@ -92,9 +98,14 @@ export function planForAudience(
   preferredPlan?: string | null,
 ): { planId: string; planName: string; amountKes: number } {
   if (audience === "provider") {
-    const tier = preferredPlan === "featured" || preferredPlan === "premium" ? preferredPlan : "basic";
+    const tier =
+      preferredPlan === "featured" || preferredPlan === "premium" ? preferredPlan : "basic";
     const row = PROVIDER_TIERS.find((t) => t.value === tier) ?? PROVIDER_TIERS[0];
-    return { planId: row.value, planName: `${row.label} provider`, amountKes: providerTierPrice(row.value) };
+    return {
+      planId: row.value,
+      planName: `${row.label} provider`,
+      amountKes: providerTierPrice(row.value),
+    };
   }
   const planId = PORTAL_UPGRADE_PLAN[audience];
   const row = catalogForPortal(audience).find((p) => p.id === planId);

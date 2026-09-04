@@ -2,9 +2,11 @@ import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/rea
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { hasPendingApplicationForRole } from "@/lib/portal-guard";
+import { createPortalBeforeLoad } from "@/lib/route-guards/create-portal-before-load";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/agency")({
+  beforeLoad: createPortalBeforeLoad("agency"),
   component: AgencyLayout,
 });
 

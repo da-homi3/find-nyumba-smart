@@ -21,9 +21,7 @@ function parseFloatParam(v: string | null): number | undefined {
 }
 
 function uuidOk(id: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    id,
-  );
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
 /** Dispatch /api/locations/* (search, resolve, nearby, reverse, select, :id, children, ancestors). */
@@ -69,15 +67,17 @@ export async function handleLocationsApi(request: Request): Promise<Response> {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { asLooseDb } = await import("@/lib/db/loose-client");
           const { normalizeLocationName } = await import("@/lib/locations/normalize");
-          await asLooseDb(supabaseAdmin).from("location_search_events").insert({
-            query: q || selectedId,
-            normalized_query: normalizeLocationName(q || selectedId),
-            selected_location_id: selectedId,
-            result_count: 1,
-            lat: null,
-            lng: null,
-            source,
-          });
+          await asLooseDb(supabaseAdmin)
+            .from("location_search_events")
+            .insert({
+              query: q || selectedId,
+              normalized_query: normalizeLocationName(q || selectedId),
+              selected_location_id: selectedId,
+              result_count: 1,
+              lat: null,
+              lng: null,
+              source,
+            });
         } catch {
           // non-blocking
         }
@@ -106,15 +106,17 @@ export async function handleLocationsApi(request: Request): Promise<Response> {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           const { asLooseDb } = await import("@/lib/db/loose-client");
           const { normalizeLocationName } = await import("@/lib/locations/normalize");
-          await asLooseDb(supabaseAdmin).from("location_search_events").insert({
-            query: q,
-            normalized_query: normalizeLocationName(q),
-            selected_location_id: null,
-            result_count: items.length,
-            lat: parseFloatParam(url.searchParams.get("lat")) ?? null,
-            lng: parseFloatParam(url.searchParams.get("lng")) ?? null,
-            source: "web",
-          });
+          await asLooseDb(supabaseAdmin)
+            .from("location_search_events")
+            .insert({
+              query: q,
+              normalized_query: normalizeLocationName(q),
+              selected_location_id: null,
+              result_count: items.length,
+              lat: parseFloatParam(url.searchParams.get("lat")) ?? null,
+              lng: parseFloatParam(url.searchParams.get("lng")) ?? null,
+              source: "web",
+            });
         } catch {
           // non-blocking
         }

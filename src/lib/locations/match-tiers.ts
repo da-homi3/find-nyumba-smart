@@ -60,7 +60,11 @@ export function classifyLocationMatch(input: TierScoreInput): LocationMatchTier 
 
   const hood = normalizeLocationName(property.neighborhood ?? "");
   const filterHood = normalizeLocationName(filterNeighborhood ?? "");
-  if (hood && filterHood && (hood === filterHood || hood.includes(filterHood) || filterHood.includes(hood))) {
+  if (
+    hood &&
+    filterHood &&
+    (hood === filterHood || hood.includes(filterHood) || filterHood.includes(hood))
+  ) {
     // Text match without FK — marketed-as (landlord wrote the name)
     if (!filterLocationId || property.location_id !== filterLocationId) {
       return "marketed_as";

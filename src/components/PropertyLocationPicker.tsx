@@ -223,7 +223,9 @@ export function PropertyLocationPicker({
           if (!current) {
             if (!neighborhoodManualRef.current && onNeighborhoodSelectRef.current) {
               // Soft suggest only when empty — still require user acceptance via note
-              setAutoNote(`Map suggests ${suggested} (${countyName}) — confirm in Details if correct`);
+              setAutoNote(
+                `Map suggests ${suggested} (${countyName}) — confirm in Details if correct`,
+              );
             }
             return;
           }

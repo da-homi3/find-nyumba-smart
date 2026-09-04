@@ -15,9 +15,10 @@ describe("discoverability", () => {
     expect(robots).toContain("Disallow: /admin");
     expect(robots).toContain("Disallow: /api");
     expect(robots).toContain("Disallow: /landlord/manage");
+    expect(robots).toContain("Disallow: /tenant/saved");
+    expect(robots).toContain("Disallow: /settings");
+    expect(robots).toContain("Disallow: /tenant/checkout");
     expect(robots).not.toContain("Disallow: /auth");
-    expect(robots).not.toContain("Disallow: /tenant/saved");
-    expect(robots).not.toContain("Disallow: /settings");
     expect(robots).toContain("User-agent: GPTBot");
     expect(robots).toContain("User-agent: PerplexityBot");
     expect(robots).toContain("Sitemap: https://nyumbasearch.com/sitemap.xml");
@@ -38,6 +39,11 @@ describe("discoverability", () => {
     expect(paths).toContain("/areas/westlands");
     expect(paths).toContain("/tenant");
     expect(paths).toContain("/services/electricians");
+    expect(paths).toContain("/categories");
+    expect(paths).toContain("/categories/bedsitter");
+    expect(paths).toContain("/categories/one_bedroom");
+    expect(paths).toContain("/guides");
+    expect(paths).toContain("/guides/kilimani");
   });
 
   it("maps neighbourhood names to crawlable /areas URLs", () => {
@@ -62,15 +68,17 @@ describe("discoverability", () => {
     expect(head.links.some((l) => l.hrefLang === "en-KE")).toBe(true);
   });
 
-  it("includes FAQ answers for answer engines", () => {
+  it("includes FAQ answers for answer engines", async () => {
     expect(NYUMBASEARCH_FAQS.length).toBeGreaterThanOrEqual(4);
     const graph = buildHomepageJsonLd();
     const types = graph["@graph"].map((node: { "@type": unknown }) => node["@type"]);
     expect(types).toContain("FAQPage");
     expect(JSON.stringify(graph)).toContain("Nairobi");
-    const llms = buildLlmsTxt();
+    const llms = await buildLlmsTxt();
     expect(llms).toContain("Q: What is NyumbaSearch?");
     expect(llms).toContain("/areas/kilimani");
+    expect(llms).toContain("/categories/");
+    expect(llms).toContain("/guides/");
     expect(llms).toContain("Disallow: /admin");
   });
 });

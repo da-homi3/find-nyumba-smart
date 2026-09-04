@@ -4,23 +4,17 @@ import { toast } from "sonner";
 import { CustomerCareInfo } from "@/components/CustomerCareInfo";
 import { PublicPageShell } from "@/components/SiteNav";
 import { submitContactMessage } from "@/lib/api/contact.functions";
-import { getSiteUrl } from "@/lib/site";
+import { buildPageHead } from "@/lib/seo/head";
 import { errorMessage } from "@/lib/utils";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact — NyumbaSearch" },
-      {
-        name: "description",
-        content:
-          "Reach NyumbaSearch customer care for help, assistance, and inquiries about listings, verification, or landlord plans.",
-      },
-      { property: "og:title", content: "Contact — NyumbaSearch" },
-      { property: "og:url", content: `${getSiteUrl()}/contact` },
-    ],
-    links: [{ rel: "canonical", href: `${getSiteUrl()}/contact` }],
-  }),
+  head: () =>
+    buildPageHead({
+      title: "Contact — NyumbaSearch",
+      description:
+        "Reach NyumbaSearch customer care for help with listings, verification, landlord plans, or your tenant account.",
+      path: "/contact",
+    }),
   component: ContactPage,
 });
 
@@ -58,7 +52,7 @@ function ContactPage() {
           }}
         >
           <label className="block text-sm font-medium">
-            Your email
+            <span>Your email</span>
             <input
               type="email"
               required
@@ -68,7 +62,7 @@ function ContactPage() {
             />
           </label>
           <label className="block text-sm font-medium">
-            Message
+            <span>Message</span>
             <textarea
               required
               value={message}

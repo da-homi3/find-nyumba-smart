@@ -130,106 +130,106 @@ export function AiAssistant() {
             </div>
           ) : (
             <>
-          <div className="flex flex-wrap gap-1.5 border-b p-2">
-            {QUICK.map((q) => (
-              <button
-                key={q.label}
-                type="button"
-                onClick={() => {
-                  if (q.authOnly && !user) {
-                    setTurns((t) => [
-                      ...t,
-                      { id: crypto.randomUUID(), role: "user", text: q.message },
-                      {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        text: "Sign in to get personalized recommendations and compare saved listings.",
-                      },
-                    ]);
+              <div className="flex flex-wrap gap-1.5 border-b p-2">
+                {QUICK.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    onClick={() => {
+                      if (q.authOnly && !user) {
+                        setTurns((t) => [
+                          ...t,
+                          { id: crypto.randomUUID(), role: "user", text: q.message },
+                          {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            text: "Sign in to get personalized recommendations and compare saved listings.",
+                          },
+                        ]);
 
-                    return;
-                  }
+                        return;
+                      }
 
-                  send(q.message);
+                      send(q.message);
+                    }}
+                    className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold"
+                  >
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1 space-y-3 overflow-y-auto p-3">
+                {turns.length === 0 && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Ask about listings, neighborhoods, or scam warnings — no sign-in needed for
+                    general tips.
+                  </p>
+                )}
+
+                {turns.map((t) => (
+                  <div
+                    key={t.id}
+                    className={`rounded-xl px-3 py-2 text-sm ${
+                      t.role === "user"
+                        ? "ml-6 bg-primary text-primary-foreground"
+                        : "mr-6 bg-secondary"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{t.text}</p>
+                  </div>
+                ))}
+
+                {ask.isPending ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                      <LazyRadar
+                        speed={1.5}
+                        scale={0.25}
+                        ringCount={4}
+                        spokeCount={6}
+                        ringThickness={0.08}
+                        spokeThickness={0.015}
+                        sweepSpeed={2.5}
+                        sweepWidth={4}
+                        sweepLobes={1}
+                        color="#1eb88a"
+                        backgroundColor="#0d1117"
+                        falloff={2}
+                        brightness={1.3}
+                        enableMouseInteraction={false}
+                        mouseInfluence={0}
+                      />
+                    </div>
+                    <span>Thinking…</span>
+                  </div>
+                ) : null}
+              </div>
+
+              <form
+                className="flex gap-2 border-t p-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+
+                  send(input);
                 }}
-                className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold"
               >
-                {q.label}
-              </button>
-            ))}
-          </div>
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask Nyumba AI…"
+                  className="flex-1 rounded-xl border bg-background px-3 py-2 text-sm outline-none"
+                />
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-3">
-            {turns.length === 0 && (
-              <p className="text-center text-xs text-muted-foreground">
-                Ask about listings, neighborhoods, or scam warnings — no sign-in needed for general
-                tips.
-              </p>
-            )}
-
-            {turns.map((t) => (
-              <div
-                key={t.id}
-                className={`rounded-xl px-3 py-2 text-sm ${
-                  t.role === "user"
-                    ? "ml-6 bg-primary text-primary-foreground"
-                    : "mr-6 bg-secondary"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{t.text}</p>
-              </div>
-            ))}
-
-            {ask.isPending ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
-                  <LazyRadar
-                    speed={1.5}
-                    scale={0.25}
-                    ringCount={4}
-                    spokeCount={6}
-                    ringThickness={0.08}
-                    spokeThickness={0.015}
-                    sweepSpeed={2.5}
-                    sweepWidth={4}
-                    sweepLobes={1}
-                    color="#1eb88a"
-                    backgroundColor="#0d1117"
-                    falloff={2}
-                    brightness={1.3}
-                    enableMouseInteraction={false}
-                    mouseInfluence={0}
-                  />
-                </div>
-                <span>Thinking…</span>
-              </div>
-            ) : null}
-          </div>
-
-          <form
-            className="flex gap-2 border-t p-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-
-              send(input);
-            }}
-          >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Nyumba AI…"
-              className="flex-1 rounded-xl border bg-background px-3 py-2 text-sm outline-none"
-            />
-
-            <button
-              type="submit"
-              disabled={!input.trim() || ask.isPending}
-              aria-label="Send message"
-              className="rounded-xl bg-primary p-2 text-primary-foreground disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={!input.trim() || ask.isPending}
+                  aria-label="Send message"
+                  className="rounded-xl bg-primary p-2 text-primary-foreground disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </form>
             </>
           )}
         </div>

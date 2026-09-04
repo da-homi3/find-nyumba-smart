@@ -375,346 +375,356 @@ function SignedInProfile({
         </div>
       </header>
 
-          <form
-            onSubmit={saveProfile}
-            className="mt-8 rounded-2xl border bg-card p-4"
-            data-tour="tenant-profile-details"
-          >
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" />
-              <h2 className="font-display text-lg font-semibold">Account details</h2>
+      <form
+        onSubmit={saveProfile}
+        className="mt-8 rounded-2xl border bg-card p-4"
+        data-tour="tenant-profile-details"
+      >
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg font-semibold">Account details</h2>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Field label="Full name">
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              disabled={isLoading || saving}
+              className={inputCls}
+              placeholder="Your name"
+            />
+          </Field>
+          <Field label="Phone">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={isLoading || saving}
+              className={inputCls}
+              placeholder="+254 7..."
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">Email</p>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background px-3 py-2.5 text-sm">
+              <span>{user?.email ?? "Not signed in"}</span>
+              <Link
+                to="/settings"
+                search={{ tab: "security" } as never}
+                className="text-xs font-semibold text-primary"
+              >
+                Change email
+              </Link>
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Field label="Full name">
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={isLoading || saving}
-                  className={inputCls}
-                  placeholder="Your name"
-                />
-              </Field>
-              <Field label="Phone">
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={isLoading || saving}
-                  className={inputCls}
-                  placeholder="+254 7..."
-                />
-              </Field>
-              <div className="sm:col-span-2">
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Email</p>
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background px-3 py-2.5 text-sm">
-                  <span>{user.email}</span>
-                  <Link
-                    to="/settings"
-                    search={{ tab: "security" } as never}
-                    className="text-xs font-semibold text-primary"
-                  >
-                    Change email
-                  </Link>
-                </div>
-              </div>
+          </div>
+        </div>
+        <button
+          type="submit"
+          disabled={isLoading || saving}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60 sm:w-auto"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
+          )}
+          Save profile
+        </button>
+      </form>
+
+      {user ? <TenantProfileScoreCard userId={user.id} /> : null}
+
+      <div
+        className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4"
+        data-tour="tenant-profile-plus"
+      >
+        <h2 className="font-display text-sm font-semibold">NyumbaSearch Plus</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Monthly contact credits, NyumbaSearch AI, financial tools, scam-risk scores, and early
+          access. Paid unlocks you already bought stay yours if Plus ends.
+        </p>
+        {isPlus ? (
+          <>
+            <p className="mt-2 text-xs font-semibold text-primary">
+              {entitlements.plusContactCredits ?? 0} contact credits remaining
+              {entitlements.plusExpiresAt
+                ? ` · access until ${new Date(entitlements.plusExpiresAt).toLocaleDateString()}`
+                : ""}
+            </p>
+            <button
+              type="button"
+              disabled={handleCancelPlus.isPending}
+              onClick={() => handleCancelPlus.mutate()}
+              className="mt-3 mr-2 rounded-xl border px-4 py-2 text-xs font-semibold"
+            >
+              Cancel auto-renew
+            </button>
+          </>
+        ) : null}
+        <Link
+          to="/tenant/checkout"
+          className="mt-3 inline-flex rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
+        >
+          View Plus plans
+        </Link>
+      </div>
+
+      {/* Verification section */}
+      <section className="mt-6 rounded-2xl border bg-card p-4">
+        <div className="flex items-center justify-between border-b pb-3">
+          <h2 className="font-display text-sm font-semibold flex items-center gap-1.5">
+            <ShieldCheck className="h-4.5 w-4.5 text-primary" /> Verification Levels
+          </h2>
+          {!isVerifying && (
+            <button
+              type="button"
+              onClick={() => setIsVerifying(true)}
+              className="text-xs text-primary font-semibold hover:underline"
+            >
+              Verify Now
+            </button>
+          )}
+        </div>
+
+        {isVerifying ? (
+          <form onSubmit={handleUploadVerification} className="mt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold">Verify Identity / Business</span>
+              <button
+                type="button"
+                aria-label="Close verification form"
+                onClick={() => setIsVerifying(false)}
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
             </div>
+            <label className="block">
+              <span className="text-[10px] text-muted-foreground block mb-1">Select Level</span>
+              <select
+                value={verType}
+                onChange={(e) => {
+                  setVerType(e.target.value as VerificationType);
+                  setVerFiles([]);
+                }}
+                className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
+              >
+                {(Object.keys(VERIFICATION_DOCUMENT_CONFIG) as VerificationType[]).map((key) => (
+                  <option key={key} value={key}>
+                    {VERIFICATION_DOCUMENT_CONFIG[key].levelLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <VerificationDocumentUpload
+              verificationType={verType}
+              files={verFiles}
+              onChange={setVerFiles}
+              disabled={verLoading}
+              uploadProgress={verUploadProgress}
+              uploadLabel="Uploading verification documents…"
+            />
             <button
               type="submit"
-              disabled={isLoading || saving}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-emerald px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant disabled:opacity-60 sm:w-auto"
+              disabled={verLoading}
+              className="w-full rounded-xl bg-gradient-emerald text-primary-foreground text-xs font-semibold py-2.5 shadow-soft disabled:opacity-60"
             >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              Save profile
+              {verLoading ? "Uploading & submitting…" : "Submit for Approval"}
             </button>
           </form>
-
-          <TenantProfileScoreCard userId={user.id} />
-
-          <div
-            className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4"
-            data-tour="tenant-profile-plus"
-          >
-            <h2 className="font-display text-sm font-semibold">NyumbaSearch Plus</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Monthly contact credits, NyumbaSearch AI, financial tools, scam-risk scores, and early
-              access. Paid unlocks you already bought stay yours if Plus ends.
-            </p>
-            {isPlus ? (
-              <>
-                <p className="mt-2 text-xs font-semibold text-primary">
-                  {entitlements.plusContactCredits ?? 0} contact credits remaining
-                  {entitlements.plusExpiresAt
-                    ? ` · access until ${new Date(entitlements.plusExpiresAt).toLocaleDateString()}`
-                    : ""}
-                </p>
-                <button
-                  type="button"
-                  disabled={handleCancelPlus.isPending}
-                  onClick={() => handleCancelPlus.mutate()}
-                  className="mt-3 mr-2 rounded-xl border px-4 py-2 text-xs font-semibold"
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            {[
+              { label: "Phone", status: verificationStatus.is_phone_verified },
+              { label: "Identity", status: verificationStatus.is_id_verified },
+              { label: "Employment", status: verificationStatus.is_employment_verified },
+              { label: "Income", status: verificationStatus.is_income_verified },
+              { label: "Business", status: verificationStatus.is_business_verified },
+              { label: "Ownership", status: verificationStatus.is_ownership_verified },
+            ].map((l) => (
+              <div
+                key={l.label}
+                className="rounded-xl border bg-background p-2.5 flex items-center justify-between"
+              >
+                <span>{l.label}</span>
+                <span
+                  className={`font-bold ${l.status ? "text-emerald-500" : "text-muted-foreground/60"}`}
                 >
-                  Cancel auto-renew
-                </button>
-              </>
-            ) : null}
-            <Link
-              to="/tenant/checkout"
-              className="mt-3 inline-flex rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
-            >
-              View Plus plans
-            </Link>
+                  {l.status ? "Verified" : "Pending/None"}
+                </span>
+              </div>
+            ))}
           </div>
+        )}
+      </section>
 
-          {/* Verification section */}
-          <section className="mt-6 rounded-2xl border bg-card p-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="font-display text-sm font-semibold flex items-center gap-1.5">
-                <ShieldCheck className="h-4.5 w-4.5 text-primary" /> Verification Levels
-              </h2>
-              {!isVerifying && (
-                <button
-                  type="button"
-                  onClick={() => setIsVerifying(true)}
-                  className="text-xs text-primary font-semibold hover:underline"
-                >
-                  Verify Now
-                </button>
-              )}
-            </div>
-
-            {isVerifying ? (
-              <form onSubmit={handleUploadVerification} className="mt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold">Verify Identity / Business</span>
+      {/* Viewing Schedule list */}
+      <section className="mt-6 rounded-2xl border bg-card p-4">
+        <div className="flex items-center justify-between gap-3 border-b pb-3">
+          <h2 className="font-display text-sm font-semibold flex items-center gap-1.5">
+            <Calendar className="h-4.5 w-4.5 text-primary" /> Scheduled Viewings
+          </h2>
+          <Link
+            to="/tenant/viewings"
+            className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            All viewings
+          </Link>
+          <Link
+            to="/tenant/applications"
+            className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            My applications
+          </Link>
+        </div>
+        {viewings.length === 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground text-center py-4">
+            No scheduled viewings yet.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {viewings.map((v: ViewingListItem) => (
+              <div
+                key={v.id}
+                className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4"
+              >
+                <div>
+                  <strong className="text-xs block font-semibold">{v.properties?.title}</strong>
+                  <span className="text-[10px] text-muted-foreground block mt-0.5">
+                    Date: {new Date(v.scheduled_at).toLocaleString()}
+                  </span>
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${viewingStatusBadgeClass(v.status)}`}
+                  >
+                    {v.status.toUpperCase()}
+                  </span>
+                </div>
+                {v.status === "pending" && (
                   <button
                     type="button"
-                    aria-label="Close verification form"
-                    onClick={() => setIsVerifying(false)}
+                    onClick={() => handleCancelViewing.mutate(v.id)}
+                    className="rounded-lg border border-red-500/20 text-red-500 px-2 py-1 text-[10px] font-semibold hover:bg-red-500/15"
                   >
-                    <X className="h-4 w-4 text-muted-foreground" />
+                    Cancel
                   </button>
-                </div>
-                <label className="block">
-                  <span className="text-[10px] text-muted-foreground block mb-1">Select Level</span>
-                  <select
-                    value={verType}
-                    onChange={(e) => {
-                      setVerType(e.target.value as VerificationType);
-                      setVerFiles([]);
-                    }}
-                    className="w-full rounded-xl border bg-background px-3 py-2 text-xs outline-none"
-                  >
-                    {(Object.keys(VERIFICATION_DOCUMENT_CONFIG) as VerificationType[]).map(
-                      (key) => (
-                        <option key={key} value={key}>
-                          {VERIFICATION_DOCUMENT_CONFIG[key].levelLabel}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-                <VerificationDocumentUpload
-                  verificationType={verType}
-                  files={verFiles}
-                  onChange={setVerFiles}
-                  disabled={verLoading}
-                  uploadProgress={verUploadProgress}
-                  uploadLabel="Uploading verification documents…"
-                />
-                <button
-                  type="submit"
-                  disabled={verLoading}
-                  className="w-full rounded-xl bg-gradient-emerald text-primary-foreground text-xs font-semibold py-2.5 shadow-soft disabled:opacity-60"
-                >
-                  {verLoading ? "Uploading & submitting…" : "Submit for Approval"}
-                </button>
-              </form>
-            ) : (
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                {[
-                  { label: "Phone", status: verificationStatus.is_phone_verified },
-                  { label: "Identity", status: verificationStatus.is_id_verified },
-                  { label: "Employment", status: verificationStatus.is_employment_verified },
-                  { label: "Income", status: verificationStatus.is_income_verified },
-                  { label: "Business", status: verificationStatus.is_business_verified },
-                  { label: "Ownership", status: verificationStatus.is_ownership_verified },
-                ].map((l) => (
-                  <div
-                    key={l.label}
-                    className="rounded-xl border bg-background p-2.5 flex items-center justify-between"
-                  >
-                    <span>{l.label}</span>
-                    <span
-                      className={`font-bold ${l.status ? "text-emerald-500" : "text-muted-foreground/60"}`}
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-2xl border bg-card p-4">
+        <h2 className="font-display text-sm font-semibold border-b pb-3">Contact history</h2>
+        {unlocks.length === 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground">No unlocked contacts yet.</p>
+        ) : (
+          <div className="mt-3 divide-y text-xs">
+            {unlocks.map((u) => (
+              <div key={u.id} className="py-2.5">
+                <div className="flex justify-between gap-3">
+                  <div>
+                    <Link
+                      to="/tenant/property/$id"
+                      params={{ id: u.listingId }}
+                      className="font-semibold hover:text-primary"
                     >
-                      {l.status ? "Verified" : "Pending/None"}
-                    </span>
+                      {u.title}
+                    </Link>
+                    <p className="text-[10px] text-muted-foreground">
+                      {u.method} · {new Date(u.unlockedAt).toLocaleDateString()}
+                    </p>
                   </div>
-                ))}
+                  <span className="text-muted-foreground">
+                    {u.feeCharged ? `KES ${u.feeCharged}` : "Included"}
+                  </span>
+                </div>
+                <ReportContactIssue listingId={u.listingId} />
               </div>
-            )}
-          </section>
+            ))}
+          </div>
+        )}
+      </section>
 
-          {/* Viewing Schedule list */}
-          <section className="mt-6 rounded-2xl border bg-card p-4">
-            <h2 className="font-display text-sm font-semibold flex items-center gap-1.5 border-b pb-3">
-              <Calendar className="h-4.5 w-4.5 text-primary" /> Scheduled Viewings
-            </h2>
-            {viewings.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground text-center py-4">
-                No scheduled viewings yet.
-              </p>
-            ) : (
-              <div className="mt-3 space-y-3">
-                {viewings.map((v: ViewingListItem) => (
-                  <div
-                    key={v.id}
-                    className="rounded-xl border bg-background p-3 flex justify-between items-start gap-4"
-                  >
-                    <div>
-                      <strong className="text-xs block font-semibold">{v.properties?.title}</strong>
-                      <span className="text-[10px] text-muted-foreground block mt-0.5">
-                        Date: {new Date(v.scheduled_at).toLocaleString()}
-                      </span>
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-bold mt-2 ${viewingStatusBadgeClass(v.status)}`}
-                      >
-                        {v.status.toUpperCase()}
-                      </span>
-                    </div>
-                    {v.status === "pending" && (
-                      <button
-                        type="button"
-                        onClick={() => handleCancelViewing.mutate(v.id)}
-                        className="rounded-lg border border-red-500/20 text-red-500 px-2 py-1 text-[10px] font-semibold hover:bg-red-500/15"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                ))}
+      {/* Payment Transactions list */}
+      <section className="mt-6 rounded-2xl border bg-card p-4">
+        <h2 className="font-display text-sm font-semibold flex items-center gap-1.5 border-b pb-3">
+          <CreditCard className="h-4.5 w-4.5 text-primary" /> M-Pesa Transactions
+        </h2>
+        {transactions.length === 0 ? (
+          <p className="mt-3 text-xs text-muted-foreground text-center py-4">
+            No transactions found.
+          </p>
+        ) : (
+          <div className="mt-3 divide-y text-xs">
+            {transactions.map((t: TenantTransaction) => (
+              <div key={t.id} className="py-2.5 flex justify-between items-center">
+                <div>
+                  <strong className="font-semibold block capitalize">
+                    {t.payment_type.replaceAll("_", " ")}
+                  </strong>
+                  <span className="text-[10px] text-muted-foreground">
+                    Receipt: {t.mpesa_receipt} · {new Date(t.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-primary">KES {t.amount_kes.toLocaleString()}</div>
+                  <span className="text-[9px] uppercase font-bold text-emerald-600">
+                    {t.status}
+                  </span>
+                </div>
               </div>
-            )}
-          </section>
+            ))}
+          </div>
+        )}
+      </section>
 
-          <section className="mt-6 rounded-2xl border bg-card p-4">
-            <h2 className="font-display text-sm font-semibold border-b pb-3">Contact history</h2>
-            {unlocks.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground">No unlocked contacts yet.</p>
-            ) : (
-              <div className="mt-3 divide-y text-xs">
-                {unlocks.map((u) => (
-                  <div key={u.id} className="py-2.5">
-                    <div className="flex justify-between gap-3">
-                      <div>
-                        <Link
-                          to="/tenant/property/$id"
-                          params={{ id: u.listingId }}
-                          className="font-semibold hover:text-primary"
-                        >
-                          {u.title}
-                        </Link>
-                        <p className="text-[10px] text-muted-foreground">
-                          {u.method} · {new Date(u.unlockedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <span className="text-muted-foreground">
-                        {u.feeCharged ? `KES ${u.feeCharged}` : "Included"}
-                      </span>
-                    </div>
-                    <ReportContactIssue listingId={u.listingId} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+      <section className="mt-6 rounded-2xl border bg-card">
+        <div className="flex items-center gap-2 border-b px-4 py-4">
+          <Bell className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg font-semibold">Notifications</h2>
+        </div>
+        <ToggleRow
+          label="Saved-search alerts"
+          hint="Notify me when matching listings appear."
+          checked={prefs.savedAlerts}
+          onChange={(checked) => {
+            const next = { ...prefs, savedAlerts: checked };
+            setPrefs(next);
+            if (user && globalThis.localStorage !== undefined) {
+              globalThis.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
+            }
+            savedAlertsMutation.mutate(checked);
+          }}
+        />
+        <ToggleRow
+          label="Message updates"
+          hint="Notify me when landlords respond."
+          checked={prefs.messageUpdates}
+          onChange={(checked) => updatePrefs({ ...prefs, messageUpdates: checked })}
+        />
+        <ToggleRow
+          label="Viewing reminders"
+          hint="Remind me before scheduled viewings."
+          checked={prefs.viewingReminders}
+          onChange={(checked) => updatePrefs({ ...prefs, viewingReminders: checked })}
+        />
+      </section>
 
-          {/* Payment Transactions list */}
-          <section className="mt-6 rounded-2xl border bg-card p-4">
-            <h2 className="font-display text-sm font-semibold flex items-center gap-1.5 border-b pb-3">
-              <CreditCard className="h-4.5 w-4.5 text-primary" /> M-Pesa Transactions
-            </h2>
-            {transactions.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground text-center py-4">
-                No transactions found.
-              </p>
-            ) : (
-              <div className="mt-3 divide-y text-xs">
-                {transactions.map((t: TenantTransaction) => (
-                  <div key={t.id} className="py-2.5 flex justify-between items-center">
-                    <div>
-                      <strong className="font-semibold block capitalize">
-                        {t.payment_type.replaceAll("_", " ")}
-                      </strong>
-                      <span className="text-[10px] text-muted-foreground">
-                        Receipt: {t.mpesa_receipt} · {new Date(t.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-primary">
-                        KES {t.amount_kes.toLocaleString()}
-                      </div>
-                      <span className="text-[9px] uppercase font-bold text-emerald-600">
-                        {t.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+      <ul className="mt-6 divide-y rounded-2xl border bg-card">
+        <li>
+          <Link to="/landlord">
+            <SettingsRow icon={Building2} label="Become a landlord" hint="List your property" />
+          </Link>
+        </li>
+      </ul>
 
-          <section className="mt-6 rounded-2xl border bg-card">
-            <div className="flex items-center gap-2 border-b px-4 py-4">
-              <Bell className="h-4 w-4 text-primary" />
-              <h2 className="font-display text-lg font-semibold">Notifications</h2>
-            </div>
-            <ToggleRow
-              label="Saved-search alerts"
-              hint="Notify me when matching listings appear."
-              checked={prefs.savedAlerts}
-              onChange={(checked) => {
-                const next = { ...prefs, savedAlerts: checked };
-                setPrefs(next);
-                if (user && globalThis.localStorage !== undefined) {
-                  globalThis.localStorage.setItem(getPrefsKey(user.id), JSON.stringify(next));
-                }
-                savedAlertsMutation.mutate(checked);
-              }}
-            />
-            <ToggleRow
-              label="Message updates"
-              hint="Notify me when landlords respond."
-              checked={prefs.messageUpdates}
-              onChange={(checked) => updatePrefs({ ...prefs, messageUpdates: checked })}
-            />
-            <ToggleRow
-              label="Viewing reminders"
-              hint="Remind me before scheduled viewings."
-              checked={prefs.viewingReminders}
-              onChange={(checked) => updatePrefs({ ...prefs, viewingReminders: checked })}
-            />
-          </section>
-
-          <ul className="mt-6 divide-y rounded-2xl border bg-card">
-            <li>
-              <Link to="/landlord">
-                <SettingsRow icon={Building2} label="Become a landlord" hint="List your property" />
-              </Link>
-            </li>
-          </ul>
-
-          <button
-            type="button"
-            onClick={signOut}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 px-6 py-3 text-sm font-semibold text-destructive"
-          >
-            <LogOut className="h-4 w-4" /> Sign out
-          </button>
+      <button
+        type="button"
+        onClick={signOut}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-destructive/30 px-6 py-3 text-sm font-semibold text-destructive"
+      >
+        <LogOut className="h-4 w-4" /> Sign out
+      </button>
       <OnboardingTourHost tourId="tenant-profile" />
     </div>
   );

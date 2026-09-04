@@ -19,12 +19,13 @@ export function ListingSubscribePaywall({ portal }: Readonly<{ portal: ListingPo
         cannot publish or import listings until they subscribe.
       </p>
       <div className="mt-5 flex flex-wrap gap-2">
-        <a
-          href={`${paths.checkout}?plan=${plan}`}
+        <Link
+          to={paths.checkout}
+          search={{ plan }}
           className="inline-flex items-center justify-center rounded-xl bg-gradient-emerald px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant"
         >
           Subscribe
-        </a>
+        </Link>
         <Link
           to={paths.plan}
           className="inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-sm font-semibold"

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X, Calendar as CalendarIcon, Clock, CheckCircle2 } from "lucide-react";
 import { bookViewing } from "@/lib/api/booking.functions";
 import { toast } from "sonner";
 import { errorMessage } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDialogFocusTrap } from "@/hooks/use-dialog-focus-trap";
 
 const TIME_SLOTS = ["09:00", "11:00", "14:00", "16:00"];
 const NAIROBI_TZ = "Africa/Nairobi";
@@ -99,6 +100,8 @@ export function BookingModal({
   const [ref, setRef] = useState("");
   const qc = useQueryClient();
   const days = useMemo(() => next14Days(), []);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocusTrap(isOpen, dialogRef);
 
   useEffect(() => {
     if (isOpen) return;
@@ -172,6 +175,7 @@ export function BookingModal({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-modal-title"

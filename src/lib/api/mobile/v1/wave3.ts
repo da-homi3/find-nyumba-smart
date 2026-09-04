@@ -1,16 +1,14 @@
 import { parseUuid, parseJsonBody, mapPmError } from "@/lib/api/mobile/v1/helpers";
 import type { Database } from "@/integrations/supabase/types";
+import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 import {
   mobileError,
   mobileJson,
   requireMobileBearer,
-  userHasRole,
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
 import { initiatePaymentSchema } from "@/lib/payments/initiate-payment-core";
 import { z } from "zod";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
 
 const PROPERTY_SAFE_SELECT =
   "id, title, description, rent_kes, is_active, is_vacant, neighborhood, property_type, bedrooms, bathrooms, images, owner_id, organization_id, pricing_mode, location_id, latitude, longitude, updated_at, created_at";
@@ -26,17 +24,8 @@ const CHECKOUT_PAYMENT_TYPES = [
   "verification",
 ] as const;
 
-const LISTER_ROLES = ["landlord", "agency", "manager", "admin"] as const;
-
 function zodMessage(err: z.ZodError): string {
   return err.issues[0]?.message ?? "Invalid request";
-}
-
-async function requireListerOrAdmin(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  for (const role of LISTER_ROLES) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Lister role required", "FORBIDDEN", 403);
 }
 
 async function loadUserRoles(admin: MobileAdmin, userId: string): Promise<Set<string>> {
@@ -236,9 +225,8 @@ async function enforceMobileListingCap(
   isActive: boolean,
 ): Promise<Response | null> {
   try {
-    const { getListingCap, countActiveListings, listingCapReachedMessage } = await import(
-      "@/lib/promo/listing-cap"
-    );
+    const { getListingCap, countActiveListings, listingCapReachedMessage } =
+      await import("@/lib/promo/listing-cap");
     const [cap, activeCount] = await Promise.all([
       getListingCap(admin, userId),
       countActiveListings(admin, userId),
@@ -294,7 +282,7 @@ async function handleCreateProperty(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
 
-  const roleErr = await requireListerOrAdmin(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<CreatePropertyBody>(req);
@@ -461,11 +449,7 @@ async function requirePlusToMessage(admin: MobileAdmin, userId: string): Promise
   const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
   const plus = await getTenantPlusStatus(admin, userId);
   if (plus.tenantPlan === "plus") return null;
-  return mobileError(
-    "NyumbaSearch Plus is required to message landlords.",
-    "PLUS_REQUIRED",
-    402,
-  );
+  return mobileError("NyumbaSearch Plus is required to message landlords.", "PLUS_REQUIRED", 402);
 }
 
 async function loadActiveListingForMessage(admin: MobileAdmin, propertyId: string) {

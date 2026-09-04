@@ -83,6 +83,8 @@ async function buildListingsFilters(url: URL): Promise<PropertySearchFilters> {
     sortBy: parseSortBy(url.searchParams.get("sortBy")),
     originLat: Number.isFinite(originLat) ? originLat : undefined,
     originLng: Number.isFinite(originLng) ? originLng : undefined,
+    parking: url.searchParams.get("parking") === "1" ? true : undefined,
+    petFriendly: url.searchParams.get("petFriendly") === "1" ? true : undefined,
   };
 }
 
@@ -432,6 +434,10 @@ async function tryWaveRoutes(req: Request, rest: string, method: string): Promis
     async () => (await import("@/lib/api/mobile/v1/wave20")).tryHandleWave20,
     async () => (await import("@/lib/api/mobile/v1/wave21")).tryHandleWave21,
     async () => (await import("@/lib/api/mobile/v1/wave22")).tryHandleWave22,
+    async () => (await import("@/lib/api/mobile/v1/wave23")).tryHandleWave23,
+    async () => (await import("@/lib/api/mobile/v1/wave24")).tryHandleWave24,
+    async () => (await import("@/lib/api/mobile/v1/wave25")).tryHandleWave25,
+    async () => (await import("@/lib/api/mobile/v1/wave26")).tryHandleWave26,
   ];
 
   for (const load of loaders) {

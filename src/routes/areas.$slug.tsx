@@ -125,6 +125,13 @@ function AreaPage() {
           <Link to="/areas" className="text-muted-foreground">
             All areas
           </Link>
+          <Link
+            to="/guides/$slug"
+            params={{ slug: area.slug }}
+            className="text-muted-foreground"
+          >
+            Renting guide
+          </Link>
           <Link to="/tenant/map" className="font-semibold text-primary">
             Open map →
           </Link>
@@ -143,8 +150,8 @@ function AreaPage() {
           <EmptyState type="no_search_results" href="/tenant" cta="Browse all homes" />
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((p) => (
-              <PropertyCard key={p.id} p={p} />
+            {listings.map((p, index) => (
+              <PropertyCard key={p.id} p={p} priority={index < 2} />
             ))}
           </div>
         )}

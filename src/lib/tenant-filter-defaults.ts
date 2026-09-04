@@ -14,6 +14,8 @@ export const defaultTenantFilters: TenantFilters = {
   neighborhood: "All",
   waterGoodOnly: false,
   verifiedLevel2Plus: false,
+  parking: false,
+  petFriendly: false,
   bedrooms: null,
   sort: "newest",
 };

@@ -239,6 +239,7 @@ export async function runMonthlyMarketTeaserCron(admin: Admin) {
 }
 
 export async function runSavedSearchDigestCron(admin: Admin) {
+  const { listingMatchesSavedSearch } = await import("@/lib/search/saved-search-criteria");
   const stats = { sent: 0 };
   const since = new Date();
   since.setDate(since.getDate() - 1);
@@ -252,27 +253,48 @@ export async function runSavedSearchDigestCron(admin: Admin) {
     const criteria = (search.criteria ?? search.filters ?? {}) as {
       neighborhood?: string;
       maxBudget?: number;
+      maxRent?: number;
+      minRent?: number;
       propertyType?: string;
+      types?: string[];
+      bedrooms?: number;
     };
     const notifiedSince = search.last_notified_at ?? since.toISOString();
 
     let query = admin
       .from("properties")
-      .select("id, title, neighborhood, rent_kes")
+      .select(
+        "id, title, neighborhood, rent_kes, property_type, bedrooms, pricing_mode, is_verified, location_id, ward_location_id, constituency_location_id, county_location_id, amenities",
+      )
       .eq("is_active", true)
       .gte("created_at", notifiedSince);
 
     if (criteria.neighborhood) query = query.ilike("neighborhood", `%${criteria.neighborhood}%`);
-    if (criteria.maxBudget) query = query.lte("rent_kes", criteria.maxBudget);
-    if (criteria.propertyType) {
+    const maxBudget = criteria.maxRent ?? criteria.maxBudget;
+    if (maxBudget) query = query.lte("rent_kes", maxBudget);
+    if (criteria.minRent) query = query.gte("rent_kes", criteria.minRent);
+    const types =
+      criteria.types && criteria.types.length > 0
+        ? criteria.types
+        : criteria.propertyType
+          ? [criteria.propertyType]
+          : [];
+    if (types.length === 1) {
       query = query.eq(
         "property_type",
-        criteria.propertyType as Database["public"]["Enums"]["property_type"],
+        types[0] as Database["public"]["Enums"]["property_type"],
+      );
+    } else if (types.length > 1) {
+      query = query.in(
+        "property_type",
+        types as Database["public"]["Enums"]["property_type"][],
       );
     }
+    if (criteria.bedrooms != null) query = query.gte("bedrooms", criteria.bedrooms);
 
-    const { data: matches } = await query.limit(5);
-    if (!matches?.length) continue;
+    const { data: candidates } = await query.limit(20);
+    const matches = (candidates ?? []).filter((m) => listingMatchesSavedSearch(m, criteria)).slice(0, 5);
+    if (!matches.length) continue;
 
     const ctx = await userEmail(admin, search.user_id);
     if (!ctx) continue;

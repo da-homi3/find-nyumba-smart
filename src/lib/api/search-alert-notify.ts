@@ -3,25 +3,10 @@ import { getSiteUrl } from "@/lib/site";
 import { sendEmailResult } from "@/lib/email/send";
 import { newListingsAlertEmail } from "@/lib/email/templates";
 import { shouldSendMarketingEmail } from "@/lib/email/prefs";
-
-type SearchCriteria = {
-  neighborhood?: string;
-  propertyType?: string;
-  maxBudget?: number;
-  frequency?: string;
-};
-
-function matchesCriteria(property: Property, criteria: SearchCriteria): boolean {
-  if (criteria.neighborhood) {
-    const hood = criteria.neighborhood.toLowerCase();
-    if (!property.neighborhood?.toLowerCase().includes(hood)) return false;
-  }
-  if (criteria.propertyType && criteria.propertyType !== "any") {
-    if (property.property_type !== criteria.propertyType) return false;
-  }
-  if (criteria.maxBudget != null && property.rent_kes > criteria.maxBudget) return false;
-  return true;
-}
+import {
+  listingMatchesSavedSearch,
+  type SavedSearchCriteria,
+} from "@/lib/search/saved-search-criteria";
 
 function isThrottled(lastAt: string | null | undefined, frequency: string): boolean {
   if (!lastAt || frequency === "instant") return false;
@@ -47,8 +32,8 @@ export async function notifyMatchingSearchAlerts(property: Property): Promise<vo
   const now = new Date().toISOString();
 
   for (const search of searches) {
-    const criteria = (search.criteria ?? search.filters ?? {}) as SearchCriteria;
-    if (!matchesCriteria(property, criteria)) continue;
+    const criteria = (search.criteria ?? search.filters ?? {}) as SavedSearchCriteria;
+    if (!listingMatchesSavedSearch(property, criteria)) continue;
 
     const lastAt = (search as { last_notified_at?: string | null }).last_notified_at;
     const freq = (criteria.frequency ?? "instant").toLowerCase();

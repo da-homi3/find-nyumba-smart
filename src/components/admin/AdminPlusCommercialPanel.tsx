@@ -196,7 +196,11 @@ function ScoreRuleRow({ rule }: Readonly<{ rule: ScoreRule }>) {
         onChange={(e) => setPoints(e.target.value)}
         className="w-16 rounded-lg border px-2 py-1 text-xs"
       />
-      <button type="button" className="text-xs text-primary" onClick={() => save.mutate(rule.enabled)}>
+      <button
+        type="button"
+        className="text-xs text-primary"
+        onClick={() => save.mutate(rule.enabled)}
+      >
         Save
       </button>
       <button
@@ -223,9 +227,13 @@ function RecommendationWeightsForm({
   };
 }>) {
   const qc = useQueryClient();
-  const [explorationPercent, setExplorationPercent] = useState(String(weights?.explorationPercent ?? 20));
+  const [explorationPercent, setExplorationPercent] = useState(
+    String(weights?.explorationPercent ?? 20),
+  );
   const [maxPerShelf, setMaxPerShelf] = useState(String(weights?.maxPerShelf ?? 6));
-  const [maxPerNeighborhood, setMaxPerNeighborhood] = useState(String(weights?.maxPerNeighborhood ?? 3));
+  const [maxPerNeighborhood, setMaxPerNeighborhood] = useState(
+    String(weights?.maxPerNeighborhood ?? 3),
+  );
   const [maxPerOwner, setMaxPerOwner] = useState(String(weights?.maxPerOwner ?? 2));
   const [freshnessDays, setFreshnessDays] = useState(String(weights?.freshnessDays ?? 14));
   const [minAuthenticity, setMinAuthenticity] = useState(String(weights?.minAuthenticity ?? 20));
@@ -257,27 +265,56 @@ function RecommendationWeightsForm({
     >
       <h3 className="sm:col-span-2 text-sm font-semibold">Recommendation engine</h3>
       <p className="sm:col-span-2 text-xs text-muted-foreground">
-        Global ranking settings. Individual tenant recommendations cannot be edited without an audit log.
+        Global ranking settings. Individual tenant recommendations cannot be edited without an audit
+        log.
       </p>
       <AdminField label="Exploration %">
-        <input value={explorationPercent} onChange={(e) => setExplorationPercent(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+        <input
+          value={explorationPercent}
+          onChange={(e) => setExplorationPercent(e.target.value)}
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        />
       </AdminField>
       <AdminField label="Max per shelf">
-        <input value={maxPerShelf} onChange={(e) => setMaxPerShelf(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+        <input
+          value={maxPerShelf}
+          onChange={(e) => setMaxPerShelf(e.target.value)}
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        />
       </AdminField>
       <AdminField label="Max per neighborhood">
-        <input value={maxPerNeighborhood} onChange={(e) => setMaxPerNeighborhood(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+        <input
+          value={maxPerNeighborhood}
+          onChange={(e) => setMaxPerNeighborhood(e.target.value)}
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        />
       </AdminField>
       <AdminField label="Max per provider">
-        <input value={maxPerOwner} onChange={(e) => setMaxPerOwner(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+        <input
+          value={maxPerOwner}
+          onChange={(e) => setMaxPerOwner(e.target.value)}
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        />
       </AdminField>
       <AdminField label="Freshness window (days)">
-        <input value={freshnessDays} onChange={(e) => setFreshnessDays(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+        <input
+          value={freshnessDays}
+          onChange={(e) => setFreshnessDays(e.target.value)}
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        />
       </AdminField>
       <AdminField label="Min authenticity">
-        <input value={minAuthenticity} onChange={(e) => setMinAuthenticity(e.target.value)} className="mt-1 w-full rounded-xl border px-3 py-2 text-sm" />
+        <input
+          value={minAuthenticity}
+          onChange={(e) => setMinAuthenticity(e.target.value)}
+          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+        />
       </AdminField>
-      <button type="submit" disabled={save.isPending} className="sm:col-span-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+      <button
+        type="submit"
+        disabled={save.isPending}
+        className="sm:col-span-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+      >
         Save recommendation settings
       </button>
     </form>

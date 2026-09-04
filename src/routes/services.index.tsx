@@ -2,10 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
 import { SERVICE_CATEGORIES } from "@/data/revenue-mock";
 import { ServiceCategoryIcon } from "@/components/services/ServiceCategoryIcon";
-import { getProviderCategoryCounts } from "@/lib/api/service-provider.functions";
+import { loadProviderCategoryCounts } from "@/lib/api/service-provider.functions";
 import { buildPageHead } from "@/lib/seo/head";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import servicesHero from "@/assets/services-hero-premium.webp";
+
+const EMPTY_COUNTS: Record<string, number> = {};
 
 export const Route = createFileRoute("/services/")({
   head: () =>
@@ -16,9 +18,19 @@ export const Route = createFileRoute("/services/")({
       path: "/services",
     }),
   loader: async () => {
-    const counts = await getProviderCategoryCounts();
-    const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
-    return { counts, total };
+    try {
+      const counts = await Promise.race([
+        loadProviderCategoryCounts(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("services counts timeout")), 4_000);
+        }),
+      ]);
+      const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+      return { counts, total };
+    } catch (err) {
+      console.error("[services] loader counts failed:", err);
+      return { counts: EMPTY_COUNTS, total: 0 };
+    }
   },
   component: ServicesIndexPage,
 });

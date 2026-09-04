@@ -67,16 +67,18 @@ export function isNonPlaceHead(segment: string): boolean {
 
 /** Strip noise landlords often append — keep names like "Ngong Road" intact. */
 export function scrubPlaceNoise(raw: string): string {
-  return String(raw ?? "")
-    .replace(/\([^)]*\)/g, " ")
-    .replace(/\[[^\]]*\]/g, " ")
-    .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
-    // Drop leading plot/house numbers: "87 Waiyaki Way"
-    .replace(/^\d+[a-z]?\s+/i, "")
-    .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
-    .replace(/[,;/|]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    String(raw ?? "")
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/\[[^\]]*\]/g, " ")
+      .replace(/^(along|near|off|at|opposite|next to|behind|beside)\s+/i, "")
+      // Drop leading plot/house numbers: "87 Waiyaki Way"
+      .replace(/^\d+[a-z]?\s+/i, "")
+      .replace(/\s+(shopping\s+mall|stage|roundabout|junction)\b.*$/i, "")
+      .replace(/[,;/|]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 /** True when the query is road-oriented (prefer ROAD rows over towns of the same name). */
@@ -112,7 +114,10 @@ export function parsePlaceQuery(q: string): {
   const raw = q.trim();
   if (!raw) return { place: "", countyHint: null, alternates: [] };
 
-  const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const comma = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (comma.length >= 2) {
     // Skip house-number heads: "87, waiyaki way" → Waiyaki Way
     let headIdx = 0;
@@ -137,9 +142,7 @@ export function parsePlaceQuery(q: string): {
 
   const scrubbed = scrubPlaceNoise(raw);
   // "Thindigua along kiambu road" → place + road alternate (don't invent Thindigua).
-  const alongNear = scrubbed.match(
-    /^(.+?)\s+(?:along|near|opposite|behind|beside|off)\s+(.+)$/i,
-  );
+  const alongNear = scrubbed.match(/^(.+?)\s+(?:along|near|opposite|behind|beside|off)\s+(.+)$/i);
   if (alongNear) {
     const head = alongNear[1]!.trim();
     const tail = alongNear[2]!.trim();
@@ -153,7 +156,8 @@ export function parsePlaceQuery(q: string): {
         countyHint = last;
       }
     }
-    const alternates = tail && normalizeLocationName(tail) !== normalizeLocationName(place) ? [tail] : [];
+    const alternates =
+      tail && normalizeLocationName(tail) !== normalizeLocationName(place) ? [tail] : [];
     return { place, countyHint, alternates };
   }
 
@@ -165,7 +169,9 @@ export function parsePlaceQuery(q: string): {
     }
     // Two-word county names at the end (e.g. "Runda Nairobi City" already handled via normalize).
     if (parts.length >= 3) {
-      const lastTwo = normalizeLocationName(`${parts[parts.length - 2]} ${parts[parts.length - 1]}`);
+      const lastTwo = normalizeLocationName(
+        `${parts[parts.length - 2]} ${parts[parts.length - 1]}`,
+      );
       if (COUNTY_HINTS.has(lastTwo)) {
         return {
           place: parts.slice(0, -2).join(" "),

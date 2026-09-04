@@ -146,10 +146,7 @@ async function invoicesDueOn(admin: PmDb, dueDateIso: string): Promise<ReminderI
     .select("id, name, owner_user_id")
     .in("id", propertyIds);
   const propertyById = new Map(
-    (properties ?? []).map((p: { id: string; name: string; owner_user_id: string }) => [
-      p.id,
-      p,
-    ]),
+    (properties ?? []).map((p: { id: string; name: string; owner_user_id: string }) => [p.id, p]),
   );
 
   const results: ReminderInvoice[] = [];
@@ -272,10 +269,7 @@ type OwnerArrearsRow = {
   ownerUserId: string;
 };
 
-async function loadOwnerArrearsRows(
-  admin: PmDb,
-  today: string,
-): Promise<OwnerArrearsRow[]> {
+async function loadOwnerArrearsRows(admin: PmDb, today: string): Promise<OwnerArrearsRow[]> {
   const { data: invoices } = await admin
     .from("pm_rent_invoices")
     .select("id, amount_due, amount_paid, late_fee, due_date, lease_id, status")
@@ -314,10 +308,7 @@ async function loadOwnerArrearsRows(
     .select("id, name, owner_user_id")
     .in("id", propertyIds);
   const propertyById = new Map(
-    (properties ?? []).map((p: { id: string; name: string; owner_user_id: string }) => [
-      p.id,
-      p,
-    ]),
+    (properties ?? []).map((p: { id: string; name: string; owner_user_id: string }) => [p.id, p]),
   );
 
   const rows: OwnerArrearsRow[] = [];

@@ -590,7 +590,7 @@ async function handleLlmsTxt(): Promise<Response> {
 async function handleSitemapXml(): Promise<Response> {
   try {
     const { data: xml, cacheHit } = await withCache(
-      "sitemap_xml_v2",
+      "sitemap_xml_v5",
       "sitemap_xml",
       buildFullSitemapXml,
     );
@@ -631,21 +631,26 @@ const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/mpesa/callback" && method === "POST",
     run: (req) =>
-      withErrorHandler(
-        "M-Pesa callback",
-        req,
-        handleMpesaCallback,
-        () =>
-          new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Error" }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          }),
+      withPublicRateLimit(req, "mpesa", (r) =>
+        withErrorHandler(
+          "M-Pesa callback",
+          r,
+          handleMpesaCallback,
+          () =>
+            new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Error" }), {
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+            }),
+        ),
       ),
   },
   {
     match: (url, method) =>
       url.pathname === "/api/payments/webhook/pesapal" && (method === "POST" || method === "GET"),
-    run: (req) => withErrorHandler("Pesapal webhook", req, handlePesapalIpn),
+    run: (req) =>
+      withPublicRateLimit(req, "pesapal", (r) =>
+        withErrorHandler("Pesapal webhook", r, handlePesapalIpn),
+      ),
   },
   {
     // Paystack retired — card checkout uses Pesapal. Keep path for old bookmarks/dashboards.
@@ -806,8 +811,7 @@ const ROUTES: RouteDef[] = [
       }),
   },
   {
-    match: (url, method) =>
-      url.pathname.startsWith("/api/locations") && method === "GET",
+    match: (url, method) => url.pathname.startsWith("/api/locations") && method === "GET",
     run: (req) =>
       withPublicRateLimit(req, "api", async (r) => {
         const { handleLocationsApi } = await import("@/lib/locations/http");

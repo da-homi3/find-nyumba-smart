@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,7 +8,8 @@ import { BrandLogoLink } from "@/components/BrandLogo";
 import { CustomerCareInfo } from "@/components/CustomerCareInfo";
 import { NotificationBellMenu } from "@/components/NotificationBellMenu";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
-import { AppDownloadStickyBar, PLAY_STORE_URL } from "@/components/AppDownloadBanner";
+import { PLAY_STORE_URL } from "@/components/AppDownloadBanner";
+import { SocialProfileLinks } from "@/components/SocialProfileLinks";
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { PORTAL_HOME, resolveListerDashboardPath } from "@/lib/portal-guard";
 
@@ -19,6 +20,12 @@ const SERVICE_LINKS = [
   { to: "/finance", label: "Finance & mortgages" },
   { to: "/insurance", label: "Insurance" },
   { to: "/reports", label: "Market reports" },
+];
+
+const DISCOVER_LINKS = [
+  { to: "/categories", label: "Property types" },
+  { to: "/guides", label: "Renting guides" },
+  { to: "/areas", label: "Nairobi areas" },
 ];
 
 type Props = {
@@ -49,7 +56,9 @@ function buildMobileNavLinks(loggedIn: boolean) {
     { to: "/", label: "Home" },
     { to: "/tenant", label: "Search" },
     { to: "/tenant/map", label: "Map" },
-    ...SERVICE_LINKS,
+    { to: "/categories", label: "Categories" },
+    { to: "/guides", label: "Guides" },
+    ...SERVICE_LINKS.filter((l) => l.to !== "/reports"),
     { to: "/reports", label: "Resources" },
     { to: "/about", label: "About" },
     { to: "/pricing", label: "Pricing" },
@@ -57,6 +66,252 @@ function buildMobileNavLinks(loggedIn: boolean) {
     { to: "/settings", label: "Settings" },
   ];
   return loggedIn ? links : links.filter((l) => !("auth" in l));
+}
+
+type NavThemeProps = {
+  isHero: boolean;
+};
+
+function SiteNavDesktopLinks({
+  isHero,
+  user,
+  hasListerPortal,
+  dashboardHref,
+  servicesOpen,
+  setServicesOpen,
+}: NavThemeProps & {
+  user: ReturnType<typeof useAuth>["user"];
+  hasListerPortal: boolean;
+  dashboardHref: string;
+  servicesOpen: boolean;
+  setServicesOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+}) {
+  const mutedClass = isHero ? "text-white/85" : "text-muted-foreground";
+
+  return (
+    <nav className={`hidden items-center gap-1 md:flex ${mutedClass}`}>
+      <Link
+        to="/"
+        className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
+      >
+        Home
+      </Link>
+      <Link
+        to="/tenant"
+        className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
+      >
+        Search
+      </Link>
+      <Link
+        to="/tenant/map"
+        className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
+      >
+        Map
+      </Link>
+      <Link
+        to="/categories"
+        className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
+      >
+        Categories
+      </Link>
+      <Link
+        to="/guides"
+        className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
+      >
+        Guides
+      </Link>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setServicesOpen((o) => !o)}
+          className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+        >
+          Services <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+        {servicesOpen && (
+          <div className="absolute left-0 mt-1 w-56 rounded-xl border bg-background py-1 text-foreground shadow-elegant">
+            {SERVICE_LINKS.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="block px-4 py-2 text-sm hover:bg-secondary"
+                onClick={() => setServicesOpen(false)}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+      <Link to="/reports" className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80">
+        Resources
+      </Link>
+      <Link to="/about" className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80">
+        About
+      </Link>
+      {user && (
+        <>
+          <Link
+            to="/referrals"
+            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+          >
+            Invite & earn
+          </Link>
+          <Link
+            to="/settings"
+            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+          >
+            Settings
+          </Link>
+        </>
+      )}
+      {hasListerPortal && (
+        <Link
+          to={dashboardHref as "/landlord/dashboard"}
+          className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
+        >
+          Dashboard
+        </Link>
+      )}
+    </nav>
+  );
+}
+
+function SiteNavDesktopActions({
+  isHero,
+  user,
+  isPlus,
+}: NavThemeProps & {
+  user: ReturnType<typeof useAuth>["user"];
+  isPlus: boolean;
+}) {
+  if (user) {
+    return (
+      <div className="hidden items-center gap-2 md:flex">
+        <RoleSwitcher variant={isHero ? "hero" : "default"} />
+        <NotificationBellMenu
+          bellClassName={
+            isHero
+              ? "border-white/30 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+              : undefined
+          }
+        />
+        {isPlus ? (
+          <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
+            Plus
+          </span>
+        ) : null}
+        <Link
+          to="/landlord/properties/new"
+          className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-green transition hover:opacity-95"
+        >
+          List Property
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hidden items-center gap-2 md:flex">
+      <Link
+        to="/auth"
+        search={{ redirect: "/tenant" }}
+        className={`rounded-full border px-4 py-2 text-sm font-medium ${heroOutlineClass(isHero)}`}
+      >
+        Login
+      </Link>
+      <Link
+        to="/auth"
+        search={{ redirect: "/landlord/properties/new" }}
+        className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-green transition hover:opacity-95"
+      >
+        List Property
+      </Link>
+    </div>
+  );
+}
+
+function SiteNavMobileMenu({
+  isHero,
+  user,
+  isDark,
+  mobileNavLinks,
+  menuOpen,
+  setMenuOpen,
+  signOut,
+  toggleTheme,
+}: NavThemeProps & {
+  user: ReturnType<typeof useAuth>["user"];
+  isDark: boolean;
+  mobileNavLinks: ReturnType<typeof buildMobileNavLinks>;
+  menuOpen: boolean;
+  setMenuOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+  signOut: () => void;
+  toggleTheme: () => void;
+}) {
+  if (!menuOpen) return null;
+
+  return (
+    <div
+      className={`border-t px-5 py-3 md:hidden ${isHero ? "border-background/20 bg-foreground/95 text-background" : "bg-background"}`}
+    >
+      {mobileNavLinks.map((l) => (
+        <Link
+          key={l.to}
+          to={l.to}
+          className="block py-2 text-sm font-medium"
+          onClick={() => setMenuOpen(false)}
+        >
+          {l.label}
+        </Link>
+      ))}
+      {user ? (
+        <Link
+          to="/landlord/properties/new"
+          className="mt-2 block rounded-xl bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
+          onClick={() => setMenuOpen(false)}
+        >
+          List Property
+        </Link>
+      ) : (
+        <Link
+          to="/auth"
+          search={{ redirect: "/landlord/properties/new" }}
+          className="mt-2 block rounded-xl bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
+          onClick={() => setMenuOpen(false)}
+        >
+          List Property
+        </Link>
+      )}
+      {user ? (
+        <button type="button" onClick={() => signOut()} className="py-2 text-sm text-destructive">
+          Sign out
+        </button>
+      ) : (
+        <Link to="/auth" search={{ redirect: "/tenant" }} className="block py-2 text-sm">
+          Login
+        </Link>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          toggleTheme();
+          setMenuOpen(false);
+        }}
+        className="flex w-full items-center gap-2 py-2 text-sm font-medium"
+      >
+        {isDark ? (
+          <>
+            <Sun className="h-4 w-4" /> Light mode
+          </>
+        ) : (
+          <>
+            <Moon className="h-4 w-4" /> Dark mode
+          </>
+        )}
+      </button>
+    </div>
+  );
 }
 
 export function SiteNav({ variant = "light" }: Readonly<Props>) {
@@ -77,9 +332,6 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
   const [scrolled, setScrolled] = useState(false);
   const isHero = variant === "hero";
   const textClass = isHero ? "text-white" : "text-foreground";
-  const mutedClass = isHero ? "text-white/85" : "text-muted-foreground";
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const showStickyAppBar = pathname !== "/";
 
   const hasListerPortal = isLandlord || isManager || isAgency;
   const dashboardHref = hasListerPortal
@@ -103,228 +355,62 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
 
   return (
     <>
-    <motion.header
-      initial={false}
-      animate={{ y: 0 }}
-      transition={{ type: "spring", stiffness: 200, damping: 25 }}
-      className={headerShellClass(isHero)}
-    >
-      <div
-        className={`flex items-center justify-between px-4 py-3 transition-colors sm:px-5 ${glassClass}`}
+      <motion.header
+        initial={false}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        className={headerShellClass(isHero)}
       >
-        <BrandLogoLink className={textClass} logoClassName="h-9 sm:h-10" priority />
-
-        <nav className={`hidden items-center gap-1 md:flex ${mutedClass}`}>
-          <Link
-            to="/"
-            className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
-          >
-            Home
-          </Link>
-          <Link
-            to="/tenant"
-            className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
-          >
-            Search
-          </Link>
-          <Link
-            to="/tenant/map"
-            className="rounded-full px-3 py-2 text-sm font-medium transition hover:bg-white/10 hover:opacity-100"
-          >
-            Map
-          </Link>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setServicesOpen((o) => !o)}
-              className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-            >
-              Services <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-            {servicesOpen && (
-              <div className="absolute left-0 mt-1 w-56 rounded-xl border bg-background py-1 text-foreground shadow-elegant">
-                {SERVICE_LINKS.map((l) => (
-                  <Link
-                    key={l.to}
-                    to={l.to}
-                    className="block px-4 py-2 text-sm hover:bg-secondary"
-                    onClick={() => setServicesOpen(false)}
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-          <Link
-            to="/reports"
-            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-          >
-            Resources
-          </Link>
-          <Link
-            to="/about"
-            className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-          >
-            About
-          </Link>
-          {user && (
-            <>
-              <Link
-                to="/referrals"
-                className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-              >
-                Invite & earn
-              </Link>
-              <Link
-                to="/settings"
-                className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-              >
-                Settings
-              </Link>
-            </>
-          )}
-          {hasListerPortal && (
-            <Link
-              to={dashboardHref as "/landlord/dashboard"}
-              className="rounded-full px-3 py-2 text-sm font-medium hover:opacity-80"
-            >
-              Dashboard
-            </Link>
-          )}
-        </nav>
-
-        {user ? (
-          <div className="hidden items-center gap-2 md:flex">
-            <RoleSwitcher variant={isHero ? "hero" : "default"} />
-            <NotificationBellMenu
-              bellClassName={
-                isHero
-                  ? "border-white/30 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-                  : undefined
-              }
-            />
-            {isPlus ? (
-              <span className="rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
-                Plus
-              </span>
-            ) : null}
-            <Link
-              to="/landlord/properties/new"
-              className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-green transition hover:opacity-95"
-            >
-              List Property
-            </Link>
-          </div>
-        ) : (
-          <div className="hidden items-center gap-2 md:flex">
-            <Link
-              to="/auth"
-              search={{ redirect: "/tenant" }}
-              className={`rounded-full border px-4 py-2 text-sm font-medium ${heroOutlineClass(isHero)}`}
-            >
-              Login
-            </Link>
-            <Link
-              to="/auth"
-              search={{ redirect: "/landlord/properties/new" }}
-              className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-green transition hover:opacity-95"
-            >
-              List Property
-            </Link>
-          </div>
-        )}
-
-        <motion.button
-          type="button"
-          onClick={toggleTheme}
-          whileHover={{ rotate: 180 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ duration: 0.3 }}
-          aria-label="Toggle theme"
-          className={`hidden rounded-xl border p-2 md:inline-flex ${isHero ? "border-white/20 bg-white/10" : "border-border bg-secondary/50"}`}
-        >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </motion.button>
-
-        <div className="flex items-center gap-2 md:hidden">
-          {user ? <NotificationBellMenu /> : null}
-          <button
-            type="button"
-            className={`rounded-lg border px-3 py-2 text-sm ${isHero ? "border-white/30 text-white" : ""}`}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            Menu
-          </button>
-        </div>
-      </div>
-      {menuOpen && (
         <div
-          className={`border-t px-5 py-3 md:hidden ${isHero ? "border-background/20 bg-foreground/95 text-background" : "bg-background"}`}
+          className={`flex items-center justify-between px-4 py-3 transition-colors sm:px-5 ${glassClass}`}
         >
-          {mobileNavLinks.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className="block py-2 text-sm font-medium"
-              onClick={() => setMenuOpen(false)}
-            >
-              {l.label}
-            </Link>
-          ))}
-          {user ? (
-            <Link
-              to="/landlord/properties/new"
-              className="mt-2 block rounded-xl bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
-              onClick={() => setMenuOpen(false)}
-            >
-              List Property
-            </Link>
-          ) : (
-            <Link
-              to="/auth"
-              search={{ redirect: "/landlord/properties/new" }}
-              className="mt-2 block rounded-xl bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
-              onClick={() => setMenuOpen(false)}
-            >
-              List Property
-            </Link>
-          )}
-          {user ? (
+          <BrandLogoLink className={textClass} logoClassName="h-9 sm:h-10" priority />
+
+          <SiteNavDesktopLinks
+            isHero={isHero}
+            user={user}
+            hasListerPortal={hasListerPortal}
+            dashboardHref={dashboardHref}
+            servicesOpen={servicesOpen}
+            setServicesOpen={setServicesOpen}
+          />
+
+          <SiteNavDesktopActions isHero={isHero} user={user} isPlus={isPlus} />
+
+          <motion.button
+            type="button"
+            onClick={toggleTheme}
+            whileHover={{ rotate: 180 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+            aria-label="Toggle theme"
+            className={`hidden rounded-xl border p-2 md:inline-flex ${isHero ? "border-white/20 bg-white/10" : "border-border bg-secondary/50"}`}
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </motion.button>
+
+          <div className="flex items-center gap-2 md:hidden">
+            {user ? <NotificationBellMenu /> : null}
             <button
               type="button"
-              onClick={() => signOut()}
-              className="py-2 text-sm text-destructive"
+              className={`rounded-lg border px-3 py-2 text-sm ${isHero ? "border-white/30 text-white" : ""}`}
+              onClick={() => setMenuOpen((o) => !o)}
             >
-              Sign out
+              Menu
             </button>
-          ) : (
-            <Link to="/auth" search={{ redirect: "/tenant" }} className="block py-2 text-sm">
-              Login
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              toggleTheme();
-              setMenuOpen(false);
-            }}
-            className="flex w-full items-center gap-2 py-2 text-sm font-medium"
-          >
-            {isDark ? (
-              <>
-                <Sun className="h-4 w-4" /> Light mode
-              </>
-            ) : (
-              <>
-                <Moon className="h-4 w-4" /> Dark mode
-              </>
-            )}
-          </button>
+          </div>
         </div>
-      )}
-    </motion.header>
-    {showStickyAppBar ? <AppDownloadStickyBar /> : null}
+        <SiteNavMobileMenu
+          isHero={isHero}
+          user={user}
+          isDark={isDark}
+          mobileNavLinks={mobileNavLinks}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          signOut={signOut}
+          toggleTheme={toggleTheme}
+        />
+      </motion.header>
     </>
   );
 }
@@ -353,6 +439,7 @@ export function SiteFooter() {
             </span>
           </div>
           <CustomerCareInfo className="mt-5" layout="inline" />
+          <SocialProfileLinks className="mt-4" />
         </div>
         <FooterCol
           title="Quick Links"
@@ -360,7 +447,7 @@ export function SiteFooter() {
             { to: "/", label: "Home" },
             { to: "/tenant", label: "Search" },
             { to: "/tenant/map", label: "Map" },
-            { to: "/areas", label: "Nairobi areas" },
+            ...DISCOVER_LINKS,
           ]}
         />
         <FooterCol
@@ -432,8 +519,14 @@ function FooterCol({
 export function PublicPageShell({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="min-h-screen overflow-x-clip bg-background pb-20 md:pb-0">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       <SiteNav variant="light" />
-      {children}
+      <main id="main-content">{children}</main>
       <SiteFooter />
     </div>
   );

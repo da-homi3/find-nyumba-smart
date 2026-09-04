@@ -3,21 +3,17 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureTenantAccount } from "@/lib/api/auth-tenant.functions";
+import { consumeOAuthIntent, consumePendingSignupPolicy } from "@/lib/auth/auth-gate";
 import {
-  consumeOAuthIntent,
-  consumePendingSignupPolicy,
-  clearAuthGateDismiss,
-} from "@/lib/auth/auth-gate";
+  navigateAfterAuth,
+  resolveAuthLandingForUser,
+  waitForAuthSession,
+} from "@/lib/auth/post-login";
 import { withTimeout } from "@/lib/auth/with-timeout";
 import { markSignupTourPending } from "@/lib/onboarding/tour-storage";
 import { buildPageHead } from "@/lib/seo/head";
+import { isSafeRedirectPath } from "@/lib/portal-guard";
 import { BrandLogoLink } from "@/components/BrandLogo";
-import {
-  isSafeRedirectPath,
-  resolvePostLoginPath,
-  type AppRole,
-  type PortalId,
-} from "@/lib/portal-guard";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -66,38 +62,6 @@ async function establishSessionFromUrl(): Promise<boolean> {
   return hasSession();
 }
 
-async function resolveOAuthLandingPath(preferredNext: string): Promise<string> {
-  const fallback = isSafeRedirectPath(preferredNext) ? preferredNext : "/tenant";
-  const userRes = await withTimeout(supabase.auth.getUser(), 4000, null);
-  const user = userRes?.data?.user ?? null;
-  if (!user) return fallback;
-
-  try {
-    const results = await withTimeout(
-      Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", user.id),
-        supabase.from("profiles").select("active_portal").eq("id", user.id).maybeSingle(),
-        supabase
-          .from("portal_applications")
-          .select("requested_role, status, created_at")
-          .eq("user_id", user.id),
-      ]),
-      5000,
-      null,
-    );
-    if (!results) return fallback;
-
-    const [roleRes, profileRes, appsRes] = results;
-    const roles = (roleRes.data ?? []).map((r) => r.role as AppRole);
-    const activePortal = (profileRes.data?.active_portal as PortalId | null) ?? null;
-    const redirect = isSafeRedirectPath(preferredNext) ? preferredNext : undefined;
-    return resolvePostLoginPath(roles, activePortal, redirect, appsRes.data ?? []);
-  } catch (err) {
-    console.warn("[auth/callback] landing path lookup failed:", err);
-    return fallback;
-  }
-}
-
 async function applyPendingSignupPolicyToUser() {
   const acceptance = consumePendingSignupPolicy();
   if (!acceptance) return;
@@ -135,24 +99,31 @@ function AuthCallbackPage() {
         const ok = await establishSessionFromUrl();
         if (!ok) throw new Error("Could not complete Google sign-in. Try again.");
 
+        await waitForAuthSession();
         await applyPendingSignupPolicyToUser();
 
         void ensureTenantAccount().catch((err) => {
           console.warn("[auth/callback] ensureTenantAccount:", err);
         });
 
-        const landing = await withTimeout(
-          resolveOAuthLandingPath(preferredNext),
-          6000,
-          isSafeRedirectPath(preferredNext) ? preferredNext : "/tenant",
-        );
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const fallback = isSafeRedirectPath(preferredNext) ? preferredNext : "/tenant";
+        const landing = user
+          ? await withTimeout(
+              resolveAuthLandingForUser(user.id, preferredNext),
+              6_000,
+              fallback,
+            )
+          : fallback;
+
         if (landing.startsWith("/tenant")) {
           markSignupTourPending("tenant");
         }
-        clearAuthGateDismiss();
         if (!cancelled) setMessage("Success — taking you in…");
         globalThis.clearTimeout(hardStop);
-        globalThis.location.replace(landing);
+        navigateAfterAuth(landing);
       } catch (err) {
         const text = err instanceof Error ? err.message : "Google sign-in failed";
         if (!cancelled) setMessage(text);

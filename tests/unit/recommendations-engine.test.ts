@@ -53,7 +53,12 @@ const needs: TenantNeeds = {
 
 describe("scoreProperty", () => {
   it("scores a strong match with explainable reasons", () => {
-    const item = scoreProperty(home({ id: "p1" }), needs, EMPTY_BEHAVIOR, DEFAULT_RECOMMENDATION_WEIGHTS);
+    const item = scoreProperty(
+      home({ id: "p1" }),
+      needs,
+      EMPTY_BEHAVIOR,
+      DEFAULT_RECOMMENDATION_WEIGHTS,
+    );
     expect(item).not.toBeNull();
     expect(item!.matchScore).toBeGreaterThan(70);
     expect(item!.reasonCodes).toContain("budget_match");
@@ -163,7 +168,11 @@ describe("more like this", () => {
       bedrooms: 2,
       rentKes: 56000,
     });
-    const items = moreLikeThis(source, [source, sameProviderOnly, similar], DEFAULT_RECOMMENDATION_WEIGHTS);
+    const items = moreLikeThis(
+      source,
+      [source, sameProviderOnly, similar],
+      DEFAULT_RECOMMENDATION_WEIGHTS,
+    );
     expect(items.map((i) => i.propertyId)).toContain("sim");
     expect(items.map((i) => i.propertyId)).not.toContain("other");
   });

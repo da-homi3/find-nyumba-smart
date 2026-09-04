@@ -39,11 +39,31 @@ const memoryFallback = new Map<string, string>();
 /** Isolate-local singleflight — collapses concurrent misses for the same key. */
 const inflight = new Map<string, Promise<unknown>>();
 
+const KV_IO_TIMEOUT_MS = 2_500;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`[cache] ${label} timed out after ${ms}ms`));
+    }, ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function kvGet(key: string): Promise<string | null> {
   const kv = getCacheKv();
   if (kv) {
     try {
-      return await kv.get(`cache:${key}`);
+      return await withTimeout(kv.get(`cache:${key}`), KV_IO_TIMEOUT_MS, `kv get ${key}`);
     } catch (err) {
       console.error("[cache] kv get failed", err);
     }
@@ -55,7 +75,11 @@ async function kvPut(key: string, value: string, ttl: number): Promise<void> {
   const kv = getCacheKv();
   if (kv) {
     try {
-      await kv.put(`cache:${key}`, value, { expirationTtl: Math.max(60, ttl) });
+      await withTimeout(
+        kv.put(`cache:${key}`, value, { expirationTtl: Math.max(60, ttl) }),
+        KV_IO_TIMEOUT_MS,
+        `kv put ${key}`,
+      );
       return;
     } catch (err) {
       console.error("[cache] kv put failed", err);

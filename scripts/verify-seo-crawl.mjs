@@ -53,9 +53,15 @@ const checks = [
   { name: "homepage JSON-LD", ok: homeHtml.includes("application/ld+json") },
   { name: "homepage geo tags", ok: homeHtml.includes("geo.region") },
   { name: "html lang en-KE", ok: /<html[^>]*lang="en-KE"/i.test(homeHtml) },
-  { name: "robots allows public paths", ok: robots.includes("Allow: /") && robots.includes("Disallow: /admin") },
+  {
+    name: "robots allows public paths",
+    ok: robots.includes("Allow: /") && robots.includes("Disallow: /admin"),
+  },
   { name: "robots lists sitemap", ok: robots.includes("sitemap.xml") },
-  { name: "sitemap is xml", ok: sitemap.includes("<urlset") && sitemap.includes("nyumbasearch.com") },
+  {
+    name: "sitemap is xml",
+    ok: sitemap.includes("<urlset") && sitemap.includes("nyumbasearch.com"),
+  },
   { name: "llms.txt present", ok: llms.toLowerCase().includes("nyumbasearch") },
 ];
 

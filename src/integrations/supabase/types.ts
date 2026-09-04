@@ -1520,6 +1520,10 @@ export type Database = {
           is_verified: boolean;
           latitude: number | null;
           longitude: number | null;
+          location_id: string | null;
+          county_location_id: string | null;
+          constituency_location_id: string | null;
+          ward_location_id: string | null;
           minimum_rent_period_months: number | null;
           neighborhood: string;
           nyumba_verified_at: string | null;
@@ -1568,6 +1572,10 @@ export type Database = {
           is_verified?: boolean;
           latitude?: number | null;
           longitude?: number | null;
+          location_id?: string | null;
+          county_location_id?: string | null;
+          constituency_location_id?: string | null;
+          ward_location_id?: string | null;
           minimum_rent_period_months?: number | null;
           neighborhood: string;
           nyumba_verified_at?: string | null;
@@ -1616,6 +1624,10 @@ export type Database = {
           is_verified?: boolean;
           latitude?: number | null;
           longitude?: number | null;
+          location_id?: string | null;
+          county_location_id?: string | null;
+          constituency_location_id?: string | null;
+          ward_location_id?: string | null;
           neighborhood?: string;
           nyumba_verified_at?: string | null;
           organization_id?: string | null;
@@ -2557,6 +2569,73 @@ export type Database = {
           sent_at?: string;
         };
         Relationships: [];
+      };
+      rental_applications: {
+        Row: {
+          created_at: string;
+          id: string;
+          landlord_id: string;
+          landlord_notes: string | null;
+          message: string | null;
+          move_in_date: string | null;
+          property_id: string;
+          share_profile: boolean;
+          status: string;
+          tenant_id: string;
+          tenant_score_percent: number | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          landlord_id: string;
+          landlord_notes?: string | null;
+          message?: string | null;
+          move_in_date?: string | null;
+          property_id: string;
+          share_profile?: boolean;
+          status?: string;
+          tenant_id: string;
+          tenant_score_percent?: number | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          landlord_id?: string;
+          landlord_notes?: string | null;
+          message?: string | null;
+          move_in_date?: string | null;
+          property_id?: string;
+          share_profile?: boolean;
+          status?: string;
+          tenant_id?: string;
+          tenant_score_percent?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rental_applications_landlord_id_fkey";
+            columns: ["landlord_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rental_applications_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rental_applications_tenant_id_fkey";
+            columns: ["tenant_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       viewings: {
         Row: {

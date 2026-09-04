@@ -2,6 +2,7 @@ import {
   DownloadApp,
   LandlordBand,
   PropertyIntelSection,
+  TenantPlusBand,
   Testimonials,
   VerifiedSection,
   WhyNyumba,
@@ -28,6 +29,7 @@ export function LandingMarketingBelowFold({
       <VerifiedSection />
       <PropertyIntelSection stats={intelligenceStats} loading={intelligenceLoading} />
       <WhyNyumba />
+      <TenantPlusBand />
       <Testimonials items={testimonials} loading={testimonialsLoading} />
       <DownloadApp />
       <LandlordBand />

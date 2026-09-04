@@ -25,6 +25,7 @@ function urlEntry(
 function sitemapPriority(path: string): string {
   if (path === "") return "1.0";
   if (path.startsWith("/areas")) return "0.9";
+  if (path.startsWith("/categories")) return "0.88";
   if (path.startsWith("/services")) return "0.85";
   return "0.8";
 }

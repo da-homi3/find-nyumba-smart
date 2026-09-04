@@ -13,10 +13,7 @@ function loadEnv() {
     if (!t || t.startsWith("#") || !t.includes("=")) continue;
     const i = t.indexOf("=");
     let v = t.slice(i + 1).trim();
-    if (
-      (v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))
-    ) {
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
       v = v.slice(1, -1);
     }
     env[t.slice(0, i).trim()] = v;
@@ -57,10 +54,7 @@ async function api(method, path, body) {
 }
 
 // Auth config endpoints vary by API version; try known paths.
-const candidates = [
-  "/config/auth",
-  "/auth/config",
-];
+const candidates = ["/config/auth", "/auth/config"];
 
 let config = null;
 let usedPath = null;
@@ -113,9 +107,7 @@ const patchBody = {
   ...("MAILER_SECURE_EMAIL_CHANGE_ENABLED" in config
     ? { MAILER_SECURE_EMAIL_CHANGE_ENABLED: true }
     : {}),
-  ...("secure_email_change_enabled" in config
-    ? { secure_email_change_enabled: true }
-    : {}),
+  ...("secure_email_change_enabled" in config ? { secure_email_change_enabled: true } : {}),
   ...("mailer_secure_email_change_enabled" in config
     ? { mailer_secure_email_change_enabled: true }
     : {}),

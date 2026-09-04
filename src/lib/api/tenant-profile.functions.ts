@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
-import { computeTenantScore, TENANT_SCORE_RULES, type TenantScoreRule } from "@/lib/tenant/profile-score";
+import { loadTenantProfileBundle } from "@/lib/tenant/profile-bundle";
+import {
+  computeTenantScore,
+  TENANT_SCORE_RULES,
+  type TenantScoreRule,
+} from "@/lib/tenant/profile-score";
 
 function asText(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -96,52 +101,11 @@ async function recordScoreHistory(userId: string, percent: number, reason: strin
 export const getTenantProfileBundle = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = getAuthContext(context);
-    const [{ data: profile }, prefs, types, authUser, rules] = await Promise.all([
-      supabase.from("profiles").select("full_name, phone, avatar_url").eq("id", userId).maybeSingle(),
-      loadPrefs(userId),
-      approvedTypes(userId),
-      supabase.auth.getUser(),
-      loadScoreRules(),
-    ]);
-    const user = authUser.data.user;
-    const locations = asText(prefs?.preferred_locations).trim();
-    const budgetMin = Number(prefs?.budget_min) || 0;
-    const budgetMax = Number(prefs?.budget_max) || 0;
-    const score = computeTenantScore(
-      {
-        phoneVerified: types.has("phone"),
-        emailVerified: Boolean(user?.email_confirmed_at),
-        identityVerified: types.has("identity"),
-        employmentVerified: types.has("employment"),
-        incomeVerified: types.has("income"),
-        tenancyProvided: Boolean(asText(prefs?.previous_tenancy).trim()),
-        hasLocations: locations.length > 0,
-        hasBudget: budgetMin > 0 || budgetMax > 0,
-        hasMoveIn: Boolean(asText(prefs?.move_in_date).trim()),
-        profileComplete: Boolean(profile?.full_name?.trim() && profile?.phone?.trim()),
-      },
-      rules,
-    );
-    void recordScoreHistory(userId, score.percent, "profile_view");
-    return {
-      fullName: profile?.full_name ?? user?.email ?? "Tenant",
-      phone: profile?.phone ?? null,
-      avatarUrl: profile?.avatar_url ?? null,
-      emailVerified: Boolean(user?.email_confirmed_at),
-      prefs: {
-        preferredLocations: locations,
-        budgetMin,
-        budgetMax,
-        bedrooms: Number(prefs?.bedrooms) || 0,
-        propertyType: asText(prefs?.property_type),
-        moveInDate: asText(prefs?.move_in_date),
-        previousTenancy: asText(prefs?.previous_tenancy),
-        shareVisibility: (prefs?.share_visibility as string) === "link" ? "link" : "private",
-        shareToken: (prefs?.share_token as string) || null,
-      },
-      score,
-    };
+    const { userId } = getAuthContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bundle = await loadTenantProfileBundle(supabaseAdmin, userId);
+    void recordScoreHistory(userId, bundle.score.percent, "profile_view");
+    return bundle;
   });
 
 export const updateTenantSearchPrefs = createServerFn({ method: "POST" })
@@ -179,22 +143,24 @@ export const createTenantProfileShare = createServerFn({ method: "POST" })
     const { asLooseDb } = await import("@/lib/db/loose-client");
     const token = `ns_${crypto.randomUUID().replaceAll("-", "")}`;
     const existing = await loadPrefs(userId);
-    const { error } = await asLooseDb(supabaseAdmin).from("tenant_search_profiles").upsert(
-      {
-        user_id: userId,
-        preferred_locations: existing?.preferred_locations ?? "",
-        budget_min: existing?.budget_min ?? 0,
-        budget_max: existing?.budget_max ?? 0,
-        bedrooms: existing?.bedrooms ?? 0,
-        property_type: existing?.property_type ?? "",
-        move_in_date: existing?.move_in_date ?? "",
-        previous_tenancy: existing?.previous_tenancy ?? "",
-        share_visibility: "link",
-        share_token: token,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+    const { error } = await asLooseDb(supabaseAdmin)
+      .from("tenant_search_profiles")
+      .upsert(
+        {
+          user_id: userId,
+          preferred_locations: existing?.preferred_locations ?? "",
+          budget_min: existing?.budget_min ?? 0,
+          budget_max: existing?.budget_max ?? 0,
+          bedrooms: existing?.bedrooms ?? 0,
+          property_type: existing?.property_type ?? "",
+          move_in_date: existing?.move_in_date ?? "",
+          previous_tenancy: existing?.previous_tenancy ?? "",
+          share_visibility: "link",
+          share_token: token,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
     if (error) throw error;
     const { recordProductEventCore } = await import("@/lib/analytics/product-events");
     void recordProductEventCore(userId, "tenant_profile_shared", {});

@@ -12,6 +12,7 @@ import { getCaretakerToken, clearCaretakerToken } from "@/lib/caretaker-session"
 import { Building2, Calendar, ToggleLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { Property } from "@/lib/properties";
+import { optimizeImageUrlForServeMode } from "@/lib/app-client";
 import { BrandLogoLink } from "@/components/BrandLogo";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsLink";
@@ -90,7 +91,11 @@ function CaretakerPropertyCard({
     <div className="rounded-2xl border bg-card p-4">
       <div className="flex items-start gap-3">
         {property.images[0] ? (
-          <img src={property.images[0]} alt="" className="h-16 w-20 rounded-lg object-cover" />
+          <img
+            src={optimizeImageUrlForServeMode(property.images[0])}
+            alt=""
+            className="h-16 w-20 rounded-lg object-cover"
+          />
         ) : (
           <div className="grid h-16 w-20 place-items-center rounded-lg bg-muted">
             <Building2 className="h-6 w-6 text-muted-foreground" />

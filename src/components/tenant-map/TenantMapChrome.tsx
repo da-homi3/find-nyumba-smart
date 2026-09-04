@@ -206,7 +206,7 @@ export function TenantMapChrome({
           {panelOpen ? "Hide panel" : "Show"}
         </button>
         <div className="space-y-3">
-          {filteredProperties.slice(0, 8).map((p) => {
+          {filteredProperties.slice(0, 8).map((p, index) => {
             const preview = isPreviewListing(p);
             return (
               <ListingsPreviewOverlay key={p.id} active={preview} variant="card">
@@ -221,6 +221,8 @@ export function TenantMapChrome({
                       seed={p.id}
                       alt=""
                       className="h-14 w-16 rounded-lg object-cover"
+                      loading={index < 2 ? "eager" : "lazy"}
+                      fetchPriority={index < 2 ? "high" : "auto"}
                     />
                   ) : null}
                   <div className="min-w-0">
@@ -251,6 +253,8 @@ export function TenantMapChrome({
                 seed={selected.id}
                 alt={selected.title}
                 className="h-20 w-24 shrink-0 rounded-xl object-cover"
+                loading="eager"
+                fetchPriority="high"
               />
             ) : (
               <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-muted text-[10px] text-muted-foreground">

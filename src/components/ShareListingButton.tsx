@@ -9,6 +9,7 @@ import {
   facebookShareUrl,
   listingShareText,
   listingShareUrl,
+  listingSocialCaption,
   nativeShareListing,
   smsShareUrl,
   telegramShareUrl,
@@ -20,7 +21,17 @@ import type { Property } from "@/lib/properties";
 type ShareVariant = "icon" | "chip" | "card";
 
 type ShareListingButtonProps = Readonly<{
-  property: Pick<Property, "id" | "title" | "neighborhood" | "rent_kes">;
+  property: Pick<
+    Property,
+    | "id"
+    | "title"
+    | "neighborhood"
+    | "rent_kes"
+    | "property_type"
+    | "bedrooms"
+    | "amenities"
+    | "is_verified"
+  >;
   className?: string;
   /** Gallery-style circular control. */
   variant?: ShareVariant;
@@ -56,10 +67,12 @@ export function ShareListingButton({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedCaption, setCopiedCaption] = useState(false);
 
   const url = listingShareUrl(property.id);
   const text = listingShareText(property);
   const title = property.title || "NyumbaSearch listing";
+  const caption = listingSocialCaption(property);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -91,6 +104,17 @@ export function ShareListingButton({
     setCopied(true);
     toast.success("Link copied — paste it anywhere");
     window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function copyCaption() {
+    const ok = await copyTextToClipboard(caption);
+    if (!ok) {
+      toast.error("Could not copy caption");
+      return;
+    }
+    setCopiedCaption(true);
+    toast.success("Social caption copied — paste into Instagram, TikTok, or Reels");
+    window.setTimeout(() => setCopiedCaption(false), 2000);
   }
 
   async function shareNative() {
@@ -155,6 +179,16 @@ export function ShareListingButton({
       label: copied ? "Copied" : "Copy link",
       onClick: copyLink,
       icon: copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />,
+    },
+    {
+      id: "caption",
+      label: copiedCaption ? "Caption copied" : "Copy caption",
+      onClick: copyCaption,
+      icon: copiedCaption ? (
+        <Check className="h-4 w-4 text-primary" />
+      ) : (
+        <span className="text-[10px] font-bold leading-none">SEO</span>
+      ),
     },
   ];
 

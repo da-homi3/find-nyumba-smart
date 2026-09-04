@@ -7,12 +7,13 @@ import { PlusUpsellBanner } from "@/components/PlusUpsellBanner";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { SiteNav } from "@/components/SiteNav";
+import { SavedSearchesPanel } from "@/components/SavedSearchesPanel";
 import { isPreviewListing, mergeListingsForDisplay } from "@/lib/listings-preview";
 import { buildPageHead } from "@/lib/seo/head";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import type { Property } from "@/lib/properties";
 import { toast } from "sonner";
-import { Heart } from "lucide-react";
+import { Bell, Heart } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import type { MouseEvent } from "react";
 
@@ -99,6 +100,16 @@ function SavedPage() {
       <div className="mx-auto max-w-2xl px-5 pt-6 pb-24 md:pb-8">
         <h1 className="font-display text-2xl font-semibold">Saved homes</h1>
         <p className="text-sm text-muted-foreground">{saved.length} saved</p>
+
+        <section className="mt-6">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" aria-hidden />
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Search alerts
+            </h2>
+          </div>
+          <SavedSearchesPanel userId={user.id} />
+        </section>
 
         {!isPlus && saved.length > 0 && (
           <div className="mt-4">

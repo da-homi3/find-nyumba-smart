@@ -2,15 +2,14 @@ import {
   mobileError,
   mobileJson,
   requireMobileBearer,
-  userHasRole,
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
 import { mapPmError, parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
+import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
-const PORTAL_ROLES = ["landlord", "agency", "manager", "admin"] as const;
 const STAFF_ROLES = [
   "owner",
   "property_manager",
@@ -50,19 +49,12 @@ const PROVIDER_CATEGORIES = [
   "courier",
 ] as const;
 
-async function requirePortalRole(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  for (const role of PORTAL_ROLES) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Portal role required", "FORBIDDEN", 403);
-}
-
 // ── PM complaints ────────────────────────────────────────────────────────────
 
 async function handleListPmComplaints(req: Request, propertyId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -121,7 +113,7 @@ async function handleListPmComplaints(req: Request, propertyId: string): Promise
 async function handleReplyPmComplaint(req: Request, complaintId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ reply?: string }>(req);
@@ -173,7 +165,7 @@ async function handleReplyPmComplaint(req: Request, complaintId: string): Promis
 async function handleMarkComplaintSeen(req: Request, complaintId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -213,7 +205,7 @@ async function handleMarkComplaintSeen(req: Request, complaintId: string): Promi
 async function handleListPmStaff(req: Request, propertyId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -254,7 +246,7 @@ async function handleListPmStaff(req: Request, propertyId: string): Promise<Resp
 async function handleUpsertPmStaff(req: Request, propertyId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ userId?: string; role?: string; email?: string }>(req);

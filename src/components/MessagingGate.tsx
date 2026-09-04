@@ -26,8 +26,8 @@ export function MessagingGate({ children }: Props) {
       <MessageCircle className="mx-auto h-10 w-10 text-muted-foreground" />
       <h3 className="mt-4 font-display text-lg font-semibold">Messaging is a Plus feature</h3>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-        Unlock unlimited contact reveals, scam-risk scores, and in-app messaging with every landlord
-        — KES {PLUS_PLAN.monthlyKes}/mo.
+        Get {PLUS_PLAN.contactCreditsPerMonth} contact credits each month, scam-risk scores, and
+        in-app messaging with landlords — KES {PLUS_PLAN.monthlyKes}/mo.
       </p>
       <ul className="mx-auto mt-4 max-w-sm space-y-1 text-left text-xs text-muted-foreground">
         {PLUS_PLAN.features.slice(0, 4).map((f) => (

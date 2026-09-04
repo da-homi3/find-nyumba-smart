@@ -52,13 +52,21 @@ export function isColdStart(needs: TenantNeeds, behavior: BehaviorSignals): bool
     Boolean(needs.propertyType);
   if (hasPrefs) return false;
   if (!behavior.personalizationEnabled) return true;
-  return behavior.saved.length === 0 && behavior.viewed.length < 3 && behavior.searchedLocations.length === 0;
+  return (
+    behavior.saved.length === 0 &&
+    behavior.viewed.length < 3 &&
+    behavior.searchedLocations.length === 0
+  );
 }
 
 type ScoreChunk = { pts: number; reasons: ReasonCode[] };
 type LocKind = "exact" | "nearby" | "none";
 
-function scoreBudget(property: RecProperty, needs: TenantNeeds, weights: RecommendationWeights): ScoreChunk | null {
+function scoreBudget(
+  property: RecProperty,
+  needs: TenantNeeds,
+  weights: RecommendationWeights,
+): ScoreChunk | null {
   const cap = needs.budgetMax ?? needs.budgetMin;
   if (cap == null || cap <= 0) {
     return { pts: Math.round(weights.budget * 0.4), reasons: [] };
@@ -73,7 +81,11 @@ function scoreBudget(property: RecProperty, needs: TenantNeeds, weights: Recomme
   return { pts: 0, reasons: [] };
 }
 
-function scoreLocation(property: RecProperty, needs: TenantNeeds, weights: RecommendationWeights): ScoreChunk & { loc: LocKind } {
+function scoreLocation(
+  property: RecProperty,
+  needs: TenantNeeds,
+  weights: RecommendationWeights,
+): ScoreChunk & { loc: LocKind } {
   const loc = locationRelation(property.neighborhood, needs.locations);
   if (loc === "exact") {
     return { pts: weights.location, reasons: ["location_match"], loc };
@@ -87,7 +99,11 @@ function scoreLocation(property: RecProperty, needs: TenantNeeds, weights: Recom
   return { pts: 0, reasons: [], loc };
 }
 
-function scoreBedrooms(property: RecProperty, needs: TenantNeeds, weights: RecommendationWeights): ScoreChunk {
+function scoreBedrooms(
+  property: RecProperty,
+  needs: TenantNeeds,
+  weights: RecommendationWeights,
+): ScoreChunk {
   if (needs.bedrooms == null) {
     return { pts: Math.round(weights.bedrooms * 0.4), reasons: [] };
   }
@@ -100,7 +116,11 @@ function scoreBedrooms(property: RecProperty, needs: TenantNeeds, weights: Recom
   return { pts: 0, reasons: [] };
 }
 
-function scorePropertyType(property: RecProperty, needs: TenantNeeds, weights: RecommendationWeights): ScoreChunk {
+function scorePropertyType(
+  property: RecProperty,
+  needs: TenantNeeds,
+  weights: RecommendationWeights,
+): ScoreChunk {
   if (!needs.propertyType) {
     return { pts: Math.round(weights.propertyType * 0.4), reasons: [] };
   }
@@ -110,7 +130,11 @@ function scorePropertyType(property: RecProperty, needs: TenantNeeds, weights: R
   return { pts: 0, reasons: [] };
 }
 
-function scoreAmenities(property: RecProperty, needs: TenantNeeds, weights: RecommendationWeights): ScoreChunk {
+function scoreAmenities(
+  property: RecProperty,
+  needs: TenantNeeds,
+  weights: RecommendationWeights,
+): ScoreChunk {
   if (needs.parkingRequired) {
     if (hasParking(property.amenities)) {
       return { pts: weights.amenities, reasons: ["parking_match"] };
@@ -132,11 +156,20 @@ function scoreAmenities(property: RecProperty, needs: TenantNeeds, weights: Reco
   return { pts: Math.round(weights.amenities * 0.3), reasons: [] };
 }
 
-function scoreMoveIn(property: RecProperty, needs: TenantNeeds, weights: RecommendationWeights, now: number): ScoreChunk {
+function scoreMoveIn(
+  property: RecProperty,
+  needs: TenantNeeds,
+  weights: RecommendationWeights,
+  now: number,
+): ScoreChunk {
   if (needs.moveInDate && property.availableFrom) {
     const want = new Date(needs.moveInDate).getTime();
     const avail = new Date(property.availableFrom).getTime();
-    if (Number.isFinite(want) && Number.isFinite(avail) && avail <= want + 14 * 24 * 60 * 60 * 1000) {
+    if (
+      Number.isFinite(want) &&
+      Number.isFinite(avail) &&
+      avail <= want + 14 * 24 * 60 * 60 * 1000
+    ) {
       return { pts: weights.moveIn, reasons: ["move_in_match"] };
     }
     return { pts: 0, reasons: [] };
@@ -148,7 +181,11 @@ function scoreMoveIn(property: RecProperty, needs: TenantNeeds, weights: Recomme
   return { pts: 0, reasons: [] };
 }
 
-function scoreBehavior(property: RecProperty, behavior: BehaviorSignals, weights: RecommendationWeights): ScoreChunk {
+function scoreBehavior(
+  property: RecProperty,
+  behavior: BehaviorSignals,
+  weights: RecommendationWeights,
+): ScoreChunk {
   let pts = 0;
   const reasons: ReasonCode[] = [];
   if (behavior.personalizationEnabled) {
@@ -161,7 +198,9 @@ function scoreBehavior(property: RecProperty, behavior: BehaviorSignals, weights
       reasons.push("viewed_similar");
     }
   }
-  if (behavior.searchedLocations.some((s) => locationRelation(property.neighborhood, [s]) === "exact")) {
+  if (
+    behavior.searchedLocations.some((s) => locationRelation(property.neighborhood, [s]) === "exact")
+  ) {
     reasons.push("search_match");
     pts = Math.max(pts, Math.round(weights.behavior * 0.5));
   }
@@ -172,7 +211,11 @@ function scoreBehavior(property: RecProperty, behavior: BehaviorSignals, weights
   return { pts, reasons };
 }
 
-function scoreQuality(property: RecProperty, loc: LocKind, weights: RecommendationWeights): ScoreChunk {
+function scoreQuality(
+  property: RecProperty,
+  loc: LocKind,
+  weights: RecommendationWeights,
+): ScoreChunk {
   let pts = 0;
   const reasons: ReasonCode[] = [];
   if (property.isVerified) {
@@ -185,10 +228,15 @@ function scoreQuality(property: RecProperty, loc: LocKind, weights: Recommendati
   return { pts, reasons };
 }
 
-function scoreFreshness(property: RecProperty, weights: RecommendationWeights, now: number): ScoreChunk {
+function scoreFreshness(
+  property: RecProperty,
+  weights: RecommendationWeights,
+  now: number,
+): ScoreChunk {
   const ageDays = daysAgo(property.createdAt, now);
   if (ageDays <= 3) return { pts: weights.freshness, reasons: ["new_listing"] };
-  if (ageDays <= weights.freshnessDays) return { pts: Math.round(weights.freshness * 0.5), reasons: [] };
+  if (ageDays <= weights.freshnessDays)
+    return { pts: Math.round(weights.freshness * 0.5), reasons: [] };
   return { pts: 0, reasons: [] };
 }
 
@@ -217,7 +265,17 @@ export function scoreProperty(
   const quality = scoreQuality(property, location.loc, weights);
   const freshness = scoreFreshness(property, weights, now);
 
-  const chunks = [budget, location, bedrooms, type, amenities, moveIn, behaviorScore, quality, freshness];
+  const chunks = [
+    budget,
+    location,
+    bedrooms,
+    type,
+    amenities,
+    moveIn,
+    behaviorScore,
+    quality,
+    freshness,
+  ];
   const reasons = chunks.flatMap((chunk) => chunk.reasons);
   const totalWeight =
     weights.budget +
@@ -316,8 +374,12 @@ export function buildShelves(input: {
   const viewedIds = new Set(input.behavior.viewed.map((p) => p.id));
   const scoped = Boolean(input.ownerScope);
 
-  const becauseSaved = ranked.filter((item) => item.reasonCodes.includes("saved_similar") && !savedIds.has(item.propertyId));
-  const becauseViewed = ranked.filter((item) => item.reasonCodes.includes("viewed_similar") && !viewedIds.has(item.propertyId));
+  const becauseSaved = ranked.filter(
+    (item) => item.reasonCodes.includes("saved_similar") && !savedIds.has(item.propertyId),
+  );
+  const becauseViewed = ranked.filter(
+    (item) => item.reasonCodes.includes("viewed_similar") && !viewedIds.has(item.propertyId),
+  );
   const searchMatch = ranked.filter((item) => item.reasonCodes.includes("search_match"));
   const nearby = ranked.filter((item) => item.reasonCodes.includes("near_preferred_location"));
   const fresh = ranked.filter((item) => item.reasonCodes.includes("new_listing"));
@@ -354,7 +416,14 @@ export function buildShelves(input: {
     return shelves.slice(0, 5);
   }
   push("based_on_your_search", "Based on your search", null, false, searchMatch, "search_match");
-  push("because_you_saved", "Because you saved", "You may also like", true, becauseSaved, "because_saved");
+  push(
+    "because_you_saved",
+    "Because you saved",
+    "You may also like",
+    true,
+    becauseSaved,
+    "because_saved",
+  );
   push("because_you_viewed", "Because you viewed", null, true, becauseViewed, "because_viewed");
   push("similar_to_shortlist", "Similar to your shortlist", null, false, becauseSaved, "similar");
   push("new_in_your_areas", "New in your areas", "Just listed", true, fresh, "new_listing");
@@ -395,7 +464,14 @@ export function buildShelves(input: {
       newRentKes: drop.newRent,
     });
   }
-  push("price_drops", "Price drops", "A saved or viewed home reduced its rent", true, dropItems, "price_drop");
+  push(
+    "price_drops",
+    "Price drops",
+    "A saved or viewed home reduced its rent",
+    true,
+    dropItems,
+    "price_drop",
+  );
   push(
     "you_may_have_missed",
     "Homes you may have missed",
@@ -442,11 +518,12 @@ export function moreLikeThis(
     if (property.id === source.id) continue;
     const item = scoreProperty(property, needs, behavior, weights);
     if (!item) continue;
-    const core = item.reasonCodes.some((code) =>
-      code === "location_match" ||
-      code === "near_preferred_location" ||
-      code === "bedroom_match" ||
-      code === "property_type_match",
+    const core = item.reasonCodes.some(
+      (code) =>
+        code === "location_match" ||
+        code === "near_preferred_location" ||
+        code === "bedroom_match" ||
+        code === "property_type_match",
     );
     if (!core) continue;
     const sameOwner = Boolean(source.ownerId && property.ownerId === source.ownerId);

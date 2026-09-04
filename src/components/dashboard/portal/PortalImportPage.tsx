@@ -212,114 +212,116 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
 
       {listingBlocked && !entitlementsLoading ? null : (
         <>
-      <section className="rounded-2xl border bg-card p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-              <FileSpreadsheet className="h-5 w-5" />
+          <section className="rounded-2xl border bg-card p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <FileSpreadsheet className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-semibold">CSV upload</h2>
+                  <p className="text-xs text-muted-foreground">Max ~5 MB · UTF-8 comma-separated</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={downloadTemplate}
+                className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold"
+              >
+                <Download className="h-4 w-4" /> Template
+              </button>
             </div>
-            <div>
-              <h2 className="font-semibold">CSV upload</h2>
-              <p className="text-xs text-muted-foreground">Max ~5 MB · UTF-8 comma-separated</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={downloadTemplate}
-            className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold"
-          >
-            <Download className="h-4 w-4" /> Template
-          </button>
-        </div>
 
-        <FileDropZone
-          className="mt-6"
-          accept=".csv,text/csv"
-          disabled={busy}
-          uploadProgress={dropProgress}
-          uploadLabel={csvUploadLabel(importMutation.isPending, previewMutation.isPending)}
-          title="Drop your CSV here"
-          hint={filename}
-          icon={<FileSpreadsheet className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
-          onFiles={(files) => {
-            const file = files[0];
-            if (file) void processCsvFile(file);
-          }}
-        />
+            <FileDropZone
+              className="mt-6"
+              accept=".csv,text/csv"
+              disabled={busy}
+              uploadProgress={dropProgress}
+              uploadLabel={csvUploadLabel(importMutation.isPending, previewMutation.isPending)}
+              title="Drop your CSV here"
+              hint={filename}
+              icon={<FileSpreadsheet className="h-8 w-8 text-primary sm:h-9 sm:w-9" />}
+              onFiles={(files) => {
+                const file = files[0];
+                if (file) void processCsvFile(file);
+              }}
+            />
 
-        <p className="mt-4 text-xs text-muted-foreground">
-          Columns: title, neighborhood, rent_kes, bedrooms, bathrooms, property_type, description,
-          contact_phone. Property type examples include{" "}
-          <code className="rounded bg-muted px-1">one_bedroom</code>
-          <span> and </span>
-          <code className="rounded bg-muted px-1">bedsitter</code>.
-        </p>
-      </section>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Columns: title, neighborhood, rent_kes, bedrooms, bathrooms, property_type,
+              description, contact_phone. Property type examples include{" "}
+              <code className="rounded bg-muted px-1">one_bedroom</code>
+              <span> and </span>
+              <code className="rounded bg-muted px-1">bedsitter</code>.
+            </p>
+          </section>
 
-      {preview && (
-        <section className="rounded-2xl border bg-card p-6">
-          <h2 className="font-semibold">Preview — {preview.filename}</h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <Stat label="Total rows" value={preview.totalRows} />
-            <Stat label="Valid" value={preview.validCount} />
-            <Stat label="Errors" value={preview.errorCount} />
-            <Stat label="Duplicates" value={preview.duplicateCount} />
-          </div>
+          {preview && (
+            <section className="rounded-2xl border bg-card p-6">
+              <h2 className="font-semibold">Preview — {preview.filename}</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <Stat label="Total rows" value={preview.totalRows} />
+                <Stat label="Valid" value={preview.validCount} />
+                <Stat label="Errors" value={preview.errorCount} />
+                <Stat label="Duplicates" value={preview.duplicateCount} />
+              </div>
 
-          {preview.preview.length > 0 && (
-            <div className="mt-4 overflow-x-auto rounded-xl border">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-secondary text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2">Title</th>
-                    <th className="px-3 py-2">Area</th>
-                    <th className="px-3 py-2">Rent</th>
-                    <th className="px-3 py-2">Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.preview.map((row) => (
-                    <tr key={`${row.title}-${row.neighborhood}`} className="border-t">
-                      <td className="px-3 py-2 font-medium">{row.title}</td>
-                      <td className="px-3 py-2">{row.neighborhood}</td>
-                      <td className="px-3 py-2">{formatKes(row.rent_kes)}</td>
-                      <td className="px-3 py-2">{row.property_type}</td>
-                    </tr>
+              {preview.preview.length > 0 && (
+                <div className="mt-4 overflow-x-auto rounded-xl border">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-secondary text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2">Title</th>
+                        <th className="px-3 py-2">Area</th>
+                        <th className="px-3 py-2">Rent</th>
+                        <th className="px-3 py-2">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.preview.map((row) => (
+                        <tr key={`${row.title}-${row.neighborhood}`} className="border-t">
+                          <td className="px-3 py-2 font-medium">{row.title}</td>
+                          <td className="px-3 py-2">{row.neighborhood}</td>
+                          <td className="px-3 py-2">{formatKes(row.rent_kes)}</td>
+                          <td className="px-3 py-2">{row.property_type}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {preview.errors.length > 0 && (
+                <ul className="mt-4 space-y-1 text-xs text-destructive">
+                  {preview.errors.slice(0, 10).map((e) => (
+                    <li key={`${e.rowIndex}-${e.reason}`}>
+                      Row {e.rowIndex}: {e.reason}
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </ul>
+              )}
 
-          {preview.errors.length > 0 && (
-            <ul className="mt-4 space-y-1 text-xs text-destructive">
-              {preview.errors.slice(0, 10).map((e) => (
-                <li key={`${e.rowIndex}-${e.reason}`}>
-                  Row {e.rowIndex}: {e.reason}
-                </li>
-              ))}
-            </ul>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={preview.validCount === 0 || importMutation.isPending}
+                  onClick={() => importMutation.mutate()}
+                  className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                >
+                  {importMutation.isPending
+                    ? "Importing…"
+                    : `Import ${preview.validCount} listings`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreview(null)}
+                  className="rounded-xl border px-5 py-2.5 text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </section>
           )}
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled={preview.validCount === 0 || importMutation.isPending}
-              onClick={() => importMutation.mutate()}
-              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {importMutation.isPending ? "Importing…" : `Import ${preview.validCount} listings`}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreview(null)}
-              className="rounded-xl border px-5 py-2.5 text-sm font-semibold"
-            >
-              Cancel
-            </button>
-          </div>
-        </section>
-      )}
         </>
       )}
 

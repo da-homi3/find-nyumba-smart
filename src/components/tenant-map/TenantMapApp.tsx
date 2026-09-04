@@ -14,7 +14,11 @@ import { hasMapboxTokenSync, resolveMapboxToken, useTenantMapbox } from "@/hooks
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 import { canUseWebGl, mapLoadTimeoutMs } from "@/lib/mapbox/map-device";
 import { mergeListingsForDisplay } from "@/lib/listings-preview";
-import { createPlaceFocus, type MapPlaceFocus, type LocationSearchResult } from "@/lib/geo/location-search";
+import {
+  createPlaceFocus,
+  type MapPlaceFocus,
+  type LocationSearchResult,
+} from "@/lib/geo/location-search";
 
 const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -65,9 +69,7 @@ export function TenantMapApp() {
   const listingFilters = useMemo(
     () => ({
       ...MAP_LISTINGS_FILTERS,
-      ...(placeBounds
-        ? { bounds: placeBounds, limit: Math.max(MAP_LISTINGS_LIMIT, 200) }
-        : {}),
+      ...(placeBounds ? { bounds: placeBounds, limit: Math.max(MAP_LISTINGS_LIMIT, 200) } : {}),
     }),
     [placeBounds],
   );

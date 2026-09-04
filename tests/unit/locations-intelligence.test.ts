@@ -58,9 +58,9 @@ describe("location normalize", () => {
       countyHint: null,
       alternates: ["tangaza university"],
     });
-    expect(parsePlaceQuery("Thindigua along kiambu road").alternates.map((a) => a.toLowerCase())).toContain(
-      "kiambu road",
-    );
+    expect(
+      parsePlaceQuery("Thindigua along kiambu road").alternates.map((a) => a.toLowerCase()),
+    ).toContain("kiambu road");
     expect(parsePlaceQuery("87, waiyaki way").place.toLowerCase()).toBe("waiyaki way");
     expect(parsePlaceQuery("Along waiyaki way").place.toLowerCase()).toBe("waiyaki way");
     expect(parsePlaceQuery("Bogani road, karen").alternates.map((a) => a.toLowerCase())).toContain(
@@ -177,8 +177,6 @@ describe("location match tiers", () => {
       }),
     ).toBe("near");
 
-    expect(
-      compareByLocationTier({ tier: "inside" }, { tier: "near" }),
-    ).toBeLessThan(0);
+    expect(compareByLocationTier({ tier: "inside" }, { tier: "near" })).toBeLessThan(0);
   });
 });

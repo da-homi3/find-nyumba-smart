@@ -112,7 +112,7 @@ export function PmRentPage({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const invoices: PmInvoice[] = invoicesQ.data ?? [];
+  const invoices = useMemo(() => invoicesQ.data ?? [], [invoicesQ.data]);
   const claims = (claimsQ.data ?? []) as PmPaymentClaim[];
 
   const totals = useMemo(() => {
@@ -204,11 +204,7 @@ export function PmRentPage({
             </thead>
             <tbody>
               {invoices.map((inv) => {
-                const balance = rentBalanceRemaining(
-                  inv.amount_due,
-                  inv.amount_paid,
-                  inv.late_fee,
-                );
+                const balance = rentBalanceRemaining(inv.amount_due, inv.amount_paid, inv.late_fee);
                 const totalDue = inv.amount_due + inv.late_fee;
                 const smsPays = (inv.payments ?? []).filter((p) => p.method === "mpesa_sms");
                 return (
@@ -226,12 +222,13 @@ export function PmRentPage({
                           {smsPays.map((p) => {
                             const snip = smsSnippet(p.note);
                             return (
-                              <div key={p.id} className="rounded-md bg-muted/50 px-2 py-1.5 text-xs">
+                              <div
+                                key={p.id}
+                                className="rounded-md bg-muted/50 px-2 py-1.5 text-xs"
+                              >
                                 <div className="font-medium text-foreground">
                                   Pasted SMS · {formatKes(p.amount)}
-                                  {p.mpesa_receipt_number
-                                    ? ` · ${p.mpesa_receipt_number}`
-                                    : ""}
+                                  {p.mpesa_receipt_number ? ` · ${p.mpesa_receipt_number}` : ""}
                                 </div>
                                 {snip ? (
                                   <>

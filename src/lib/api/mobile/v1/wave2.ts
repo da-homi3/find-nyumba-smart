@@ -1,5 +1,6 @@
 import { parseUuid, parseJsonBody } from "@/lib/api/mobile/v1/helpers";
 import type { Database } from "@/integrations/supabase/types";
+import { assertListerRole } from "@/lib/api/mobile/v1/guards";
 import {
   mobileError,
   mobileJson,
@@ -8,21 +9,13 @@ import {
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
 
-const LISTER_ROLES = ["landlord", "agency", "manager"] as const;
 type AppRole = Database["public"]["Enums"]["app_role"];
 
 const ACTIVE_PORTALS = ["tenant", "landlord", "agency", "manager", "admin", "caretaker"] as const;
 type ActivePortal = (typeof ACTIVE_PORTALS)[number];
 
 const PROPERTY_LIST_SELECT =
-  "id, title, description, rent_kes, deposit_kes, is_active, is_vacant, neighborhood, address, property_type, bedrooms, bathrooms, amenities, images, video_url, tour_url, authenticity_score, owner_id, organization_id, location_id, updated_at, created_at";
-
-async function requireListerRole(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  for (const role of LISTER_ROLES) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Lister role required", "FORBIDDEN", 403);
-}
+  "id, title, description, rent_kes, deposit_kes, is_active, is_vacant, neighborhood, address, latitude, longitude, property_type, bedrooms, bathrooms, amenities, images, video_url, tour_url, authenticity_score, owner_id, organization_id, location_id, updated_at, created_at";
 
 async function isAdminUser(admin: MobileAdmin, userId: string): Promise<boolean> {
   return userHasRole(admin, userId, "admin");
@@ -58,7 +51,7 @@ async function handleListProperties(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
 
-  const roleErr = await requireListerRole(auth.admin, auth.userId);
+  const roleErr = await assertListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const { data: rows, error } = await auth.admin
@@ -262,6 +255,51 @@ function buildPropertyPatch(body: PropertyPatchBody): PropertyUpdate | Response 
   return patch;
 }
 
+async function maybeRecordPriceDrop(
+  admin: MobileAdmin,
+  propertyId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  if (typeof patch.rent_kes !== "number") return;
+  const { data: before } = await admin
+    .from("properties")
+    .select("rent_kes, title, neighborhood, bedrooms")
+    .eq("id", propertyId)
+    .maybeSingle();
+  if (!before || patch.rent_kes >= before.rent_kes) return;
+  void import("@/lib/recommendations/price-history").then(({ recordPropertyPriceChange }) =>
+    recordPropertyPriceChange({
+      propertyId,
+      previousRent: before.rent_kes,
+      newRent: patch.rent_kes as number,
+      title: before.title,
+      neighborhood: before.neighborhood,
+      bedrooms: before.bedrooms,
+    }).catch((err) => console.warn("[wave2] price drop:", err)),
+  );
+}
+
+async function maybeAttachLocationAfterPatch(
+  admin: MobileAdmin,
+  propertyId: string,
+  body: PropertyPatchBody,
+  patch: Record<string, unknown>,
+  row: { neighborhood?: string | null; latitude?: number | null; longitude?: number | null },
+): Promise<void> {
+  if (typeof patch.neighborhood !== "string" && typeof body.location_id !== "string") return;
+  const locationId = typeof body.location_id === "string" ? parseUuid(body.location_id) : null;
+  let neighborhood = "";
+  if (typeof patch.neighborhood === "string") neighborhood = patch.neighborhood;
+  else if (typeof row.neighborhood === "string") neighborhood = row.neighborhood;
+  if (!neighborhood && !locationId) return;
+  const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
+  await attachPropertyLocationFks(admin, propertyId, neighborhood, {
+    locationId,
+    latitude: typeof row.latitude === "number" ? row.latitude : null,
+    longitude: typeof row.longitude === "number" ? row.longitude : null,
+  });
+}
+
 async function handlePatchProperty(req: Request, propertyId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
@@ -275,25 +313,7 @@ async function handlePatchProperty(req: Request, propertyId: string): Promise<Re
   const patch = buildPropertyPatch(body);
   if (patch instanceof Response) return patch;
 
-  if (typeof patch.rent_kes === "number") {
-    const { data: before } = await auth.admin
-      .from("properties")
-      .select("rent_kes, title, neighborhood, bedrooms")
-      .eq("id", propertyId)
-      .maybeSingle();
-    if (before && patch.rent_kes < before.rent_kes) {
-      void import("@/lib/recommendations/price-history").then(({ recordPropertyPriceChange }) =>
-        recordPropertyPriceChange({
-          propertyId,
-          previousRent: before.rent_kes,
-          newRent: patch.rent_kes as number,
-          title: before.title,
-          neighborhood: before.neighborhood,
-          bedrooms: before.bedrooms,
-        }).catch((err) => console.warn("[wave2] price drop:", err)),
-      );
-    }
-  }
+  await maybeRecordPriceDrop(auth.admin, propertyId, patch);
 
   const { data: row, error } = await auth.admin
     .from("properties")
@@ -307,24 +327,7 @@ async function handlePatchProperty(req: Request, propertyId: string): Promise<Re
     return mobileError("Could not update property", "PROPERTY_ERROR", 500);
   }
 
-  if (typeof patch.neighborhood === "string" || typeof body.location_id === "string") {
-    const locationId =
-      typeof body.location_id === "string" ? parseUuid(body.location_id) : null;
-    const neighborhood =
-      typeof patch.neighborhood === "string"
-        ? patch.neighborhood
-        : typeof row.neighborhood === "string"
-          ? row.neighborhood
-          : "";
-    if (neighborhood || locationId) {
-      const { attachPropertyLocationFks } = await import("@/lib/locations/attach-property");
-      await attachPropertyLocationFks(auth.admin, propertyId, neighborhood, {
-        locationId,
-        latitude: typeof row.latitude === "number" ? row.latitude : null,
-        longitude: typeof row.longitude === "number" ? row.longitude : null,
-      });
-    }
-  }
+  await maybeAttachLocationAfterPatch(auth.admin, propertyId, body, patch, row);
 
   return mobileJson({ apiVersion: "v1", property: row });
 }
@@ -380,7 +383,7 @@ async function handleListPmProperties(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
 
-  const roleErr = await requireListerRole(auth.admin, auth.userId);
+  const roleErr = await assertListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {

@@ -7,6 +7,7 @@ import {
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
 import { parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
+import { assertAgencyOrManagerRole } from "@/lib/api/mobile/v1/guards";
 import {
   RATE_LIMITS,
   checkRateLimit,
@@ -37,15 +38,6 @@ async function findAuthUserByEmail(admin: MobileAdmin, email: string) {
     page += 1;
   }
   return null;
-}
-
-async function requireAgencyOrManager(
-  admin: MobileAdmin,
-  userId: string,
-): Promise<Response | null> {
-  if (await userHasRole(admin, userId, "agency" as AppRole)) return null;
-  if (await userHasRole(admin, userId, "manager" as AppRole)) return null;
-  return mobileError("Agency or manager role required", "FORBIDDEN", 403);
 }
 
 async function getOrgIdForUser(admin: MobileAdmin, userId: string): Promise<string | null> {
@@ -298,7 +290,7 @@ async function handleOrgMembership(req: Request): Promise<Response> {
 async function handleListOrgTeam(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requireAgencyOrManager(auth.admin, auth.userId);
+  const roleErr = await assertAgencyOrManagerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const orgId = await getOrgIdForUser(auth.admin, auth.userId);
@@ -461,7 +453,7 @@ async function sendOrgTeamInviteNotify(params: {
 async function handleInviteOrgTeam(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requireAgencyOrManager(auth.admin, auth.userId);
+  const roleErr = await assertAgencyOrManagerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ email?: string; fullName?: string }>(req);
@@ -513,7 +505,7 @@ async function handleInviteOrgTeam(req: Request): Promise<Response> {
 async function handleApproveOrgTeam(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requireAgencyOrManager(auth.admin, auth.userId);
+  const roleErr = await assertAgencyOrManagerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ memberUserId?: string }>(req);
@@ -565,7 +557,7 @@ async function handleApproveOrgTeam(req: Request): Promise<Response> {
 async function handleRevokeOrgTeam(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requireAgencyOrManager(auth.admin, auth.userId);
+  const roleErr = await assertAgencyOrManagerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ memberUserId?: string }>(req);

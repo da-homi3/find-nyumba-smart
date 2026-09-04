@@ -1,28 +1,13 @@
-import type { Database } from "@/integrations/supabase/types";
 import {
   mobileError,
   mobileJson,
   requireMobileBearer,
-  userHasRole,
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
 import { parseJsonBody, parseUuid } from "@/lib/api/mobile/v1/helpers";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
+import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 
 const PORTAL_APPLY_ROLES = ["landlord", "manager", "agency"] as const;
-const DASHBOARD_ROLES = ["landlord", "agency", "manager", "admin"] as const;
-
-async function requireAnyRole(
-  admin: MobileAdmin,
-  userId: string,
-  roles: readonly string[],
-): Promise<Response | null> {
-  for (const role of roles) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Portal role required", "FORBIDDEN", 403);
-}
 
 // ── Payments / billing history ───────────────────────────────────────────────
 
@@ -70,7 +55,7 @@ async function handleLandlordDashboard(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
 
-  const roleErr = await requireAnyRole(auth.admin, auth.userId, DASHBOARD_ROLES);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const [{ data: properties, error: propertiesError }, { data: leads, error: leadsError }] =

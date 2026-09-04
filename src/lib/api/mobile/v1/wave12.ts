@@ -1,4 +1,5 @@
 import { mobileError, mobileJson, requireMobileBearer } from "@/lib/api/mobile/v1/auth";
+import { requireTenantMobile } from "@/lib/api/mobile/v1/guards";
 import { parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
 
 type PortalListerRole = "landlord" | "manager" | "agency";
@@ -411,7 +412,7 @@ function validateInvoicePayableAmount(
 }
 
 async function handleRentSmsClaim(req: Request): Promise<Response> {
-  const auth = await requireMobileBearer(req);
+  const auth = await requireTenantMobile(req);
   if (auth instanceof Response) return auth;
 
   const body = await parseJsonBody<RentSmsClaimBody>(req);

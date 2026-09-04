@@ -94,8 +94,14 @@ const API_META = "https://www.geoboundaries.org/api/current/gbOpen/KEN/ADM1/";
 function toMediaUrl(githubRawUrl) {
   // GitHub stores large geoBoundaries files in LFS; media.githubusercontent.com serves bytes.
   return String(githubRawUrl)
-    .replace("https://github.com/wmgeolab/geoBoundaries/raw/", "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/")
-    .replace("https://raw.githubusercontent.com/wmgeolab/geoBoundaries/", "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/");
+    .replace(
+      "https://github.com/wmgeolab/geoBoundaries/raw/",
+      "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/",
+    )
+    .replace(
+      "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/",
+      "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/",
+    );
 }
 
 async function fetchText(url, ms = 180000) {
@@ -158,9 +164,13 @@ async function loadGeojson() {
 }
 
 const env = loadEnv();
-const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const admin = createClient(
+  env.SUPABASE_URL ?? env.VITE_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false },
+  },
+);
 
 await admin.from("location_sources").upsert(
   {

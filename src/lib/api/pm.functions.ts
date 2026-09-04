@@ -647,10 +647,7 @@ export const createPmLease = createServerFn({ method: "POST" })
               .eq("id", unitRow.property_id)
               .maybeSingle()
           : { data: null };
-        const place = [
-          propertyRow?.name,
-          unitRow?.unit_label ? `Unit ${unitRow.unit_label}` : null,
-        ]
+        const place = [propertyRow?.name, unitRow?.unit_label ? `Unit ${unitRow.unit_label}` : null]
           .filter(Boolean)
           .join(" · ");
         const { notifyUser } = await import("@/lib/notifications/notify-user");
@@ -1169,11 +1166,7 @@ export const updatePmInvoiceAmountDue = createServerFn({ method: "POST" })
     }
 
     const { invoiceStatusAfterPayment } = await import("@/lib/pm/invoice-status");
-    const status = invoiceStatusAfterPayment(
-      data.amountDue,
-      paid,
-      Number(invoice.late_fee ?? 0),
-    );
+    const status = invoiceStatusAfterPayment(data.amountDue, paid, Number(invoice.late_fee ?? 0));
 
     const { error } = await admin
       .from("pm_rent_invoices")

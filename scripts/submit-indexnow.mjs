@@ -18,18 +18,13 @@ const SITE = (
   "https://nyumbasearch.com"
 ).replace(/\/$/, "");
 
-const staticRoutes = JSON.parse(
-  readFileSync(join(root, "src/lib/seo/staticRoutes.json"), "utf8"),
-);
+const staticRoutes = JSON.parse(readFileSync(join(root, "src/lib/seo/staticRoutes.json"), "utf8"));
 
 function priorityUrls() {
   const marketing = (staticRoutes.sitemapPaths ?? []).filter(
     (path) => path !== "/areas" && !String(path).startsWith("/areas/"),
   );
-  const areas = [
-    "/areas",
-    ...(staticRoutes.geoAreas ?? []).map((area) => `/areas/${area.slug}`),
-  ];
+  const areas = ["/areas", ...(staticRoutes.geoAreas ?? []).map((area) => `/areas/${area.slug}`)];
   const services = (staticRoutes.serviceCategories ?? [])
     .slice(0, 12)
     .map((slug) => `/services/${slug}`);
@@ -69,10 +64,7 @@ const payload = {
   urlList,
 };
 
-const endpoints = [
-  "https://api.indexnow.org/indexnow",
-  "https://www.bing.com/indexnow",
-];
+const endpoints = ["https://api.indexnow.org/indexnow", "https://www.bing.com/indexnow"];
 
 let ok = 0;
 for (const endpoint of endpoints) {

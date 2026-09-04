@@ -239,26 +239,22 @@ export const sendInquiryMessageSchema = z.object({
 export const inquiryIdSchema = z.object({ inquiryId: z.string().uuid() });
 
 type PropertyRow = Database["public"]["Tables"]["properties"]["Row"];
-type PropertyRowInput = Omit<
-  PropertyRow,
-  | "organization_id"
-  | "owner_id"
-  | "contact_phone"
-  | "contact_phones"
-  | "contact_name"
-  | "whatsapp_inquiries"
-  | "duplicate_hash"
-  | "import_batch_id"
-> & {
-  organization_id?: string | null;
-  owner_id?: string | null;
-  contact_phone?: string | null;
-  contact_phones?: string[] | null;
-  contact_name?: string | null;
-  whatsapp_inquiries?: boolean | null;
-  duplicate_hash?: string | null;
-  import_batch_id?: string | null;
-};
+export type PropertyRowInput = Partial<PropertyRow> &
+  Pick<
+    PropertyRow,
+    | "id"
+    | "title"
+    | "property_type"
+    | "neighborhood"
+    | "latitude"
+    | "longitude"
+    | "rent_kes"
+    | "bedrooms"
+    | "bathrooms"
+    | "is_verified"
+    | "is_active"
+    | "created_at"
+  >;
 
 export function mapPropertyRow(row: PropertyRowInput): Property {
   const parsedType = propertyTypeSchema.safeParse(row.property_type);

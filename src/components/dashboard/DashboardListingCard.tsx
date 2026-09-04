@@ -7,6 +7,7 @@ import { formatKes, type Property } from "@/lib/properties";
 import { getListingStatusConfig } from "@/lib/design/status";
 import { MOTION_DURATION, MOTION_EASE } from "@/lib/design/motion";
 import { listingPlaceholderUrl } from "@/lib/property-images";
+import { optimizeImageUrlForServeMode } from "@/lib/app-client";
 
 type PortalKind = "landlord" | "agency" | "manager";
 
@@ -62,7 +63,9 @@ export function DashboardListingCard({
   const config = getListingStatusConfig(listing);
   const reduceMotion = useReducedMotion();
   const paths = PORTAL_PATHS[portal];
-  const thumb = listing.images[0] ?? listingPlaceholderUrl(listing.id);
+  const thumb = optimizeImageUrlForServeMode(
+    listing.images[0] ?? listingPlaceholderUrl(listing.id),
+  );
   const isBoosted =
     !!listing.boost_package ||
     (listing.featured_until && new Date(listing.featured_until) > new Date());

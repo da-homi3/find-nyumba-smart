@@ -1,25 +1,8 @@
-import type { Database } from "@/integrations/supabase/types";
-import {
-  mobileError,
-  mobileJson,
-  requireMobileBearer,
-  userHasRole,
-  type MobileAdmin,
-} from "@/lib/api/mobile/v1/auth";
+import { mobileError, mobileJson, requireMobileBearer } from "@/lib/api/mobile/v1/auth";
 import { parseJsonBody, parseUuid } from "@/lib/api/mobile/v1/helpers";
+import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 
-type AppRole = Database["public"]["Enums"]["app_role"];
-
-const PORTAL_ROLES = ["landlord", "agency", "manager", "admin"] as const;
 const DESTINATION_TYPES = ["mpesa_paybill", "mpesa_till", "mpesa_phone", "bank_account"] as const;
-
-async function requirePortalRole(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  for (const role of PORTAL_ROLES) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Portal role required", "FORBIDDEN", 403);
-}
-
 async function caretakerHash(value: string): Promise<string> {
   const secret =
     process.env.CARETAKER_SESSION_SECRET?.trim() ||
@@ -44,7 +27,7 @@ function generatePin(): string {
 async function handleListCaretakers(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const { data: caretakers, error } = await auth.admin
@@ -90,7 +73,7 @@ async function handleListCaretakers(req: Request): Promise<Response> {
 async function handleCreateCaretaker(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{
@@ -156,7 +139,7 @@ async function handleCreateCaretaker(req: Request): Promise<Response> {
 async function handleRegeneratePin(req: Request, caretakerId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -181,7 +164,7 @@ async function handleRegeneratePin(req: Request, caretakerId: string): Promise<R
 async function handleRevokeCaretaker(req: Request, caretakerId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const { data, error } = await auth.admin
@@ -203,7 +186,7 @@ async function handleRevokeCaretaker(req: Request, caretakerId: string): Promise
 async function handleListPayouts(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -226,7 +209,7 @@ async function handleListPayouts(req: Request): Promise<Response> {
 async function handleListPayoutBatches(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -385,7 +368,7 @@ function buildPayoutInsertRow(
 async function handleCreatePayout(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<PayoutCreateBody>(req);
@@ -440,7 +423,7 @@ async function handleCreatePayout(req: Request): Promise<Response> {
 async function handleDeactivatePayout(req: Request, destinationId: string): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {
@@ -465,7 +448,7 @@ async function handleDeactivatePayout(req: Request, destinationId: string): Prom
 async function handlePayoutOtpRequest(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ phone?: string }>(req);
@@ -502,7 +485,7 @@ async function handlePayoutOtpRequest(req: Request): Promise<Response> {
 async function handlePayoutOtpConfirm(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<{ phone?: string; code?: string }>(req);

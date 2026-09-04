@@ -11,6 +11,7 @@ import { RecentlyViewedStrip } from "@/components/RecentlyViewedStrip";
 import { RecommendationHome } from "@/components/recommendations/RecommendationHome";
 import heroImg from "@/assets/hero-nairobi-apartments.webp";
 import { TenantFiltersBar, type TenantFilters } from "@/components/TenantFiltersBar";
+import { SaveSearchAlertButton } from "@/components/SaveSearchAlertButton";
 import { EmptyState } from "@/components/EmptyState";
 import {
   defaultTenantFilters,
@@ -51,6 +52,7 @@ import {
 import { buildPageHead } from "@/lib/seo/head";
 import { areaFromName, areaPathForName } from "@/lib/seo/areas";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
+import { parseNlSearchQuery } from "@/lib/search/nl-query-parser";
 
 const tenantSearchSchema = z.object({
   neighborhood: z.string().optional(),
@@ -116,7 +118,8 @@ function filtersFromSearch(search: z.infer<typeof tenantSearchSchema>): TenantFi
   const types = search.type ? [search.type as PropertyType] : [];
   const neighborhood = search.neighborhood ?? "All";
   const listingPurpose = search.purpose ?? "all";
-  const scopeFilterActive = types.length > 0 || neighborhood !== "All" || Boolean(search.locationId);
+  const scopeFilterActive =
+    types.length > 0 || neighborhood !== "All" || Boolean(search.locationId);
   return {
     ...defaultTenantFilters,
     minRent: scopeFilterActive ? 0 : defaultTenantFilters.minRent,
@@ -197,6 +200,16 @@ function TenantHome() {
   const qc = useQueryClient();
   const [q, setQ] = useState(search.q ?? "");
   const debouncedQ = useDebouncedValue(q, 400);
+  const nlParsed = useMemo(() => {
+    const trimmed = debouncedQ.trim();
+    if (trimmed.length < 6) return null;
+    const looksNl =
+      /\b(under|below|bed(room)?|br|in|near|verified|parking|rent|sale|from|over)\b/i.test(
+        trimmed,
+      ) || trimmed.split(/\s+/).length >= 4;
+    if (!looksNl) return null;
+    return parseNlSearchQuery(trimmed);
+  }, [debouncedQ]);
   const [page, setPage] = useState(1);
   const lastAnalyticsKey = useRef("");
   const [filters, setFilters] = useState<TenantFilters>(() => filtersFromSearch(search));
@@ -288,14 +301,22 @@ function TenantHome() {
     const rentFilterActive =
       !browseAllInScope && (filters.minRent > 0 || filters.maxRent < TENANT_MAX_RENT);
     return {
-      query: debouncedQ || undefined,
-      neighborhood: filters.neighborhood === "All" ? undefined : filters.neighborhood,
+      query: nlParsed?.remainingQuery ?? (nlParsed ? undefined : debouncedQ || undefined),
+      neighborhood:
+        filters.neighborhood !== "All" ? filters.neighborhood : nlParsed?.filters.neighborhood,
       locationId: filters.locationId,
-      maxRent: rentFilterActive ? effectiveMaxRent(filters.maxRent) : undefined,
-      minRent: rentFilterActive && filters.minRent > 0 ? filters.minRent : undefined,
-      propertyType: filters.types.length === 1 ? filters.types[0] : undefined,
+      maxRent: rentFilterActive
+        ? effectiveMaxRent(filters.maxRent)
+        : (nlParsed?.filters.maxRent ?? undefined),
+      minRent:
+        rentFilterActive && filters.minRent > 0 ? filters.minRent : nlParsed?.filters.minRent,
+      propertyType: filters.types.length === 1 ? filters.types[0] : nlParsed?.filters.propertyType,
       propertyTypes: filters.types.length > 1 ? filters.types : undefined,
-      pricingMode: filters.listingPurpose === "all" ? undefined : filters.listingPurpose,
+      pricingMode:
+        filters.listingPurpose === "all" ? nlParsed?.filters.pricingMode : filters.listingPurpose,
+      verifiedOnly: filters.verifiedLevel2Plus || nlParsed?.filters.verifiedOnly || undefined,
+      parking: filters.parking || undefined,
+      petFriendly: filters.petFriendly || undefined,
       sortBy: filters.sort,
       originLat: nearbySort ? browseOrigin.lat : undefined,
       originLng: nearbySort ? browseOrigin.lng : undefined,
@@ -313,7 +334,11 @@ function TenantHome() {
     filters.listingPurpose,
     filters.sort,
     filters.types,
+    filters.verifiedLevel2Plus,
+    filters.parking,
+    filters.petFriendly,
     page,
+    nlParsed,
   ]);
 
   const {
@@ -481,11 +506,45 @@ function TenantHome() {
                 setPage(1);
               }}
               onFocus={() => setSearchFocused(true)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                const parsed = parseNlSearchQuery(q.trim());
+                if (!parsed.hints.length) return;
+                setFilters((current) => ({
+                  ...current,
+                  neighborhood: parsed.filters.neighborhood ?? current.neighborhood,
+                  types: parsed.filters.propertyType
+                    ? [parsed.filters.propertyType]
+                    : current.types,
+                  listingPurpose:
+                    parsed.filters.pricingMode === "rent" || parsed.filters.pricingMode === "sale"
+                      ? parsed.filters.pricingMode
+                      : current.listingPurpose,
+                  verifiedLevel2Plus: parsed.filters.verifiedOnly ?? current.verifiedLevel2Plus,
+                  maxRent: parsed.filters.maxRent ?? current.maxRent,
+                  minRent: parsed.filters.minRent ?? current.minRent,
+                }));
+                void navigate({
+                  to: "/tenant",
+                  search: (prev) => ({
+                    ...prev,
+                    q: parsed.remainingQuery || undefined,
+                    neighborhood: parsed.filters.neighborhood,
+                    type: parsed.filters.propertyType,
+                    maxPrice: parsed.filters.maxRent,
+                    purpose:
+                      parsed.filters.pricingMode === "rent" || parsed.filters.pricingMode === "sale"
+                        ? parsed.filters.pricingMode
+                        : prev.purpose,
+                  }),
+                  replace: true,
+                });
+              }}
               onBlur={() => {
                 // Delay so chip clicks register before collapse.
                 window.setTimeout(() => setSearchFocused(false), 150);
               }}
-              placeholder="Neighborhood, type, keyword…"
+              placeholder="Try: 2 bedroom in Kilimani under 60k"
               className="flex-1 bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               aria-label="Search homes"
               role="combobox"
@@ -501,6 +560,18 @@ function TenantHome() {
               <MapPin className="h-4 w-4" />
             </Link>
           </div>
+          {nlParsed && nlParsed.hints.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {nlParsed.hints.map((hint) => (
+                <span
+                  key={hint}
+                  className="rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-semibold text-primary-foreground/90"
+                >
+                  {hint}
+                </span>
+              ))}
+            </div>
+          )}
           {(searchFocused || q.length === 0) && (
             <div id="tenant-search-suggestions" className="mt-3 space-y-2">
               {recentSearches.length > 0 ? (
@@ -562,6 +633,10 @@ function TenantHome() {
         resultsLoading={isLoading}
       />
 
+      <div className="mx-auto flex max-w-2xl justify-end px-5 pt-3">
+        <SaveSearchAlertButton filters={filters} />
+      </div>
+
       {isFetching && !isLoading ? (
         <p className="mx-auto max-w-2xl px-5 pt-2 text-xs text-muted-foreground">
           Updating results…
@@ -575,7 +650,9 @@ function TenantHome() {
       {isPlus ? (
         <div className="mx-auto max-w-2xl px-5 pt-4">
           <div className="rounded-2xl border border-primary/30 bg-card/80 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">Tenant Plus</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Tenant Plus
+            </p>
             <p className="mt-0.5 text-sm">
               {entitlements.plusContactCredits ?? 0} contact credit
               {(entitlements.plusContactCredits ?? 0) === 1 ? "" : "s"} remaining

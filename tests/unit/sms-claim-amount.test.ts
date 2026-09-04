@@ -7,12 +7,8 @@ import {
 
 describe("sms-claim-amount", () => {
   it("caps amountOverride to parsed SMS amount", () => {
-    expect(
-      resolveSmsClaimAmountKes({ parsedAmountKes: 15000, amountOverride: 50000 }),
-    ).toBe(15000);
-    expect(
-      resolveSmsClaimAmountKes({ parsedAmountKes: 15000, amountOverride: 10000 }),
-    ).toBe(10000);
+    expect(resolveSmsClaimAmountKes({ parsedAmountKes: 15000, amountOverride: 50000 })).toBe(15000);
+    expect(resolveSmsClaimAmountKes({ parsedAmountKes: 15000, amountOverride: 10000 })).toBe(10000);
     expect(resolveSmsClaimAmountKes({ parsedAmountKes: 15000 })).toBe(15000);
   });
 

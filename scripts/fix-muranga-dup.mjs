@@ -30,9 +30,13 @@ function loadEnv() {
 }
 
 const env = loadEnv();
-const admin = createClient(env.SUPABASE_URL ?? env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const admin = createClient(
+  env.SUPABASE_URL ?? env.VITE_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: { persistSession: false },
+  },
+);
 
 const KEEP = "county:murang a";
 const DROP = "county:muranga";
@@ -53,7 +57,10 @@ if (!keep || !drop) {
 
 console.log("Reparenting children from", drop.id, "→", keep.id);
 await admin.from("locations").update({ parent_id: keep.id }).eq("parent_id", drop.id);
-await admin.from("properties").update({ county_location_id: keep.id }).eq("county_location_id", drop.id);
+await admin
+  .from("properties")
+  .update({ county_location_id: keep.id })
+  .eq("county_location_id", drop.id);
 await admin.from("properties").update({ location_id: keep.id }).eq("location_id", drop.id);
 await admin.from("location_aliases").delete().eq("location_id", drop.id);
 const { error } = await admin.from("locations").delete().eq("id", drop.id);

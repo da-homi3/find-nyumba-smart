@@ -14,5 +14,9 @@ export const FAVICON_96_PATH = `/brand/${BRAND_ASSET_VERSION}/favicon-96.png`;
 export const FAVICON_ICO_PATH = "/favicon.ico";
 export const APPLE_TOUCH_ICON_PATH = `/brand/${BRAND_ASSET_VERSION}/apple-touch-icon.png`;
 export const WEB_MANIFEST_PATH = "/manifest.webmanifest";
-/** Matches the app icon background (cocoa brown). */
-export const BRAND_THEME_COLOR = "#0E0F14";
+/** Light mode — cocoa brown from the NyumbaSearch logo plate. */
+export const BRAND_THEME_COLOR_LIGHT = "#4A2713";
+/** Dark mode — emerald green shell (product default). */
+export const BRAND_THEME_COLOR_DARK = "#0E0F14";
+/** Default PWA / browser chrome when dark mode is active (product default). */
+export const BRAND_THEME_COLOR = BRAND_THEME_COLOR_DARK;

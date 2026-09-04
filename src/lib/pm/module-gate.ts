@@ -109,7 +109,11 @@ export async function deactivatePmModuleForAccount(admin: PmDb, userId: string):
   await admin.from("pm_properties").update({ pm_module_active: false }).eq("owner_user_id", userId);
 }
 
-async function grantPmIfEntitled(admin: PmDb, userId: string, propertyId?: string): Promise<boolean> {
+async function grantPmIfEntitled(
+  admin: PmDb,
+  userId: string,
+  propertyId?: string,
+): Promise<boolean> {
   const sub = await getActivePmSubscription(admin, userId);
   if (sub) {
     if (propertyId) {

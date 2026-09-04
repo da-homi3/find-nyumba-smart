@@ -86,7 +86,11 @@ export function ReportContactIssue({ listingId }: Readonly<Props>) {
             >
               {report.isPending ? "Sending…" : "Submit report"}
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-lg border px-3 py-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-lg border px-3 py-2 text-xs"
+            >
               Cancel
             </button>
           </div>

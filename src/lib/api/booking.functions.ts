@@ -1,10 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getAuthContext, profileFromMap } from "@/lib/api/server-context";
-import type { Database } from "@/integrations/supabase/types";
+import { getAuthContext } from "@/lib/api/server-context";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireRole } from "@/lib/api/_authz";
-import { redactProfilePhone, resolveLeadContactAccess } from "@/lib/revenue/lead-access";
+import {
+  bookViewingCore,
+  listViewingsForUser,
+  updateViewingStatusCore,
+  type ViewingListItem,
+} from "@/lib/viewings/core";
+
+export type { ViewingListItem };
 
 const bookViewingSchema = z.object({
   propertyId: z.string().uuid(),
@@ -21,109 +27,27 @@ export const bookViewing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(bookViewingSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getAuthContext(context);
-
-    const scheduledAt = new Date(data.scheduledAt);
-    if (Number.isNaN(scheduledAt.getTime())) {
-      throw new TypeError("Invalid viewing date or time");
-    }
-    if (scheduledAt.getTime() <= Date.now()) {
-      throw new Error("Please choose a future date and time for your viewing");
-    }
-    const eatWeekday = new Intl.DateTimeFormat("en-US", {
-      timeZone: "Africa/Nairobi",
-      weekday: "short",
-    }).format(scheduledAt);
-    if (eatWeekday === "Sun") {
-      throw new Error("Viewings are not available on Sundays");
-    }
-
-    const { data: property, error: propertyError } = await supabase
-      .from("properties")
-      .select("id, owner_id, is_active")
-      .eq("id", data.propertyId)
-      .maybeSingle();
-    if (propertyError) throw new Error(propertyError.message);
-    if (!property?.is_active || !property.owner_id) {
-      throw new Error("This property is not available for viewings");
-    }
-
-    const { data: row, error } = await supabase
-      .from("viewings")
-      .insert({
-        property_id: data.propertyId,
-        tenant_id: userId,
-        landlord_id: property.owner_id,
-        scheduled_at: scheduledAt.toISOString(),
-        notes: data.notes ?? null,
-        status: "pending",
-      })
-      .select("*")
-      .single();
-
-    if (error) throw new Error(error.message || "Could not book this viewing");
-
+    const { userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { recordLead } = await import("@/lib/revenue/record-lead");
-    void recordLead(supabaseAdmin, {
-      listingId: data.propertyId,
-      landlordId: property.owner_id,
-      tenantId: userId,
-      source: "booking",
-    });
-
-    return row;
+    return bookViewingCore(supabaseAdmin, userId, data);
   });
 
 export const updateViewingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(updateViewingStatusSchema)
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = getAuthContext(context);
-
+    const { userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: viewing, error: vErr } = await supabaseAdmin
-      .from("viewings")
-      .select("tenant_id, landlord_id")
-      .eq("id", data.viewingId)
-      .single();
-
-    if (vErr || !viewing) throw new Error("Viewing not found");
-
-    if (viewing.tenant_id !== userId && viewing.landlord_id !== userId) {
-      await requireRole(supabase, userId, "admin");
-    }
-
-    const { data: row, error } = await supabaseAdmin
-      .from("viewings")
-      .update({ status: data.status })
-      .eq("id", data.viewingId)
-      .select("*")
-      .single();
-
-    if (error) throw error;
-    return row;
+    return updateViewingStatusCore(supabaseAdmin, userId, data);
   });
 
-export type ViewingListItem = Database["public"]["Tables"]["viewings"]["Row"] & {
-  properties: {
-    id: string;
-    title: string;
-    neighborhood: string;
-    rent_kes: number;
-    images: string[];
-  } | null;
-  tenant_profile: {
-    full_name: string | null;
-    phone: string | null;
-    avatar_url: string | null;
-  } | null;
-  landlord_profile: {
-    full_name: string | null;
-    phone: string | null;
-    avatar_url: string | null;
-  } | null;
-};
+export const listMyViewings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = getAuthContext(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return listViewingsForUser(supabaseAdmin, userId);
+  });
 
 /** Latest active viewing status per property for landlord/manager/agency portfolio. */
 export const listPortfolioViewingStatuses = createServerFn({ method: "GET" })
@@ -177,51 +101,4 @@ export const listPortfolioViewingStatuses = createServerFn({ method: "GET" })
       if (!byProperty.has(v.property_id)) byProperty.set(v.property_id, v.status);
     }
     return [...byProperty.entries()].map(([property_id, status]) => ({ property_id, status }));
-  });
-
-export const listMyViewings = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = getAuthContext(context);
-
-    const { data: rows, error } = await supabase
-      .from("viewings")
-      .select("*")
-      .or(`tenant_id.eq.${userId},landlord_id.eq.${userId}`)
-      .order("scheduled_at", { ascending: true });
-
-    if (error) throw error;
-    if (!rows?.length) return [] as ViewingListItem[];
-
-    const propertyIds = [...new Set(rows.map((r) => r.property_id))];
-    const profileIds = [
-      ...new Set(rows.flatMap((r) => [r.tenant_id, r.landlord_id].filter(Boolean) as string[])),
-    ];
-
-    const [{ data: properties }, { data: profiles }] = await Promise.all([
-      supabase
-        .from("properties")
-        .select("id, title, neighborhood, rent_kes, images")
-        .in("id", propertyIds),
-      supabase.from("profiles").select("id, full_name, phone, avatar_url").in("id", profileIds),
-    ]);
-
-    const propertyMap = new Map((properties ?? []).map((p) => [p.id, p]));
-    const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
-
-    const leadAccess = await resolveLeadContactAccess(supabase, userId);
-
-    return rows.map((row) => {
-      const isLandlordView = row.landlord_id === userId;
-      const tenantProfile = profileMap.get(row.tenant_id) ?? null;
-      return {
-        ...row,
-        properties: propertyMap.get(row.property_id) ?? null,
-        tenant_profile: isLandlordView
-          ? redactProfilePhone(tenantProfile, leadAccess.canView)
-          : tenantProfile,
-        landlord_profile: profileFromMap(row.landlord_id, profileMap),
-        leadContactsLocked: isLandlordView && !leadAccess.canView,
-      };
-    }) as ViewingListItem[];
   });

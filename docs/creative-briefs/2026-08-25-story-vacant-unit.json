@@ -1,0 +1,286 @@
+{
+  "selected": {
+    "id": "story-vacant-unit",
+    "letter": "E",
+    "name": "Your next tenant is already searching (owners)",
+    "mechanism": "Owner-side story: demand exists, supply is invisible if it's only on a WhatsApp status.",
+    "inspirationNotes": [
+      "SaaS: ‘your customers are already googling’ flipped to landlords.",
+      "Marketplace: two-sided story without fake occupancy stats."
+    ],
+    "nyumbaSpin": "Do not claim search volumes. Show the product motion: listing appears where hunters already look.",
+    "format": "talking_head",
+    "objective": "owner_acquisition",
+    "audience": "property_owner",
+    "funnel": "CONVERSION",
+    "searchIntent": "list property Nairobi",
+    "hook": "POV: The apartment is vacant — and hunters are searching your neighbourhood anyway.",
+    "keyMessage": "Visibility beats hoping a broker group chat is enough.",
+    "cta": "List on NyumbaSearch.",
+    "expectedAction": "Landlord signup / new listing.",
+    "destination": "https://nyumbasearch.com/landlord?utm_source=linkedin&utm_medium=social&utm_campaign=vacant_unit",
+    "kenyanContext": "Vacant months are a real owner pain. No invented ‘2 months vacant’ case studies.",
+    "requiresVerifiedFacts": false,
+    "fatigueTags": [
+      "owner",
+      "product"
+    ]
+  },
+  "scores": {
+    "attention": 18,
+    "relevance": 11,
+    "brandFit": 8,
+    "leadPotential": 17,
+    "shareability": 6,
+    "savePotential": 6,
+    "searchability": 5,
+    "culturalRelevance": 3,
+    "novelty": 3,
+    "total": 77,
+    "viralScore": 70,
+    "businessScore": 86
+  },
+  "alternatives": [
+    {
+      "concept": {
+        "id": "story-vacant-unit",
+        "letter": "E",
+        "name": "Your next tenant is already searching (owners)",
+        "mechanism": "Owner-side story: demand exists, supply is invisible if it's only on a WhatsApp status.",
+        "inspirationNotes": [
+          "SaaS: ‘your customers are already googling’ flipped to landlords.",
+          "Marketplace: two-sided story without fake occupancy stats."
+        ],
+        "nyumbaSpin": "Do not claim search volumes. Show the product motion: listing appears where hunters already look.",
+        "format": "talking_head",
+        "objective": "owner_acquisition",
+        "audience": "property_owner",
+        "funnel": "CONVERSION",
+        "searchIntent": "list property Nairobi",
+        "hook": "POV: The apartment is vacant — and hunters are searching your neighbourhood anyway.",
+        "keyMessage": "Visibility beats hoping a broker group chat is enough.",
+        "cta": "List on NyumbaSearch.",
+        "expectedAction": "Landlord signup / new listing.",
+        "destination": "https://nyumbasearch.com/landlord?utm_source=linkedin&utm_medium=social&utm_campaign=vacant_unit",
+        "kenyanContext": "Vacant months are a real owner pain. No invented ‘2 months vacant’ case studies.",
+        "requiresVerifiedFacts": false,
+        "fatigueTags": [
+          "owner",
+          "product"
+        ]
+      },
+      "scores": {
+        "attention": 18,
+        "relevance": 11,
+        "brandFit": 8,
+        "leadPotential": 17,
+        "shareability": 6,
+        "savePotential": 6,
+        "searchability": 5,
+        "culturalRelevance": 3,
+        "novelty": 3,
+        "total": 77,
+        "viralScore": 70,
+        "businessScore": 86
+      }
+    },
+    {
+      "concept": {
+        "id": "interactive-would-you",
+        "letter": "F",
+        "name": "Would you take this rent? (comments engine)",
+        "mechanism": "Participation + price curiosity. Only with a real listing price.",
+        "inspirationNotes": [
+          "Challenge/comment-bait from lifestyle creators — mechanism is audience vote.",
+          "E-commerce: ‘would you buy this’ first-slide carousels."
+        ],
+        "nyumbaSpin": "Pin comment: ‘Search this area on NyumbaSearch’. Never invent KSh.",
+        "format": "reel",
+        "objective": "engagement",
+        "audience": "house_hunter",
+        "funnel": "HIGH_INTENT",
+        "searchIntent": "how much rent costs in Nairobi",
+        "hook": "Would you pay this rent for this neighbourhood?",
+        "keyMessage": "Price + area debate drives comments; listing link captures intent.",
+        "cta": "Comment your budget — then search it on NyumbaSearch.",
+        "expectedAction": "Comments + listing clicks.",
+        "destination": "https://nyumbasearch.com/tenant",
+        "kenyanContext": "Rent debates are native to Kenyan timelines; stay factual to the listing.",
+        "requiresVerifiedFacts": true,
+        "fatigueTags": [
+          "interactive",
+          "price"
+        ]
+      },
+      "scores": {
+        "attention": 18,
+        "relevance": 11,
+        "brandFit": 8,
+        "leadPotential": 17,
+        "shareability": 6,
+        "savePotential": 6,
+        "searchability": 5,
+        "culturalRelevance": 3,
+        "novelty": 3,
+        "total": 77,
+        "viralScore": 70,
+        "businessScore": 86
+      }
+    },
+    {
+      "concept": {
+        "id": "humour-whatsapp-photos",
+        "letter": "B",
+        "name": "When the house looks nothing like the WhatsApp photos",
+        "mechanism": "Relatable comedy / before-after expectation vs reality (UGC energy, original acting or B-roll).",
+        "inspirationNotes": [
+          "Travel/food creators use ‘menu vs plate’ reveals — mechanism is expectation gap, not their footage.",
+          "Kenyan X/TikTok already jokes about listing photos; we own the *solution* not the insult."
+        ],
+        "nyumbaSpin": "Punchline lands on map + verified listings, not dunking on a specific landlord.",
+        "format": "reel",
+        "objective": "hunter_acquisition",
+        "audience": "house_hunter",
+        "funnel": "AWARENESS",
+        "searchIntent": "how to avoid rental scams Kenya",
+        "hook": "When the WhatsApp photos and the actual house are not even cousins.",
+        "keyMessage": "House hunting shouldn't be a surprise viewing.",
+        "cta": "Browse real listings on NyumbaSearch — then go view.",
+        "expectedAction": "Profile visit → website search.",
+        "destination": "https://nyumbasearch.com/tenant?utm_source=tiktok&utm_medium=social&utm_campaign=whatsapp_photos",
+        "kenyanContext": "WhatsApp is how most Nairobi hunting still happens. Humour stays non-defamatory.",
+        "requiresVerifiedFacts": false,
+        "fatigueTags": [
+          "humour",
+          "whatsapp"
+        ]
+      },
+      "scores": {
+        "attention": 18,
+        "relevance": 11,
+        "brandFit": 8,
+        "leadPotential": 10,
+        "shareability": 9,
+        "savePotential": 6,
+        "searchability": 5,
+        "culturalRelevance": 5,
+        "novelty": 3,
+        "total": 75,
+        "viralScore": 80,
+        "businessScore": 74
+      }
+    },
+    {
+      "concept": {
+        "id": "trend-pov-weekends",
+        "letter": "D",
+        "name": "POV: three weekends hunting, then one search",
+        "mechanism": "POV structure (global) localised to Nairobi weekend viewings / matatu time, not copied dialogue.",
+        "inspirationNotes": [
+          "POV formats work because identity + time-pain, not because of a specific creator’s lines.",
+          "Sports/tech demos: ‘stop doing it the long way’ product contrast."
+        ],
+        "nyumbaSpin": "Weekend wasted on dead leads vs map search on NyumbaSearch. No fake ‘we found your home in 2 minutes’ claims.",
+        "format": "pov",
+        "objective": "hunter_acquisition",
+        "audience": "house_hunter",
+        "funnel": "INTEREST",
+        "searchIntent": "how to find a house in Nairobi",
+        "hook": "POV: You've already spent three Saturdays house hunting.",
+        "keyMessage": "The bottleneck is bad inventory, not your effort.",
+        "cta": "Start on the map — nyumbasearch.com",
+        "expectedAction": "Website search / app intent.",
+        "destination": "https://nyumbasearch.com/tenant/map?utm_source=instagram&utm_medium=social&utm_campaign=pov_weekends",
+        "kenyanContext": "Saturday viewings + traffic are local; keep slang light unless it fits the speaker naturally.",
+        "requiresVerifiedFacts": false,
+        "fatigueTags": [
+          "pov",
+          "product"
+        ]
+      },
+      "scores": {
+        "attention": 18,
+        "relevance": 11,
+        "brandFit": 8,
+        "leadPotential": 12,
+        "shareability": 6,
+        "savePotential": 6,
+        "searchability": 5,
+        "culturalRelevance": 3,
+        "novelty": 3,
+        "total": 72,
+        "viralScore": 70,
+        "businessScore": 78
+      }
+    }
+  ],
+  "fatigue": [],
+  "quality": {
+    "pass": true,
+    "answers": {
+      "attention": "yes",
+      "value": "yes",
+      "emotion": "yes",
+      "relevance": "yes",
+      "brand": "yes",
+      "differentiation": "yes",
+      "lead": "yes",
+      "search": "yes",
+      "culture": "yes",
+      "accuracy": "yes"
+    },
+    "reasons": []
+  },
+  "reel": {
+    "concept": "Your next tenant is already searching (owners)",
+    "objective": "owner_acquisition",
+    "targetAudience": "property_owner",
+    "hook1to3s": "POV: The apartment is vacant — and hunters are searching your neighbourhood anyway.",
+    "script": [
+      "HOOK (0–3s): POV: The apartment is vacant — and hunters are searching your neighbourhood anyway.",
+      "SETUP (3–8s): Visibility beats hoping a broker group chat is enough.",
+      "PROOF (8–20s): Show the mechanism — Owner-side story: demand exists, supply is invisible if it's only on a WhatsApp status.",
+      "NYUMBA (20–28s): Do not claim search volumes. Show the product motion: listing appears where hunters already look.",
+      "CTA (28–35s): List on NyumbaSearch."
+    ],
+    "shotList": [
+      "Cold open: face or hero visual matching the hook",
+      "B-roll of Nairobi housing context (streets, gates, interiors — original footage only)",
+      "Product or map moment (screen or listing hero) if relevant",
+      "End card with CTA + URL on screen"
+    ],
+    "camera": [
+      "Handheld UGC for humour/POV; locked-off or gimbal for cinematic reveals",
+      "Close-up text overlays; avoid covering faces"
+    ],
+    "onScreenText": [
+      "POV: The apartment is vacant — and hunters are s",
+      "NyumbaSearch",
+      "List on NyumbaSearch."
+    ],
+    "voiceover": [
+      "POV: The apartment is vacant — and hunters are searching your neighbourhood anyway.",
+      "Visibility beats hoping a broker group chat is enough.",
+      "List on NyumbaSearch."
+    ],
+    "audioDirection": "Trending-but-safe audio OR original VO-forward. No copyrighted tracks without license.",
+    "transitions": "Hard cuts on jokes; dissolve/reveal for cinematic. Keep under 45s unless Shorts long-form.",
+    "broll": [
+      "Neighbourhood establishing shot",
+      "Phone search UI",
+      "Door/key lifestyle detail"
+    ],
+    "ending": "Logo + List on NyumbaSearch.",
+    "cta": "List on NyumbaSearch."
+  },
+  "caption": "POV: The apartment is vacant — and hunters are searching your neighbourhood anyway.\nVisibility beats hoping a broker group chat is enough.\nList on NyumbaSearch.\nhttps://nyumbasearch.com/landlord?utm_source=linkedin&utm_medium=social&utm_campaign=vacant_unit\n\n#NyumbaSearch #HouseHunting #ApartmentHunting #KenyaRealEstate",
+  "hashtags": [
+    "#NyumbaSearch",
+    "#HouseHunting",
+    "#ApartmentHunting",
+    "#KenyaRealEstate"
+  ],
+  "locationTag": "Nairobi, Kenya",
+  "destinationUrl": "https://nyumbasearch.com/landlord?utm_source=linkedin&utm_medium=social&utm_campaign=vacant_unit",
+  "warnings": []
+}

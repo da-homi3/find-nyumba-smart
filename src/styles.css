@@ -82,96 +82,103 @@
 :root {
   --radius: 1rem;
 
-  /* Immersive palette (hex tokens for 3D / glass UI) */
-  --color-forest: #086b2e;
-  --color-jade: #0a8f3d;
-  --color-mint: #16a34a;
-  --color-sage: #dcfce7;
-  --color-obsidian: #0e0f14;
-  --color-graphite: #16181e;
-  --color-slate: #374151;
-  --color-steel: #6b7280;
-  --color-silver: #9ca3af;
-  --color-mist: #f8fafc;
+  /* Brand warm palette — light mode default (logo cocoa / cream / champagne) */
+  --color-cocoa: #4a2713;
+  --color-espresso: #2a1b15;
+  --color-walnut: #5c3d2e;
+  --color-bronze: #8b5e3c;
+  --color-champagne: #e8d5b5;
+  --color-cream: #faf6f0;
+  --color-ivory: #fffcf7;
+  --color-linen: #f0e8dc;
   --color-white: #ffffff;
+
+  /* Shared utility colours */
   --color-ruby: #dc2626;
   --color-sapphire: #3b82f6;
   --color-emerald: #16a34a;
-  --glass-bg: rgba(255, 255, 255, 0.12);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-shadow: 0 8px 32px rgba(17, 24, 39, 0.28);
+  --color-sage: #e8f5e9;
+
+  /* Green accent family — used for success / verified badges in both modes */
+  --color-forest: #086b2e;
+  --color-jade: #0a8f3d;
+  --color-mint: #16a34a;
+
+  /* Map / cinematic shells stay dark regardless of theme */
+  --color-obsidian: #0e0f14;
+  --color-graphite: #ede4d6;
+
+  --glass-bg: rgba(255, 252, 247, 0.72);
+  --glass-border: rgba(74, 39, 19, 0.12);
+  --glass-shadow: 0 8px 32px rgba(42, 27, 21, 0.1);
   --glass-blur: blur(24px) saturate(160%);
 
-  /* Elevation scale */
-  --surface-0: #0e0f14;
-  --surface-1: #16181e;
-  --surface-2: #1d2028;
-  --surface-3: #1a222c;
-  --surface-glow: radial-gradient(circle at 30% 20%, rgba(34, 197, 94, 0.16), transparent 60%);
+  /* Elevation scale — warm light surfaces */
+  --surface-0: #faf6f0;
+  --surface-1: #fffcf7;
+  --surface-2: #f5ede3;
+  --surface-3: #ede4d6;
+  --surface-glow: radial-gradient(circle at 30% 20%, rgba(201, 169, 98, 0.14), transparent 60%);
 
   /* Verification level colours */
   --verify-l1: #64748b;
   --verify-l2: #3b82f6;
   --verify-l3: #0a8f3d;
-  --verify-l4: #f59e0b;
+  --verify-l4: #c9a962;
 
-  --shadow-green: 0 8px 32px rgba(34, 197, 94, 0.35);
+  --shadow-green: 0 8px 32px rgba(10, 143, 61, 0.22);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
 
-  /* Motion timing (tokenised — use in components via lib/design/motion.ts) */
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-micro: 150ms;
   --duration-fast: 250ms;
   --duration-medium: 450ms;
   --duration-slow: 700ms;
-  /* Legacy aliases */
   --duration-base: var(--duration-fast);
   --duration-xslow: var(--duration-slow);
 
-  /* Status colours — dashboards & admin */
   --status-published: #16a34a;
-  --status-pending: #f59e0b;
+  --status-pending: #c9a962;
   --status-draft: #64748b;
   --status-rejected: #dc2626;
   --status-rented: #8b5cf6;
-  --status-archived: #475569;
+  --status-archived: #6b5344;
 
-  /* Chart palette — replaces Recharts defaults */
-  --chart-primary: #0a8f3d;
-  --chart-secondary: #ffd54f;
-  --chart-tertiary: #3b82f6;
-  --chart-grid: rgba(255, 255, 255, 0.06);
-  --chart-tooltip-bg: #1f2937;
+  --chart-primary: #5c3d2e;
+  --chart-secondary: #c9a962;
+  --chart-tertiary: #0a8f3d;
+  --chart-grid: rgba(42, 27, 21, 0.08);
+  --chart-tooltip-bg: #fffcf7;
 
-  /* Premium palette — Phase 1 */
-  --background: #f8fafc;
-  --foreground: #111827;
-  --surface: #ffffff;
-  --surface-foreground: #111827;
+  /* Semantic tokens — warm light mode */
+  --background: #faf6f0;
+  --foreground: #2a1b15;
+  --surface: #fffcf7;
+  --surface-foreground: #2a1b15;
 
-  --card: #ffffff;
-  --card-foreground: #111827;
+  --card: #fffcf7;
+  --card-foreground: #2a1b15;
 
-  --popover: #ffffff;
-  --popover-foreground: #111827;
+  --popover: #fffcf7;
+  --popover-foreground: #2a1b15;
 
-  --primary: #22c55e;
-  --primary-foreground: #052e16;
-  --primary-glow: #4ade80;
+  --primary: #5c3d2e;
+  --primary-foreground: #fffcf7;
+  --primary-glow: #8b5e3c;
 
-  --secondary: #f1f5f9;
-  --secondary-foreground: #1e293b;
+  --secondary: #ede4d6;
+  --secondary-foreground: #3d2318;
 
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted: #f0e8dc;
+  --muted-foreground: #6b5344;
 
-  --accent: #fef9c3;
-  --accent-foreground: #1e293b;
+  --accent: #f5e6c8;
+  --accent-foreground: #3d2318;
 
-  --gold: #ffd54f;
-  --gold-foreground: #111827;
+  --gold: #c9a962;
+  --gold-foreground: #2a1b15;
 
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
@@ -179,24 +186,46 @@
   --success: #16a34a;
   --success-foreground: #ffffff;
 
-  --warning: #f59e0b;
-  --warning-foreground: #111827;
+  --warning: #d97706;
+  --warning-foreground: #2a1b15;
 
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0a8f3d;
+  --border: #e0d4c4;
+  --input: #e0d4c4;
+  --ring: #6b4423;
 
-  /* Gradients & shadows */
-  --gradient-hero: linear-gradient(135deg, #086b2e 0%, #0a8f3d 55%, #ffd54f 100%);
+  --gradient-hero: linear-gradient(135deg, #4a2713 0%, #6b4423 52%, #c9a962 100%);
   --gradient-emerald: linear-gradient(135deg, #0a8f3d, #16a34a);
-  --gradient-gold: linear-gradient(135deg, #ffd54f, #ffe082);
-  --shadow-elegant: 0 12px 40px -12px rgba(10, 143, 61, 0.28);
-  --shadow-card: 0 8px 28px -8px rgba(17, 24, 39, 0.12);
-  --shadow-soft: 0 2px 10px -2px rgba(17, 24, 39, 0.08);
-  --ambient-particle: rgba(10, 143, 61, 0.48);
+  --gradient-gold: linear-gradient(135deg, #c9a962, #e8d5b5);
+  --shadow-elegant: 0 12px 40px -12px rgba(74, 39, 19, 0.22);
+  --shadow-card: 0 8px 28px -8px rgba(42, 27, 21, 0.1);
+  --shadow-soft: 0 2px 10px -2px rgba(42, 27, 21, 0.06);
+  --ambient-particle: rgba(201, 169, 98, 0.42);
 }
 
 .dark {
+  /* Emerald green dark mode — product default */
+  --color-graphite: #16181e;
+  --color-mist: #fafafa;
+  --color-slate: #374151;
+  --color-steel: #9ca3af;
+  --color-silver: #d1d5db;
+
+  --glass-bg: rgba(14, 15, 20, 0.62);
+  --glass-border: rgba(250, 250, 250, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  --surface-0: #0e0f14;
+  --surface-1: #16181e;
+  --surface-2: #1d2028;
+  --surface-3: #1a222c;
+  --surface-glow: radial-gradient(circle at 30% 20%, rgba(34, 197, 94, 0.16), transparent 60%);
+
+  --chart-primary: #22c55e;
+  --chart-secondary: #ffd54f;
+  --chart-tertiary: #3b82f6;
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-tooltip-bg: #1f2937;
+
   --background: #0e0f14;
   --foreground: #fafafa;
   --surface: #16181e;
@@ -225,19 +254,13 @@
   --border: rgba(250, 250, 250, 0.1);
   --input: rgba(250, 250, 250, 0.12);
   --ring: #22c55e;
-  --glass-bg: rgba(14, 15, 20, 0.62);
-  --glass-border: rgba(250, 250, 250, 0.12);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   --ambient-particle: rgba(74, 222, 128, 0.38);
-  --surface-0: #0e0f14;
-  --surface-1: #16181e;
-  --surface-2: #1d2028;
-  --surface-3: #1a222c;
-  --surface-glow: radial-gradient(circle at 30% 20%, rgba(34, 197, 94, 0.16), transparent 60%);
   --shadow-green: 0 8px 32px rgba(34, 197, 94, 0.35);
   --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --shadow-elegant: 0 12px 40px -12px rgba(34, 197, 94, 0.28);
+  --shadow-soft: 0 2px 10px -2px rgba(0, 0, 0, 0.2);
+  --gradient-hero: linear-gradient(135deg, #086b2e 0%, #0a8f3d 55%, #ffd54f 100%);
   --color-obsidian: #0e0f14;
-  --color-graphite: #16181e;
 }
 
 @layer base {
@@ -250,9 +273,11 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
-  html.dark,
-  html:not(.light-mode) {
+  html.dark {
     color-scheme: dark;
+  }
+  html.light-mode {
+    color-scheme: light;
   }
   html,
   body {
@@ -291,8 +316,7 @@
   canvas:not(.mapboxgl-canvas) {
     max-width: 100%;
   }
-  html.dark body,
-  html:not(.light-mode) body {
+  html.dark body {
     background-color: var(--background);
     color: var(--foreground);
   }
@@ -566,7 +590,7 @@
 
 :root:not(.dark) .skeleton,
 [data-theme="light"] .skeleton {
-  background: linear-gradient(90deg, #e8f0ed 25%, #d0e4db 50%, #e8f0ed 75%);
+  background: linear-gradient(90deg, #f0e8dc 25%, #e0d4c4 50%, #f0e8dc 75%);
   background-size: 800px 100%;
 }
 
@@ -785,10 +809,10 @@ html.nyumba-android-app .portal-mobile-header {
     box-shadow 0.2s ease;
 }
 .filter-chip.is-active {
-  background: #065f46;
-  border-color: #047857;
-  color: #ffffff;
-  box-shadow: 0 4px 16px rgba(6, 95, 70, 0.35);
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-elegant);
 }
 
 .dark .glass-card {

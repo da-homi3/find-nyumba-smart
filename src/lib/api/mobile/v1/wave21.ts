@@ -4,7 +4,11 @@ import { FEEDBACK_ACTIONS, type FeedbackAction } from "@/lib/recommendations/typ
 
 async function viewerName(userId: string): Promise<string> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", userId)
+    .maybeSingle();
   return data?.full_name?.trim() || "there";
 }
 
@@ -17,9 +21,8 @@ async function handleFeed(req: Request): Promise<Response> {
   try {
     const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
     const plus = await getTenantPlusStatus(auth.admin, auth.userId);
-    const { buildRecommendationFeed, hydrateRecommendationFeed } = await import(
-      "@/lib/recommendations/service"
-    );
+    const { buildRecommendationFeed, hydrateRecommendationFeed } =
+      await import("@/lib/recommendations/service");
     const feed = await buildRecommendationFeed({
       userId: auth.userId,
       plus: plus.tenantPlan === "plus",
@@ -40,8 +43,11 @@ async function handleSimilar(req: Request, propertyId: string): Promise<Response
   const plus =
     auth instanceof Response
       ? false
-      : (await (await import("@/lib/revenue/subscription-store")).getTenantPlusStatus(auth.admin, auth.userId))
-          .tenantPlan === "plus";
+      : (
+          await (
+            await import("@/lib/revenue/subscription-store")
+          ).getTenantPlusStatus(auth.admin, auth.userId)
+        ).tenantPlan === "plus";
 
   try {
     const { buildMoreLikeThis } = await import("@/lib/recommendations/service");

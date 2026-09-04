@@ -298,7 +298,11 @@ function SharePanel({
     shareBody = (
       <div className="mt-2 space-y-2">
         <p className="break-all text-xs">{shareUrl}</p>
-        <img alt="Profile QR code" className="h-32 w-32 rounded-lg border bg-white p-1" src={qrSrc} />
+        <img
+          alt="Profile QR code"
+          className="h-32 w-32 rounded-lg border bg-white p-1"
+          src={qrSrc}
+        />
         <button
           type="button"
           onClick={() => void navigator.clipboard?.writeText(shareUrl)}

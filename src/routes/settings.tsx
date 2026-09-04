@@ -145,7 +145,9 @@ const TABS: { id: SettingsTab; label: string; icon: typeof User }[] = [
 
 async function switchToPortal(opts: {
   portal: PortalId;
-  hasApprovedRole: (role: string) => boolean;
+  hasApprovedRole: (
+    role: "landlord" | "manager" | "agency" | "admin" | "tenant" | "caretaker",
+  ) => boolean;
   setActivePortalChoice: (portal: PortalId) => Promise<void>;
   navigate: ReturnType<typeof useNavigate>;
   onNeedsApplication: (role: ListerApplyRole) => void;
@@ -705,7 +707,9 @@ function SettingsPage() {
   );
 }
 
-function SettingsSecurityPanel({ user }: Readonly<{ user: { email?: string; new_email?: string } }>) {
+function SettingsSecurityPanel({
+  user,
+}: Readonly<{ user: { email?: string; new_email?: string } }>) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -1123,7 +1127,10 @@ function RecommendationSettingsPanel() {
       updateRecommendationSettings({ data: payload }),
     onSuccess: (_, payload) => {
       if (payload.reset) toast.success("Recommendations reset");
-      else toast.success(payload.recsEnabled ? "Personalized recommendations on" : "Using search criteria only");
+      else
+        toast.success(
+          payload.recsEnabled ? "Personalized recommendations on" : "Using search criteria only",
+        );
       void qc.invalidateQueries({ queryKey: ["recommendation-feed"] });
     },
     onError: (err) => toast.error(errorMessage(err)),
@@ -1134,7 +1141,8 @@ function RecommendationSettingsPanel() {
         Personalized recommendations
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        When off, we only use the search preferences you entered — not views, saves, or other activity.
+        When off, we only use the search preferences you entered — not views, saves, or other
+        activity.
       </p>
       <ToggleRow
         label="Personalized recommendations"

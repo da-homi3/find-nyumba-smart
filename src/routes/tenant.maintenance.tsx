@@ -65,7 +65,11 @@ function TenantMaintenancePage() {
       <div className="mx-auto max-w-lg px-4 py-12 text-center">
         <h1 className="font-display text-2xl font-semibold">Maintenance</h1>
         <p className="mt-2 text-sm text-muted-foreground">Sign in to report issues on your unit.</p>
-        <Link to="/auth" className="mt-4 inline-block text-sm font-semibold text-primary">
+        <Link
+          to="/auth"
+          search={{ mode: "signin", redirect: "/tenant/maintenance" }}
+          className="mt-4 inline-block text-sm font-semibold text-primary"
+        >
           Sign in →
         </Link>
       </div>

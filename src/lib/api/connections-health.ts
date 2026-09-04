@@ -102,9 +102,7 @@ export async function checkConnections(): Promise<ConnectionStatus[]> {
     {
       name: "google_maps",
       status:
-        process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.MAPBOX_PUBLIC_TOKEN
-          ? "ok"
-          : "degraded",
+        process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.MAPBOX_PUBLIC_TOKEN ? "ok" : "degraded",
       detail: process.env.VITE_GOOGLE_MAPS_API_KEY
         ? "Maps API key in Worker env"
         : process.env.MAPBOX_PUBLIC_TOKEN

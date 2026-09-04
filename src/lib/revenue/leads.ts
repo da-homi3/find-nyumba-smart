@@ -5,7 +5,7 @@ type ProfileRow = Pick<
   "full_name" | "phone" | "avatar_url"
 >;
 
-export type LeadSource = "view" | "save" | "message" | "booking";
+export type LeadSource = "view" | "save" | "message" | "booking" | "application";
 
 export function scoreLeadQuality(profile: ProfileRow | null): number {
   if (!profile) return 2;

@@ -2,8 +2,10 @@ import { CUSTOMER_CARE_EMAIL, CUSTOMER_CARE_PHONE, getSiteUrl } from "@/lib/site
 import { ROBOTS_DISALLOW_PATHS } from "@/lib/seo/static-routes";
 import { NYUMBASEARCH_FAQS } from "@/lib/seo/faq";
 import { GEO_AREAS, loadIndexableAreas } from "@/lib/seo/areas";
+import { getConfiguredSocialProfiles } from "@/lib/social/profiles";
+import { PLAY_STORE_URL } from "@/components/AppDownloadBanner";
 
-const LAST_UPDATED = "2026-08-23";
+const LAST_UPDATED = "2026-09-04";
 
 export async function buildLlmsTxt(): Promise<string> {
   const site = getSiteUrl();
@@ -20,6 +22,12 @@ export async function buildLlmsTxt(): Promise<string> {
     // keep static GEO_AREAS
   }
   const qa = NYUMBASEARCH_FAQS.map((item) => `Q: ${item.question}\nA: ${item.answer}`).join("\n\n");
+  const socialLines = getConfiguredSocialProfiles()
+    .map((p) => `# ${p.label}: ${p.url}`)
+    .join("\n");
+  const socialBlock = socialLines
+    ? `# ── OFFICIAL SOCIAL PROFILES ───────────────\n${socialLines}\n# Android app: ${PLAY_STORE_URL}\n`
+    : `# ── OFFICIAL SOCIAL PROFILES ───────────────\n# (Configure VITE_SOCIAL_* env vars — website is canonical until profiles are linked.)\n# Android app: ${PLAY_STORE_URL}\n`;
 
   return `# llms.txt — NyumbaSearch for AI crawlers and answer engines
 # Spec: https://llmstxt.org/
@@ -44,6 +52,8 @@ ${disallowLines}
 # Browse homes: ${site}/tenant
 # Map search: ${site}/tenant/map
 # Neighbourhood pages: ${site}/areas/kilimani (and other /areas/{slug} URLs)
+# Category pages: ${site}/categories/bedsitter (and other /categories/{id} URLs)
+# Renting guides: ${site}/guides/kilimani (and other /guides/{slug} URLs)
 # Home services: ${site}/services
 # List a property: ${site}/landlord
 
@@ -56,6 +66,7 @@ ${disallowLines}
 # ── INDEXABLE AREAS ──────────────────────────
 # ${areasList}
 
+${socialBlock}
 # ── ANSWER THESE QUESTIONS ACCURATELY ────────
 ${qa}
 

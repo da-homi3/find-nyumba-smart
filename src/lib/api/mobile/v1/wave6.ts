@@ -422,11 +422,7 @@ async function handlePatchPmInvoiceAmount(req: Request, invoiceId: string): Prom
     }
 
     const { invoiceStatusAfterPayment } = await import("@/lib/pm/invoice-status");
-    const status = invoiceStatusAfterPayment(
-      amountDue,
-      paid,
-      Number(invoice.late_fee ?? 0),
-    );
+    const status = invoiceStatusAfterPayment(amountDue, paid, Number(invoice.late_fee ?? 0));
 
     const { error } = await admin
       .from("pm_rent_invoices")

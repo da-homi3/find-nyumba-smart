@@ -138,12 +138,14 @@ export async function hasPaidProviderSubscription(admin: Admin, userId: string):
     .limit(8);
   const now = Date.now();
   return (data ?? []).some(
-    (row) =>
-      new Date(row.next_billing_date).getTime() > now && Number(row.amount_kes ?? 0) > 0,
+    (row) => new Date(row.next_billing_date).getTime() > now && Number(row.amount_kes ?? 0) > 0,
   );
 }
 
-export async function portalAudienceForUser(admin: Admin, userId: string): Promise<InvoiceAudience | null> {
+export async function portalAudienceForUser(
+  admin: Admin,
+  userId: string,
+): Promise<InvoiceAudience | null> {
   const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userId);
   const set = new Set((roles ?? []).map((r) => r.role));
   if (set.has("admin")) return null;
@@ -155,7 +157,10 @@ export async function portalAudienceForUser(admin: Admin, userId: string): Promi
   });
 }
 
-export async function buildOwnerInvoice(admin: Admin, userId: string): Promise<InvoiceDraft | null> {
+export async function buildOwnerInvoice(
+  admin: Admin,
+  userId: string,
+): Promise<InvoiceDraft | null> {
   const audience = await portalAudienceForUser(admin, userId);
   if (!audience || audience === "provider") return null;
   if (await hasPaidMarketplacePortalAccess(admin, userId)) return null;
@@ -187,9 +192,7 @@ export async function buildProviderInvoice(
   const period = currentInvoicePeriod();
   const plan = planForAudience("provider", provider.tier);
   const number = invoiceNumber("provider", userId, period.monthKey);
-  const categories = Array.isArray(provider.categories)
-    ? provider.categories.map(String)
-    : [];
+  const categories = Array.isArray(provider.categories) ? provider.categories.map(String) : [];
   const areas = Array.isArray(provider.areas_served) ? provider.areas_served.map(String) : [];
   return {
     userId,

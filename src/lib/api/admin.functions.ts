@@ -1313,7 +1313,7 @@ export const getAdminPlatformAnalytics = createServerFn({ method: "GET" })
         .in("role", ["landlord", "agency", "manager"]),
       supabaseAdmin
         .from("profiles")
-      .select(
+        .select(
           "id, full_name, phone, tenant_plan, plus_expires_at, created_at, updated_at, is_portal_active, active_portal",
         ),
       supabaseAdmin
@@ -1785,17 +1785,17 @@ export const refundAdminContactUnlock = createServerFn({ method: "POST" })
 
     await supabaseAdmin.from("contact_unlocks").delete().eq("id", unlock.id);
     if (unlock.payment_id) {
-      await supabaseAdmin.from("payments").update({ status: "refunded" }).eq("id", unlock.payment_id);
+      await supabaseAdmin
+        .from("payments")
+        .update({ status: "refunded" })
+        .eq("id", unlock.payment_id);
     }
     if (unlock.method === "plus" || unlock.method === "credit") {
       const { contactCreditsForFee } = await import("@/lib/revenue/tenant-plus-config");
       const { adjustPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
-      await adjustPlusContactCredits(
-        supabaseAdmin,
-        data.userId,
-        contactCreditsForFee(unlock.fee_charged ?? 0),
-        "refund_unlock",
-      );
+      // fee_charged stores the listing unlock fee used to compute the credit band at unlock time.
+      const credits = Math.max(1, contactCreditsForFee(unlock.fee_charged ?? 0));
+      await adjustPlusContactCredits(supabaseAdmin, data.userId, credits, "refund_unlock");
     }
     await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: adminId,
@@ -1811,7 +1811,8 @@ export const getAdminPlusCommercial = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
-    const { resolvePlusPricing, getPlatformSetting } = await import("@/lib/revenue/platform-settings");
+    const { resolvePlusPricing, getPlatformSetting } =
+      await import("@/lib/revenue/platform-settings");
     const { DEFAULT_RECOMMENDATION_WEIGHTS } = await import("@/lib/recommendations/config");
     const { asLooseDb } = await import("@/lib/db/loose-client");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -1872,9 +1873,13 @@ export const saveAdminRecommendationWeights = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
     await requireRole(supabase, userId, "admin");
-    const { getPlatformSetting, setPlatformSetting } = await import("@/lib/revenue/platform-settings");
+    const { getPlatformSetting, setPlatformSetting } =
+      await import("@/lib/revenue/platform-settings");
     const { DEFAULT_RECOMMENDATION_WEIGHTS } = await import("@/lib/recommendations/config");
-    const current = await getPlatformSetting("recommendation_weights", DEFAULT_RECOMMENDATION_WEIGHTS);
+    const current = await getPlatformSetting(
+      "recommendation_weights",
+      DEFAULT_RECOMMENDATION_WEIGHTS,
+    );
     await setPlatformSetting("recommendation_weights", { ...current, ...data });
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("admin_audit_logs").insert({

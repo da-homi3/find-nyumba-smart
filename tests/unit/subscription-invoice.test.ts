@@ -24,8 +24,12 @@ describe("subscription invoices", () => {
 
   it("points owners at checkout and providers at the dashboard pay flow", () => {
     expect(payUrlForInvoice("landlord", "pro", "NS-1")).toContain("/landlord/checkout?plan=pro");
-    expect(payUrlForInvoice("agency", "agency-pro", "NS-1")).toContain("/agency/checkout?plan=agency-pro");
-    expect(payUrlForInvoice("provider", "basic", "NS-1")).toContain("/services/provider/dashboard?plan=basic");
+    expect(payUrlForInvoice("agency", "agency-pro", "NS-1")).toContain(
+      "/agency/checkout?plan=agency-pro",
+    );
+    expect(payUrlForInvoice("provider", "basic", "NS-1")).toContain(
+      "/services/provider/dashboard?plan=basic",
+    );
   });
 
   it("charges the default paid listing plan, not free", () => {

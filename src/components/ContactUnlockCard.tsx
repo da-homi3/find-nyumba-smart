@@ -6,7 +6,11 @@ import { MpesaPhonePicker } from "@/components/checkout/MpesaPhonePicker";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatKes } from "@/lib/properties";
-import { contactAccessLabel, unlockFeeExplanation, unlockFeeForRent } from "@/lib/payments/unlock-pricing";
+import {
+  contactAccessLabel,
+  unlockFeeExplanation,
+  unlockFeeForRent,
+} from "@/lib/payments/unlock-pricing";
 import { getListingUnlockState, unlockListingContact } from "@/lib/api/contact-unlock.functions";
 import { pollPaymentUntilComplete } from "@/lib/payments/poll-payment-client";
 import { useAuth } from "@/hooks/use-auth";
@@ -58,8 +62,8 @@ function unlockPriceHint(opts: {
   }
   return (
     <p className="mt-1 text-sm text-muted-foreground">
-      {contactAccessLabel(opts.fee)} — {formatKes(opts.fee)}. One-time access to this landlord&apos;s
-      contact details.
+      {contactAccessLabel(opts.fee)} — {formatKes(opts.fee)}. One-time access to this
+      landlord&apos;s contact details.
     </p>
   );
 }
@@ -88,6 +92,7 @@ function SignInUnlockCard() {
       </p>
       <Link
         to="/auth"
+        search={{ mode: "signin", redirect: "/tenant" }}
         className="mt-3 inline-flex w-full items-center justify-center rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
       >
         Sign in to unlock

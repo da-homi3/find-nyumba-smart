@@ -19,6 +19,11 @@ type Props = Readonly<{
 }>;
 
 export function AdminScamsTab({ scams, loading, resolve }: Props) {
+  const reportsPerProperty = new Map<string, number>();
+  for (const s of scams) {
+    reportsPerProperty.set(s.property_id, (reportsPerProperty.get(s.property_id) ?? 0) + 1);
+  }
+
   return (
     <AdminAsyncPanel
       loading={loading}
@@ -31,7 +36,9 @@ export function AdminScamsTab({ scams, loading, resolve }: Props) {
       }
     >
       <div className="space-y-4">
-        {scams.map((s) => (
+        {scams.map((s) => {
+          const propertyReportCount = reportsPerProperty.get(s.property_id) ?? 1;
+          return (
           <div
             key={s.id}
             className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
@@ -44,6 +51,11 @@ export function AdminScamsTab({ scams, loading, resolve }: Props) {
                   classMap={SCAM_STATUS_CLASS}
                   fallbackClass="bg-amber-500/10 text-amber-600"
                 />
+                {propertyReportCount > 1 ? (
+                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                    {propertyReportCount} reports on listing
+                  </span>
+                ) : null}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
                 Property:{" "}
@@ -82,7 +94,8 @@ export function AdminScamsTab({ scams, loading, resolve }: Props) {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </AdminAsyncPanel>
   );

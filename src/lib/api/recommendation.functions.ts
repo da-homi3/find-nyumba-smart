@@ -6,7 +6,11 @@ import { FEEDBACK_ACTIONS } from "@/lib/recommendations/types";
 
 async function viewerName(userId: string): Promise<string> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const { data } = await supabaseAdmin
+    .from("profiles")
+    .select("full_name")
+    .eq("id", userId)
+    .maybeSingle();
   return data?.full_name?.trim() || "there";
 }
 
@@ -21,9 +25,8 @@ export const getRecommendationFeed = createServerFn({ method: "POST" })
     const { supabase, userId } = getAuthContext(context);
     const { getTenantPlusStatus } = await import("@/lib/revenue/subscription-store");
     const plus = await getTenantPlusStatus(supabase, userId);
-    const { buildRecommendationFeed, hydrateRecommendationFeed } = await import(
-      "@/lib/recommendations/service"
-    );
+    const { buildRecommendationFeed, hydrateRecommendationFeed } =
+      await import("@/lib/recommendations/service");
     const feed = await buildRecommendationFeed({
       userId,
       plus: plus.tenantPlan === "plus",
@@ -64,19 +67,18 @@ export const recordRecommendationEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      eventName: z
-        .enum([
-          "recommendation_impression",
-          "recommendation_click",
-          "recommendation_save",
-          "recommendation_compare",
-          "recommendation_contact",
-          "recommendation_viewing",
-          "recommendation_application",
-          "recommendation_hide",
-          "recommendation_provider_follow",
-          "recommendation_alert_open",
-        ]),
+      eventName: z.enum([
+        "recommendation_impression",
+        "recommendation_click",
+        "recommendation_save",
+        "recommendation_compare",
+        "recommendation_contact",
+        "recommendation_viewing",
+        "recommendation_application",
+        "recommendation_hide",
+        "recommendation_provider_follow",
+        "recommendation_alert_open",
+      ]),
       propertyId: z.string().uuid().optional(),
       shelfId: z.string().max(80).optional(),
     }),

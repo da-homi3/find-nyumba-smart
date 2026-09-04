@@ -85,7 +85,10 @@ const COUNTY_HINTS = new Set([
 function parsePlace(q) {
   const raw = String(q ?? "").trim();
   if (!raw) return { place: "", countyHint: null, alternates: [] };
-  const comma = raw.split(",").map((s) => s.trim()).filter(Boolean);
+  const comma = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (comma.length >= 2) {
     let headIdx = 0;
     while (headIdx < comma.length - 1 && isNonPlaceHead(comma[headIdx])) headIdx += 1;
@@ -107,9 +110,7 @@ function parsePlace(q) {
     return { place, countyHint, alternates };
   }
   const scrubbed = scrubPlaceNoise(raw);
-  const alongNear = scrubbed.match(
-    /^(.+?)\s+(?:along|near|opposite|behind|beside|off)\s+(.+)$/i,
-  );
+  const alongNear = scrubbed.match(/^(.+?)\s+(?:along|near|opposite|behind|beside|off)\s+(.+)$/i);
   if (alongNear) {
     const head = alongNear[1].trim();
     const tail = alongNear[2].trim();
@@ -220,8 +221,7 @@ function haversineKm(aLat, aLng, bLat, bLng) {
   const dLng = toRad(bLng - aLng);
   const lat1 = toRad(aLat);
   const lat2 = toRad(bLat);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
@@ -241,7 +241,9 @@ function queryLooksLikeRoad(q) {
 
 function findCandidates(neighborhood, lat, lng) {
   const { place, countyHint, alternates } = parsePlace(neighborhood);
-  const seeds = [place, ...(alternates ?? [])].map((p) => normalizeName(p)).filter((p) => p.length >= 2);
+  const seeds = [place, ...(alternates ?? [])]
+    .map((p) => normalizeName(p))
+    .filter((p) => p.length >= 2);
   if (!seeds.length) return [];
 
   const bestById = new Map();
@@ -488,8 +490,7 @@ for (;;) {
       second.score >= best.score - 8 &&
       second.loc.name.toLowerCase() !== best.loc.name.toLowerCase();
     const confidence = Math.min(100, Math.round(best.score));
-    const needsReview =
-      (Boolean(ambiguous) && confidence < 90) || confidence < 70;
+    const needsReview = (Boolean(ambiguous) && confidence < 90) || confidence < 70;
     const chain = ancestorsOf(best.loc);
 
     const patch = {

@@ -4,6 +4,7 @@ import { parseStkCallback } from "@/lib/api/mpesa";
 import type { StkCallbackBody } from "@/lib/api/mpesa";
 import { buildIpnResponse } from "@/lib/api/pesapal";
 import { completePesapalPayment } from "@/lib/payments/complete-pesapal-payment";
+import { verifyPesapalWebhookRequest } from "@/lib/payments/pesapal-webhook-auth";
 import { parsePaymentMetadata } from "@/lib/payments/payment-metadata";
 import { completeMpesaFromCallback } from "@/lib/payments/complete-mpesa-payment";
 
@@ -98,6 +99,18 @@ export async function handleMpesaWebhook(request: Request): Promise<Response> {
 }
 
 export async function handlePesapalWebhook(request: Request): Promise<Response> {
+  const { getServerEnv } = await import("@/lib/server-env");
+  const webhookSecret = getServerEnv("PESAPAL_WEBHOOK_SECRET")?.trim();
+  const signatureValid = verifyPesapalWebhookRequest(request);
+  const isLive = (getServerEnv("PESAPAL_ENV") || "").toLowerCase() === "live";
+
+  if (!signatureValid) {
+    if (isLive) {
+      console.error("[pesapal-webhook] PESAPAL_WEBHOOK_SECRET is required in live mode");
+    }
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   let body: Record<string, string> | undefined;
   if (request.method === "POST") {
     try {
@@ -114,7 +127,7 @@ export async function handlePesapalWebhook(request: Request): Promise<Response> 
     supabaseAdmin,
     "pesapal",
     body ?? Object.fromEntries(new URL(request.url).searchParams),
-    true,
+    signatureValid && Boolean(webhookSecret),
   );
 
   if (!ipn) {

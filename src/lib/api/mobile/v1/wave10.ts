@@ -1,14 +1,11 @@
-import type { Database } from "@/integrations/supabase/types";
 import {
   mobileError,
   mobileJson,
   requireMobileBearer,
-  userHasRole,
   type MobileAdmin,
 } from "@/lib/api/mobile/v1/auth";
 import { parseJsonBody, parseUuid } from "@/lib/api/mobile/v1/helpers";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
+import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 
 const PM_PROPERTY_TYPES = [
   "apartment_block",
@@ -17,15 +14,6 @@ const PM_PROPERTY_TYPES = [
   "commercial",
   "mixed_use",
 ] as const;
-
-const PORTAL_ROLES = ["landlord", "agency", "manager", "admin"] as const;
-
-async function requirePortalRole(admin: MobileAdmin, userId: string): Promise<Response | null> {
-  for (const role of PORTAL_ROLES) {
-    if (await userHasRole(admin, userId, role as AppRole)) return null;
-  }
-  return mobileError("Portal role required", "FORBIDDEN", 403);
-}
 
 function caretakerTokenFrom(req: Request, bodyToken?: unknown): string | null {
   const header = req.headers.get("X-Caretaker-Token")?.trim();
@@ -165,7 +153,7 @@ async function handleCreatePmProperty(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
 
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   const body = await parseJsonBody<PmPropertyBody>(req);
@@ -192,7 +180,7 @@ async function handlePmModuleSubscribe(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
 
-  const roleErr = await requirePortalRole(auth.admin, auth.userId);
+  const roleErr = await assertPortalListerRole(auth.admin, auth.userId);
   if (roleErr) return roleErr;
 
   try {

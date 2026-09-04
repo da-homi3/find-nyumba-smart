@@ -3,6 +3,7 @@ import { z } from "zod";
 import { fetchProperty } from "@/lib/properties";
 import { verificationLevel } from "@/lib/listing-intel";
 import { BookingModal } from "@/components/BookingModal";
+import { RentalApplicationModal } from "@/components/RentalApplicationModal";
 import { PropertyDetailActionBar } from "@/components/property-detail/PropertyDetailActionBar";
 import { PropertyDetailContent } from "@/components/property-detail/PropertyDetailContent";
 import { PropertyDetailGallery } from "@/components/property-detail/PropertyDetailGallery";
@@ -120,7 +121,24 @@ function PropertyDetail() {
               ? "WhatsApp"
               : "Message"
           }
+          onApply={detail.openApply}
+          applyLabel={
+            detail.activeApplication
+              ? detail.activeApplication.status === "approved"
+                ? "Approved"
+                : "Applied"
+              : "Apply"
+          }
+          applyDisabled={Boolean(detail.activeApplication)}
           onBook={detail.openBooking}
+        />
+
+        <RentalApplicationModal
+          propertyId={p.id}
+          propertyTitle={p.title}
+          isOpen={detail.isApplyOpen}
+          onClose={() => detail.setIsApplyOpen(false)}
+          onUnauthorized={detail.redirectToAuth}
         />
 
         <BookingModal

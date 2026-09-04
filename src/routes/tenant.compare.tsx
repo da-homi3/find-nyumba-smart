@@ -5,6 +5,7 @@ import { compareProperties } from "@/lib/api/search.functions";
 import { getAssistantReply } from "@/lib/api/ai.functions";
 import { formatKes, prettyType } from "@/lib/properties";
 import { SiteNav } from "@/components/SiteNav";
+import { useAuth } from "@/hooks/use-auth";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { PremiumFeatureLock } from "@/components/PremiumFeatureLock";
 import { TENANT_PLUS_CONFIG, maxComparedProperties } from "@/lib/revenue/tenant-plus-config";
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/tenant/compare")({
 
 function ComparePage() {
   const { ids: idsParam } = Route.useSearch();
+  const { user, loading: authLoading } = useAuth();
   const { isPlus } = useEntitlements();
   const cap = maxComparedProperties(isPlus);
   const allIds = (idsParam ?? "")
@@ -36,6 +38,8 @@ function ComparePage() {
     .filter((s: string) => /^[0-9a-f-]{36}$/i.test(s));
   const truncated = Number.isFinite(cap) && allIds.length > cap;
   const ids = allIds.slice(0, Number.isFinite(cap) ? cap : allIds.length);
+  const redirectTarget =
+    ids.length > 0 ? `/tenant/compare?ids=${ids.join(",")}` : "/tenant/compare";
 
   const {
     data: properties = [],
@@ -44,7 +48,7 @@ function ComparePage() {
     refetch,
   } = useQuery({
     queryKey: ["compare", ids.join(",")],
-    enabled: ids.length >= 2,
+    enabled: !!user && ids.length >= 2,
     queryFn: () => compareProperties({ data: { ids } }),
   });
 
@@ -66,7 +70,23 @@ function ComparePage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Add <code className="text-xs">?ids=uuid1,uuid2</code> or pick from recently viewed homes.
         </p>
-        {truncated ? (
+
+        {authLoading ? (
+          <p className="mt-8 text-sm text-muted-foreground">Loading…</p>
+        ) : !user ? (
+          <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
+            <Link
+              to="/auth"
+              search={{ mode: "signin", redirect: redirectTarget }}
+              className="font-semibold text-primary underline"
+            >
+              Sign in
+            </Link>{" "}
+            to compare homes side by side.
+          </div>
+        ) : null}
+
+        {user && truncated ? (
           <div className="mt-4">
             <PremiumFeatureLock
               compact
@@ -76,7 +96,7 @@ function ComparePage() {
           </div>
         ) : null}
 
-        {ids.length < 2 ? (
+        {!user ? null : ids.length < 2 ? (
           <div className="mt-8 rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
             Select at least two listings to compare. Browse{" "}
             <Link to="/tenant" className="font-semibold text-primary">

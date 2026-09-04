@@ -6,6 +6,7 @@ import { getAppServeContext, withAppClientHeaders } from "./lib/app-client";
 import { addSecurityHeaders } from "./lib/security/headers";
 import { tryInfrastructureRoute } from "./lib/api/infrastructure-routes";
 import { matchPublicHtmlCache, storePublicHtmlCache } from "./lib/cache/html-edge-cache";
+import { maybePortalRouteRedirect } from "./lib/route-guards/http-portal-guard";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -137,6 +138,9 @@ export default {
 
       const slashRedirect = maybeTrailingSlashRedirect(request);
       if (slashRedirect) return slashRedirect;
+
+      const portalRedirect = await maybePortalRouteRedirect(request);
+      if (portalRedirect) return portalRedirect;
 
       const cachedHtml = await matchPublicHtmlCache(request);
       if (cachedHtml) return cachedHtml;

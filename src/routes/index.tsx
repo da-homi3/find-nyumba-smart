@@ -3,18 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useMemo } from "react";
 import { SiteNav, SiteFooter } from "@/components/SiteNav";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { ProviderDiscoverySection } from "@/components/landing/ProviderDiscoverySection";
 import {
-  AgencyLogosSection,
   FeaturedListings,
   PopularNeighborhoods,
   ServiceTeaserRow,
   TrustStrip,
 } from "@/components/landing/LandingBrowseSections";
-import { AppDownloadBanner } from "@/components/AppDownloadBanner";
+import { PropertyCategoryGrid } from "@/components/landing/PropertyCategoryGrid";
 import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
+import { countListingsByHomepageCategory } from "@/lib/landing/homepage-categories";
 import {
   fetchFeaturedAgenciesApi,
   fetchFeaturedTestimonialsApi,
@@ -113,6 +114,8 @@ function Landing() {
     return Object.fromEntries(mins);
   }, [properties]);
 
+  const categoryCounts = useMemo(() => countListingsByHomepageCategory(properties), [properties]);
+
   const stats = useMemo(() => {
     if (publicStats) {
       return {
@@ -127,7 +130,7 @@ function Landing() {
   }, [properties, publicStats]);
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-(--color-obsidian) pb-28 md:pb-0">
+    <div className="min-h-screen overflow-x-clip bg-background pb-28 md:pb-0">
       <SiteNav variant="hero" />
       <LandingHero verifiedCount={stats.verifiedCount} hoodCount={stats.hoods} />
       <TrustStrip
@@ -139,7 +142,7 @@ function Landing() {
           tenantRating: publicStats?.tenantRating,
         }}
       />
-      <AppDownloadBanner />
+      <PropertyCategoryGrid counts={categoryCounts} loading={propertiesLoading} />
       <FeaturedListings
         featured={featured.items}
         isBoosted={featured.isBoosted}
@@ -150,8 +153,8 @@ function Landing() {
         minRentByHood={minRentByHood}
         loading={propertiesLoading}
       />
+      <ProviderDiscoverySection agencies={featuredAgencies} loading={agenciesLoading} />
       <ServiceTeaserRow counts={providerCounts} />
-      <AgencyLogosSection agencies={featuredAgencies} loading={agenciesLoading} />
       <Suspense fallback={null}>
         <LandingMarketingBelowFold
           intelligenceStats={intelligenceStats}

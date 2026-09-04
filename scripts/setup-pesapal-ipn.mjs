@@ -3,6 +3,7 @@
  * Usage: node scripts/setup-pesapal-ipn.mjs
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -95,15 +96,20 @@ async function main() {
   }
 
   const base = env.PUBLIC_APP_URL || env.SITE_URL || "https://nyumbasearch.com";
-  const ipnUrl = `${base.replace(/\/$/, "")}/api/payments/webhook/pesapal`;
+  const webhookSecret = env.PESAPAL_WEBHOOK_SECRET?.trim() || randomBytes(24).toString("hex");
+  const ipnUrl = `${base.replace(/\/$/, "")}/api/payments/webhook/pesapal?secret=${encodeURIComponent(webhookSecret)}`;
 
-  console.log(`Registering IPN: ${ipnUrl}`);
+  console.log(
+    `Registering IPN: ${base.replace(/\/$/, "")}/api/payments/webhook/pesapal?secret=***`,
+  );
   const ipnId = await registerIpnUrl(env, ipnUrl);
   console.log(`IPN ID: ${ipnId}`);
 
   upsertEnv("PESAPAL_NOTIFICATION_ID", ipnId);
+  upsertEnv("PESAPAL_WEBHOOK_SECRET", webhookSecret);
   upsertEnv("VITE_PESAPAL_CHECKOUT_ENABLED", "1");
-  console.log("Updated .env with PESAPAL_NOTIFICATION_ID");
+  console.log("Updated .env with PESAPAL_NOTIFICATION_ID and PESAPAL_WEBHOOK_SECRET");
+  console.log("Run npm run config:cloudflare to sync the webhook secret to Workers.");
 }
 
 try {

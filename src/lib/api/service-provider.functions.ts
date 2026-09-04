@@ -539,35 +539,39 @@ export const listProviderCounties = createServerFn({ method: "GET" }).handler(as
   return PROVIDER_COUNTIES.map(({ code, name }) => ({ code, name }));
 });
 
-export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handler(async () => {
-  const { withCache } = await import("@/lib/cache/manager");
-  const { data } = await withCache(
-    "provider_category_counts_v1",
-    "provider_category_counts",
-    async () => {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: rows, error } = await supabaseAdmin
-        .from("service_providers")
-        .select("categories")
-        .eq("status", "active");
+export async function loadProviderCategoryCounts(): Promise<
+  Record<(typeof categories)[number], number>
+> {
+  const empty = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
+    (typeof categories)[number],
+    number
+  >;
+  try {
+    // Avoid KV/cache singleflight here — /services SSR hung when CACHE_KV stalled.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("service_providers")
+      .select("categories")
+      .eq("status", "active")
+      .limit(2000);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const counts = Object.fromEntries(categories.map((id) => [id, 0])) as Record<
-        (typeof categories)[number],
-        number
-      >;
-
-      for (const row of rows ?? []) {
-        for (const cat of normalizeProviderCategories(row.categories)) {
-          if (cat in counts) counts[cat as (typeof categories)[number]]++;
-        }
+    const counts = { ...empty };
+    for (const row of rows ?? []) {
+      for (const cat of normalizeProviderCategories(row.categories)) {
+        if (cat in counts) counts[cat as (typeof categories)[number]]++;
       }
+    }
+    return counts;
+  } catch (err) {
+    console.error("[services] category counts unavailable:", err);
+    return empty;
+  }
+}
 
-      return counts;
-    },
-  );
-  return data;
+export const getProviderCategoryCounts = createServerFn({ method: "GET" }).handler(async () => {
+  return loadProviderCategoryCounts();
 });
 
 export const listActiveProvidersByCategory = createServerFn({ method: "GET" })

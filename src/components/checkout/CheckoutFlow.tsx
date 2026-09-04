@@ -112,12 +112,22 @@ export function CheckoutFlow({
   }, [linkedPhone, phone]);
 
   const waiting = phase !== "idle";
-  const amountKes =
-    cycle === "quarterly" && allowQuarterly
-      ? Math.round(lineItem.amountKes * 3 * 0.9)
-      : lineItem.amountKes;
+  /** Prefer parent-driven billing cycle (e.g. Tenant Plus offer cards) over local toggle. */
+  const effectiveCycle: "monthly" | "quarterly" =
+    metadata.billingCycle === "quarterly" || metadata.billingCycle === "monthly"
+      ? metadata.billingCycle
+      : cycle === "quarterly" && allowQuarterly
+        ? "quarterly"
+        : "monthly";
 
-  const billingCycle = cycle === "quarterly" ? "quarterly" : "monthly";
+  const amountKes =
+    metadata.billingCycle === "quarterly" || metadata.billingCycle === "monthly"
+      ? lineItem.amountKes
+      : cycle === "quarterly" && allowQuarterly
+        ? Math.round(lineItem.amountKes * 3 * 0.9)
+        : lineItem.amountKes;
+
+  const billingCycle = effectiveCycle;
   const payerPhone = phone.trim() || linkedPhone || defaultPhone;
 
   useEffect(() => {

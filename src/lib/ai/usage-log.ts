@@ -1,9 +1,5 @@
 /** Structured AI usage log. Does not store prompts (PII / cost control). */
-export function logAiUsage(input: {
-  userId: string;
-  feature: string;
-  ok: boolean;
-}): void {
+export function logAiUsage(input: { userId: string; feature: string; ok: boolean }): void {
   console.info(
     "[NyumbaSearch:ai]",
     JSON.stringify({

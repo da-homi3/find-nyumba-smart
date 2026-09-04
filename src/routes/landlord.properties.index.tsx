@@ -11,6 +11,7 @@ import { Plus, Building2, Sparkles, Loader2, TrendingUp, CheckCircle2, Home } fr
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ListingGridSkeleton } from "@/components/skeletons/ListingCardSkeleton";
+import { optimizeImageUrlForServeMode } from "@/lib/app-client";
 
 export const Route = createFileRoute("/landlord/properties/")({
   component: () => (
@@ -125,7 +126,11 @@ function Page() {
             <div key={p.id} className="overflow-hidden rounded-2xl border bg-card shadow-soft">
               <div className="relative aspect-4/3 bg-muted">
                 {p.images[0] && (
-                  <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />
+                  <img
+                    src={optimizeImageUrlForServeMode(p.images[0])}
+                    alt={p.title}
+                    className="h-full w-full object-cover"
+                  />
                 )}
                 {rep && (
                   <span className="absolute right-2 top-2 rounded-full bg-foreground/90 px-2.5 py-1 text-xs font-semibold text-background">

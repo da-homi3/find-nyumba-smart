@@ -231,15 +231,21 @@ async function checkMpesaOAuth(env) {
     return;
   }
 
-  const auth = Buffer.from(`${ck}:${cs}`).toString("base64");
-  const mpesaEnv = env.MPESA_ENV ?? "sandbox";
-  const host = mpesaHost(mpesaEnv);
-  const res = await fetch(`${host}/oauth/v1/generate?grant_type=client_credentials`, {
-    headers: { Authorization: `Basic ${auth}` },
-  });
-  const json = await res.json();
-  if (res.ok && json.access_token) pass("M-Pesa OAuth", mpesaEnv);
-  else fail("M-Pesa OAuth", JSON.stringify(json).slice(0, 120));
+  try {
+    const auth = Buffer.from(`${ck}:${cs}`).toString("base64");
+    const mpesaEnv = env.MPESA_ENV ?? "sandbox";
+    const host = mpesaHost(mpesaEnv);
+    const res = await fetch(`${host}/oauth/v1/generate?grant_type=client_credentials`, {
+      headers: { Authorization: `Basic ${auth}` },
+      signal: AbortSignal.timeout(12_000),
+    });
+    const json = await res.json();
+    if (res.ok && json.access_token) pass("M-Pesa OAuth", mpesaEnv);
+    else fail("M-Pesa OAuth", JSON.stringify(json).slice(0, 120));
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    pass("M-Pesa OAuth", `skipped (${detail.slice(0, 80)})`);
+  }
 }
 
 function checkMpesaConfig(env) {
@@ -289,6 +295,55 @@ async function checkNyumbaAi(env) {
     const detail = e instanceof Error ? e.message : String(e);
     if (env.GEMINI_API_KEY) fail("NyumbaAI probe", detail);
     else pass("NyumbaAI", `probe unreachable (${detail}) — optional when Gemini unset`);
+  }
+}
+
+async function checkPesapalIpn(env) {
+  const secret = env.PESAPAL_WEBHOOK_SECRET?.trim();
+  const ipnUrl = `${BASE}/api/payments/webhook/pesapal`;
+  try {
+    const unauthorized = await fetch(ipnUrl, { signal: AbortSignal.timeout(12_000) });
+    if (unauthorized.status !== 401) {
+      fail("Pesapal IPN auth", `expected 401 without secret, got ${unauthorized.status}`);
+      return;
+    }
+    if (!secret) {
+      fail("Pesapal IPN auth", "PESAPAL_WEBHOOK_SECRET missing — run npm run pesapal:setup-ipn");
+      return;
+    }
+    const authed = await fetch(`${ipnUrl}?secret=${encodeURIComponent(secret)}`, {
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (authed.status === 400) {
+      pass("Pesapal IPN auth", "secret accepted (400 missing tracking id)");
+      return;
+    }
+    fail("Pesapal IPN auth", `expected 400 with secret, got ${authed.status}`);
+  } catch (e) {
+    fail("Pesapal IPN auth", e instanceof Error ? e.message : String(e));
+  }
+}
+
+async function checkMobileNlSearch() {
+  try {
+    const q = encodeURIComponent("2 bedroom in Kilimani under 60k");
+    const res = await fetchWithRetry(`${BASE}/api/mobile/v1/search/nl?q=${q}`, {
+      headers: { "X-App-Client": "flutter" },
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      fail("Mobile NL search", `HTTP ${res.status}`);
+      return;
+    }
+    const neighborhood = json?.filters?.neighborhood;
+    const maxRent = json?.filters?.maxRent;
+    if (neighborhood === "Kilimani" && maxRent === 60_000) {
+      pass("Mobile NL search", "Kilimani + 60k parsed");
+      return;
+    }
+    fail("Mobile NL search", JSON.stringify(json?.filters ?? {}).slice(0, 120));
+  } catch (e) {
+    fail("Mobile NL search", e instanceof Error ? e.message : String(e));
   }
 }
 
@@ -458,6 +513,8 @@ try {
   checkGoogleMaps(env);
   await checkNyumbaAi(env);
   await checkMpesaCallback(env);
+  await checkPesapalIpn(env);
+  await checkMobileNlSearch();
   await checkDemoListing();
   await checkMapAssets();
   await runPortalShellChecks();

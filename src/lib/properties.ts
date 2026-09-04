@@ -122,6 +122,10 @@ export type PropertySearchFilters = {
   verifiedOnly?: boolean;
   minBedrooms?: number;
   minAuthenticityScore?: number;
+  /** Require amenity "Parking" (exact label in properties.amenities). */
+  parking?: boolean;
+  /** Require amenity "Pet friendly". */
+  petFriendly?: boolean;
   bounds?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   limit?: number;
   offset?: number;

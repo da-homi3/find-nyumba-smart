@@ -381,7 +381,9 @@ function RentEmptyState({
 
 function TenantLeaseCard({
   lease,
-}: Readonly<{ lease: NonNullable<Awaited<ReturnType<typeof getTenantPmAccess>>>["leases"][number] }>) {
+}: Readonly<{
+  lease: NonNullable<Awaited<ReturnType<typeof getTenantPmAccess>>>["leases"][number];
+}>) {
   const active = lease.status === "active";
   const place = [lease.property_name, lease.unit_label ? `Unit ${lease.unit_label}` : null]
     .filter(Boolean)

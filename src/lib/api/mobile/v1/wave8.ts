@@ -24,22 +24,27 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
     const { ensureTenantTrial } = await import("@/lib/payments/tenant-trial");
     const { canViewLeadContactDetails } = await import("@/lib/revenue/entitlements");
 
-    const [landlordPlan, plus, trial, portalSub, profileRow, adminRole, listingLimit] = await Promise.all([
-      getActiveLandlordPlan(auth.admin, auth.userId),
-      getTenantPlusStatus(auth.admin, auth.userId),
-      ensureTenantTrial(auth.admin, auth.userId),
-      getPortalSubscriptionMeta(auth.admin, auth.userId),
-      auth.admin.from("profiles").select("lead_pack_balance, plus_contact_credits").eq("id", auth.userId).maybeSingle(),
-      auth.admin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", auth.userId)
-        .eq("role", "admin")
-        .maybeSingle(),
-      import("@/lib/promo/listing-cap").then(({ getListingCap }) =>
-        getListingCap(auth.admin, auth.userId),
-      ),
-    ]);
+    const [landlordPlan, plus, trial, portalSub, profileRow, adminRole, listingLimit] =
+      await Promise.all([
+        getActiveLandlordPlan(auth.admin, auth.userId),
+        getTenantPlusStatus(auth.admin, auth.userId),
+        ensureTenantTrial(auth.admin, auth.userId),
+        getPortalSubscriptionMeta(auth.admin, auth.userId),
+        auth.admin
+          .from("profiles")
+          .select("lead_pack_balance, plus_contact_credits")
+          .eq("id", auth.userId)
+          .maybeSingle(),
+        auth.admin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", auth.userId)
+          .eq("role", "admin")
+          .maybeSingle(),
+        import("@/lib/promo/listing-cap").then(({ getListingCap }) =>
+          getListingCap(auth.admin, auth.userId),
+        ),
+      ]);
 
     const isAdmin = Boolean(adminRole.data);
     const leadPackBalance = profileRow.data?.lead_pack_balance ?? 0;

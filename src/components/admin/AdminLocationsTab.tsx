@@ -114,8 +114,7 @@ export function AdminLocationsTab() {
             <li key={row.id as string} className="border-t pt-2">
               <span className="font-medium text-foreground">{String(row.neighborhood)}</span>
               <span className="mt-0.5 block text-muted-foreground">
-                {String(row.title ?? "Untitled")} · conf{" "}
-                {row.location_match_confidence ?? "—"}
+                {String(row.title ?? "Untitled")} · conf {row.location_match_confidence ?? "—"}
               </span>
               <div className="mt-1.5 flex gap-2">
                 <button
@@ -166,7 +165,8 @@ export function AdminLocationsTab() {
                   value=""
                   onValueChange={() => {}}
                   onSelectPlace={(place) => {
-                    const locationId = place.locationId ?? (place.source === "nyumba" ? place.id : null);
+                    const locationId =
+                      place.locationId ?? (place.source === "nyumba" ? place.id : null);
                     if (!locationId) {
                       toast.error("Pick a NyumbaSearch place (not Mapbox-only)");
                       return;
@@ -195,7 +195,7 @@ export function AdminLocationsTab() {
           <Search className="h-4 w-4 text-primary" /> Location demand (30d)
         </h3>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-xs">
+          <table className="w-full min-w-160 text-left text-xs">
             <thead className="text-muted-foreground">
               <tr>
                 <th className="py-2 pr-3 font-medium">Place</th>
@@ -272,9 +272,7 @@ export function AdminLocationsTab() {
         </div>
 
         <div className="mt-4 space-y-3">
-          {listLoading ? (
-            <p className="text-sm text-muted-foreground">Loading locations…</p>
-          ) : null}
+          {listLoading ? <p className="text-sm text-muted-foreground">Loading locations…</p> : null}
           {locations.map((loc) => (
             <div key={loc.id as string} className="rounded-xl border p-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -297,7 +295,7 @@ export function AdminLocationsTab() {
                   onClick={() =>
                     toggleActive.mutate({
                       locationId: loc.id as string,
-                      isActive: !Boolean(loc.is_active),
+                      isActive: !loc.is_active,
                     })
                   }
                 >
@@ -326,7 +324,7 @@ export function AdminLocationsTab() {
                     setAliasDraft((prev) => ({ ...prev, [loc.id as string]: e.target.value }))
                   }
                   placeholder="Add alias…"
-                  className="min-w-[180px] flex-1 rounded-lg border bg-background px-2 py-1.5 text-xs"
+                  className="min-w-45 flex-1 rounded-lg border bg-background px-2 py-1.5 text-xs"
                 />
                 <button
                   type="button"

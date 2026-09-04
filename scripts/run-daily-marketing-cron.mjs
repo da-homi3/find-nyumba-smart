@@ -13,7 +13,10 @@ function loadEnv() {
     if (!t || t.startsWith("#")) continue;
     const eq = t.indexOf("=");
     if (eq === -1) continue;
-    env[t.slice(0, eq).trim()] = t.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    env[t.slice(0, eq).trim()] = t
+      .slice(eq + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
   }
   return env;
 }

@@ -1,11 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { initiateStkPush, isMpesaConfigured } from "@/lib/api/mpesa";
-import {
-  planMonthlyPrice,
-  providerTierPrice,
-  resolveLandlordPlan,
-} from "@/lib/revenue/plans";
+import { planMonthlyPrice, providerTierPrice, resolveLandlordPlan } from "@/lib/revenue/plans";
 import { isPmPlanId } from "@/lib/pm/pricing";
 
 type Admin = SupabaseClient<Database>;

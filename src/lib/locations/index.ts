@@ -1,5 +1,10 @@
 export { attachPropertyLocationFks } from "./attach-property";
-export { normalizeLocationName, slugifyLocationName, countyLookupKey, parsePlaceQuery } from "./normalize";
+export {
+  normalizeLocationName,
+  slugifyLocationName,
+  countyLookupKey,
+  parsePlaceQuery,
+} from "./normalize";
 export { searchLocationsDb } from "./search";
 export { resolveLocation } from "./resolve";
 export { getLocationById, getLocationChildren, getLocationAncestors } from "./hierarchy";

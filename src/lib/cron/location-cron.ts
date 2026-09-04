@@ -48,9 +48,7 @@ export async function runLocationMaintenanceCron(admin: SupabaseClient): Promise
         });
         const { data: after } = await db
           .from("properties")
-          .select(
-            "location_id,ward_location_id,constituency_location_id,county_location_id",
-          )
+          .select("location_id,ward_location_id,constituency_location_id,county_location_id")
           .eq("id", row.id)
           .maybeSingle();
         if (after?.location_id) {

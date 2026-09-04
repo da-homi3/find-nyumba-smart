@@ -40,13 +40,20 @@ export function buildPropertyDetailHead(p: Property | undefined) {
       "@type": "Offer",
       price: p.rent_kes,
       priceCurrency: "KES",
-      priceSpecification: { "@type": "UnitPriceSpecification", price: p.rent_kes, priceCurrency: "KES", unitText: "Month" },
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: p.rent_kes,
+        priceCurrency: "KES",
+        unitText: "Month",
+      },
       availability: vacant ? "https://schema.org/InStock" : "https://schema.org/SoldOut",
       areaServed: { "@type": "City", name: "Nairobi" },
     },
     numberOfRooms: p.bedrooms,
     numberOfBathroomsTotal: p.bathrooms,
-    floorSize: p.area_sqm ? { "@type": "QuantitativeValue", value: p.area_sqm, unitCode: "MTK" } : undefined,
+    floorSize: p.area_sqm
+      ? { "@type": "QuantitativeValue", value: p.area_sqm, unitCode: "MTK" }
+      : undefined,
     image: p.images.length > 0 ? p.images : undefined,
   };
   return {
@@ -66,7 +73,7 @@ export function buildPropertyDetailHead(p: Property | undefined) {
       { property: "og:site_name", content: "NyumbaSearch" },
       { property: "og:title", content: title },
       { property: "og:description", content: description },
-      { property: "og:type", content: "website" },
+      { property: "og:type", content: "product" },
       { property: "og:url", content: canonical },
       { property: "og:image", content: ogImage },
       { name: "twitter:card", content: "summary_large_image" },

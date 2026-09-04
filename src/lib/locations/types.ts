@@ -96,12 +96,7 @@ export const SEARCHABLE_TYPES: LocationType[] = [
   "ROAD",
 ];
 
-export const SEO_AREA_TYPES: LocationType[] = [
-  "LOCALITY",
-  "NEIGHBOURHOOD",
-  "ESTATE",
-  "WARD",
-];
+export const SEO_AREA_TYPES: LocationType[] = ["LOCALITY", "NEIGHBOURHOOD", "ESTATE", "WARD"];
 
 /** Localities/neighbourhoods need denser inventory before indexing. */
 export const SEO_INVENTORY_THRESHOLD = 3;
