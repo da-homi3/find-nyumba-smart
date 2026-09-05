@@ -3,21 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useMemo } from "react";
 import { SiteNav, SiteFooter } from "@/components/SiteNav";
 import { LandingHero } from "@/components/landing/LandingHero";
-import { ProviderDiscoverySection } from "@/components/landing/ProviderDiscoverySection";
 import {
   FeaturedListings,
   PopularNeighborhoods,
-  ServiceTeaserRow,
   TrustStrip,
 } from "@/components/landing/LandingBrowseSections";
 import { PropertyCategoryGrid } from "@/components/landing/PropertyCategoryGrid";
+import { ServicesWithHouseSection } from "@/components/landing/ServicesWithHouseSection";
+import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "@/lib/site";
 import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
 import { countListingsByHomepageCategory } from "@/lib/landing/homepage-categories";
 import {
-  fetchFeaturedAgenciesApi,
   fetchFeaturedTestimonialsApi,
   fetchIntelligenceStatsApi,
 } from "@/lib/homepage-client";
@@ -80,12 +79,6 @@ function Landing() {
     staleTime: 300_000,
   });
 
-  const { data: featuredAgencies = [], isLoading: agenciesLoading } = useQuery({
-    queryKey: ["featured-agencies"],
-    queryFn: () => fetchFeaturedAgenciesApi(),
-    staleTime: 600_000,
-  });
-
   const featured = useMemo(() => {
     const newest = [...properties].sort(
       (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
@@ -116,27 +109,14 @@ function Landing() {
 
   const categoryCounts = useMemo(() => countListingsByHomepageCategory(properties), [properties]);
 
-  const stats = useMemo(() => {
-    if (publicStats) {
-      return {
-        verifiedCount: publicStats.verifiedListings,
-        hoods: publicStats.neighborhoodCount,
-        activeListings: publicStats.activeListings,
-      };
-    }
-    const verifiedCount = properties.filter((p) => p.is_verified).length;
-    const hoods = new Set(properties.map((p) => p.neighborhood)).size;
-    return { verifiedCount, hoods, activeListings: properties.length };
-  }, [properties, publicStats]);
-
   return (
     <div className="min-h-screen overflow-x-clip bg-background pb-28 md:pb-0">
       <SiteNav variant="hero" />
-      <LandingHero verifiedCount={stats.verifiedCount} hoodCount={stats.hoods} />
+      <LandingHero publicStats={publicStats} statsLoading={statsLoading} />
       <TrustStrip
         ready={!statsLoading}
         stats={{
-          verifiedHomes: stats.verifiedCount || stats.activeListings,
+          verifiedHomes: publicStats?.verifiedListings || publicStats?.activeListings || 0,
           noAgentFeesPct: publicStats?.noAgentFeesPct,
           avgResponseHours: publicStats?.avgResponseHours,
           tenantRating: publicStats?.tenantRating,
@@ -153,8 +133,8 @@ function Landing() {
         minRentByHood={minRentByHood}
         loading={propertiesLoading}
       />
-      <ProviderDiscoverySection agencies={featuredAgencies} loading={agenciesLoading} />
-      <ServiceTeaserRow counts={providerCounts} />
+      <ServicesWithHouseSection counts={providerCounts} />
+      <AppDownloadBanner />
       <Suspense fallback={null}>
         <LandingMarketingBelowFold
           intelligenceStats={intelligenceStats}

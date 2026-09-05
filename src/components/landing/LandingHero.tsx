@@ -1,12 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState, type SubmitEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Search, MapPin, ArrowRight } from "lucide-react";
+import { Search, MapPin, ArrowRight, ShieldCheck, BadgeCheck, Clock, Star } from "lucide-react";
 import heroApartments from "@/assets/hero-nairobi-apartments.webp";
 import heroVilla from "@/assets/hero-kenya-villa.webp";
 import { HOOD_META } from "@/components/landing/hood-meta";
+import { LiveStatsGlassCard } from "@/components/landing/LiveStatsGlassCard";
 import { HOMEPAGE_DESCRIPTION } from "@/lib/site";
 import type { PropertyType } from "@/lib/properties";
+import type { PublicStats } from "@/lib/api/stats.functions";
 import { useDeviceCapability, useMotionBudget } from "@/hooks/useDeviceCapability";
 import { SSR_SAFE_MOTION_INITIAL } from "@/lib/design/motion";
 import { cn } from "@/lib/utils";
@@ -40,10 +42,20 @@ const PURPOSE_TABS = [
 const MIN_BUDGET_KES = 1_000;
 const MAX_BUDGET_KES = 2_000_000;
 
+const MICRO_TRUST = [
+  { icon: BadgeCheck, label: "Verified listings" },
+  { icon: ShieldCheck, label: "No agent fees" },
+  { icon: Clock, label: "Fast responses" },
+  { icon: Star, label: "Trusted tenants" },
+] as const;
+
 export function LandingHero({
-  verifiedCount,
-  hoodCount,
-}: Readonly<{ verifiedCount: number; hoodCount: number }>) {
+  publicStats,
+  statsLoading = false,
+}: Readonly<{
+  publicStats?: PublicStats | null;
+  statsLoading?: boolean;
+}>) {
   const navigate = useNavigate();
   const capable3D = useDeviceCapability();
   const motionBudget = useMotionBudget();
@@ -120,176 +132,205 @@ export function LandingHero({
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto flex min-h-dvh max-w-7xl flex-col items-center justify-center px-4 py-28 text-center sm:min-h-[92vh] sm:px-6 sm:py-32">
-        <motion.p
-          initial={SSR_SAFE_MOTION_INITIAL}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="hero-eyebrow mb-6 inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/20 px-4 py-1.5 text-sm font-medium text-primary-glow glass-surface"
-        >
-          <span className="h-2 w-2 animate-pulse-dot rounded-full bg-primary-glow" />
-          {verifiedCount > 0
-            ? `${verifiedCount.toLocaleString("en-KE")} verified homes`
-            : "Verified listings"}{" "}
-          · {hoodCount > 0 ? `${hoodCount} neighborhoods` : "Nairobi"}
-        </motion.p>
+      <div className="relative z-10 mx-auto flex min-h-dvh max-w-7xl flex-col justify-center gap-10 px-4 pb-24 pt-28 sm:min-h-[92vh] sm:px-6 sm:pb-20 sm:pt-32 lg:flex-row lg:items-center lg:gap-12">
+        <div className="flex-1 text-left">
+          <motion.div
+            initial={SSR_SAFE_MOTION_INITIAL}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/85 backdrop-blur-md"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
+            Verified homes across Nairobi
+          </motion.div>
 
-        <motion.h1
-          initial={SSR_SAFE_MOTION_INITIAL}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.19, 1, 0.22, 1] }}
-          className="display-heading hero-title max-w-4xl text-4xl text-white sm:text-5xl lg:text-6xl"
-        >
-          Your next home in Nairobi deals with{" "}
-          <span className="text-primary-glow">verified property owners</span>
-        </motion.h1>
+          <motion.h1
+            initial={SSR_SAFE_MOTION_INITIAL}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.08 }}
+            className="display-heading mt-5 max-w-xl text-4xl font-semibold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.25rem]"
+          >
+            Your next home in Nairobi{" "}
+            <span className="text-primary-glow">starts here</span>
+          </motion.h1>
 
-        <motion.p
-          initial={SSR_SAFE_MOTION_INITIAL}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.25, duration: 0.6 }}
-          className="mt-5 max-w-xl text-lg text-white/75"
-        >
-          {HOMEPAGE_DESCRIPTION}
-        </motion.p>
+          <motion.p
+            initial={SSR_SAFE_MOTION_INITIAL}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.16 }}
+            className="mt-4 max-w-lg text-sm leading-relaxed text-white/70 sm:text-base"
+          >
+            {HOMEPAGE_DESCRIPTION}
+          </motion.p>
 
-        <motion.form
-          onSubmit={submit}
-          initial={SSR_SAFE_MOTION_INITIAL}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6 }}
-          className="glass-surface mt-8 w-full max-w-3xl overflow-hidden rounded-[22px]"
-        >
-          <div className="flex items-center gap-1 border-b border-white/10 px-3 pt-3">
-            {PURPOSE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setPurposeTab(tab.id)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-semibold transition",
-                  purposeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-white/70 hover:bg-white/10 hover:text-white",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="grid gap-0 sm:grid-cols-[1.2fr_1fr_1fr_auto]">
-            <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                Where in Nairobi?
-              </span>
-              <span className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
-                <input
-                  list="hood-suggestions"
-                  value={hood}
-                  onChange={(e) => setHood(e.target.value)}
-                  placeholder="Neighborhood"
-                  className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40"
-                  aria-label="Neighborhood"
-                />
-              </span>
-              <datalist id="hood-suggestions">
-                {Object.keys(HOOD_META).map((n) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
-            </label>
-            <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                Property Type
-              </span>
-              <span className="flex items-center gap-2">
-                <Search className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
-                <select
-                  value={propType}
-                  onChange={(e) => setPropType(e.target.value as PropertyType | "")}
-                  className="w-full bg-transparent text-sm text-white outline-none"
-                  aria-label="Property type"
-                >
-                  <option value="" className="text-foreground">
-                    Any type
-                  </option>
-                  {PROPERTY_TYPES.map(({ value, label }) => (
-                    <option key={value} value={value} className="text-foreground">
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </span>
-            </label>
-            <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
-                Price Range
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-white/50">KES</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={MIN_BUDGET_KES}
-                  max={MAX_BUDGET_KES}
-                  value={maxRent}
-                  onChange={(e) => setMaxRent(e.target.value)}
-                  placeholder="Max budget"
-                  className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40"
-                  aria-label="Maximum rent"
-                />
-              </span>
-            </label>
-            <motion.button
-              type="submit"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex items-center justify-center gap-2 bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-green"
+          <motion.form
+            onSubmit={submit}
+            initial={SSR_SAFE_MOTION_INITIAL}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.24 }}
+            className="glass-panel mt-8 overflow-hidden rounded-2xl"
+          >
+            <div
+              className="flex gap-1 border-b border-white/10 p-1.5"
+              role="tablist"
+              aria-label="Search purpose"
             >
-              Search
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </motion.button>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2 px-4 py-3 text-xs text-white/50">
-            <span className="font-medium">Popular:</span>
-            {POPULAR_HOODS.map((n) => (
-              <button
-                type="button"
-                key={n}
-                onClick={() => setHood(n)}
-                className="rounded-full bg-white/10 px-3 py-0.5 font-medium text-white/80 transition hover:bg-white/20"
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </motion.form>
+              {PURPOSE_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={purposeTab === tab.id}
+                  onClick={() => setPurposeTab(tab.id)}
+                  className={cn(
+                    "flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition sm:text-sm",
+                    purposeTab === tab.id
+                      ? "bg-white/15 text-white"
+                      : "text-white/55 hover:bg-white/5 hover:text-white/80",
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-        <motion.div
-          initial={SSR_SAFE_MOTION_INITIAL}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-          className="mt-8 flex flex-col gap-3 sm:flex-row"
-        >
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <div className="grid gap-0 sm:grid-cols-[1.2fr_1fr_1fr_auto]">
+              <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                  Where in Nairobi?
+                </span>
+                <span className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
+                  <input
+                    list="hood-suggestions"
+                    value={hood}
+                    onChange={(e) => setHood(e.target.value)}
+                    placeholder="Neighborhood"
+                    className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40"
+                    aria-label="Neighborhood"
+                  />
+                </span>
+                <datalist id="hood-suggestions">
+                  {Object.keys(HOOD_META).map((n) => (
+                    <option key={n} value={n} />
+                  ))}
+                </datalist>
+              </label>
+              <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                  Property Type
+                </span>
+                <span className="flex items-center gap-2">
+                  <Search className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
+                  <select
+                    value={propType}
+                    onChange={(e) => setPropType(e.target.value as PropertyType | "")}
+                    className="w-full bg-transparent text-sm text-white outline-none"
+                    aria-label="Property type"
+                  >
+                    <option value="" className="text-foreground">
+                      Any type
+                    </option>
+                    {PROPERTY_TYPES.map(({ value, label }) => (
+                      <option key={value} value={value} className="text-foreground">
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </label>
+              <label className="flex flex-col gap-1 border-b border-white/10 px-4 py-3 text-left sm:border-r sm:border-b-0">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+                  Price Range
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-white/50">KES</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={MIN_BUDGET_KES}
+                    max={MAX_BUDGET_KES}
+                    value={maxRent}
+                    onChange={(e) => setMaxRent(e.target.value)}
+                    placeholder="Max budget"
+                    className="w-full bg-transparent text-sm text-white outline-none transition placeholder:text-white/40"
+                    aria-label="Maximum rent"
+                  />
+                </span>
+              </label>
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center justify-center gap-2 bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-green"
+              >
+                Search
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </motion.button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-xs text-white/50">
+              <span className="font-medium">Popular:</span>
+              {POPULAR_HOODS.map((n) => (
+                <button
+                  type="button"
+                  key={n}
+                  onClick={() => setHood(n)}
+                  className="rounded-full bg-white/10 px-3 py-0.5 font-medium text-white/80 transition hover:bg-white/20"
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </motion.form>
+
+          <motion.ul
+            initial={SSR_SAFE_MOTION_INITIAL}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-5 flex flex-wrap gap-x-4 gap-y-2"
+          >
+            {MICRO_TRUST.map(({ icon: Icon, label }) => (
+              <li
+                key={label}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white/55"
+              >
+                <Icon className="h-3.5 w-3.5 text-emerald-300/90" aria-hidden />
+                {label}
+              </li>
+            ))}
+          </motion.ul>
+
+          <motion.div
+            initial={SSR_SAFE_MOTION_INITIAL}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.48 }}
+            className="mt-6 flex flex-col gap-3 sm:flex-row"
+          >
             <Link
               to="/tenant"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-(--shadow-green)"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-(--shadow-green)"
             >
               Browse homes
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
             <Link
               to="/tenant/map"
-              className="glass-surface inline-flex items-center justify-center gap-2 rounded-xl px-8 py-3.5 text-sm font-semibold text-white"
+              className="glass-panel inline-flex items-center justify-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold text-white"
             >
               <MapPin className="h-4 w-4" aria-hidden />
-              Open the map ↗
+              Open the map
             </Link>
           </motion.div>
+        </div>
+
+        <motion.div
+          initial={SSR_SAFE_MOTION_INITIAL}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.2 }}
+          className="mx-auto w-full max-w-sm shrink-0 lg:mx-0"
+        >
+          <LiveStatsGlassCard stats={publicStats} loading={statsLoading} />
         </motion.div>
       </div>
 

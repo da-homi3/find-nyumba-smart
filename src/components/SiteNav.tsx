@@ -10,6 +10,7 @@ import { NotificationBellMenu } from "@/components/NotificationBellMenu";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 import { PLAY_STORE_URL } from "@/components/AppDownloadBanner";
 import { SocialProfileLinks } from "@/components/SocialProfileLinks";
+import { SiteReviewsSection } from "@/components/SiteReviewsSection";
 import { ChevronDown, Moon, Sun } from "lucide-react";
 import { PORTAL_HOME, resolveListerDashboardPath } from "@/lib/portal-guard";
 
@@ -384,7 +385,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
             whileTap={{ scale: 0.9 }}
             transition={{ duration: 0.3 }}
             aria-label="Toggle theme"
-            className={`hidden rounded-xl border p-2 md:inline-flex ${isHero ? "border-white/20 bg-white/10" : "border-border bg-secondary/50"}`}
+            className={`hidden rounded-xl border p-2 backdrop-blur-md md:inline-flex ${isHero ? "glass-panel border-white/20 text-white" : "border-border bg-secondary/50"}`}
           >
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </motion.button>
@@ -418,6 +419,7 @@ export function SiteNav({ variant = "light" }: Readonly<Props>) {
 export function SiteFooter() {
   return (
     <footer className="border-t bg-secondary/40">
+      <SiteReviewsSection />
       <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:grid-cols-2 lg:grid-cols-6">
         <div className="sm:col-span-2 lg:col-span-2">
           <BrandLogoLink logoClassName="h-8" />
@@ -467,6 +469,7 @@ export function SiteFooter() {
           title="Support"
           links={[
             { to: "/contact", label: "Contact" },
+            { to: "/#site-reviews", label: "Leave a review" },
             { to: "/privacy", label: "Privacy policy" },
             { to: "/terms-of-service", label: "Terms of service" },
             { to: "/cookie-policy", label: "Cookie policy" },

@@ -1744,6 +1744,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      platform_reviews: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          display_name: string;
+          rating: number;
+          comment: string;
+          is_published: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          display_name: string;
+          rating: number;
+          comment: string;
+          is_published?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          display_name?: string;
+          rating?: number;
+          comment?: string;
+          is_published?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       property_reviews: {
         Row: {
           accessibility: number | null;

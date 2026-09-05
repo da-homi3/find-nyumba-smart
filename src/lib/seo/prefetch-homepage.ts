@@ -2,7 +2,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { fetchProperties } from "@/lib/properties";
 import { loadPublicStats } from "@/lib/api/stats.functions";
 import {
-  loadFeaturedAgencies,
   loadFeaturedTestimonials,
   loadPropertyIntelligenceStats,
 } from "@/lib/api/homepage.functions";
@@ -63,10 +62,6 @@ export async function prefetchHomepageQueries(queryClient: QueryClient): Promise
   void queryClient.prefetchQuery({
     queryKey: ["property-intelligence"],
     queryFn: () => loadPropertyIntelligenceStats(),
-  });
-  void queryClient.prefetchQuery({
-    queryKey: ["featured-agencies"],
-    queryFn: () => loadFeaturedAgencies(),
   });
 
   // Prefer KV-warm counts; never block first paint on a cold provider scan.

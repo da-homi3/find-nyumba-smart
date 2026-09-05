@@ -77,9 +77,9 @@ export function FeaturedListings({
     return (
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-20">
         <div className="skeleton h-8 w-64" />
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 flex gap-4 overflow-hidden">
           {FEATURED_SKELETON_KEYS.map((id) => (
-            <div key={id}>
+            <div key={id} className="w-[min(18rem,80vw)] shrink-0">
               <ListingCardSkeleton />
             </div>
           ))}
@@ -103,19 +103,24 @@ export function FeaturedListings({
           to="/tenant"
           className="hidden text-sm font-semibold text-primary hover:underline sm:inline"
         >
-          See all →
+          View all →
         </Link>
       </ScrollReveal>
-      <ScrollRevealStagger
-        className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        stagger={0.08}
-      >
+      <div className="-mx-5 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 sm:-mx-6 sm:px-6">
         {featured.map((p) => (
-          <ScrollRevealItem key={p.id}>
+          <div
+            key={p.id}
+            className="w-[min(18rem,82vw)] shrink-0 snap-start sm:w-[min(20rem,40vw)] lg:w-[min(18.5rem,23vw)]"
+          >
             <PropertyCard p={p} />
-          </ScrollRevealItem>
+          </div>
         ))}
-      </ScrollRevealStagger>
+      </div>
+      <div className="mt-4 sm:hidden">
+        <Link to="/tenant" className="text-sm font-semibold text-primary hover:underline">
+          View all →
+        </Link>
+      </div>
     </section>
   );
 }
