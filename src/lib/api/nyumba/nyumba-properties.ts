@@ -196,6 +196,15 @@ async function insertPropertyListing(
     }
   })();
 
+  void (async () => {
+    try {
+      const { attachPropertyToActivePilot } = await import("@/lib/pilot/access");
+      await attachPropertyToActivePilot(admin, ownerUserId, property.id);
+    } catch (err) {
+      console.warn("[insertPropertyListing] pilot attach failed:", err);
+    }
+  })();
+
   const bustListingCaches = () => {
     void import("@/lib/cache/manager")
       .then(({ invalidateListingCaches }) => invalidateListingCaches())

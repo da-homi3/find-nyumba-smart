@@ -17,7 +17,7 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [landlordPlan, plus, trial, listingLimit, bonusSlots, portalSub, profileRow] =
+    const [landlordPlan, plus, trial, listingLimit, bonusSlots, portalSub, profileRow, pilot] =
       await Promise.all([
         getActiveLandlordPlan(supabase, userId),
         getTenantPlusStatus(supabase, userId),
@@ -35,6 +35,9 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
             .select("lead_pack_balance, plus_contact_credits")
             .eq("id", userId)
             .maybeSingle(),
+        ),
+        import("@/lib/pilot/access").then(({ getActivePilotAccess }) =>
+          getActivePilotAccess(supabaseAdmin, userId),
         ),
       ]);
 
@@ -54,10 +57,12 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
     const isAdmin = Boolean(adminRole);
     const canViewLeadContacts =
       isAdmin ||
+      Boolean(pilot) ||
       canViewLeadContactDetails({
         landlordPlan,
         subscriptionStatus: portalSubscriptionStatus,
         leadPackBalance,
+        pilotActive: Boolean(pilot),
       });
 
     const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -88,6 +93,10 @@ export const getUserEntitlements = createServerFn({ method: "GET" })
       portalTrialEndsAt: portalSub?.trialEnd ?? portalSub?.nextBillingDate ?? null,
       leadPackBalance: isAdmin ? Math.max(leadPackBalance, 9999) : leadPackBalance,
       canViewLeadContacts,
+      pilotActive: Boolean(pilot),
+      pilotEndsAt: pilot?.endsAt ?? null,
+      pilotDaysRemaining: pilot?.daysRemaining ?? null,
+      pilotPartnerName: pilot?.partnerName ?? null,
     };
   });
 

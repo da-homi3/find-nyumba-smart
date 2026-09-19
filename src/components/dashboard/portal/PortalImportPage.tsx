@@ -110,7 +110,7 @@ export function PortalImportPage({ portal }: Readonly<{ portal: ListingPortal }>
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
   const { entitlements, loading: entitlementsLoading } = useEntitlements();
-  const listingBlocked = !isAdmin && entitlements.listingLimit <= 0;
+  const listingBlocked = !isAdmin && !entitlements.pilotActive && entitlements.listingLimit <= 0;
   const [filename, setFilename] = useState("import.csv");
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);

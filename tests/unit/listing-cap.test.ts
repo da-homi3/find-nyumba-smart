@@ -8,6 +8,7 @@ vi.mock("@/lib/revenue/subscription-store", () => ({
 import {
   baseListingCap,
   listingCapReachedMessage,
+  resolveEffectiveListingCap,
   resolveListingCap,
 } from "@/lib/promo/listing-cap";
 
@@ -33,6 +34,44 @@ describe("resolveListingCap", () => {
     expect(resolveListingCap({ plan: "agency-starter", bonusSlots: 0, adminOverride: null })).toBe(
       baseListingCap("agency-starter"),
     );
+  });
+});
+
+describe("resolveEffectiveListingCap", () => {
+  it("grants the pilot listing cap to unpaid participants", () => {
+    expect(
+      resolveEffectiveListingCap({
+        paid: false,
+        plan: "free",
+        pilotListingLimit: 100,
+      }),
+    ).toBe(100);
+  });
+
+  it("keeps unpaid accounts at zero without a pilot", () => {
+    expect(resolveEffectiveListingCap({ paid: false, plan: "free" })).toBe(0);
+  });
+
+  it("uses the higher of paid plan and pilot cap", () => {
+    expect(
+      resolveEffectiveListingCap({
+        paid: true,
+        plan: "pro",
+        bonusSlots: 0,
+        pilotListingLimit: 100,
+      }),
+    ).toBe(100);
+  });
+
+  it("still honours an admin override over the pilot", () => {
+    expect(
+      resolveEffectiveListingCap({
+        paid: false,
+        plan: "free",
+        adminOverride: 3,
+        pilotListingLimit: 100,
+      }),
+    ).toBe(3);
   });
 });
 

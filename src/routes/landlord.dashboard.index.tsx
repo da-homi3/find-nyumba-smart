@@ -26,6 +26,7 @@ import { DashboardSettingsLink } from "@/components/dashboard/DashboardSettingsL
 import { DashboardListingCard } from "@/components/dashboard/DashboardListingCard";
 import { EmptyState } from "@/components/EmptyState";
 import { PortalTrialBanner } from "@/components/dashboard/portal/PortalTrialBanner";
+import { PortalPilotBanner } from "@/components/dashboard/portal/PortalPilotBanner";
 import { LeadPackUpgradeBanner } from "@/components/dashboard/portal/LeadPackUpgradeBanner";
 
 export const Route = createFileRoute("/landlord/dashboard/")({
@@ -103,6 +104,7 @@ function Dashboard() {
         </div>
       </header>
 
+      <PortalPilotBanner />
       <PortalTrialBanner portal="landlord" />
 
       {/* KPIs */}

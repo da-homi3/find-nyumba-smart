@@ -59,6 +59,27 @@ export function resolveListingCap(input: {
   return base + (input.bonusSlots ?? 0) + (input.loyaltyExtraSlots ?? 0);
 }
 
+export function resolveEffectiveListingCap(input: {
+  paid: boolean;
+  plan: LandlordPlan;
+  bonusSlots?: number;
+  adminOverride?: number | null;
+  loyaltyExtraSlots?: number;
+  pilotListingLimit?: number | null;
+}): number {
+  if (input.adminOverride != null) {
+    return Math.max(0, Math.min(9999, input.adminOverride));
+  }
+  const pilotLimit = input.pilotListingLimit ?? 0;
+  if (!input.paid && pilotLimit <= 0) return 0;
+  const paidCap = resolveListingCap({
+    plan: input.paid ? input.plan : "free",
+    bonusSlots: input.bonusSlots,
+    loyaltyExtraSlots: input.loyaltyExtraSlots,
+  });
+  return Math.max(paidCap, pilotLimit);
+}
+
 export function listingCapReachedMessage(cap: number): string {
   if (cap <= 0) {
     return "Subscribe to a paid plan to list properties.";
@@ -75,13 +96,16 @@ export async function getListingCap(supabase: Db, userId: string): Promise<numbe
     .maybeSingle();
   if (adminRole) return 9999;
 
-  const [plan, profile, paid] = await Promise.all([
+  const [plan, profile, paid, pilot] = await Promise.all([
     getActiveLandlordPlan(supabase, userId),
     getListingCapProfile(supabase, userId),
     hasPaidMarketplacePortalAccess(supabase, userId),
+    import("@/lib/pilot/access").then(({ getActivePilotAccess }) =>
+      getActivePilotAccess(supabase, userId),
+    ),
   ]);
 
-  if (profile?.admin_listing_limit_override == null && !paid) {
+  if (profile?.admin_listing_limit_override == null && !paid && !pilot) {
     return 0;
   }
 
@@ -95,11 +119,13 @@ export async function getListingCap(supabase: Db, userId: string): Promise<numbe
     console.warn("[listing-cap] loyalty lookup failed", err);
   }
 
-  return resolveListingCap({
-    plan: paid ? plan : "free",
+  return resolveEffectiveListingCap({
+    paid,
+    plan,
     bonusSlots: profile?.bonus_listing_slots ?? 0,
     adminOverride: profile?.admin_listing_limit_override,
     loyaltyExtraSlots,
+    pilotListingLimit: pilot?.listingLimit ?? null,
   });
 }
 

@@ -842,7 +842,7 @@ export function PropertyListingWizard({
   const queryClient = useQueryClient();
   const { user, isAgency, isManager, isAdmin } = useAuth();
   const { entitlements, loading: entitlementsLoading } = useEntitlements();
-  const skipListingPaywall = Boolean(adminOwned || onBehalfOf || isAdmin);
+  const skipListingPaywall = Boolean(adminOwned || onBehalfOf || isAdmin || entitlements.pilotActive);
   const listingBlocked = !skipListingPaywall && entitlements.listingLimit <= 0;
   const listingPortal = listerPortalFromRoles({ isAgency, isManager });
   const [activeTab, setActiveTab] = useState<TabId>(() => {

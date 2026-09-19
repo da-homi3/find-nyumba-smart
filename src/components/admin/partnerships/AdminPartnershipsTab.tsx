@@ -309,7 +309,7 @@ export function AdminPartnershipsTab() {
 
 function SendPartnerInviteForm({ onCreated }: Readonly<{ onCreated: () => void }>) {
   const [email, setEmail] = useState("");
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(31);
   const [notes, setNotes] = useState("");
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
 
@@ -415,7 +415,7 @@ function CreatePilotForm({ onCreated }: Readonly<{ onCreated: () => void }>) {
   const [partnerType, setPartnerType] = useState<PilotPartnerType>("REAL_ESTATE_AGENCY");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(31);
   const [propertyCount, setPropertyCount] = useState(5);
   const [objectives, setObjectives] = useState("");
   const [kpiMetric, setKpiMetric] = useState("enquiries");

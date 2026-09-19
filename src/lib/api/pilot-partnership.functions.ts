@@ -18,6 +18,7 @@ import {
   kpiProgress,
   partnerTypeToAppRoles,
   partnerTypeToOrgType,
+  PILOT_DURATION_DAYS,
   PILOT_EVENT_TYPES,
   PILOT_LEAD_STATUSES,
   PILOT_PARTNER_TYPES,
@@ -148,7 +149,7 @@ const createPilotSchema = z.object({
   primaryContactName: z.string().trim().min(2).max(120).optional(),
   primaryContactEmail: z.string().email(),
   primaryContactPhone: z.string().trim().min(9).max(30).optional(),
-  pilotDurationDays: z.number().int().min(7).max(365).default(30),
+  pilotDurationDays: z.number().int().min(7).max(365).default(PILOT_DURATION_DAYS),
   proposedPropertyCount: z.number().int().min(0).max(500).optional(),
   objectives: z.array(z.string().trim().min(2).max(200)).max(20).default([]),
   successCriteria: z
@@ -238,7 +239,7 @@ export const invitePartnerSelfServe = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       email: z.string().email(),
-      pilotDurationDays: z.number().int().min(7).max(365).default(30),
+      pilotDurationDays: z.number().int().min(7).max(365).default(PILOT_DURATION_DAYS),
       notes: z.string().trim().max(2000).optional(),
     }),
   )

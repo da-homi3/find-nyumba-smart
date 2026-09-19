@@ -13,10 +13,13 @@ export async function resolveLeadContactAccess(
   supabase: Db,
   userId: string,
 ): Promise<LeadContactAccessInput & { canView: boolean }> {
-  const [landlordPlan, subscription, profile] = await Promise.all([
+  const [landlordPlan, subscription, profile, pilot] = await Promise.all([
     getActiveLandlordPlan(supabase, userId),
     getPortalSubscriptionMeta(supabase, userId),
     supabase.from("profiles").select("lead_pack_balance").eq("id", userId).maybeSingle(),
+    import("@/lib/pilot/access").then(({ getActivePilotAccess }) =>
+      getActivePilotAccess(supabase, userId),
+    ),
   ]);
 
   const subscriptionStatus: PortalSubscriptionStatus = subscription?.status ?? "none";
@@ -25,6 +28,7 @@ export async function resolveLeadContactAccess(
     landlordPlan,
     subscriptionStatus,
     leadPackBalance,
+    pilotActive: Boolean(pilot),
   };
 
   return {

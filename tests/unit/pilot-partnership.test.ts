@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   canTransitionPilotStatus,
   daysRemaining,
+  isPilotAccessWindowOpen,
   kpiProgress,
   slugifyPartnerName,
 } from "@/lib/pilot/types";
 import { pickWinningPilotProperty } from "@/lib/pilot/attribution";
+import { canViewLeadContactDetails } from "@/lib/revenue/entitlements";
 
 describe("pilot lifecycle", () => {
   it("allows expected status transitions", () => {
@@ -25,6 +27,34 @@ describe("pilot lifecycle", () => {
     expect(kpiProgress(50, 100)).toEqual({ percentage: 50, status: "behind" });
     expect(kpiProgress(85, 100)).toEqual({ percentage: 85, status: "on_track" });
     expect(kpiProgress(100, 100)).toEqual({ percentage: 100, status: "met" });
+  });
+
+  it("opens complimentary listing access during the 31-day window", () => {
+    const now = new Date("2026-09-19T12:00:00.000Z");
+    expect(
+      isPilotAccessWindowOpen(
+        { status: "ACTIVE", pilot_start_date: "2026-09-19", pilot_end_date: "2026-10-20" },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isPilotAccessWindowOpen(
+        { status: "APPROVED", pilot_start_date: "2026-09-19", pilot_end_date: "2026-10-20" },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isPilotAccessWindowOpen(
+        { status: "PAUSED", pilot_start_date: "2026-09-19", pilot_end_date: "2026-10-20" },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isPilotAccessWindowOpen(
+        { status: "ACTIVE", pilot_start_date: "2026-09-19", pilot_end_date: "2026-09-18" },
+        now,
+      ),
+    ).toBe(false);
   });
 
   it("slugifies partner names", () => {
@@ -60,5 +90,18 @@ describe("pilot attribution", () => {
 
   it("returns null for empty candidates", () => {
     expect(pickWinningPilotProperty([])).toBeNull();
+  });
+});
+
+describe("pilot entitlements", () => {
+  it("unlocks lead contacts during an active pilot even on the free plan", () => {
+    expect(
+      canViewLeadContactDetails({
+        landlordPlan: "free",
+        subscriptionStatus: "none",
+        leadPackBalance: 0,
+        pilotActive: true,
+      }),
+    ).toBe(true);
   });
 });

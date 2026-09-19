@@ -17,7 +17,9 @@ export function PortalTrialBanner({ portal }: Readonly<{ portal: ListingPortal }
   const { entitlements, loading } = useEntitlements();
   const paths = PORTAL_PATHS[portal];
 
-  if (loading || entitlements.portalSubscriptionStatus !== "trialing") return null;
+  if (loading || entitlements.pilotActive || entitlements.portalSubscriptionStatus !== "trialing") {
+    return null;
+  }
 
   const planName =
     PORTAL_PLANS[portal].find((p) => p.id === entitlements.landlordPlan)?.name ??

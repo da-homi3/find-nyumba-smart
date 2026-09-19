@@ -19,6 +19,10 @@ export type UserEntitlements = {
   portalTrialEndsAt?: string | null;
   leadPackBalance?: number;
   canViewLeadContacts?: boolean;
+  pilotActive?: boolean;
+  pilotEndsAt?: string | null;
+  pilotDaysRemaining?: number | null;
+  pilotPartnerName?: string | null;
 };
 
 export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
@@ -35,6 +39,10 @@ export const DEFAULT_ENTITLEMENTS: UserEntitlements = {
   portalTrialEndsAt: null,
   leadPackBalance: 0,
   canViewLeadContacts: false,
+  pilotActive: false,
+  pilotEndsAt: null,
+  pilotDaysRemaining: null,
+  pilotPartnerName: null,
 };
 
 export function isPlusMember(entitlements: UserEntitlements): boolean {
@@ -49,9 +57,11 @@ export type LeadContactAccessInput = {
   landlordPlan: LandlordPlan;
   subscriptionStatus: PortalSubscriptionStatus;
   leadPackBalance: number;
+  pilotActive?: boolean;
 };
 
 export function canViewLeadContactDetails(input: LeadContactAccessInput): boolean {
+  if (input.pilotActive) return true;
   if (input.leadPackBalance > 0) return true;
   return input.subscriptionStatus === "active" && input.landlordPlan !== "free";
 }

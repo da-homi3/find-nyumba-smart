@@ -1,5 +1,16 @@
 /** Pilot partnership domain constants and pure helpers. */
 
+/** Complimentary listing window for enrolled pilot participants. */
+export const PILOT_DURATION_DAYS = 31;
+
+/** Statuses that unlock listing, import, and lead contacts during the pilot window. */
+export const PILOT_ACCESS_STATUSES = ["APPROVED", "ONBOARDING", "ACTIVE", "EXTENDED"] as const;
+
+export type PilotAccessStatus = (typeof PILOT_ACCESS_STATUSES)[number];
+
+/** Listing cap granted for the duration of an active pilot (matches agency-pro). */
+export const PILOT_LISTING_LIMIT = 100;
+
 export const PILOT_STATUSES = [
   "DRAFT",
   "INVITED",
@@ -142,6 +153,31 @@ export function daysRemaining(endDate: string | null | undefined, now = new Date
   const end = new Date(`${endDate}T23:59:59.999Z`);
   const ms = end.getTime() - now.getTime();
   return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+}
+
+export function isPilotAccessStatus(status: string | null | undefined): status is PilotAccessStatus {
+  return Boolean(status && (PILOT_ACCESS_STATUSES as readonly string[]).includes(status));
+}
+
+/** True when a pilot participant should get complimentary listing and portal features. */
+export function isPilotAccessWindowOpen(
+  pilot: {
+    status: string | null | undefined;
+    pilot_start_date?: string | null;
+    pilot_end_date?: string | null;
+  },
+  now = new Date(),
+): boolean {
+  if (!isPilotAccessStatus(pilot.status)) return false;
+  if (pilot.pilot_start_date) {
+    const start = new Date(`${pilot.pilot_start_date}T00:00:00.000Z`);
+    if (now < start) return false;
+  }
+  if (pilot.pilot_end_date) {
+    const remaining = daysRemaining(pilot.pilot_end_date, now);
+    if (remaining == null || remaining <= 0) return false;
+  }
+  return true;
 }
 
 export function kpiProgress(

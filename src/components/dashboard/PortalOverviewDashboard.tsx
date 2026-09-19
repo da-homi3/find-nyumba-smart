@@ -25,20 +25,12 @@ import {
 } from "@/lib/api/booking.functions";
 import { PORTAL_PATHS } from "@/lib/portal-paths";
 import { PortalTrialBanner } from "@/components/dashboard/portal/PortalTrialBanner";
+import { PortalPilotBanner } from "@/components/dashboard/portal/PortalPilotBanner";
 import { formatKes, type Property } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { useOrgMembership } from "@/hooks/use-org-membership";
 
 type PortalKind = "agency" | "manager" | "property_developer" | "agent";
-
-function listingCardPortal(
-  portal: PortalKind,
-): "agency" | "manager" | "property_developer" | "agent" {
-  if (portal === "manager") return "manager";
-  if (portal === "property_developer") return "property_developer";
-  if (portal === "agent") return "agent";
-  return "agency";
-}
 
 type Props = Readonly<{
   portal: PortalKind;
@@ -123,6 +115,7 @@ export function PortalOverviewDashboard({
         </div>
       </header>
 
+      <PortalPilotBanner />
       <PortalTrialBanner portal={portal} />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -235,7 +228,19 @@ export function PortalOverviewDashboard({
           ) : (
             <div className="mt-4 space-y-3">
               {properties.slice(0, 8).map((p) => (
-                <DashboardListingCard key={p.id} listing={p} portal={portal} />
+                <DashboardListingCard
+                  key={p.id}
+                  listing={p}
+                  portal={
+                    portal === "manager"
+                      ? "manager"
+                      : portal === "property_developer"
+                        ? "property_developer"
+                        : portal === "agent"
+                          ? "agent"
+                          : "agency"
+                  }
+                />
               ))}
             </div>
           )}

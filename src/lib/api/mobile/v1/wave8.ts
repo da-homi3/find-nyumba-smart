@@ -24,7 +24,7 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
     const { ensureTenantTrial } = await import("@/lib/payments/tenant-trial");
     const { canViewLeadContactDetails } = await import("@/lib/revenue/entitlements");
 
-    const [landlordPlan, plus, trial, portalSub, profileRow, adminRole, listingLimit] =
+    const [landlordPlan, plus, trial, portalSub, profileRow, adminRole, listingLimit, pilot] =
       await Promise.all([
         getActiveLandlordPlan(auth.admin, auth.userId),
         getTenantPlusStatus(auth.admin, auth.userId),
@@ -44,6 +44,9 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
         import("@/lib/promo/listing-cap").then(({ getListingCap }) =>
           getListingCap(auth.admin, auth.userId),
         ),
+        import("@/lib/pilot/access").then(({ getActivePilotAccess }) =>
+          getActivePilotAccess(auth.admin, auth.userId),
+        ),
       ]);
 
     const isAdmin = Boolean(adminRole.data);
@@ -56,10 +59,12 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
     const portalSubscriptionStatus = portalSub?.status ?? "none";
     const canViewLeadContacts =
       isAdmin ||
+      Boolean(pilot) ||
       canViewLeadContactDetails({
         landlordPlan,
         subscriptionStatus: portalSubscriptionStatus,
         leadPackBalance,
+        pilotActive: Boolean(pilot),
       });
 
     return mobileJson({
@@ -78,6 +83,10 @@ async function handleSubscriptionsCurrent(req: Request): Promise<Response> {
         canViewLeadContacts,
         listingLimit: isAdmin ? 9999 : listingLimit,
         isPlus: isAdmin || plus.tenantPlan === "plus",
+        pilotActive: Boolean(pilot),
+        pilotEndsAt: pilot?.endsAt ?? null,
+        pilotDaysRemaining: pilot?.daysRemaining ?? null,
+        pilotPartnerName: pilot?.partnerName ?? null,
       },
     });
   } catch (err) {

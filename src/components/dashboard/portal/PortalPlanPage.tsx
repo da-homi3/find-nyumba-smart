@@ -17,6 +17,14 @@ const PORTAL_PLAN_COPY: Record<ListingPortal, { title: string; subtitle: string 
     title: "Your agency plan",
     subtitle: "Team seats, listings, and priority placement for your agency.",
   },
+  agent: {
+    title: "Your agent plan",
+    subtitle: "List independently, import homes, and reach tenants from one dashboard.",
+  },
+  property_developer: {
+    title: "Your developer plan",
+    subtitle: "Publish inventory and track demand across your developments.",
+  },
 };
 
 function formatTrialEnd(iso: string | null | undefined): string {
@@ -52,18 +60,30 @@ export function PortalPlanPage({ portal }: Readonly<{ portal: ListingPortal }>) 
           Current plan
         </p>
         <p className="mt-1 font-display text-xl font-semibold">{planName}</p>
-        {isTrialing && trialEndLabel && (
+        {entitlements.pilotActive && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Partner pilot is active
+            {entitlements.pilotDaysRemaining != null
+              ? ` — ${entitlements.pilotDaysRemaining} day${entitlements.pilotDaysRemaining === 1 ? "" : "s"} remaining`
+              : ""}
+            {entitlements.pilotEndsAt
+              ? ` until ${formatTrialEnd(entitlements.pilotEndsAt.includes("T") ? entitlements.pilotEndsAt : `${entitlements.pilotEndsAt}T23:59:59.999Z`)}`
+              : ""}
+            . Listing, import, and lead contacts are included at no charge.
+          </p>
+        )}
+        {isTrialing && trialEndLabel && !entitlements.pilotActive && (
           <p className="mt-2 text-sm text-muted-foreground">
             Bonus free month active until {trialEndLabel} (unlocked after your first paid month).
             Lead contact details require a lead pack or a paid plan.
           </p>
         )}
-        {isActive && (
+        {isActive && !entitlements.pilotActive && (
           <p className="mt-2 text-sm text-muted-foreground">
             Your subscription is active. Lead contact details are included in your plan.
           </p>
         )}
-        {!isTrialing && !isActive && entitlements.landlordPlan === "free" && (
+        {!entitlements.pilotActive && !isTrialing && !isActive && entitlements.landlordPlan === "free" && (
           <p className="mt-2 text-sm text-muted-foreground">
             You&apos;re on Free. Upgrade for more listings, full analytics, and lead access.
           </p>
@@ -79,7 +99,7 @@ export function PortalPlanPage({ portal }: Readonly<{ portal: ListingPortal }>) 
         <PlanCards plans={plans} showCta={false} />
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
-        {!isTrialing && !isActive && (
+        {!entitlements.pilotActive && !isTrialing && !isActive && (
           <Link
             to={paths.checkout}
             search={{ plan: upgradePlan }}
