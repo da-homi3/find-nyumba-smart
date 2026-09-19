@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EMAIL = "martinadwogo@gmail.com";
 const ORG_NAME = "GOMAX REALTY";
 const DISPLAY_NAME = "MARTIN ADWOGO";
-const PILOT_DAYS = 30;
+const PILOT_DAYS = 31;
 
 function loadEnv() {
   const env = {};
@@ -66,7 +66,7 @@ async function findUserByEmail(admin, email) {
   return null;
 }
 
-async function main() { // NOSONAR — one-shot ops enrollment script
+async function main() {
   const env = loadEnv();
   const token = env.SUPABASE_ACCESS_TOKEN;
   const projectRef = env.SUPABASE_PROJECT_REF;
@@ -202,10 +202,12 @@ ALTER TABLE public.portal_applications
     console.log("Created agent org", organizationId);
   }
 
-  await admin
+  const { error: profileErr } = await admin
     .from("profiles")
     .update({ active_portal: "agent", full_name: DISPLAY_NAME })
     .eq("id", userId);
+  if (profileErr) throw profileErr;
+  console.log("Profile active_portal set to agent");
 
   // Pilot
   const start = new Date();
@@ -230,8 +232,8 @@ ALTER TABLE public.portal_applications
         primary_contact_phone: "0745288471",
         organization_id: organizationId,
         status: "ACTIVE",
-        approved_at: pilot.approved_at ?? now,
-        pilot_start_date: pilot.pilot_start_date ?? start.toISOString().slice(0, 10),
+        approved_at: now,
+        pilot_start_date: start.toISOString().slice(0, 10),
         pilot_end_date: end.toISOString().slice(0, 10),
         pilot_duration_days: PILOT_DAYS,
         notes: "Ops enrolled from landlord application as independent agent pilot",

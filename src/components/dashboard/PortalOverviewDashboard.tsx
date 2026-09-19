@@ -29,6 +29,7 @@ import { PortalPilotBanner } from "@/components/dashboard/portal/PortalPilotBann
 import { formatKes, type Property } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { useOrgMembership } from "@/hooks/use-org-membership";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 type PortalKind = "agency" | "manager" | "property_developer" | "agent";
 
@@ -59,6 +60,7 @@ export function PortalOverviewDashboard({
 }: Props) {
   const qc = useQueryClient();
   const { isOwner, isMember } = useOrgMembership();
+  const { entitlements } = useEntitlements();
   const activeProperties = properties.filter((p) => p.is_active).length;
   const potentialRevenue = properties
     .filter((p) => p.is_active)
@@ -87,6 +89,7 @@ export function PortalOverviewDashboard({
   });
 
   const roleHint = (() => {
+    if (entitlements.pilotActive) return "Pilot partner";
     if (isOwner) return "Owner";
     if (isMember) return "Team member";
     return null;

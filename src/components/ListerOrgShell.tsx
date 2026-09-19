@@ -15,6 +15,7 @@ import {
   Plug,
   Crown,
   Gift,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogoLink } from "@/components/BrandLogo";
@@ -23,17 +24,12 @@ import { PortalMobileHeader } from "@/components/dashboard/PortalMobileHeader";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
 import { portalNavTourAttr } from "@/lib/onboarding/portal-nav-tour";
 import { useOrgMembership } from "@/hooks/use-org-membership";
-import { PORTAL_PATHS } from "@/lib/portal-paths";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { PORTAL_PATHS, type ListingPortal } from "@/lib/portal-paths";
 import { portalLabelForRole } from "@/lib/portal-labels";
 import { useEffect, type ReactNode } from "react";
 
 type OrgListerPortal = "agency" | "property_developer" | "agent";
-
-const ORG_ENTRY_PATH: Record<OrgListerPortal, string> = {
-  agency: "/agency",
-  property_developer: "/developer",
-  agent: "/agent",
-};
 
 type Props = Readonly<{
   portal: OrgListerPortal;
@@ -43,7 +39,7 @@ type Props = Readonly<{
 export function ListerOrgShell({ portal, children }: Props) {
   const paths = PORTAL_PATHS[portal];
   const label = portalLabelForRole(portal);
-  const entryPath = ORG_ENTRY_PATH[portal];
+  const entryPath = portal === "agency" ? "/agency" : portal === "property_developer" ? "/developer" : "/agent";
   const tourId = "agency-dashboard" as const;
 
   const ownerNav = [
@@ -70,6 +66,7 @@ export function ListerOrgShell({ portal, children }: Props) {
   ] as const;
 
   const { user, loading: authLoading, signOut } = useAuth();
+  const { entitlements } = useEntitlements();
   const {
     membership,
     isOwner,
@@ -81,6 +78,10 @@ export function ListerOrgShell({ portal, children }: Props) {
   const loading = authLoading || membershipLoading;
   const nav = isMember ? memberNav : ownerNav;
   const mobileNav = nav.map((n) => ({ to: n.to, label: n.label }));
+  const pilotActive = Boolean(entitlements.pilotActive);
+  const portalSubtitle = pilotActive
+    ? `${label} portal · Pilot partner`
+    : `${label} portal${isOwner ? " · Owner" : " · Team"}`;
 
   useEffect(() => {
     if (!authLoading && !user) navigate({ to: entryPath });
@@ -94,7 +95,7 @@ export function ListerOrgShell({ portal, children }: Props) {
     );
   }
 
-  if (isPending || membership?.isPending) {
+  if (isPending || (membership && membership.isPending)) {
     return (
       <div className="portal-shell flex flex-col items-center justify-center gap-4 px-6 text-center">
         <div className="portal-sidebar-logo">
@@ -125,9 +126,17 @@ export function ListerOrgShell({ portal, children }: Props) {
             <BrandLogoLink to="/" logoClassName="h-7" />
           </div>
           <div className="mt-2 px-2 text-[10px] uppercase tracking-wider text-white/55">
-            {label} portal
-            {isOwner ? " · Owner" : " · Team"}
+            {portalSubtitle}
           </div>
+          {pilotActive ? (
+            <div className="mt-3 mx-2 inline-flex items-center gap-1.5 rounded-full bg-primary/25 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white ring-1 ring-primary/40">
+              <Sparkles className="h-3 w-3" />
+              Full pilot access
+              {entitlements.pilotDaysRemaining != null
+                ? ` · ${entitlements.pilotDaysRemaining}d left`
+                : ""}
+            </div>
+          ) : null}
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {nav.map((n) => (
@@ -142,6 +151,16 @@ export function ListerOrgShell({ portal, children }: Props) {
               <n.icon className="h-4 w-4" /> {n.label}
             </Link>
           ))}
+          {pilotActive ? (
+            <Link
+              to="/partner"
+              preload="intent"
+              className="portal-nav-link"
+              activeProps={{ className: "portal-nav-link is-active" }}
+            >
+              <Sparkles className="h-4 w-4" /> Pilot dashboard
+            </Link>
+          ) : null}
         </nav>
         <div className="space-y-1 px-3 pb-6">
           <Link
@@ -158,7 +177,14 @@ export function ListerOrgShell({ portal, children }: Props) {
         </div>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col overflow-x-hidden bg-background">
-        <PortalMobileHeader portalLabel={`${label} portal`} nav={mobileNav} />
+        <PortalMobileHeader
+          portalLabel={portalSubtitle}
+          nav={
+            pilotActive
+              ? [...mobileNav, { to: "/partner", label: "Pilot" }]
+              : mobileNav
+          }
+        />
         {children}
       </main>
       <OnboardingTourHost tourId={tourId} />
@@ -173,3 +199,5 @@ export function DeveloperShell({ children }: Readonly<{ children: ReactNode }>) 
 export function AgentShell({ children }: Readonly<{ children: ReactNode }>) {
   return <ListerOrgShell portal="agent">{children}</ListerOrgShell>;
 }
+
+export type { ListingPortal };
