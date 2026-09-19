@@ -9,7 +9,7 @@ type CircuitRecord = {
 };
 
 const memoryCircuits = new Map<string, CircuitRecord>();
-const OPEN_COOLDOWN_MS = 15_000;
+const OPEN_COOLDOWN_MS = 8_000;
 const FAILURE_THRESHOLD = 5;
 
 async function readState(serviceName: string): Promise<CircuitRecord> {

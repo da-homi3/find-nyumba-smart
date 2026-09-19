@@ -65,7 +65,13 @@ export const listMyPortalApplications = createServerFn({ method: "GET" })
     return (data ?? []) as PortalApplication[];
   });
 
-const privilegedRoleSchema = z.enum(["landlord", "manager", "agency"]);
+const privilegedRoleSchema = z.enum([
+  "landlord",
+  "manager",
+  "agency",
+  "property_developer",
+  "agent",
+]);
 
 /** Creates or refreshes a pending portal application — does not grant portal access. */
 async function upsertPendingPortalApplication(input: {
@@ -209,7 +215,13 @@ export const submitPortalApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      requestedRole: z.enum(["landlord", "manager", "agency"]),
+      requestedRole: z.enum([
+        "landlord",
+        "manager",
+        "agency",
+        "property_developer",
+        "agent",
+      ]),
       organizationName: z.string().trim().max(200).optional(),
       phone: z.string().trim().max(30).optional(),
       notes: z.string().trim().max(1000).optional(),
@@ -381,7 +393,16 @@ export const setActivePortal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
-      portal: z.enum(["tenant", "landlord", "manager", "agency", "caretaker", "admin"]),
+      portal: z.enum([
+        "tenant",
+        "landlord",
+        "manager",
+        "agency",
+        "property_developer",
+        "agent",
+        "caretaker",
+        "admin",
+      ]),
     }),
   )
   .handler(async ({ context, data }) => {

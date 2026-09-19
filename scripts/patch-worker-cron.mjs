@@ -44,7 +44,9 @@ async function runCron(base, secret, path) {
     headers: { Authorization: \`Bearer \${secret}\` },
   });
   if (!res.ok) {
-    console.error("[cron]", path, "failed:", res.status, await res.text());
+    const detail = (await res.text()).slice(0, 1000);
+    console.error("[cron]", path, "failed:", res.status, detail);
+    throw new Error(\`Cron \${path} failed with HTTP \${res.status}\`);
   }
 }
 
@@ -94,6 +96,11 @@ export function patchWorkerCron() {
   const cfg = JSON.parse(readFileSync(wranglerConfig, "utf8"));
   cfg.main = "worker.mjs";
   cfg.triggers = { crons: CRON_SCHEDULES };
+  cfg.observability = {
+    enabled: true,
+    head_sampling_rate: 1,
+    logs: { enabled: true, invocation_logs: true },
+  };
   writeFileSync(wranglerConfig, JSON.stringify(cfg, null, 2));
   patchWranglerPresence();
   console.log(`Patched worker cron (${CRON_SCHEDULES.join(", ")}) → worker.mjs`);

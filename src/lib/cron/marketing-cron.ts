@@ -280,20 +280,16 @@ export async function runSavedSearchDigestCron(admin: Admin) {
           ? [criteria.propertyType]
           : [];
     if (types.length === 1) {
-      query = query.eq(
-        "property_type",
-        types[0] as Database["public"]["Enums"]["property_type"],
-      );
+      query = query.eq("property_type", types[0] as Database["public"]["Enums"]["property_type"]);
     } else if (types.length > 1) {
-      query = query.in(
-        "property_type",
-        types as Database["public"]["Enums"]["property_type"][],
-      );
+      query = query.in("property_type", types as Database["public"]["Enums"]["property_type"][]);
     }
     if (criteria.bedrooms != null) query = query.gte("bedrooms", criteria.bedrooms);
 
     const { data: candidates } = await query.limit(20);
-    const matches = (candidates ?? []).filter((m) => listingMatchesSavedSearch(m, criteria)).slice(0, 5);
+    const matches = (candidates ?? [])
+      .filter((m) => listingMatchesSavedSearch(m, criteria))
+      .slice(0, 5);
     if (!matches.length) continue;
 
     const ctx = await userEmail(admin, search.user_id);

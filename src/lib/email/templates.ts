@@ -373,6 +373,50 @@ export function adminNewApplicationEmail(opts: {
   };
 }
 
+export function adminNewListingEmail(opts: {
+  title: string;
+  neighborhood: string;
+  rentKes: number | null;
+  ownerName: string;
+  ownerEmail: string;
+  source: string;
+  listingUrl: string;
+  adminUrl: string;
+  propertyType?: string | null;
+  bedrooms?: number | null;
+}) {
+  const rent =
+    opts.rentKes != null && Number.isFinite(opts.rentKes)
+      ? formatKes(opts.rentKes)
+      : "Not set";
+  const details = [
+    opts.propertyType ? `Type: ${opts.propertyType}` : null,
+    opts.bedrooms != null ? `Beds: ${opts.bedrooms}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const body = `
+    <h1>New listing uploaded</h1>
+    <p><strong>${opts.title}</strong> was just published by <strong>${opts.ownerName}</strong> (${opts.ownerEmail}).</p>
+    <div class="highlight">
+      <p style="margin:0"><strong>Neighborhood:</strong> ${opts.neighborhood}</p>
+      <p style="margin:8px 0 0"><strong>Rent:</strong> ${rent}</p>
+      ${details ? `<p style="margin:8px 0 0">${details}</p>` : ""}
+      <p style="margin:8px 0 0"><strong>Source:</strong> ${opts.source}</p>
+    </div>
+    <p>
+      <a class="btn" href="${opts.listingUrl}">View listing</a>
+      &nbsp;
+      <a href="${opts.adminUrl}">Open in admin</a>
+    </p>
+  `;
+  return {
+    subject: `New listing — ${opts.title}`,
+    html: baseLayout({ preheader: `${opts.title} in ${opts.neighborhood}`, body }),
+    text: `New listing: ${opts.title} in ${opts.neighborhood} (${rent}) by ${opts.ownerName} <${opts.ownerEmail}>. ${opts.listingUrl}`,
+  };
+}
+
 export function foundingMemberClaimedEmail(opts: {
   name: string;
   slotNumber: number;
@@ -681,5 +725,63 @@ export function subscriptionInvoiceEmail(opts: {
     ]
       .filter(Boolean)
       .join("\n"),
+  };
+}
+
+export function pilotPartnershipInviteEmail(opts: {
+  partnerName: string;
+  contactName?: string | null;
+  inviteUrl: string;
+  durationDays?: number | null;
+  selfServe?: boolean;
+}) {
+  const greeting = opts.contactName?.trim() ? `Hi ${opts.contactName.trim()},` : "Hi,";
+  const duration =
+    opts.durationDays && opts.durationDays > 0
+      ? `<p>Your pilot window is <strong>${opts.durationDays} days</strong> once you accept — no wait for approval.</p>`
+      : "";
+  const body = `
+    <h1>You&apos;re invited to the NyumbaSearch partner pilot</h1>
+    <p>${greeting}</p>
+    <p>You&apos;re invited to join the NyumbaSearch Property Partnership Pilot${
+      opts.partnerName &&
+      !opts.partnerName.startsWith("Partner invite") &&
+      !/^pending/i.test(opts.partnerName)
+        ? ` for <strong>${opts.partnerName}</strong>`
+        : ""
+    }.</p>
+    <p>Open the link, sign in with this email, and you&apos;ll land straight on your partner dashboard. Company details are optional and can be finished anytime.</p>
+    ${duration}
+    <p style="text-align:center"><a class="btn" href="${opts.inviteUrl}">Accept invite &amp; open dashboard</a></p>
+    <p style="font-size:13px;color:#64748b">This link expires in 14 days. Use the same email address that received this invite.</p>
+  `;
+  return {
+    subject: `Join your NyumbaSearch partner pilot`,
+    html: baseLayout({
+      preheader: "Accept your invite and open your dashboard immediately",
+      body,
+    }),
+    text: `${greeting}\n\nYou're invited to the NyumbaSearch Partner Pilot.\nOpen the link, sign in with this email, and access your dashboard right away:\n${opts.inviteUrl}\n\nLink expires in 14 days.`,
+  };
+}
+
+export function pilotPartnerJoinedEmail(opts: {
+  partnerName: string;
+  email: string;
+  pilotId: string;
+  adminUrl: string;
+}) {
+  const body = `
+    <h1>New partner joined the pilot</h1>
+    <p><strong>${opts.partnerName}</strong> (${opts.email}) accepted their invitation and now has dashboard access.</p>
+    <p style="text-align:center"><a class="btn" href="${opts.adminUrl}">View partnership</a></p>
+  `;
+  return {
+    subject: `Pilot joined — ${opts.partnerName}`,
+    html: baseLayout({
+      preheader: `${opts.partnerName} joined the partner pilot`,
+      body,
+    }),
+    text: `${opts.partnerName} (${opts.email}) joined the pilot.\n${opts.adminUrl}`,
   };
 }

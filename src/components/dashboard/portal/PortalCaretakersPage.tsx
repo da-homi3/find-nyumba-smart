@@ -17,7 +17,9 @@ import { toast } from "sonner";
 
 async function listPortalProperties(portal: ListingPortal) {
   if (portal === "manager") return listManagerProperties();
-  if (portal === "agency") return listAgencyProperties();
+  if (portal === "agency" || portal === "property_developer" || portal === "agent") {
+    return listAgencyProperties();
+  }
   return listLandlordProperties();
 }
 
@@ -123,7 +125,7 @@ export function PortalCaretakersPage({ portal }: Readonly<{ portal: ListingPorta
           }}
         >
           <label className="block text-sm">
-            Full name
+            <span className="font-medium">Full name</span>
             <input
               required
               value={fullName}
@@ -132,7 +134,7 @@ export function PortalCaretakersPage({ portal }: Readonly<{ portal: ListingPorta
             />
           </label>
           <label className="block text-sm">
-            Phone (caretaker signs in with this + PIN)
+            <span className="font-medium">Phone (caretaker signs in with this + PIN)</span>
             <input
               required
               value={phone}

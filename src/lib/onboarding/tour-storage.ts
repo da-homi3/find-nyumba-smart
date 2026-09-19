@@ -46,6 +46,8 @@ export function tourIdForSignupRole(role: string): TourId | null {
   if (role === "landlord") return "landlord-dashboard";
   if (role === "manager") return "manager-dashboard";
   if (role === "agency") return "agency-dashboard";
+  if (role === "property_developer") return "agency-dashboard";
+  if (role === "agent") return "agency-dashboard";
   return null;
 }
 

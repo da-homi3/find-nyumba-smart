@@ -23,7 +23,8 @@ function Stars({
 }>) {
   const dim = size === "sm" ? "h-3.5 w-3.5" : "h-5 w-5";
   return (
-    <div className="flex items-center gap-1" role={readOnly ? "img" : "group"} aria-label={`${value} of 5 stars`}>
+    <div className="flex items-center gap-1">
+      {readOnly ? <span className="sr-only">{value} of 5 stars</span> : null}
       {[1, 2, 3, 4, 5].map((n) => {
         const filled = n <= value;
         if (readOnly) {
@@ -93,16 +94,41 @@ export function SiteReviewsSection() {
         data: { displayName, rating, comment },
       }),
     onSuccess: (row) => {
-      toast.success("Thanks for your review!");
+      toast.success(
+        row.isPublished
+          ? "Thanks for your review!"
+          : "Thanks! Your review will appear after moderation.",
+      );
       setComment("");
       setRating(5);
-      qc.setQueryData<PlatformReviewPublic[]>(["platform-reviews"], (prev) => [
-        row,
-        ...(prev ?? []).filter((r) => r.id !== row.id),
-      ]);
+      if (row.isPublished) {
+        qc.setQueryData<PlatformReviewPublic[]>(["platform-reviews"], (prev) => [
+          row,
+          ...(prev ?? []).filter((r) => r.id !== row.id),
+        ]);
+      }
     },
     onError: (err) => toast.error(errorMessage(err)),
   });
+
+  let reviewsContent;
+  if (isLoading) {
+    reviewsContent = <p className="mt-4 text-sm text-muted-foreground">Loading reviews…</p>;
+  } else if (reviews.length === 0) {
+    reviewsContent = (
+      <p className="mt-4 rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
+        Be the first to leave a review — your note appears here after you submit.
+      </p>
+    );
+  } else {
+    reviewsContent = (
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        {reviews.slice(0, 6).map((review) => (
+          <ReviewCard key={review.id} review={review} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <section
@@ -170,19 +196,7 @@ export function SiteReviewsSection() {
 
         <div>
           <h3 className="font-display text-lg font-semibold">Recent reviews</h3>
-          {isLoading ? (
-            <p className="mt-4 text-sm text-muted-foreground">Loading reviews…</p>
-          ) : reviews.length === 0 ? (
-            <p className="mt-4 rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
-              Be the first to leave a review — your note appears here after you submit.
-            </p>
-          ) : (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {reviews.slice(0, 6).map((review) => (
-                <ReviewCard key={review.id} review={review} />
-              ))}
-            </div>
-          )}
+          {reviewsContent}
         </div>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { ForbiddenError, requireRole } from "@/lib/api/_authz";
 
 // Minimal mock of the Supabase client surface used by requireRole.
@@ -42,8 +42,12 @@ describe("requireRole — authorization enforcement", () => {
     await expect(requireRole(sb, TENANT, "landlord")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
-  it("rejects user with no roles", async () => {
-    await expect(requireRole(sb, NOBODY, "tenant")).rejects.toBeInstanceOf(ForbiddenError);
+  it("allows roleless browse signups to use tenant surfaces", async () => {
+    await expect(requireRole(sb, NOBODY, "tenant")).resolves.toBeUndefined();
+  });
+
+  it("rejects roleless users from privileged surfaces", async () => {
+    await expect(requireRole(sb, NOBODY, "landlord")).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("allows access when ANY required role matches", async () => {

@@ -7,7 +7,13 @@ import {
 import { parseJsonBody, parseUuid } from "@/lib/api/mobile/v1/helpers";
 import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
 
-const PORTAL_APPLY_ROLES = ["landlord", "manager", "agency"] as const;
+const PORTAL_APPLY_ROLES = [
+  "landlord",
+  "manager",
+  "agency",
+  "property_developer",
+  "agent",
+] as const;
 
 // ── Payments / billing history ───────────────────────────────────────────────
 
@@ -150,7 +156,11 @@ const PORTAL_SELECT =
 function parsePortalApplyBody(body: PortalApplyBody): ParsedPortalApply | Response {
   const requestedRoleRaw = body.requestedRole;
   if (!requestedRoleRaw || !(PORTAL_APPLY_ROLES as readonly string[]).includes(requestedRoleRaw)) {
-    return mobileError("requestedRole must be landlord|manager|agency", "BAD_REQUEST", 400);
+    return mobileError(
+      "requestedRole must be landlord|manager|agency|property_developer|agent",
+      "BAD_REQUEST",
+      400,
+    );
   }
   const requestedRole = requestedRoleRaw as (typeof PORTAL_APPLY_ROLES)[number];
 

@@ -111,11 +111,7 @@ function AuthCallbackPage() {
         } = await supabase.auth.getUser();
         const fallback = isSafeRedirectPath(preferredNext) ? preferredNext : "/tenant";
         const landing = user
-          ? await withTimeout(
-              resolveAuthLandingForUser(user.id, preferredNext),
-              6_000,
-              fallback,
-            )
+          ? await withTimeout(resolveAuthLandingForUser(user.id, preferredNext), 6_000, fallback)
           : fallback;
 
         if (landing.startsWith("/tenant")) {

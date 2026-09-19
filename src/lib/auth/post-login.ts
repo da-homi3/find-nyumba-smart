@@ -12,14 +12,25 @@ import {
 type PortalAppRow = { requested_role: string; status: string; created_at?: string };
 
 async function loadRoles(userId: string): Promise<AppRole[]> {
-  return withTimeout(
+  const first = await withTimeout(
     (async () => {
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      if (error) throw error;
       return (data ?? []).map((row) => row.role as AppRole);
     })(),
     5_000,
-    [] as AppRole[],
+    null as AppRole[] | null,
   );
+  if (first !== null) return first;
+  // Timed out — one immediate retry before failing open to empty (tenant landing).
+  try {
+    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (error) throw error;
+    return (data ?? []).map((row) => row.role as AppRole);
+  } catch (err) {
+    console.warn("[post-login] roles load failed after retry:", err);
+    return [];
+  }
 }
 
 async function loadActivePortal(userId: string): Promise<PortalId> {
@@ -52,14 +63,25 @@ async function loadPortalApplications(userId: string): Promise<PortalAppRow[]> {
 }
 
 /** Poll until Supabase persists the session (mobile WebViews can lag). */
-export async function waitForAuthSession(maxMs = 8_000): Promise<boolean> {
+export async function waitForAuthSession(maxMs = 4_000): Promise<boolean> {
+  const {
+    data: { session: immediate },
+  } = await withTimeout(supabase.auth.getSession(), 1_500, {
+    data: { session: null },
+    error: null,
+  } as Awaited<ReturnType<typeof supabase.auth.getSession>>);
+  if (immediate?.user) return true;
+
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     const {
       data: { session },
-    } = await supabase.auth.getSession();
+    } = await withTimeout(supabase.auth.getSession(), 1_000, {
+      data: { session: null },
+      error: null,
+    } as Awaited<ReturnType<typeof supabase.auth.getSession>>);
     if (session?.user) return true;
-    await new Promise((resolve) => globalThis.setTimeout(resolve, 80));
+    await new Promise((resolve) => globalThis.setTimeout(resolve, 100));
   }
   return false;
 }
@@ -103,8 +125,12 @@ export async function resolveAuthLandingForUser(
 export async function completePostAuthNavigation(opts: {
   userId: string;
   redirect?: string;
+  /** Skip session poll when caller already has a confirmed user id. */
+  skipSessionWait?: boolean;
 }): Promise<void> {
-  await waitForAuthSession();
+  if (!opts.skipSessionWait) {
+    await waitForAuthSession();
+  }
   const path = await resolveAuthLandingForUser(opts.userId, opts.redirect);
   navigateAfterAuth(path);
 }

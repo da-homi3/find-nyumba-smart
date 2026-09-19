@@ -238,7 +238,7 @@ export async function handleDailyCron(request: Request): Promise<Response> {
   const { runEmailRetryCron } = await import("@/lib/cron/email-retry-cron");
   const { runViewingReminderCron } = await import("@/lib/cron/whatsapp-cron");
 
-  const [renewals, emailRetry, viewingReminders, locations] = await Promise.all([
+  const [renewals, emailRetry, viewingReminders, locations, pilots] = await Promise.all([
     runSubscriptionRenewalCron(supabaseAdmin),
     runEmailRetryCron(supabaseAdmin).catch((e) => {
       console.warn("[cron] email retry:", e);
@@ -254,6 +254,12 @@ export async function handleDailyCron(request: Request): Promise<Response> {
         console.warn("[cron] location maintenance:", e);
         return { scanned: 0, attached: 0, failed: 0, inventoryRecounted: 0 };
       }),
+    import("@/lib/pilot/attribution")
+      .then(({ aggregatePilotMetricsForDay }) => aggregatePilotMetricsForDay(supabaseAdmin))
+      .catch((e) => {
+        console.warn("[cron] pilot metrics:", e);
+        return 0;
+      }),
   ]);
 
   return new Response(
@@ -263,6 +269,7 @@ export async function handleDailyCron(request: Request): Promise<Response> {
       emailRetry,
       whatsapp: { viewingReminders },
       locations,
+      pilots: { metricsRows: pilots },
     }),
     { headers: { "Content-Type": "application/json" } },
   );

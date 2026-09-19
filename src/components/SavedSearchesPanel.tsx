@@ -80,9 +80,7 @@ export function SavedSearchesPanel({ userId }: Readonly<{ userId: string }>) {
               className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
               aria-label={search.alert_enabled ? "Pause alerts" : "Enable alerts"}
               disabled={toggle.isPending}
-              onClick={() =>
-                toggle.mutate({ id: search.id, alertEnabled: !search.alert_enabled })
-              }
+              onClick={() => toggle.mutate({ id: search.id, alertEnabled: !search.alert_enabled })}
             >
               {search.alert_enabled ? (
                 <Bell className="h-4 w-4 text-primary" />

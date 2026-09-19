@@ -81,11 +81,8 @@ describe("saved-search-criteria", () => {
       amenities: ["Parking", "Pet friendly", "WiFi"],
     };
     expect(listingMatchesSavedSearch(withAmenities, criteria)).toBe(true);
-    expect(
-      listingMatchesSavedSearch(
-        { ...withAmenities, amenities: ["WiFi"] },
-        criteria,
-      ),
-    ).toBe(false);
+    expect(listingMatchesSavedSearch({ ...withAmenities, amenities: ["WiFi"] }, criteria)).toBe(
+      false,
+    );
   });
 });

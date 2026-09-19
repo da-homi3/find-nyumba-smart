@@ -146,7 +146,10 @@ function applySearchTermFilter(query: PropertyQuery, rawQuery: string | undefine
     .slice(0, 100);
   if (!term) return query;
 
-  const ftsTerm = term.replaceAll(/[':&|!<>]/g, " ").replace(/\s+/g, " ").trim();
+  const ftsTerm = term
+    .replaceAll(/[':&|!<>]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   // Prefer GIN-backed FTS (migration 20260904160000). Falls back to ilike if term too short.
   if (ftsTerm.length >= 2) {
     return query.textSearch("search_vector", ftsTerm, {

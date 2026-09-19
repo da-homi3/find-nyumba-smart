@@ -1783,6 +1783,36 @@ export const refundAdminContactUnlock = createServerFn({ method: "POST" })
     if (error) throw error;
     if (!unlock) throw new Error("No contact unlock found for that tenant and listing.");
 
+    let creditsToRestore: number | null = null;
+    if (unlock.method === "plus" || unlock.method === "credit") {
+      const { contactCreditsForFee } = await import("@/lib/revenue/tenant-plus-config");
+      const { asLooseDb } = await import("@/lib/db/loose-client");
+
+      // Prefer ledger debit for this listing; never guess with a hardcoded 1.
+      const { data: ledgerRows } = await asLooseDb(supabaseAdmin)
+        .from("contact_credit_ledger")
+        .select("id, delta")
+        .eq("user_id", data.userId)
+        .eq("listing_id", data.listingId)
+        .lt("delta", 0)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const ledgerDebit = ledgerRows?.[0];
+      if (ledgerDebit && typeof ledgerDebit.delta === "number") {
+        creditsToRestore = Math.abs(ledgerDebit.delta);
+      } else if ((unlock.fee_charged ?? 0) > 0) {
+        creditsToRestore = contactCreditsForFee(unlock.fee_charged ?? 0);
+      }
+
+      if (!creditsToRestore || creditsToRestore < 1) {
+        throw new Error(
+          `No ledger entry / fee found for unlock ${unlock.id} — cannot determine correct refund amount. Escalate to manual review rather than guessing.`,
+        );
+      }
+    }
+    // trial / paid: no Plus credit wallet restore
+
     await supabaseAdmin.from("contact_unlocks").delete().eq("id", unlock.id);
     if (unlock.payment_id) {
       await supabaseAdmin
@@ -1790,12 +1820,9 @@ export const refundAdminContactUnlock = createServerFn({ method: "POST" })
         .update({ status: "refunded" })
         .eq("id", unlock.payment_id);
     }
-    if (unlock.method === "plus" || unlock.method === "credit") {
-      const { contactCreditsForFee } = await import("@/lib/revenue/tenant-plus-config");
+    if (creditsToRestore && creditsToRestore >= 1) {
       const { adjustPlusContactCredits } = await import("@/lib/revenue/plus-contact-credits");
-      // fee_charged stores the listing unlock fee used to compute the credit band at unlock time.
-      const credits = Math.max(1, contactCreditsForFee(unlock.fee_charged ?? 0));
-      await adjustPlusContactCredits(supabaseAdmin, data.userId, credits, "refund_unlock");
+      await adjustPlusContactCredits(supabaseAdmin, data.userId, creditsToRestore, "refund_unlock");
     }
     await supabaseAdmin.from("admin_audit_logs").insert({
       admin_id: adminId,

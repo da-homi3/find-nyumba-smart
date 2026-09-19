@@ -1,12 +1,30 @@
-export type PortalId = "tenant" | "landlord" | "manager" | "agency" | "caretaker" | "admin";
+export type PortalId =
+  | "tenant"
+  | "landlord"
+  | "manager"
+  | "agency"
+  | "property_developer"
+  | "agent"
+  | "caretaker"
+  | "admin";
 
-export type AppRole = "tenant" | "landlord" | "manager" | "agency" | "caretaker" | "admin";
+export type AppRole =
+  | "tenant"
+  | "landlord"
+  | "manager"
+  | "agency"
+  | "property_developer"
+  | "agent"
+  | "caretaker"
+  | "admin";
 
 export const PORTAL_HOME: Record<PortalId, string> = {
   tenant: "/tenant",
   landlord: "/landlord/dashboard",
   manager: "/manager/dashboard",
   agency: "/agency/dashboard",
+  property_developer: "/developer/dashboard",
+  agent: "/agent/dashboard",
   caretaker: "/caretaker/dashboard",
   admin: "/admin",
 };
@@ -15,6 +33,8 @@ export const PORTAL_REQUIRED_ROLE: Partial<Record<PortalId, AppRole>> = {
   landlord: "landlord",
   manager: "manager",
   agency: "agency",
+  property_developer: "property_developer",
+  agent: "agent",
   admin: "admin",
 };
 
@@ -23,15 +43,30 @@ export function portalForRole(role: AppRole): PortalId | null {
   if (role === "landlord") return "landlord";
   if (role === "manager") return "manager";
   if (role === "agency") return "agency";
+  if (role === "property_developer") return "property_developer";
+  if (role === "agent") return "agent";
   if (role === "admin") return "admin";
   return null;
 }
 
-const POST_LOGIN_ROLE_PRIORITY: AppRole[] = ["landlord", "agency", "manager", "admin"];
+const POST_LOGIN_ROLE_PRIORITY: AppRole[] = [
+  "landlord",
+  "agency",
+  "property_developer",
+  "agent",
+  "manager",
+  "admin",
+];
 
-export type ListerRole = "landlord" | "manager" | "agency";
+export type ListerRole = "landlord" | "manager" | "agency" | "property_developer" | "agent";
 
-const LISTER_ROLES = new Set<AppRole>(["landlord", "manager", "agency"]);
+const LISTER_ROLES = new Set<AppRole>([
+  "landlord",
+  "manager",
+  "agency",
+  "property_developer",
+  "agent",
+]);
 
 export function listerDashboardPath(role: ListerRole): string {
   return PORTAL_HOME[role];
@@ -58,7 +93,9 @@ export function resolveListerDashboardPath(input: {
         app.status === "approved" &&
         (app.requested_role === "landlord" ||
           app.requested_role === "manager" ||
-          app.requested_role === "agency"),
+          app.requested_role === "agency" ||
+          app.requested_role === "property_developer" ||
+          app.requested_role === "agent"),
     )
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))[0];
 
@@ -127,6 +164,8 @@ export function portalFromPathname(pathname: string): PortalId | null {
   if (pathname.startsWith("/landlord")) return "landlord";
   if (pathname.startsWith("/manager")) return "manager";
   if (pathname.startsWith("/agency")) return "agency";
+  if (pathname.startsWith("/developer")) return "property_developer";
+  if (pathname.startsWith("/agent")) return "agent";
   if (pathname.startsWith("/caretaker")) return "caretaker";
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/tenant")) return "tenant";

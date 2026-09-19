@@ -72,6 +72,7 @@ const SECRET_KEYS = [
   "PESAPAL_CONSUMER_KEY",
   "PESAPAL_CONSUMER_SECRET",
   "PESAPAL_WEBHOOK_SECRET",
+  "EMAIL_UNSUBSCRIBE_SECRET",
   "INTASEND_SECRET_KEY",
   "INTASEND_API_KEY",
   "INTASEND_PROXY_SECRET",
@@ -171,6 +172,9 @@ function applyFeatureDefaults(next) {
   }
   if (!next.CRON_SECRET) {
     next.CRON_SECRET = randomBytes(24).toString("hex");
+  }
+  if (!next.EMAIL_UNSUBSCRIBE_SECRET) {
+    next.EMAIL_UNSUBSCRIBE_SECRET = randomBytes(32).toString("hex");
   }
   if (!next.MPESA_ENV && next.MPESA_CONSUMER_KEY) next.MPESA_ENV = "sandbox";
   if (next.PESAPAL_CONSUMER_KEY && next.PESAPAL_NOTIFICATION_ID) {
@@ -272,12 +276,25 @@ function ensureDefaults(env) {
   return next;
 }
 
-function putSecret(name, value) {
-  execSync(`npx wrangler secret put ${name} --config "${wranglerConfig}"`, {
-    input: value,
-    stdio: ["pipe", "inherit", "inherit"],
-    cwd: root,
-  });
+function putSecret(name, value, attempts = 3) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      execSync(`npx wrangler secret put ${name} --config "${wranglerConfig}"`, {
+        input: value,
+        stdio: ["pipe", "inherit", "inherit"],
+        cwd: root,
+      });
+      return;
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/already in use/i.test(msg)) throw e;
+      console.warn(`  retry ${name} (${i}/${attempts}) after: ${msg.slice(0, 120)}`);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500 * i);
+    }
+  }
+  throw lastErr;
 }
 
 function getWranglerOAuthToken() {
@@ -379,16 +396,16 @@ function patchWranglerVars(env) {
 }
 
 async function main() {
-  if (!existsSync(envPath)) {
-    console.error("Missing .env — copy from .env.example");
-    process.exit(1);
-  }
-
-  const original = readFileSync(envPath, "utf8");
-  let env = parseEnvFile(original);
+  const hasEnvFile = existsSync(envPath);
+  const original = hasEnvFile ? readFileSync(envPath, "utf8") : "";
+  let env = { ...parseEnvFile(original), ...process.env };
   env = ensureDefaults(env);
-  writeFileSync(envPath, serializeEnvFile(env, original));
-  console.log("Updated .env defaults (PUBLIC_APP_URL, CARETAKER_SESSION_SECRET, etc.)");
+  if (hasEnvFile) {
+    writeFileSync(envPath, serializeEnvFile(env, original));
+    console.log("Updated .env defaults (PUBLIC_APP_URL, CARETAKER_SESSION_SECRET, etc.)");
+  } else {
+    console.log("No .env file; using CI/process environment and safe defaults.");
+  }
   warnOptionalConfig(env);
 
   patchWranglerAccountId(env);

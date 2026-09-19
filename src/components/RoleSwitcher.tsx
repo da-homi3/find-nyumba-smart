@@ -9,6 +9,8 @@ const ROLE_LABELS: Partial<Record<AppRole, string>> = {
   tenant: "Tenant",
   landlord: "Landlord",
   agency: "Agency",
+  property_developer: "Developer",
+  agent: "Agent",
   manager: "Property Manager",
   caretaker: "Caretaker",
   admin: "Admin",
@@ -18,6 +20,8 @@ function portalForSwitchRole(role: AppRole): PortalId | null {
   if (role === "tenant") return "tenant";
   if (role === "landlord") return "landlord";
   if (role === "agency") return "agency";
+  if (role === "property_developer") return "property_developer";
+  if (role === "agent") return "agent";
   if (role === "manager") return "manager";
   if (role === "caretaker") return "caretaker";
   if (role === "admin") return "admin";

@@ -39,61 +39,61 @@ export function AdminScamsTab({ scams, loading, resolve }: Props) {
         {scams.map((s) => {
           const propertyReportCount = reportsPerProperty.get(s.property_id) ?? 1;
           return (
-          <div
-            key={s.id}
-            className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
-          >
-            <div>
-              <div className="flex items-center gap-2">
-                <strong className="text-sm font-semibold">Report #{s.id.slice(0, 8)}</strong>
-                <StatusBadge
-                  status={s.status}
-                  classMap={SCAM_STATUS_CLASS}
-                  fallbackClass="bg-amber-500/10 text-amber-600"
-                />
-                {propertyReportCount > 1 ? (
-                  <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-                    {propertyReportCount} reports on listing
-                  </span>
-                ) : null}
+            <div
+              key={s.id}
+              className="rounded-2xl border bg-card p-5 shadow-soft flex flex-wrap justify-between items-start gap-4"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <strong className="text-sm font-semibold">Report #{s.id.slice(0, 8)}</strong>
+                  <StatusBadge
+                    status={s.status}
+                    classMap={SCAM_STATUS_CLASS}
+                    fallbackClass="bg-amber-500/10 text-amber-600"
+                  />
+                  {propertyReportCount > 1 ? (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                      {propertyReportCount} reports on listing
+                    </span>
+                  ) : null}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Property:{" "}
+                  <Link
+                    to="/tenant/property/$id"
+                    params={{ id: s.property_id }}
+                    className="text-primary hover:underline"
+                  >
+                    {s.properties?.title}
+                  </Link>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed">
+                  <strong className="text-foreground/80">Reason:</strong> {s.reason}
+                </p>
+                {s.details && (
+                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{s.details}</p>
+                )}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Property:{" "}
-                <Link
-                  to="/tenant/property/$id"
-                  params={{ id: s.property_id }}
-                  className="text-primary hover:underline"
-                >
-                  {s.properties?.title}
-                </Link>
-              </div>
-              <p className="mt-2 text-xs leading-relaxed">
-                <strong className="text-foreground/80">Reason:</strong> {s.reason}
-              </p>
-              {s.details && (
-                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{s.details}</p>
+
+              {s.status === "pending" && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => resolve.mutate({ id: s.id, status: "dismissed" })}
+                    className="rounded-xl border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resolve.mutate({ id: s.id, status: "reviewed" })}
+                    className="rounded-xl bg-gradient-emerald text-primary-foreground px-3 py-1.5 text-xs font-semibold shadow-soft hover:opacity-90"
+                  >
+                    Mark Reviewed
+                  </button>
+                </div>
               )}
             </div>
-
-            {s.status === "pending" && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => resolve.mutate({ id: s.id, status: "dismissed" })}
-                  className="rounded-xl border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"
-                >
-                  Dismiss
-                </button>
-                <button
-                  type="button"
-                  onClick={() => resolve.mutate({ id: s.id, status: "reviewed" })}
-                  className="rounded-xl bg-gradient-emerald text-primary-foreground px-3 py-1.5 text-xs font-semibold shadow-soft hover:opacity-90"
-                >
-                  Mark Reviewed
-                </button>
-              </div>
-            )}
-          </div>
           );
         })}
       </div>

@@ -1,12 +1,13 @@
 import {
   adminNewApplicationEmail,
+  adminNewListingEmail,
   newMessageEmail,
   orgTeamApprovedEmail,
   orgTeamInviteEmail,
   portalApprovedEmail,
   portalRejectedEmail,
 } from "@/lib/email/templates";
-import { sendEmail } from "@/lib/email/send";
+import { sendEmailResult } from "@/lib/email/send";
 import { getSiteUrl } from "@/lib/site";
 import { listerDashboardPath } from "@/lib/portal-guard";
 
@@ -34,20 +35,21 @@ async function inApp(
   }
 }
 
-/** @deprecated Use sendEmail from @/lib/email/send — kept for backward compatibility */
+/** @deprecated Prefer sendEmailResult from @/lib/email/send */
 export async function sendEmailNotification(payload: {
   to: string;
   subject: string;
   text: string;
   html?: string;
 }): Promise<boolean> {
-  return sendEmail({
+  const result = await sendEmailResult({
     to: payload.to,
     subject: payload.subject,
     text: payload.text,
     html: payload.html ?? payload.text.replaceAll("\n", "<br>"),
     templateId: "legacy-plain",
   });
+  return result.ok;
 }
 
 export async function notifyOpsNewApplication(opts: {
@@ -58,7 +60,76 @@ export async function notifyOpsNewApplication(opts: {
   reviewUrl: string;
 }) {
   const tpl = adminNewApplicationEmail(opts);
-  return sendEmail({ to: OPS_EMAIL, templateId: "admin-new-application", ...tpl });
+  const result = await sendEmailResult({
+    to: OPS_EMAIL,
+    templateId: "admin-new-application",
+    ...tpl,
+  });
+  return result.ok;
+}
+
+export async function notifyOpsNewListing(opts: {
+  propertyId: string;
+  title: string;
+  neighborhood: string;
+  rentKes?: number | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  propertyType?: string | null;
+  bedrooms?: number | null;
+  /** e.g. web, mobile, whatsapp, bulk-import, admin */
+  source?: string;
+}) {
+  try {
+    const site = getSiteUrl().replace(/\/$/, "");
+    let ownerName = opts.ownerName?.trim() || "Lister";
+    let ownerEmail = opts.ownerEmail?.trim() || "unknown";
+
+    if (opts.ownerUserId && (!opts.ownerEmail || !opts.ownerName)) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const [{ data: authUser }, { data: profile }] = await Promise.all([
+          supabaseAdmin.auth.admin.getUserById(opts.ownerUserId),
+          supabaseAdmin
+            .from("profiles")
+            .select("full_name")
+            .eq("id", opts.ownerUserId)
+            .maybeSingle(),
+        ]);
+        ownerEmail = opts.ownerEmail?.trim() || authUser.user?.email || ownerEmail;
+        ownerName =
+          opts.ownerName?.trim() ||
+          profile?.full_name ||
+          (authUser.user?.user_metadata?.full_name as string | undefined) ||
+          ownerName;
+      } catch (err) {
+        console.warn("[notify] owner lookup failed", err);
+      }
+    }
+
+    const tpl = adminNewListingEmail({
+      title: opts.title,
+      neighborhood: opts.neighborhood,
+      rentKes: opts.rentKes ?? null,
+      ownerName,
+      ownerEmail,
+      source: opts.source ?? "web",
+      listingUrl: `${site}/property/${opts.propertyId}`,
+      adminUrl: `${site}/admin/listings/${opts.propertyId}/edit`,
+      propertyType: opts.propertyType,
+      bedrooms: opts.bedrooms,
+    });
+    const result = await sendEmailResult({
+      to: OPS_EMAIL,
+      templateId: "admin-new-listing",
+      ...tpl,
+    });
+    return result.ok;
+  } catch (err) {
+    console.warn("[notify] ops new listing failed", err);
+    return false;
+  }
 }
 
 export async function notifyApplicantApproved(opts: {
@@ -72,6 +143,8 @@ export async function notifyApplicantApproved(opts: {
     landlord: listerDashboardPath("landlord"),
     manager: listerDashboardPath("manager"),
     agency: listerDashboardPath("agency"),
+    property_developer: listerDashboardPath("property_developer"),
+    agent: listerDashboardPath("agent"),
     service_provider: "/services/provider/dashboard",
     "service provider": "/services/provider/dashboard",
   };
@@ -82,14 +155,14 @@ export async function notifyApplicantApproved(opts: {
     role: roleLabel,
     dashboardUrl: `${getSiteUrl()}${dashboardPath}`,
   });
-  const ok = await sendEmail({ to: opts.email, templateId: "portal-approved", ...tpl });
+  const result = await sendEmailResult({ to: opts.email, templateId: "portal-approved", ...tpl });
   await inApp(opts.userId, {
     type: "portal",
     title: "Application approved",
     body: `Your ${roleLabel} application was approved. Welcome aboard.`,
     href: dashboardPath,
   });
-  return ok;
+  return result.ok;
 }
 
 export async function notifyApplicantRejected(opts: {
@@ -101,7 +174,7 @@ export async function notifyApplicantRejected(opts: {
 }) {
   if (!opts.email) return false;
   const tpl = portalRejectedEmail(opts);
-  const ok = await sendEmail({ to: opts.email, templateId: "portal-rejected", ...tpl });
+  const result = await sendEmailResult({ to: opts.email, templateId: "portal-rejected", ...tpl });
   await inApp(opts.userId, {
     type: "portal",
     title: "Application update",
@@ -110,7 +183,7 @@ export async function notifyApplicantRejected(opts: {
       : "Your application was not approved. You can re-apply later.",
     href: "/settings",
   });
-  return ok;
+  return result.ok;
 }
 
 export async function notifyNewMessage(opts: {
@@ -131,7 +204,12 @@ export async function notifyNewMessage(opts: {
       preview: opts.preview,
       threadUrl: opts.threadUrl,
     });
-    ok = await sendEmail({ to: opts.recipientEmail, templateId: "new-message", ...tpl });
+    const result = await sendEmailResult({
+      to: opts.recipientEmail,
+      templateId: "new-message",
+      ...tpl,
+    });
+    ok = result.ok;
   }
   const href = opts.threadUrl.replace(getSiteUrl(), "") || opts.threadUrl;
   await inApp(opts.recipientUserId, {
@@ -157,14 +235,14 @@ export async function notifyOrgTeamInvited(opts: {
 }) {
   if (!opts.email) return false;
   const tpl = orgTeamInviteEmail(opts);
-  const ok = await sendEmail({ to: opts.email, templateId: "org-team-invite", ...tpl });
+  const result = await sendEmailResult({ to: opts.email, templateId: "org-team-invite", ...tpl });
   await inApp(opts.userId, {
     type: "account",
     title: `Team invite — ${opts.organizationName}`,
     body: `${opts.inviterName} invited you to join as ${opts.portalLabel}.`,
     href: opts.signInUrl.replace(getSiteUrl(), "") || "/auth",
   });
-  return ok;
+  return result.ok;
 }
 
 export async function notifyOrgTeamApproved(opts: {
@@ -184,12 +262,16 @@ export async function notifyOrgTeamApproved(opts: {
     portalLabel,
     dashboardUrl: `${getSiteUrl()}${dashboardPath}`,
   });
-  const ok = await sendEmail({ to: opts.email, templateId: "org-team-approved", ...tpl });
+  const result = await sendEmailResult({
+    to: opts.email,
+    templateId: "org-team-approved",
+    ...tpl,
+  });
   await inApp(opts.userId, {
     type: "account",
     title: "Team access approved",
     body: `You're in on ${opts.organizationName}.`,
     href: dashboardPath,
   });
-  return ok;
+  return result.ok;
 }

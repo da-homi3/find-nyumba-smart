@@ -52,6 +52,7 @@ import {
 import { buildPageHead } from "@/lib/seo/head";
 import { areaFromName, areaPathForName } from "@/lib/seo/areas";
 import { OnboardingTourHost } from "@/components/onboarding/OnboardingTourHost";
+import { usePartnerBadges } from "@/hooks/use-partner-badges";
 import { parseNlSearchQuery } from "@/lib/search/nl-query-parser";
 
 const tenantSearchSchema = z.object({
@@ -269,7 +270,7 @@ function TenantHome() {
     if ((search.q ?? "") === debouncedQ) return;
     void navigate({
       to: "/tenant",
-      search: (prev) => ({ ...prev, q: debouncedQ.trim() || undefined }),
+      search: (prev: z.infer<typeof tenantSearchSchema>) => ({ ...prev, q: debouncedQ.trim() || undefined }),
       replace: true,
     });
   }, [debouncedQ, navigate, search.q]);
@@ -440,7 +441,7 @@ function TenantHome() {
       }
       void navigate({
         to: "/tenant",
-        search: (prev) => ({
+        search: (prev: z.infer<typeof tenantSearchSchema>) => ({
           ...prev,
           neighborhood: next.neighborhood !== "All" ? next.neighborhood : undefined,
           locationId: next.locationId || undefined,
@@ -526,7 +527,7 @@ function TenantHome() {
                 }));
                 void navigate({
                   to: "/tenant",
-                  search: (prev) => ({
+                  search: (prev: z.infer<typeof tenantSearchSchema>) => ({
                     ...prev,
                     q: parsed.remainingQuery || undefined,
                     neighborhood: parsed.filters.neighborhood,
@@ -780,6 +781,12 @@ function TenantListingsGrid({
   onToggleSave,
   onClearFilters,
 }: TenantListingsGridProps) {
+  const badgeIds = useMemo(
+    () => [...new Set([...visible.map((p) => p.id), ...boostedPool.map((p) => p.id)])],
+    [visible, boostedPool],
+  );
+  const { data: partnerBadges } = usePartnerBadges(badgeIds);
+
   if (isLoading) {
     return <ListingGridSkeleton count={9} />;
   }
@@ -828,6 +835,11 @@ function TenantListingsGrid({
                 plusMember={isPlus}
                 onToggleSave={onToggleSave}
                 priority={index < 2}
+                partnerBadge={
+                  partnerBadges?.[p.id]
+                    ? { name: partnerBadges[p.id].partnerName, slug: partnerBadges[p.id].slug }
+                    : null
+                }
               />
               {showPromo &&
                 (boosted ? (
@@ -838,7 +850,17 @@ function TenantListingsGrid({
                     <PropertyCard
                       p={boosted}
                       preview={isPreviewListing(boosted)}
+                      saved={savedIds.has(boosted.id)}
                       plusMember={isPlus}
+                      onToggleSave={onToggleSave}
+                      partnerBadge={
+                        partnerBadges?.[boosted.id]
+                          ? {
+                              name: partnerBadges[boosted.id].partnerName,
+                              slug: partnerBadges[boosted.id].slug,
+                            }
+                          : null
+                      }
                     />
                   </div>
                 ) : (

@@ -8,6 +8,39 @@ export type Database = {
   };
   public: {
     Tables: {
+      cron_run_log: {
+        Row: {
+          detail: Json;
+          duration_ms: number;
+          finished_at: string;
+          http_status: number | null;
+          id: string;
+          job_name: string;
+          started_at: string;
+          status: string;
+        };
+        Insert: {
+          detail?: Json;
+          duration_ms: number;
+          finished_at?: string;
+          http_status?: number | null;
+          id?: string;
+          job_name: string;
+          started_at: string;
+          status: string;
+        };
+        Update: {
+          detail?: Json;
+          duration_ms?: number;
+          finished_at?: string;
+          http_status?: number | null;
+          id?: string;
+          job_name?: string;
+          started_at?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
       admin_audit_logs: {
         Row: {
           action: string;
@@ -569,27 +602,45 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string;
+          description: string | null;
+          email: string | null;
           id: string;
           logo_url: string | null;
           name: string;
+          office_location: string | null;
+          phone: string | null;
           slug: string;
+          social_links: Json;
           type: string;
+          website: string | null;
         };
         Insert: {
           created_at?: string;
+          description?: string | null;
+          email?: string | null;
           id?: string;
           logo_url?: string | null;
           name: string;
+          office_location?: string | null;
+          phone?: string | null;
           slug: string;
+          social_links?: Json;
           type?: string;
+          website?: string | null;
         };
         Update: {
           created_at?: string;
+          description?: string | null;
+          email?: string | null;
           id?: string;
           logo_url?: string | null;
           name?: string;
+          office_location?: string | null;
+          phone?: string | null;
           slug?: string;
+          social_links?: Json;
           type?: string;
+          website?: string | null;
         };
         Relationships: [];
       };
@@ -1250,6 +1301,99 @@ export type Database = {
           },
         ];
       };
+      partner_crm_followups: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          follow_up_at: string;
+          id: string;
+          method: string;
+          notes: string | null;
+          prospect_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          follow_up_at: string;
+          id?: string;
+          method?: string;
+          notes?: string | null;
+          prospect_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          follow_up_at?: string;
+          id?: string;
+          method?: string;
+          notes?: string | null;
+          prospect_id?: string;
+        };
+        Relationships: [];
+      };
+      partner_crm_prospects: {
+        Row: {
+          assigned_staff_id: string | null;
+          company_name: string;
+          company_type: string | null;
+          contact_person: string | null;
+          created_at: string;
+          email: string | null;
+          id: string;
+          last_contacted_at: string | null;
+          location: string | null;
+          next_follow_up_at: string | null;
+          notes: string | null;
+          phone: string | null;
+          pilot_id: string | null;
+          pipeline_status: string;
+          position: string | null;
+          updated_at: string;
+          website: string | null;
+        };
+        Insert: {
+          assigned_staff_id?: string | null;
+          company_name: string;
+          company_type?: string | null;
+          contact_person?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          last_contacted_at?: string | null;
+          location?: string | null;
+          next_follow_up_at?: string | null;
+          notes?: string | null;
+          phone?: string | null;
+          pilot_id?: string | null;
+          pipeline_status?: string;
+          position?: string | null;
+          updated_at?: string;
+          website?: string | null;
+        };
+        Update: {
+          assigned_staff_id?: string | null;
+          company_name?: string;
+          company_type?: string | null;
+          contact_person?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          last_contacted_at?: string | null;
+          location?: string | null;
+          next_follow_up_at?: string | null;
+          notes?: string | null;
+          phone?: string | null;
+          pilot_id?: string | null;
+          pipeline_status?: string;
+          position?: string | null;
+          updated_at?: string;
+          website?: string | null;
+        };
+        Relationships: [];
+      };
       partnership_inquiries: {
         Row: {
           company: string | null;
@@ -1288,6 +1432,403 @@ export type Database = {
           subject?: string;
         };
         Relationships: [];
+      };
+      pilot_activity_notes: {
+        Row: {
+          author_id: string | null;
+          author_role: string;
+          body: string;
+          created_at: string;
+          id: string;
+          pilot_id: string;
+        };
+        Insert: {
+          author_id?: string | null;
+          author_role: string;
+          body: string;
+          created_at?: string;
+          id?: string;
+          pilot_id: string;
+        };
+        Update: {
+          author_id?: string | null;
+          author_role?: string;
+          body?: string;
+          created_at?: string;
+          id?: string;
+          pilot_id?: string;
+        };
+        Relationships: [];
+      };
+      pilot_analytics_events: {
+        Row: {
+          created_at: string;
+          event_type: string;
+          id: string;
+          metadata: Json;
+          pilot_id: string;
+          property_id: string | null;
+          session_id: string | null;
+          source: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          event_type: string;
+          id?: string;
+          metadata?: Json;
+          pilot_id: string;
+          property_id?: string | null;
+          session_id?: string | null;
+          source?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          event_type?: string;
+          id?: string;
+          metadata?: Json;
+          pilot_id?: string;
+          property_id?: string | null;
+          session_id?: string | null;
+          source?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      pilot_invitations: {
+        Row: {
+          accepted_at: string | null;
+          accepted_by: string | null;
+          created_at: string;
+          created_by: string | null;
+          email: string;
+          expires_at: string;
+          id: string;
+          pilot_id: string;
+          status: string;
+          token_hash: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email: string;
+          expires_at: string;
+          id?: string;
+          pilot_id: string;
+          status?: string;
+          token_hash: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          pilot_id?: string;
+          status?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pilot_invitations_pilot_id_fkey";
+            columns: ["pilot_id"];
+            isOneToOne: false;
+            referencedRelation: "pilot_partnerships";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pilot_kpis: {
+        Row: {
+          actual: number;
+          created_at: string;
+          id: string;
+          metric: string;
+          pilot_id: string;
+          sort_order: number;
+          target: number;
+          unit: string;
+          updated_at: string;
+        };
+        Insert: {
+          actual?: number;
+          created_at?: string;
+          id?: string;
+          metric: string;
+          pilot_id: string;
+          sort_order?: number;
+          target: number;
+          unit?: string;
+          updated_at?: string;
+        };
+        Update: {
+          actual?: number;
+          created_at?: string;
+          id?: string;
+          metric?: string;
+          pilot_id?: string;
+          sort_order?: number;
+          target?: number;
+          unit?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_leads: {
+        Row: {
+          contact_method: string | null;
+          created_at: string;
+          display_label: string | null;
+          id: string;
+          inquiry_id: string | null;
+          lead_type: string;
+          notes: string | null;
+          pilot_id: string;
+          property_id: string | null;
+          revenue_lead_id: string | null;
+          status: string;
+          tenant_user_id: string | null;
+          updated_at: string;
+          viewing_id: string | null;
+        };
+        Insert: {
+          contact_method?: string | null;
+          created_at?: string;
+          display_label?: string | null;
+          id?: string;
+          inquiry_id?: string | null;
+          lead_type: string;
+          notes?: string | null;
+          pilot_id: string;
+          property_id?: string | null;
+          revenue_lead_id?: string | null;
+          status?: string;
+          tenant_user_id?: string | null;
+          updated_at?: string;
+          viewing_id?: string | null;
+        };
+        Update: {
+          contact_method?: string | null;
+          created_at?: string;
+          display_label?: string | null;
+          id?: string;
+          inquiry_id?: string | null;
+          lead_type?: string;
+          notes?: string | null;
+          pilot_id?: string;
+          property_id?: string | null;
+          revenue_lead_id?: string | null;
+          status?: string;
+          tenant_user_id?: string | null;
+          updated_at?: string;
+          viewing_id?: string | null;
+        };
+        Relationships: [];
+      };
+      pilot_metrics_daily: {
+        Row: {
+          call_clicks: number;
+          contact_clicks: number;
+          day: string;
+          directions_clicks: number;
+          enquiries: number;
+          id: string;
+          impressions: number;
+          pilot_id: string;
+          property_id: string | null;
+          saves: number;
+          share_clicks: number;
+          viewing_requests: number;
+          views: number;
+          whatsapp_clicks: number;
+        };
+        Insert: {
+          call_clicks?: number;
+          contact_clicks?: number;
+          day: string;
+          directions_clicks?: number;
+          enquiries?: number;
+          id?: string;
+          impressions?: number;
+          pilot_id: string;
+          property_id?: string | null;
+          saves?: number;
+          share_clicks?: number;
+          viewing_requests?: number;
+          views?: number;
+          whatsapp_clicks?: number;
+        };
+        Update: {
+          call_clicks?: number;
+          contact_clicks?: number;
+          day?: string;
+          directions_clicks?: number;
+          enquiries?: number;
+          id?: string;
+          impressions?: number;
+          pilot_id?: string;
+          property_id?: string | null;
+          saves?: number;
+          share_clicks?: number;
+          viewing_requests?: number;
+          views?: number;
+          whatsapp_clicks?: number;
+        };
+        Relationships: [];
+      };
+      pilot_partnerships: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          commercial_model: string | null;
+          completed_at: string | null;
+          converted_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          notes: string | null;
+          objectives: Json;
+          onboarding: Json;
+          organization_id: string | null;
+          partner_name: string;
+          partner_type: string;
+          partnership_start_date: string | null;
+          pilot_duration_days: number | null;
+          pilot_end_date: string | null;
+          pilot_start_date: string | null;
+          primary_contact_email: string | null;
+          primary_contact_name: string | null;
+          primary_contact_phone: string | null;
+          proposed_property_count: number | null;
+          public_slug: string | null;
+          show_partner_badge: boolean;
+          status: string;
+          success_criteria: Json;
+          updated_at: string;
+        };
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          commercial_model?: string | null;
+          completed_at?: string | null;
+          converted_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          notes?: string | null;
+          objectives?: Json;
+          onboarding?: Json;
+          organization_id?: string | null;
+          partner_name: string;
+          partner_type: string;
+          partnership_start_date?: string | null;
+          pilot_duration_days?: number | null;
+          pilot_end_date?: string | null;
+          pilot_start_date?: string | null;
+          primary_contact_email?: string | null;
+          primary_contact_name?: string | null;
+          primary_contact_phone?: string | null;
+          proposed_property_count?: number | null;
+          public_slug?: string | null;
+          show_partner_badge?: boolean;
+          status?: string;
+          success_criteria?: Json;
+          updated_at?: string;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          commercial_model?: string | null;
+          completed_at?: string | null;
+          converted_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          notes?: string | null;
+          objectives?: Json;
+          onboarding?: Json;
+          organization_id?: string | null;
+          partner_name?: string;
+          partner_type?: string;
+          partnership_start_date?: string | null;
+          pilot_duration_days?: number | null;
+          pilot_end_date?: string | null;
+          pilot_start_date?: string | null;
+          primary_contact_email?: string | null;
+          primary_contact_name?: string | null;
+          primary_contact_phone?: string | null;
+          proposed_property_count?: number | null;
+          public_slug?: string | null;
+          show_partner_badge?: boolean;
+          status?: string;
+          success_criteria?: Json;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pilot_partnerships_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pilot_properties: {
+        Row: {
+          added_at: string;
+          approved_at: string | null;
+          id: string;
+          notes: string | null;
+          pilot_id: string;
+          property_id: string;
+          rejection_reason: string | null;
+          removed_at: string | null;
+          status: string;
+        };
+        Insert: {
+          added_at?: string;
+          approved_at?: string | null;
+          id?: string;
+          notes?: string | null;
+          pilot_id: string;
+          property_id: string;
+          rejection_reason?: string | null;
+          removed_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          added_at?: string;
+          approved_at?: string | null;
+          id?: string;
+          notes?: string | null;
+          pilot_id?: string;
+          property_id?: string;
+          rejection_reason?: string | null;
+          removed_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pilot_properties_pilot_id_fkey";
+            columns: ["pilot_id"];
+            isOneToOne: false;
+            referencedRelation: "pilot_partnerships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "pilot_properties_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       portal_applications: {
         Row: {
@@ -2796,7 +3337,7 @@ export type Database = {
       };
     };
     Enums: {
-      app_role: "tenant" | "landlord" | "manager" | "caretaker" | "admin" | "agency";
+      app_role: "tenant" | "landlord" | "manager" | "caretaker" | "admin" | "agency" | "property_developer" | "agent";
       property_type:
         | "bedsitter"
         | "single_room"
@@ -2933,7 +3474,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["tenant", "landlord", "manager", "caretaker", "admin", "agency"],
+      app_role: ["tenant", "landlord", "manager", "caretaker", "admin", "agency", "property_developer", "agent"],
       property_type: [
         "bedsitter",
         "single_room",

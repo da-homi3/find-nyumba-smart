@@ -1,8 +1,13 @@
-import { mobileError, mobileJson, requireMobileBearer } from "@/lib/api/mobile/v1/auth";
+import { mobileError, mobileJson } from "@/lib/api/mobile/v1/auth";
 import { requireTenantMobile } from "@/lib/api/mobile/v1/guards";
 import { parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
 
-type PortalListerRole = "landlord" | "manager" | "agency";
+type PortalListerRole =
+  | "landlord"
+  | "manager"
+  | "agency"
+  | "property_developer"
+  | "agent";
 
 // ── Admin: portal applications ───────────────────────────────────────────────
 

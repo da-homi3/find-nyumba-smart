@@ -97,7 +97,33 @@ export async function buildFullSitemapXml(): Promise<string> {
     console.warn("[sitemap] inventory areas failed:", error);
   }
 
-  const urls = [...staticEntries, ...extraAreaEntries, ...propertyEntries].join("\n");
+  let partnerEntries: string[] = [];
+  try {
+    const { createPublicClient } = await import("@/lib/api/public-client");
+    const supabase = createPublicClient();
+    const { data: partners } = await supabase
+      .from("pilot_partnerships")
+      .select("public_slug, updated_at")
+      .not("public_slug", "is", null)
+      .eq("show_partner_badge", true)
+      .in("status", ["INVITED", "ONBOARDING", "APPROVED", "ACTIVE", "EXTENDED", "CONVERTED"])
+      .limit(500);
+    partnerEntries = (partners ?? [])
+      .map((p) => p.public_slug)
+      .filter((slug): slug is string => Boolean(slug))
+      .map((slug) =>
+        urlEntry(`${base}/partners/${slug}`, {
+          changefreq: "weekly",
+          priority: "0.7",
+        }),
+      );
+  } catch (error) {
+    console.warn("[sitemap] partner profiles failed:", error);
+  }
+
+  const urls = [...staticEntries, ...extraAreaEntries, ...partnerEntries, ...propertyEntries].join(
+    "\n",
+  );
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
 }
 

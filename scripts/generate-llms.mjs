@@ -25,8 +25,7 @@ function loadFaqsFromSource() {
   const block = faqSrc.match(/export const NYUMBASEARCH_FAQS[\s\S]*?=\s*\[([\s\S]*?)\];/);
   if (!block) return "";
   const pairs = [];
-  const re =
-    /question:\s*"((?:\\.|[^"\\])*)"\s*,\s*answer:\s*"((?:\\.|[^"\\])*)"/g;
+  const re = /question:\s*"((?:\\.|[^"\\])*)"\s*,\s*answer:\s*"((?:\\.|[^"\\])*)"/g;
   let m;
   while ((m = re.exec(block[1])) !== null) {
     const question = m[1].replaceAll('\\"', '"');

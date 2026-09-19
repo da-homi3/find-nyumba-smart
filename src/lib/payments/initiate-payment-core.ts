@@ -313,10 +313,30 @@ async function assertContactUnlockPrice(
   }
 }
 
-async function assertTenantPlusPrice(data: InitiatePaymentInput): Promise<void> {
+async function resolveTenantPlusAmountKes(
+  billingCycle: InitiatePaymentInput["billingCycle"],
+): Promise<number> {
   const { resolvePlusPlan } = await import("@/lib/revenue/platform-settings");
   const plan = await resolvePlusPlan();
-  const expected = data.billingCycle === "quarterly" ? plan.quarterlyKes : plan.monthlyKes;
+  if (billingCycle === "quarterly") return plan.quarterlyKes;
+  if (billingCycle === "monthly") return plan.monthlyKes;
+  throw new Error("Plus checkout requires billingCycle monthly or quarterly");
+}
+
+/**
+ * Server is the sole source of truth for Tenant Plus price.
+ * Client may send any amountKes; it is overwritten from billingCycle before insert.
+ */
+export async function applyServerDerivedTenantPlusAmount(
+  data: InitiatePaymentInput,
+): Promise<InitiatePaymentInput> {
+  if (data.paymentType !== "tenant_plus") return data;
+  const amountKes = await resolveTenantPlusAmountKes(data.billingCycle);
+  return { ...data, amountKes };
+}
+
+async function assertTenantPlusPrice(data: InitiatePaymentInput): Promise<void> {
+  const expected = await resolveTenantPlusAmountKes(data.billingCycle);
   if (data.amountKes !== expected) {
     throw new Error(`Plus price mismatch — expected KES ${expected}`);
   }
@@ -579,19 +599,30 @@ async function completeMpesaPayment(
 
 /** Shared payment initiation — call from server handlers with a known userId. */
 export async function initiatePaymentCore(userId: string, data: InitiatePaymentInput) {
-  if (data.paymentMethod === "mpesa") {
+  // Tenant Plus: never trust client amountKes — derive from billingCycle only.
+  const authorized = await applyServerDerivedTenantPlusAmount(data);
+
+  if (authorized.paymentMethod === "mpesa") {
     await assertStkPromptRateLimit({ userId });
   }
-  await assertPaymentAuthorization(userId, data);
+  await assertPaymentAuthorization(userId, authorized);
 
-  const { row, supabaseAdmin } = await insertPayment(userId, data, data.idempotencyKey);
+  const { row, supabaseAdmin } = await insertPayment(
+    userId,
+    authorized,
+    authorized.idempotencyKey,
+  );
 
   if (row.status === "completed") {
-    return { paymentId: row.id, status: "completed" as const, method: data.paymentMethod };
+    return {
+      paymentId: row.id,
+      status: "completed" as const,
+      method: authorized.paymentMethod,
+    };
   }
 
-  if (data.paymentMethod === "mpesa") {
-    return completeMpesaPayment(supabaseAdmin, row, data);
+  if (authorized.paymentMethod === "mpesa") {
+    return completeMpesaPayment(supabaseAdmin, row, authorized);
   }
 
   const meta = parsePaymentMetadata(row.metadata);
@@ -618,11 +649,11 @@ export async function initiatePaymentCore(userId: string, data: InitiatePaymentI
   const reference = `NS-${row.id}`;
   const card = await initiateCardPayment({
     reference,
-    amountKes: data.amountKes,
-    email: data.email ?? `user-${userId.slice(0, 8)}@nyumbasearch.ke`,
-    phone: formatPhone254(data.phoneNumber || profile?.phone || "254700000000"),
-    name: data.name ?? profile?.full_name ?? "NyumbaSearch customer",
-    description: data.title,
+    amountKes: authorized.amountKes,
+    email: authorized.email ?? `user-${userId.slice(0, 8)}@nyumbasearch.ke`,
+    phone: formatPhone254(authorized.phoneNumber || profile?.phone || "254700000000"),
+    name: authorized.name ?? profile?.full_name ?? "NyumbaSearch customer",
+    description: authorized.title,
   });
 
   await supabaseAdmin

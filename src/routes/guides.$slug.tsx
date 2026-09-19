@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PropertyCard } from "@/components/PropertyCard";
 import { PublicPageShell } from "@/components/SiteNav";
-import { fetchProperties, formatKes } from "@/lib/properties";
+import { fetchProperties, formatKes, type Property } from "@/lib/properties";
 import { resolveAreaFromSlug, GEO_AREAS } from "@/lib/seo/areas";
 import { buildPageHead } from "@/lib/seo/head";
 import { getSiteUrl } from "@/lib/site";
@@ -100,9 +100,9 @@ function RentGuidePage() {
   const { area, listings } = Route.useLoaderData();
   const region = area.countyName?.replace(/\s+City$/i, "") ?? "Nairobi";
   const from = listings
-    .map((p) => p.rent_kes)
-    .filter((n) => n > 0)
-    .sort((a, b) => a - b)[0];
+    .map((p: Property) => p.rent_kes)
+    .filter((n: number) => n > 0)
+    .sort((a: number, b: number) => a - b)[0];
 
   return (
     <PublicPageShell>
@@ -159,7 +159,7 @@ function RentGuidePage() {
           <section className="mt-10">
             <h2 className="font-display text-xl font-semibold">Featured in {area.name}</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {listings.slice(0, 4).map((p) => (
+              {listings.slice(0, 4).map((p: Property) => (
                 <PropertyCard key={p.id} p={p} />
               ))}
             </div>

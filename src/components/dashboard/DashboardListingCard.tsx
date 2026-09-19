@@ -9,7 +9,7 @@ import { MOTION_DURATION, MOTION_EASE } from "@/lib/design/motion";
 import { listingPlaceholderUrl } from "@/lib/property-images";
 import { optimizeImageUrlForServeMode } from "@/lib/app-client";
 
-type PortalKind = "landlord" | "agency" | "manager";
+type PortalKind = "landlord" | "agency" | "manager" | "property_developer" | "agent";
 
 const PORTAL_PATHS: Record<PortalKind, { edit: string; boost: string | null; analytics: string }> =
   {
@@ -27,6 +27,16 @@ const PORTAL_PATHS: Record<PortalKind, { edit: string; boost: string | null; ana
       edit: "/manager/properties/$id/edit",
       boost: null,
       analytics: "/manager/analytics",
+    },
+    property_developer: {
+      edit: "/developer/properties/$id/edit",
+      boost: null,
+      analytics: "/developer/analytics",
+    },
+    agent: {
+      edit: "/agent/properties/$id/edit",
+      boost: null,
+      analytics: "/agent/analytics",
     },
   };
 

@@ -45,7 +45,7 @@ import { LEVEL_BENEFITS } from "@/lib/loyalty/benefits";
 import { buildPageHead } from "@/lib/seo/head";
 
 type SettingsTab = "profile" | "notifications" | "security" | "portals" | "trust";
-type ListerApplyRole = "landlord" | "manager" | "agency";
+type ListerApplyRole = "landlord" | "manager" | "agency" | "property_developer" | "agent";
 
 export const Route = createFileRoute("/settings")({
   head: () =>
@@ -131,6 +131,18 @@ const APPLY_ROLES: {
     id: "agency",
     label: "Real estate agency",
     description: "Agency portfolio, team seats, and bulk listings",
+    icon: Users,
+  },
+  {
+    id: "property_developer",
+    label: "Property developer",
+    description: "Publish projects and units under your developer brand",
+    icon: Building2,
+  },
+  {
+    id: "agent",
+    label: "Real estate agent",
+    description: "List and manage client properties as an individual agent",
     icon: Users,
   },
 ];

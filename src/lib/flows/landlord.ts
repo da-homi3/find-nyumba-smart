@@ -324,10 +324,11 @@ async function submitListingDraft(
     await admin.from("properties").insert({
       id: propertyId,
       title,
-      rent_kes: Number(d.price),
+      rent_kes: typeof d.price === "number" && Number.isFinite(d.price) ? d.price : Number(d.price) || 0,
       rent_kes_max: null,
       property_type: d.property_type as PropertyType,
-      bedrooms: Number(d.bedrooms ?? 1),
+      bedrooms:
+        typeof d.bedrooms === "number" && Number.isFinite(d.bedrooms) ? d.bedrooms : 1,
       bathrooms: 1,
       neighborhood: draftString(d.neighborhood, "Nairobi"),
       latitude: d.lat as number | null,
@@ -340,6 +341,22 @@ async function submitListingDraft(
       is_vacant: true,
       owner_id: userId,
     });
+
+    void import("@/lib/api/notify")
+      .then(({ notifyOpsNewListing }) =>
+        notifyOpsNewListing({
+          propertyId,
+          title,
+          neighborhood: draftString(d.neighborhood, "Nairobi"),
+          rentKes: Number(d.price),
+          ownerUserId: userId,
+          propertyType: typeof d.property_type === "string" ? d.property_type : "",
+          bedrooms:
+            typeof d.bedrooms === "number" && Number.isFinite(d.bedrooms) ? d.bedrooms : 1,
+          source: "whatsapp",
+        }),
+      )
+      .catch((err) => console.warn("[whatsapp] ops listing notify failed:", err));
 
     await sendText(
       waPhone,

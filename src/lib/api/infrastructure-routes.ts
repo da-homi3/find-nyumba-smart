@@ -14,6 +14,7 @@ import { buildRobotsTxt } from "@/lib/seo/robots";
 import { buildLlmsTxt } from "@/lib/seo/llms";
 import { INDEXNOW_KEY, indexNowKeyPath } from "@/lib/seo/indexnow";
 import { isServerEnvConfigured, getServerEnv } from "@/lib/server-env";
+import type { Json } from "@/integrations/supabase/types";
 
 type RouteHandler = (request: Request, ctx?: ExecutionContext) => Promise<Response>;
 
@@ -50,16 +51,6 @@ function withPublicRateLimit(
   });
 }
 
-function unknownErrorMessage(err: unknown): string {
-  if (err instanceof Error && err.message.trim()) return err.message;
-  if (typeof err === "string" && err.trim()) return err;
-  if (err && typeof err === "object" && "message" in err) {
-    const message = (err as { message: unknown }).message;
-    if (typeof message === "string" && message.trim()) return message;
-  }
-  return "Internal error";
-}
-
 async function withErrorHandler(
   label: string,
   req: Request,
@@ -72,8 +63,7 @@ async function withErrorHandler(
   } catch (err) {
     console.error(`${label} error:`, err);
     if (onError) return onError();
-    const message = unknownErrorMessage(err);
-    return new Response(JSON.stringify({ error: message, code: "INTERNAL" }), {
+    return new Response(JSON.stringify({ error: "Request failed", code: "INTERNAL" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
@@ -142,6 +132,61 @@ async function handleMonthlyCronRoute(req: Request): Promise<Response> {
   return handleMonthlyCron(req);
 }
 
+function cronRunStatus(
+  ok: boolean,
+  detail: Record<string, unknown>,
+): "succeeded" | "failed" | "partial" {
+  if (!ok) return "failed";
+  const failedCount = typeof detail.failed === "number" ? detail.failed : 0;
+  const hasErrors = Array.isArray(detail.errors) && detail.errors.length > 0;
+  return failedCount > 0 || hasErrors ? "partial" : "succeeded";
+}
+
+async function runTrackedCron(
+  jobName: string,
+  req: Request,
+  handler: RouteHandler,
+): Promise<Response> {
+  const startedAt = new Date();
+  let response: Response | undefined;
+  let detail: Record<string, unknown> = {};
+  let status: "succeeded" | "failed" | "partial" = "failed";
+  try {
+    response = await handler(req);
+    detail = await response
+      .clone()
+      .json()
+      .then((value) =>
+        value && typeof value === "object" && !Array.isArray(value)
+          ? (value as Record<string, unknown>)
+          : {},
+      )
+      .catch(() => ({}));
+    status = cronRunStatus(response.ok, detail);
+    return response;
+  } finally {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("cron_run_log").insert({
+        job_name: jobName,
+        status,
+        http_status: response?.status ?? null,
+        duration_ms: Date.now() - startedAt.getTime(),
+        detail: structuredClone(detail) as Json,
+        started_at: startedAt.toISOString(),
+      });
+      if (jobName === "daily") {
+        await supabaseAdmin
+          .from("cron_run_log")
+          .delete()
+          .lt("finished_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString());
+      }
+    } catch (logError) {
+      console.error("[cron] failed to persist run result", jobName, logError);
+    }
+  }
+}
+
 async function handleWhatsAppWebhook(req: Request): Promise<Response> {
   const { handleWhatsAppWebhookRequest } = await import("@/lib/whatsapp/webhook");
   return handleWhatsAppWebhookRequest(req);
@@ -157,6 +202,92 @@ async function handleMobileV1ApiRoute(req: Request): Promise<Response> {
   return handleMobileV1Api(req);
 }
 
+type PropertyTypeParser = {
+  safeParse(
+    value: string,
+  ):
+    | { success: true; data: NonNullable<PropertySearchFilters["propertyType"]> }
+    | { success: false };
+};
+
+function optionalNumber(params: URLSearchParams, key: string): number | undefined {
+  const value = params.get(key);
+  return value ? Number(value) : undefined;
+}
+
+function finiteNumber(params: URLSearchParams, key: string): number | undefined {
+  const value = Number(params.get(key) ?? Number.NaN);
+  return Number.isFinite(value) ? value : undefined;
+}
+
+function parsePropertyTypes(
+  raw: string | null,
+  parser: PropertyTypeParser,
+): PropertySearchFilters["propertyTypes"] {
+  if (!raw) return undefined;
+  const values = raw
+    .split(",")
+    .map((value) => parser.safeParse(value.trim()))
+    .flatMap((result) => (result.success ? [result.data] : []));
+  return values.length > 0 ? values : undefined;
+}
+
+function parseSortBy(value: string | null): PropertySearchFilters["sortBy"] {
+  const supported = new Set(["nearby", "newest", "price_asc", "price_desc", "score"]);
+  return supported.has(value ?? "")
+    ? (value as NonNullable<PropertySearchFilters["sortBy"]>)
+    : "newest";
+}
+
+function parseBounds(params: URLSearchParams): PropertySearchFilters["bounds"] {
+  const minLat = finiteNumber(params, "minLat");
+  const maxLat = finiteNumber(params, "maxLat");
+  const minLng = finiteNumber(params, "minLng");
+  const maxLng = finiteNumber(params, "maxLng");
+  if (
+    minLat === undefined ||
+    maxLat === undefined ||
+    minLng === undefined ||
+    maxLng === undefined
+  ) {
+    return undefined;
+  }
+  return { minLat, maxLat, minLng, maxLng };
+}
+
+function parseListingFilters(
+  url: URL,
+  propertyTypeParser: PropertyTypeParser,
+): PropertySearchFilters {
+  const params = url.searchParams;
+  const parsedType = propertyTypeParser.safeParse(params.get("type") ?? "");
+  const pricingModeRaw = params.get("pricingMode");
+  const pricingMode =
+    pricingModeRaw === "rent" || pricingModeRaw === "sale" ? pricingModeRaw : undefined;
+
+  return {
+    limit: Math.trunc(finiteNumber(params, "limit") ?? 50),
+    offset: Math.trunc(finiteNumber(params, "offset") ?? 0),
+    query: params.get("q") ?? undefined,
+    neighborhood: normalizeNeighborhoodFilter(params.get("neighborhood")),
+    locationId: params.get("locationId") ?? undefined,
+    countyLocationId: params.get("countyLocationId") ?? undefined,
+    constituencyLocationId: params.get("constituencyLocationId") ?? undefined,
+    wardLocationId: params.get("wardLocationId") ?? undefined,
+    propertyType: parsedType.success ? parsedType.data : undefined,
+    propertyTypes: parsePropertyTypes(params.get("types"), propertyTypeParser),
+    pricingMode,
+    minRent: optionalNumber(params, "minRent"),
+    maxRent: optionalNumber(params, "maxRent"),
+    verifiedOnly: params.get("verifiedOnly") === "1",
+    minBedrooms: optionalNumber(params, "minBedrooms"),
+    sortBy: parseSortBy(params.get("sortBy")),
+    originLat: finiteNumber(params, "originLat"),
+    originLng: finiteNumber(params, "originLng"),
+    bounds: parseBounds(params),
+  };
+}
+
 async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<Response> {
   const { getListingsCacheEpoch } = await import("@/lib/cache/manager");
   const epoch = await getListingsCacheEpoch();
@@ -170,78 +301,7 @@ async function handleListingsApi(req: Request, ctx?: ExecutionContext): Promise<
       const url = new URL(req.url);
       const { queryListings } = await import("@/lib/api/listings-core");
       const { propertyTypeSchema } = await import("@/lib/api/nyumba/nyumba-shared");
-
-      const typeRaw = url.searchParams.get("type");
-      const typesRaw = url.searchParams.get("types");
-      const parsedType = typeRaw ? propertyTypeSchema.safeParse(typeRaw) : null;
-      const propertyTypes = typesRaw
-        ? typesRaw
-            .split(",")
-            .map((t) => t.trim())
-            .map((t) => propertyTypeSchema.safeParse(t))
-            .flatMap((r) => (r.success ? [r.data] : []))
-        : undefined;
-
-      const pricingModeRaw = url.searchParams.get("pricingMode");
-      const pricingMode: "rent" | "sale" | undefined =
-        pricingModeRaw === "rent" || pricingModeRaw === "sale" ? pricingModeRaw : undefined;
-
-      const originLatRaw = url.searchParams.get("originLat");
-      const originLngRaw = url.searchParams.get("originLng");
-      const originLat = originLatRaw != null ? Number(originLatRaw) : Number.NaN;
-      const originLng = originLngRaw != null ? Number(originLngRaw) : Number.NaN;
-      const minLat = Number(url.searchParams.get("minLat") ?? Number.NaN);
-      const maxLat = Number(url.searchParams.get("maxLat") ?? Number.NaN);
-      const minLng = Number(url.searchParams.get("minLng") ?? Number.NaN);
-      const maxLng = Number(url.searchParams.get("maxLng") ?? Number.NaN);
-      const hasBounds =
-        Number.isFinite(minLat) &&
-        Number.isFinite(maxLat) &&
-        Number.isFinite(minLng) &&
-        Number.isFinite(maxLng);
-      const sortByRaw = url.searchParams.get("sortBy");
-      const sortBy: PropertySearchFilters["sortBy"] =
-        sortByRaw === "nearby" ||
-        sortByRaw === "newest" ||
-        sortByRaw === "price_asc" ||
-        sortByRaw === "price_desc" ||
-        sortByRaw === "score"
-          ? sortByRaw
-          : "newest";
-
-      const filters: PropertySearchFilters = {
-        limit: (() => {
-          const n = Number(url.searchParams.get("limit") ?? "50");
-          return Number.isFinite(n) ? Math.trunc(n) : 50;
-        })(),
-        offset: (() => {
-          const n = Number(url.searchParams.get("offset") ?? "0");
-          return Number.isFinite(n) ? Math.trunc(n) : 0;
-        })(),
-        query: url.searchParams.get("q") ?? undefined,
-        neighborhood: normalizeNeighborhoodFilter(url.searchParams.get("neighborhood")),
-        locationId: url.searchParams.get("locationId") ?? undefined,
-        countyLocationId: url.searchParams.get("countyLocationId") ?? undefined,
-        constituencyLocationId: url.searchParams.get("constituencyLocationId") ?? undefined,
-        wardLocationId: url.searchParams.get("wardLocationId") ?? undefined,
-        propertyType: parsedType?.success ? parsedType.data : undefined,
-        propertyTypes: propertyTypes && propertyTypes.length > 0 ? propertyTypes : undefined,
-        pricingMode,
-        minRent: url.searchParams.get("minRent")
-          ? Number(url.searchParams.get("minRent"))
-          : undefined,
-        maxRent: url.searchParams.get("maxRent")
-          ? Number(url.searchParams.get("maxRent"))
-          : undefined,
-        verifiedOnly: url.searchParams.get("verifiedOnly") === "1",
-        minBedrooms: url.searchParams.get("minBedrooms")
-          ? Number(url.searchParams.get("minBedrooms"))
-          : undefined,
-        sortBy,
-        originLat: Number.isFinite(originLat) ? originLat : undefined,
-        originLng: Number.isFinite(originLng) ? originLng : undefined,
-        bounds: hasBounds ? { minLat, maxLat, minLng, maxLng } : undefined,
-      };
+      const filters = parseListingFilters(url, propertyTypeSchema);
 
       const started = Date.now();
       const result = await queryListings(filters);
@@ -337,8 +397,32 @@ async function handleFeaturedAgenciesApi(): Promise<Response> {
 }
 
 async function handleClientErrors(req: Request): Promise<Response> {
-  const body = await req.json().catch(() => ({}));
-  console.error("[client-error]", JSON.stringify(body).slice(0, 2000));
+  const contentLength = Number(req.headers.get("content-length") ?? 0);
+  if (contentLength > 16_384) {
+    return new Response(JSON.stringify({ error: "Payload too large", code: "PAYLOAD_TOO_LARGE" }), {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return new Response(JSON.stringify({ error: "Invalid payload", code: "VALIDATION" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const sanitized = {
+    message:
+      typeof (body as { message?: unknown }).message === "string"
+        ? (body as { message: string }).message.slice(0, 500)
+        : "Client error",
+    path:
+      typeof (body as { path?: unknown }).path === "string"
+        ? (body as { path: string }).path.slice(0, 300)
+        : undefined,
+    userAgent: req.headers.get("user-agent")?.slice(0, 300),
+  };
+  console.error("[client-error]", JSON.stringify(sanitized));
   return new Response(JSON.stringify({ ok: true }), {
     headers: { "Content-Type": "application/json" },
   });
@@ -420,24 +504,35 @@ async function handleHealthCheck(): Promise<Response> {
     Promise.resolve(checkAiConfig()),
   ]);
 
-  const healthy = checks.every((c) => c.status === "ok" || c.status === "missing");
+  const healthy = checks.find((check) => check.name === "supabase_listings")?.status === "ok";
   const durationMs = Date.now() - start;
-
-  if (!healthy) {
-    const { Monitors } = await import("@/lib/alerts/monitors");
-    Monitors.healthCheckFailed(checks.filter((c) => c.status === "error")).catch(() => {});
-  }
 
   return new Response(
     JSON.stringify({
-      status: healthy ? "healthy" : "degraded",
-      checks,
+      status: healthy ? "ready" : "not_ready",
+      checks: checks.map(({ name, status }) => ({ name, status })),
       durationMs,
       timestamp: new Date().toISOString(),
     }),
     {
       status: healthy ? 200 : 503,
       headers: { "Content-Type": "application/json" },
+    },
+  );
+}
+
+function handleLiveness(): Response {
+  return new Response(
+    JSON.stringify({
+      status: "ok",
+      service: "nyumbasearch",
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
     },
   );
 }
@@ -627,6 +722,167 @@ type RouteDef = {
   run: (req: Request, ctx?: ExecutionContext) => Promise<Response> | Response;
 };
 
+
+async function upsertBrandedPilotRow(
+  supabaseAdmin: { from: (t: string) => any },
+  opts: {
+    existing: { id: string } | null;
+    partnerName: string;
+    to: string;
+    slug: string;
+    start: Date;
+    end: Date;
+  },
+) {
+  if (!opts.existing) {
+    const { data: created, error } = await supabaseAdmin
+      .from("pilot_partnerships")
+      .insert({
+        partner_name: opts.partnerName,
+        partner_type: "REAL_ESTATE_AGENCY",
+        primary_contact_email: opts.to,
+        primary_contact_name: `${opts.partnerName} Team`,
+        status: "INVITED",
+        pilot_start_date: opts.start.toISOString().slice(0, 10),
+        pilot_end_date: opts.end.toISOString().slice(0, 10),
+        pilot_duration_days: 30,
+        public_slug: opts.slug,
+        show_partner_badge: true,
+        notes: `Branded pilot invite for ${opts.partnerName}`,
+        objectives: [],
+        success_criteria: [],
+        onboarding: { brandedInvite: true },
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    return created;
+  }
+  const { data: updated, error } = await supabaseAdmin
+    .from("pilot_partnerships")
+    .update({
+      partner_name: opts.partnerName,
+      primary_contact_email: opts.to,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", opts.existing.id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return updated;
+}
+
+async function handleBrandedPilotInviteOps(req: Request): Promise<Response> {
+      const secret = process.env.CRON_SECRET;
+      const auth = req.headers.get("authorization");
+      if (!secret || auth !== `Bearer ${secret}`) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      try {
+        const body = (await req.json()) as {
+          to?: string;
+          partnerName?: string;
+          slug?: string;
+          preview?: boolean;
+        };
+        const to = body.to?.trim().toLowerCase();
+        const partnerName = body.partnerName?.trim() || "Azizi Realtors";
+        const slug = (body.slug?.trim() || "azizi-realtors").toLowerCase();
+        if (!to?.includes("@")) {
+          return new Response(JSON.stringify({ error: "Missing recipient email" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { sendEmailResult } = await import("@/lib/email/send");
+        const { brandedPartnerPilotInviteEmail } = await import(
+          "@/lib/email/branded-partner-pilot-invite"
+        );
+        const { getSiteUrl } = await import("@/lib/site");
+        const { createHash, randomUUID } = await import("node:crypto");
+
+        const hashToken = (raw: string) => createHash("sha256").update(raw).digest("hex");
+        const rawToken = `${randomUUID().replaceAll("-", "")}${randomUUID().replaceAll("-", "")}`;
+        const site = getSiteUrl().replace(/\/$/, "");
+        const start = new Date();
+        const end = new Date(start);
+        end.setUTCDate(end.getUTCDate() + 30);
+
+        const { data: existing } = await supabaseAdmin
+          .from("pilot_partnerships")
+          .select("*")
+          .eq("public_slug", slug)
+          .maybeSingle();
+
+        const pilot = await upsertBrandedPilotRow(supabaseAdmin, {
+          existing,
+          partnerName,
+          to,
+          slug,
+          start,
+          end,
+        });
+
+        await supabaseAdmin
+          .from("pilot_invitations")
+          .update({ status: "EXPIRED" })
+          .eq("pilot_id", pilot.id)
+          .eq("status", "PENDING");
+
+        const expires = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+        const { error: inviteError } = await supabaseAdmin.from("pilot_invitations").insert({
+          pilot_id: pilot.id,
+          email: to,
+          token_hash: hashToken(rawToken),
+          expires_at: expires.toISOString(),
+        });
+        if (inviteError) throw inviteError;
+
+        const inviteUrl = `${site}/invite/${slug}`;
+        const tpl = brandedPartnerPilotInviteEmail({
+          partnerName,
+          inviteUrl,
+          displayInviteUrl: `${site.replace(/^https?:\/\//, "")}/invite/${slug}`,
+          subject: `Welcome to NyumbaSearch — ${partnerName} Pilot Program`,
+          previewBanner: body.preview
+            ? "This is a design preview only. Not the final partner send."
+            : undefined,
+        });
+
+        const sent = await sendEmailResult({
+          to,
+          templateId: "branded-partner-pilot-invite",
+          ...tpl,
+          metadata: { pilotId: pilot.id, slug, preview: Boolean(body.preview) },
+        });
+
+        const failReason = !sent.ok && "reason" in sent ? sent.reason : undefined;
+
+        return new Response(
+          JSON.stringify({
+            ok: sent.ok,
+            reason: failReason,
+            pilotId: pilot.id,
+            inviteUrl,
+            to,
+            subject: tpl.subject,
+          }),
+          {
+            status: sent.ok ? 200 : 502,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      } catch (err) {
+        console.error("[ops] branded pilot invite failed", err);
+        return new Response(
+          JSON.stringify({ error: err instanceof Error ? err.message : "send failed" }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+}
+
 const ROUTES: RouteDef[] = [
   {
     match: (url, method) => url.pathname === "/api/mpesa/callback" && method === "POST",
@@ -674,32 +930,50 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/cron/subscription-renewals" && method === "POST",
-    run: (req) => withErrorHandler("Renewal cron", req, handleRenewalCronRoute),
+    run: (req) =>
+      withErrorHandler("Renewal cron", req, (r) =>
+        runTrackedCron("subscription-renewals", r, handleRenewalCronRoute),
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/daily" && method === "POST",
-    run: (req) => withErrorHandler("Daily cron", req, handleDailyCronRoute),
+    run: (req) =>
+      withErrorHandler("Daily cron", req, (r) => runTrackedCron("daily", r, handleDailyCronRoute)),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/daily-pm" && method === "POST",
-    run: (req) => withErrorHandler("Daily PM cron", req, handleDailyPmCronRoute),
+    run: (req) =>
+      withErrorHandler("Daily PM cron", req, (r) =>
+        runTrackedCron("daily-pm", r, handleDailyPmCronRoute),
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/daily-marketing" && method === "POST",
-    run: (req) => withErrorHandler("Daily marketing cron", req, handleDailyMarketingCronRoute),
+    run: (req) =>
+      withErrorHandler("Daily marketing cron", req, (r) =>
+        runTrackedCron("daily-marketing", r, handleDailyMarketingCronRoute),
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/subscription-invoices" && method === "POST",
     run: (req) =>
-      withErrorHandler("Subscription invoice cron", req, handleSubscriptionInvoiceCronRoute),
+      withErrorHandler("Subscription invoice cron", req, (r) =>
+        runTrackedCron("subscription-invoices", r, handleSubscriptionInvoiceCronRoute),
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/weekly" && method === "POST",
-    run: (req) => withErrorHandler("Weekly cron", req, handleWeeklyCronRoute),
+    run: (req) =>
+      withErrorHandler("Weekly cron", req, (r) =>
+        runTrackedCron("weekly", r, handleWeeklyCronRoute),
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/cron/monthly" && method === "POST",
-    run: (req) => withErrorHandler("Monthly cron", req, handleMonthlyCronRoute),
+    run: (req) =>
+      withErrorHandler("Monthly cron", req, (r) =>
+        runTrackedCron("monthly", r, handleMonthlyCronRoute),
+      ),
   },
   {
     match: (url, method) =>
@@ -794,7 +1068,11 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/health" && method === "GET",
-    run: (req) => withErrorHandler("Health check", req, handleHealthCheck),
+    run: async () => handleLiveness(),
+  },
+  {
+    match: (url, method) => url.pathname === "/api/ready" && method === "GET",
+    run: (req) => withErrorHandler("Readiness check", req, handleHealthCheck),
   },
   {
     match: (url, method) => url.pathname === "/api/mapbox-token" && method === "GET",
@@ -832,7 +1110,13 @@ const ROUTES: RouteDef[] = [
   },
   {
     match: (url, method) => url.pathname === "/api/client-errors" && method === "POST",
-    run: (req) => withErrorHandler("Client errors", req, handleClientErrors),
+    run: (req, ctx) =>
+      withPublicRateLimit(
+        req,
+        "api",
+        (rateLimitedReq) => withErrorHandler("Client errors", rateLimitedReq, handleClientErrors),
+        ctx,
+      ),
   },
   {
     match: (url, method) => url.pathname === "/api/health/connections" && method === "GET",
@@ -1056,6 +1340,11 @@ const ROUTES: RouteDef[] = [
         },
       }),
   },
+  {
+    match: (url, method) =>
+      url.pathname === "/api/ops/send-branded-pilot-invite" && method === "POST",
+    run: handleBrandedPilotInviteOps,
+  },
 ];
 
 /** Digital Asset Links for Android App Links (upload/release keystore SHA-256).
@@ -1089,6 +1378,9 @@ function appleAppSiteAssociationJson(): string {
             "/tenant/*",
             "/tenant/property/*",
             "/property/*",
+            "/invite/*",
+            "/partner/invite/*",
+            "/partner/*",
             "/auth/*",
             "/plus",
             "/services/*",

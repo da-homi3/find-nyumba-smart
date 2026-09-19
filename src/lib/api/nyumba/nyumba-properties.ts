@@ -23,13 +23,23 @@ import {
   propertyPayloadSchema,
   withPropertyPayloadRules,
 } from "@/lib/api/nyumba/nyumba-shared";
-import { getTenantPlusStatus } from "@/lib/revenue/subscription-store";
 import { contactPhoneFields, phonesFromProperty } from "@/lib/contact-phones";
 
 type PropertyPayload = z.infer<typeof propertyPayloadSchema>;
-type ListingPortalRole = "landlord" | "agency" | "manager";
+type ListingPortalRole =
+  | "landlord"
+  | "agency"
+  | "manager"
+  | "property_developer"
+  | "agent";
 
-const LISTING_PORTAL_ROLES = new Set<ListingPortalRole>(["landlord", "agency", "manager"]);
+const LISTING_PORTAL_ROLES = new Set<ListingPortalRole>([
+  "landlord",
+  "agency",
+  "manager",
+  "property_developer",
+  "agent",
+]);
 
 async function resolveListingPortalRoles(
   admin: SupabaseClient,
@@ -47,10 +57,15 @@ async function resolveListingPortalRoles(
       ),
   );
   if (roles.size === 0) {
-    throw new ForbiddenError("Account must be a landlord, agency, or property manager");
+    throw new ForbiddenError(
+      "Account must be a landlord, agency, property manager, developer, or agent",
+    );
   }
   const organizationId =
-    roles.has("agency") || roles.has("manager")
+    roles.has("agency") ||
+    roles.has("manager") ||
+    roles.has("property_developer") ||
+    roles.has("agent")
       ? await getUserOrganizationId(admin, ownerUserId)
       : null;
   return { roles, organizationId };
@@ -149,6 +164,24 @@ async function insertPropertyListing(
     .single();
 
   if (readError) throw readError;
+
+  void (async () => {
+    try {
+      const { notifyOpsNewListing } = await import("@/lib/api/notify");
+      await notifyOpsNewListing({
+        propertyId: property.id,
+        title: property.title,
+        neighborhood: property.neighborhood,
+        rentKes: property.rent_kes,
+        ownerUserId,
+        propertyType: property.property_type,
+        bedrooms: property.bedrooms,
+        source: "web",
+      });
+    } catch (err) {
+      console.warn("[insertPropertyListing] ops listing notify failed:", err);
+    }
+  })();
 
   void (async () => {
     try {
@@ -344,6 +377,14 @@ export const getProperty = createServerFn({ method: "POST" })
           _source: data.source ?? "property-detail",
         });
         if (viewError) console.warn("record_property_view:", viewError.message);
+        const { recordPilotEvent } = await import("@/lib/pilot/attribution");
+        await recordPilotEvent(admin, {
+          propertyId: property.id,
+          eventType: "PROPERTY_VIEW",
+          sessionId: data.sessionId ?? null,
+          source: data.source ?? "property-detail",
+          createLead: false,
+        });
       } catch (viewErr) {
         console.warn("record_property_view failed:", viewErr);
       }
@@ -406,6 +447,20 @@ export const toggleSavedProperty = createServerFn({ method: "POST" })
         .from("saved_properties")
         .insert({ user_id: userId, property_id: data.propertyId });
       if (error) throw error;
+      void (async () => {
+        try {
+          const admin = await adminClient();
+          const { recordPilotEvent } = await import("@/lib/pilot/attribution");
+          await recordPilotEvent(admin, {
+            propertyId: data.propertyId,
+            eventType: "PROPERTY_SAVE",
+            userId,
+            createLead: false,
+          });
+        } catch (err) {
+          console.warn("pilot save event:", err);
+        }
+      })();
     }
 
     if (!shouldSave && existing) {
@@ -453,7 +508,7 @@ export const listAgencyProperties = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = authContext(context);
-    await requireRole(supabase, userId, "agency");
+    await requireRole(supabase, userId, ["agency", "property_developer", "agent"]);
     const orgId = await getUserOrganizationId(supabase, userId);
     // Service role for the contact columns; scoped to the caller's org (or own listings).
     const admin = await adminClient();
@@ -586,12 +641,14 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
 
     const { data: unlock } = await admin
       .from("contact_unlocks")
-      .select("id")
+      .select("id, method")
       .eq("user_id", userId)
       .eq("listing_id", data.propertyId)
       .maybeSingle();
 
-    // Plus does not bypass the unlock wallet — credits must be spent via unlockListingContact.
+    // Product rule: Plus = monthly contact-credit allotment, not unlimited reveals.
+    // Credits are spent in unlockListingContactCore; this gate only returns phones
+    // after an unlock row exists (or for owner/admin). Rate-limit monitors abuse.
     if (!adminRole && !unlock) {
       return {
         phone: null,
@@ -600,6 +657,12 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
         unlocked: false,
         preferWhatsApp,
       };
+    }
+
+    if (!adminRole) {
+      const { assertContactRevealRateLimit } =
+        await import("@/lib/payments/contact-reveal-rate-limit");
+      await assertContactRevealRateLimit(admin, userId);
     }
 
     const { data: profile, error: profileError } = await admin
@@ -616,6 +679,7 @@ export const getPropertyOwnerContact = createServerFn({ method: "POST" })
       fullName: listingContactName || profile?.full_name || null,
       unlocked: true,
       preferWhatsApp,
+      unlockMethod: unlock?.method ?? (adminRole ? "admin" : null),
     };
   });
 

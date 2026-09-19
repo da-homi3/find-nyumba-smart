@@ -5,7 +5,15 @@ export type AppRole = Database["public"]["Enums"]["app_role"];
 
 type RequiredRoles = AppRole | AppRole[];
 
-const PRIVILEGED_ROLES = new Set<AppRole>(["landlord", "manager", "agency", "caretaker", "admin"]);
+const PRIVILEGED_ROLES = new Set<AppRole>([
+  "landlord",
+  "manager",
+  "agency",
+  "property_developer",
+  "agent",
+  "caretaker",
+  "admin",
+]);
 
 const ALL_ROLES = new Set<AppRole>(["tenant", ...PRIVILEGED_ROLES]);
 

@@ -27,7 +27,12 @@ function loadEnv() {
 }
 
 const MIGRATION_SQL = readFileSync(
-  join(root, "supabase", "migrations", "20260904120000_reassert_property_contact_column_grants.sql"),
+  join(
+    root,
+    "supabase",
+    "migrations",
+    "20260904120000_reassert_property_contact_column_grants.sql",
+  ),
   "utf8",
 );
 

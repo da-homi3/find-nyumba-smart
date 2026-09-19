@@ -101,12 +101,25 @@ export function clearAuthGateDismiss() {
 export function shouldSkipAuthGate(pathname: string): boolean {
   if (pathname.startsWith("/auth")) return true;
   if (pathname.startsWith("/caretaker")) return true;
+  if (pathname.startsWith("/partner")) return true;
+  if (pathname.startsWith("/partners")) return true;
+  if (pathname.startsWith("/invite/")) return true;
+  if (pathname.startsWith("/tenant/invite")) return true;
+  if (pathname.startsWith("/landlord")) return true;
+  if (pathname.startsWith("/agency")) return true;
+  if (pathname.startsWith("/developer")) return true;
+  if (pathname.startsWith("/agent")) return true;
+  if (pathname.startsWith("/manager")) return true;
+  if (pathname.startsWith("/admin")) return true;
+  if (pathname.startsWith("/advertise")) return true;
+  if (pathname.startsWith("/services/provider")) return true;
   if (
     pathname === "/privacy" ||
     pathname === "/terms-of-service" ||
     pathname === "/cookie-policy" ||
     pathname === "/data-deletion" ||
-    pathname === "/about"
+    pathname === "/about" ||
+    pathname === "/contact"
   ) {
     return true;
   }

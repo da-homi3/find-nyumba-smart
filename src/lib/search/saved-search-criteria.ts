@@ -105,18 +105,18 @@ export function savedSearchDisplayName(criteria: SavedSearchCriteria): string {
 export function hasAlertableCriteria(criteria: SavedSearchCriteria): boolean {
   return Boolean(
     criteria.neighborhood ||
-      criteria.locationId ||
-      criteria.propertyType ||
-      (criteria.types && criteria.types.length > 0) ||
-      criteria.maxBudget != null ||
-      criteria.maxRent != null ||
-      criteria.minRent != null ||
-      criteria.bedrooms != null ||
-      (criteria.listingPurpose && criteria.listingPurpose !== "all") ||
-      criteria.verifiedLevel2Plus ||
-      criteria.waterGoodOnly ||
-      criteria.parking ||
-      criteria.petFriendly,
+    criteria.locationId ||
+    criteria.propertyType ||
+    (criteria.types && criteria.types.length > 0) ||
+    criteria.maxBudget != null ||
+    criteria.maxRent != null ||
+    criteria.minRent != null ||
+    criteria.bedrooms != null ||
+    (criteria.listingPurpose && criteria.listingPurpose !== "all") ||
+    criteria.verifiedLevel2Plus ||
+    criteria.waterGoodOnly ||
+    criteria.parking ||
+    criteria.petFriendly,
   );
 }
 
@@ -195,7 +195,8 @@ export function savedCriteriaToTenantSearch(criteria: SavedSearchCriteria): {
     neighborhood: criteria.neighborhood,
     locationId: criteria.locationId,
     maxPrice: criteria.maxRent ?? criteria.maxBudget,
-    type: criteria.types?.[0] ?? (criteria.propertyType !== "any" ? criteria.propertyType : undefined),
+    type:
+      criteria.types?.[0] ?? (criteria.propertyType !== "any" ? criteria.propertyType : undefined),
     purpose:
       criteria.listingPurpose === "rent" || criteria.listingPurpose === "sale"
         ? criteria.listingPurpose

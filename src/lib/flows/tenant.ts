@@ -127,13 +127,22 @@ async function unlockFreeAndReveal(
           .gt("trial_unlocks_remaining", 0);
       }
     }
+    const { data: listingForFee } = await admin
+      .from("properties")
+      .select("rent_kes")
+      .eq("id", listingId)
+      .maybeSingle();
+    // Persist listing unlock fee so admin refunds can restore the correct credit band.
+    const feeKes = method === "plus" ? unlockFeeForRent(Number(listingForFee?.rent_kes ?? 0)) : 0;
     await admin.from("contact_unlocks").insert({
       user_id: userId,
       listing_id: listingId,
       method,
-      fee_charged: 0,
+      fee_charged: feeKes,
     });
-    runInBackground(notifyContactUnlockEmails(admin, { userId, listingId, method, feeKes: 0 }));
+    runInBackground(
+      notifyContactUnlockEmails(admin, { userId, listingId, method, feeKes }),
+    );
   }
 
   const { data: profile } = await admin

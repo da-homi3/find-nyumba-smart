@@ -11,14 +11,15 @@ export const Route = createFileRoute("/manager")({
 });
 
 function ManagerLayout() {
-  const { user, loading, rolesReady, isManager, pendingApplications } = useAuth();
+  const { user, loading, rolesReady, rolesError, isManager, pendingApplications, refreshPortalState } =
+    useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isPublicEntry = pathname === "/manager" || pathname === "/manager/";
   const authSettled = !loading && rolesReady;
 
   useEffect(() => {
-    if (isPublicEntry || !authSettled) return;
+    if (isPublicEntry || !authSettled || rolesError) return;
     if (!user) {
       navigate({
         to: "/auth",
@@ -35,16 +36,36 @@ function ManagerLayout() {
         replace: true,
       });
     }
-  }, [authSettled, user, isManager, pendingApplications, isPublicEntry, pathname, navigate]);
+  }, [
+    authSettled,
+    user,
+    isManager,
+    pendingApplications,
+    isPublicEntry,
+    pathname,
+    navigate,
+    rolesError,
+  ]);
 
-  if (!isPublicEntry && (!authSettled || !user || !isManager)) {
-    if (!(user && isManager)) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
+  if (!isPublicEntry && (!authSettled || !user || !isManager || rolesError)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4">
+        {rolesError ? (
+          <>
+            <p className="text-sm text-muted-foreground">Couldn’t verify your manager access.</p>
+            <button
+              type="button"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              onClick={() => void refreshPortalState()}
+            >
+              Retry
+            </button>
+          </>
+        ) : (
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      );
-    }
+        )}
+      </div>
+    );
   }
 
   return <Outlet />;

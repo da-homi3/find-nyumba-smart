@@ -29,7 +29,16 @@ import { formatKes, type Property } from "@/lib/properties";
 import { viewingStatusTone } from "@/lib/utils";
 import { useOrgMembership } from "@/hooks/use-org-membership";
 
-type PortalKind = "agency" | "manager";
+type PortalKind = "agency" | "manager" | "property_developer" | "agent";
+
+function listingCardPortal(
+  portal: PortalKind,
+): "agency" | "manager" | "property_developer" | "agent" {
+  if (portal === "manager") return "manager";
+  if (portal === "property_developer") return "property_developer";
+  if (portal === "agent") return "agent";
+  return "agency";
+}
 
 type Props = Readonly<{
   portal: PortalKind;
@@ -38,10 +47,10 @@ type Props = Readonly<{
   leadsCount: number;
   newLeadsCount?: number;
   totalViews?: number;
-  propertiesPath: "/agency/properties" | "/manager/properties";
-  propertiesNewPath: "/agency/properties/new" | "/manager/properties/new";
-  leadsPath: "/agency/leads" | "/manager/leads";
-  teamPath: "/agency/team" | "/manager/team";
+  propertiesPath: string;
+  propertiesNewPath: string;
+  leadsPath: string;
+  teamPath: string;
 }>;
 
 export function PortalOverviewDashboard({
@@ -226,11 +235,7 @@ export function PortalOverviewDashboard({
           ) : (
             <div className="mt-4 space-y-3">
               {properties.slice(0, 8).map((p) => (
-                <DashboardListingCard
-                  key={p.id}
-                  listing={p}
-                  portal={portal === "agency" ? "agency" : "manager"}
-                />
+                <DashboardListingCard key={p.id} listing={p} portal={portal} />
               ))}
             </div>
           )}

@@ -4,6 +4,8 @@ import { whatsAppUrl } from "@/lib/phone";
 import { MOTION_DURATION } from "@/lib/design/motion";
 import { normalizeContactPhones } from "@/lib/contact-phones";
 import { ReportContactIssue } from "@/components/ReportContactIssue";
+import { recordPilotAnalyticsEventFn } from "@/lib/api/pilot-partnership.functions";
+import type { PilotEventType } from "@/lib/pilot/types";
 
 type Props = Readonly<{
   phone: string;
@@ -12,6 +14,20 @@ type Props = Readonly<{
   neighborhood?: string;
   listingId?: string;
 }>;
+
+function trackPilotContact(listingId: string | undefined, eventType: PilotEventType) {
+  if (!listingId) return;
+  void recordPilotAnalyticsEventFn({
+    data: {
+      propertyId: listingId,
+      eventType,
+      source: "contact_reveal",
+      createLead: true,
+    },
+  }).catch(() => {
+    /* non-blocking attribution */
+  });
+}
 
 export function ContactRevealAnimation({
   phone,
@@ -64,6 +80,7 @@ export function ContactRevealAnimation({
                     href={waLink}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackPilotContact(listingId, "WHATSAPP_CLICK")}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-semibold text-white hover:opacity-95"
                   >
                     <MessageCircle className="h-4 w-4" />
@@ -72,6 +89,7 @@ export function ContactRevealAnimation({
                 ) : null}
                 <a
                   href={`tel:${number}`}
+                  onClick={() => trackPilotContact(listingId, "CALL_CLICK")}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border bg-background px-4 py-3 text-sm font-semibold"
                 >
                   <Phone className="h-4 w-4" />

@@ -3,6 +3,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { PublicPageShell } from "@/components/SiteNav";
 import { EmptyState } from "@/components/EmptyState";
 import { fetchProperties } from "@/lib/properties";
+import type { Property } from "@/lib/properties";
 import {
   homepageCategoryById,
   HOMEPAGE_PROPERTY_CATEGORIES,
@@ -135,7 +136,7 @@ function CategoryPage() {
           <EmptyState type="no_search_results" className="mt-10" />
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((p, index) => (
+            {listings.map((p: Property, index: number) => (
               <PropertyCard key={p.id} p={p} priority={index < 2} />
             ))}
           </div>

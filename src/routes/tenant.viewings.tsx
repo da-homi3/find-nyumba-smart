@@ -84,7 +84,11 @@ function TenantViewingsPage() {
           <p className="mt-8 text-sm text-muted-foreground">Loading…</p>
         ) : !user ? (
           <p className="mt-8 text-sm text-muted-foreground">
-            <Link to="/auth" search={{ mode: "signin", redirect: "/tenant/viewings" }} className="font-semibold text-primary underline">
+            <Link
+              to="/auth"
+              search={{ mode: "signin", redirect: "/tenant/viewings" }}
+              className="font-semibold text-primary underline"
+            >
               Sign in
             </Link>{" "}
             to see your viewings.
@@ -140,7 +144,9 @@ function ViewingGroup({
 }>) {
   return (
     <section>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
       ) : (

@@ -16,7 +16,9 @@ test.describe("Plus checkout + unlock UX", () => {
     await page.goto("/tenant/checkout");
     await expect(page.getByText(/contact credits/i).first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/Best value|3-month|Monthly/i).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: /Monthly/i }).or(page.getByText(/^Monthly$/))).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Monthly/i }).or(page.getByText(/^Monthly$/)),
+    ).toBeVisible();
   });
 
   test("property page shows unlock or contact CTA for signed-in tenant", async ({ page }) => {

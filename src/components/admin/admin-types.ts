@@ -25,7 +25,8 @@ export type AdminTab =
   | "property_management"
   | "payouts"
   | "locations"
-  | "social_seo";
+  | "social_seo"
+  | "partnerships";
 
 export type AdminVerification = Awaited<ReturnType<typeof listAdminVerifications>>[number];
 export type AdminPropertyCheck = Awaited<ReturnType<typeof listAdminVerificationRequests>>[number];

@@ -10,24 +10,35 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminLayout() {
-  const { user, isAdmin, loading, rolesReady } = useAuth();
+  const { user, isAdmin, loading, rolesReady, rolesError, refreshPortalState } = useAuth();
   const navigate = useNavigate();
   const authSettled = !loading && rolesReady;
 
   useEffect(() => {
-    if (!authSettled) return;
+    if (!authSettled || rolesError) return;
     if (!user || !isAdmin) {
       navigate({ to: "/auth", replace: true });
     }
-  }, [authSettled, user, isAdmin, navigate]);
+  }, [authSettled, user, isAdmin, navigate, rolesError]);
 
-  if (!authSettled || !user || !isAdmin) {
-    // Keep the tree mounted once we already know this is an admin — mid-session
-    // auth re-emits (Android WebView) must not unmount upload wizards.
-    if (!(user && isAdmin)) {
+  if (!authSettled || !user || !isAdmin || rolesError) {
+    if (!(user && isAdmin) || rolesError) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4">
+          {rolesError ? (
+            <>
+              <p className="text-sm text-muted-foreground">Couldn’t verify admin access.</p>
+              <button
+                type="button"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                onClick={() => void refreshPortalState()}
+              >
+                Retry
+              </button>
+            </>
+          ) : (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          )}
         </div>
       );
     }

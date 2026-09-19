@@ -36,7 +36,13 @@ export async function assertListerRole(
   userId: string,
 ): Promise<Response | null> {
   try {
-    await requireRole(admin, userId, ["landlord", "manager", "agency"]);
+    await requireRole(admin, userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
     return null;
   } catch (err) {
     if (err instanceof ForbiddenError) {
@@ -58,13 +64,15 @@ export async function assertAgencyOrManagerRole(
   admin: MobileAdmin,
   userId: string,
 ): Promise<Response | null> {
-  const [agency, manager, adminRole] = await Promise.all([
+  const [agency, manager, developer, agent, adminRole] = await Promise.all([
     userHasRole(admin, userId, "agency"),
     userHasRole(admin, userId, "manager"),
+    userHasRole(admin, userId, "property_developer"),
+    userHasRole(admin, userId, "agent"),
     userHasRole(admin, userId, "admin"),
   ]);
-  if (!agency && !manager && !adminRole) {
-    return mobileError("Agency or manager role required", "FORBIDDEN", 403);
+  if (!agency && !manager && !developer && !agent && !adminRole) {
+    return mobileError("Agency, developer, agent, or manager role required", "FORBIDDEN", 403);
   }
   return null;
 }
@@ -73,7 +81,14 @@ export async function assertAgencyOrManagerRole(
 export async function requirePortalListerMobile(req: Request) {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
-  const roles: AppRole[] = ["landlord", "agency", "manager", "admin"];
+  const roles: AppRole[] = [
+    "landlord",
+    "agency",
+    "manager",
+    "property_developer",
+    "agent",
+    "admin",
+  ];
   for (const role of roles) {
     if (await userHasRole(auth.admin, auth.userId, role)) return auth;
   }
@@ -84,7 +99,14 @@ export async function assertPortalListerRole(
   admin: MobileAdmin,
   userId: string,
 ): Promise<Response | null> {
-  const roles: AppRole[] = ["landlord", "agency", "manager", "admin"];
+  const roles: AppRole[] = [
+    "landlord",
+    "agency",
+    "manager",
+    "property_developer",
+    "agent",
+    "admin",
+  ];
   for (const role of roles) {
     if (await userHasRole(admin, userId, role)) return null;
   }

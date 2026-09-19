@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useMatchRoute, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { SectorAmbientBackground } from "@/components/SectorAmbientBackground";
 import { prefetchTenantSection } from "@/lib/tenant-section-prefetch";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +54,8 @@ function TenantLayout() {
   }, [onMap, mapMounted]);
 
   return (
-    <div className={cn("min-h-screen overflow-x-clip bg-background", !isMessageThread && "pb-24")}>
+    <div className={cn("relative min-h-screen overflow-x-clip bg-background", !isMessageThread && "pb-24")}>
+      <SectorAmbientBackground sector="tenant" />
       {mapMounted ? (
         <div
           className={cn(

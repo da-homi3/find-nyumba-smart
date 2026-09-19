@@ -3,11 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getAuthContext } from "@/lib/api/server-context";
 import { loadTenantProfileBundle } from "@/lib/tenant/profile-bundle";
-import {
-  computeTenantScore,
-  TENANT_SCORE_RULES,
-  type TenantScoreRule,
-} from "@/lib/tenant/profile-score";
+import { computeTenantScore } from "@/lib/tenant/profile-score";
 
 function asText(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -54,26 +50,6 @@ async function approvedTypes(userId: string): Promise<Set<string>> {
       })
       .map((row) => asText(row.verification_type)),
   );
-}
-
-async function loadScoreRules(): Promise<TenantScoreRule[]> {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { asLooseDb } = await import("@/lib/db/loose-client");
-    const { data } = await asLooseDb(supabaseAdmin).from("tenant_score_rules").select("*");
-    if (!data?.length) return TENANT_SCORE_RULES;
-    return data.map((row) => ({
-      id: asText(row.id),
-      name: asText(row.name),
-      description: asText(row.description),
-      points: Number(row.points) || 0,
-      category: row.category === "verified" ? "verified" : "complete",
-      tenantVisibility: row.tenant_visibility !== false,
-      enabled: row.enabled !== false,
-    }));
-  } catch {
-    return TENANT_SCORE_RULES;
-  }
 }
 
 async function recordScoreHistory(userId: string, percent: number, reason: string) {

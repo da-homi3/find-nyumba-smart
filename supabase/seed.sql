@@ -1,0 +1,2 @@
+-- Production migrations intentionally contain no demo listings.
+-- For local/demo inventory, run `npm run seed:listings` explicitly.

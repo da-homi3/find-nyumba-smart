@@ -13,15 +13,16 @@ const IsometricHouse3D = lazy(() =>
 function HousePlaceholder() {
   return (
     <div
-      className="relative mx-auto flex h-64 w-full max-w-sm items-end justify-center overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-emerald-950 via-background to-secondary sm:h-72"
+      className="relative mx-auto flex h-64 w-full max-w-sm items-end justify-center overflow-hidden rounded-3xl border border-border bg-linear-to-br from-emerald-950 via-background to-secondary sm:h-72"
       aria-hidden
     >
       <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_30%_20%,rgba(34,197,94,0.35),transparent_55%)]" />
       <div className="relative mb-8 flex flex-col items-center">
-        <div className="h-0 w-0 border-x-[42px] border-b-[36px] border-x-transparent border-b-emerald-500" />
-        <div className="flex h-20 w-[88px] items-end justify-center rounded-sm bg-emerald-900 ring-1 ring-emerald-700/60">
-          <div className="mb-0 h-10 w-7 rounded-t-sm bg-amber-300/90" />
-        </div>
+        <svg width="88" height="96" viewBox="0 0 88 96" className="text-emerald-500" aria-hidden>
+          <polygon points="44,4 84,40 4,40" fill="currentColor" />
+          <rect x="14" y="40" width="60" height="48" rx="2" className="fill-emerald-900" />
+          <rect x="36" y="58" width="16" height="30" className="fill-amber-300/90" />
+        </svg>
         <div className="mt-2 h-2 w-36 rounded-full bg-foreground/15" />
       </div>
     </div>

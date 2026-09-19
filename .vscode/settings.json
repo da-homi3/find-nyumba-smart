@@ -7,6 +7,7 @@
     "scripts/**",
     "**/AppData/Local/Temp/**"
   ],
+  "sonarlint.analysisExcludesStandalone": "**/scripts/**,**/docs/_*,**/dist/**",
   "sonarlint.rules": {
     "javascript:S7785": { "level": "off" },
     "typescript:S6571": { "level": "off" },

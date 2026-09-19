@@ -1,4 +1,9 @@
-export type ListingPortal = "landlord" | "manager" | "agency";
+export type ListingPortal =
+  | "landlord"
+  | "manager"
+  | "agency"
+  | "property_developer"
+  | "agent";
 
 export type PortalPaths = {
   dashboard: string;
@@ -19,7 +24,11 @@ export function listerPortalFromRoles(roles: {
   isLandlord?: boolean;
   isManager?: boolean;
   isAgency?: boolean;
+  isPropertyDeveloper?: boolean;
+  isAgent?: boolean;
 }): ListingPortal {
+  if (roles.isPropertyDeveloper) return "property_developer";
+  if (roles.isAgent) return "agent";
   if (roles.isAgency) return "agency";
   if (roles.isManager) return "manager";
   return "landlord";
@@ -67,10 +76,40 @@ export const PORTAL_PATHS: Record<ListingPortal, PortalPaths> = {
     checkout: "/agency/checkout",
     team: "/agency/team",
   },
+  property_developer: {
+    dashboard: "/developer/dashboard",
+    properties: "/developer/properties",
+    propertiesNew: "/developer/properties/new",
+    import: "/developer/import",
+    integrations: "/developer/integrations",
+    leads: "/developer/leads",
+    caretakers: "/developer/caretakers",
+    analytics: "/developer/analytics",
+    plan: "/developer/dashboard/plan",
+    billing: "/developer/dashboard/billing",
+    checkout: "/developer/checkout",
+    team: "/developer/team",
+  },
+  agent: {
+    dashboard: "/agent/dashboard",
+    properties: "/agent/properties",
+    propertiesNew: "/agent/properties/new",
+    import: "/agent/import",
+    integrations: "/agent/integrations",
+    leads: "/agent/leads",
+    caretakers: "/agent/caretakers",
+    analytics: "/agent/analytics",
+    plan: "/agent/dashboard/plan",
+    billing: "/agent/dashboard/billing",
+    checkout: "/agent/checkout",
+    team: "/agent/team",
+  },
 };
 
 export const PORTAL_PROPERTY_QUERY_KEY: Record<ListingPortal, string> = {
   landlord: "my-properties-list",
   manager: "manager-properties",
   agency: "agency-properties",
+  property_developer: "developer-properties",
+  agent: "agent-properties",
 };

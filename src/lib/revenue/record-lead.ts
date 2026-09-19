@@ -31,4 +31,25 @@ export async function recordLead(
   if (error && !error.message.includes("does not exist")) {
     console.error("recordLead:", error.message);
   }
+
+  try {
+    const { recordPilotEvent } = await import("@/lib/pilot/attribution");
+    const eventType =
+      args.source === "booking"
+        ? "VIEWING_REQUESTED"
+        : args.source === "message" || args.source === "application"
+          ? "ENQUIRY_SUBMITTED"
+          : null;
+    if (eventType) {
+      await recordPilotEvent(supabaseAdmin, {
+        propertyId: args.listingId,
+        eventType,
+        userId: args.tenantId,
+        createLead: true,
+        displayLabel: profile?.full_name ?? null,
+      });
+    }
+  } catch (pilotErr) {
+    console.warn("pilot lead attribution:", pilotErr);
+  }
 }

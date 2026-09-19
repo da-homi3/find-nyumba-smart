@@ -35,7 +35,9 @@ import { normalizeAuthCredentials } from "@/lib/auth/credentials";
 const authSearchSchema = z.object({
   redirect: z.string().optional(),
   /** Client-only UX hint — never used for authorization; role is chosen in the signup form. */
-  signupFor: z.enum(["tenant", "landlord", "manager", "agency"]).optional(),
+  signupFor: z
+    .enum(["tenant", "landlord", "manager", "agency", "property_developer", "agent"])
+    .optional(),
   mode: z.enum(["signin", "signup", "reset"]).optional(),
   ref: z.string().optional(),
 });
@@ -194,7 +196,7 @@ async function handleEmailSignup(opts: {
   markSignupTourPending("tenant");
   toast.success("Welcome to NyumbaSearch!");
   kickEnsureTenantAccount("after signup");
-  await completePostAuthNavigation({ userId: data.user.id });
+  await completePostAuthNavigation({ userId: data.user.id, skipSessionWait: true });
 }
 
 async function handleEmailSignin(opts: {
@@ -224,7 +226,11 @@ async function handleEmailSignin(opts: {
 
   kickEnsureTenantAccount("after signin");
   toast.success("Signed in");
-  await completePostAuthNavigation({ userId: data.user.id, redirect: opts.redirect });
+  await completePostAuthNavigation({
+    userId: data.user.id,
+    redirect: opts.redirect,
+    skipSessionWait: true,
+  });
 }
 
 type AuthMode = "signin" | "signup" | "reset";
@@ -256,7 +262,7 @@ function useAuthPageSessionRedirect(redirect?: string) {
   useEffect(() => {
     if (loading || !rolesReady || !user || redirectedRef.current) return;
     redirectedRef.current = true;
-    void completePostAuthNavigation({ userId: user.id, redirect });
+    void completePostAuthNavigation({ userId: user.id, redirect, skipSessionWait: true });
   }, [user, loading, rolesReady, redirect]);
 }
 

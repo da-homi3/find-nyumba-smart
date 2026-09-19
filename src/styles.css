@@ -761,6 +761,48 @@
   transform: translateZ(0);
 }
 
+@keyframes sector-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes sector-grid-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-48px, -48px, 0);
+  }
+}
+
+.skip-to-content {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+.skip-to-content:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--ring, var(--primary));
+  outline-offset: 2px;
+}
+
 /* Let the ambient field whisper through full-page shells without washing text */
 .portal-shell {
   min-height: 100vh;

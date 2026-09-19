@@ -6,9 +6,6 @@ import {
 } from "@/lib/api/mobile/v1/auth";
 import { mapPmError, parseJsonBody, parseUuid, requireAdmin } from "@/lib/api/mobile/v1/helpers";
 import { assertPortalListerRole } from "@/lib/api/mobile/v1/guards";
-import type { Database } from "@/integrations/supabase/types";
-
-type AppRole = Database["public"]["Enums"]["app_role"];
 
 const STAFF_ROLES = [
   "owner",

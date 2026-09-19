@@ -278,11 +278,65 @@ export type UnlockListingInput = {
   idempotencyKey?: string;
 };
 
+async function tryUnlockWithPlusPlan(
+  admin: UnlockAdmin,
+  userId: string,
+  data: UnlockListingInput,
+  contactPhone: string | null,
+  contactPhones: string[],
+  fee: number,
+) {
+  const { TENANT_PLUS_CONFIG, contactCreditsForFee } =
+    await import("@/lib/revenue/tenant-plus-config");
+  if (!TENANT_PLUS_CONFIG.flags.contactCreditsEnabled) {
+    if (!contactPhone) return NO_CONTACT;
+    return unlockWithPlus(admin, userId, data.listingId, contactPhone, contactPhones, fee);
+  }
+  const cost = contactCreditsForFee(fee);
+  const { consumePlusContactCredits, getPlusContactCredits } =
+    await import("@/lib/revenue/plus-contact-credits");
+  const remaining = await getPlusContactCredits(admin, userId);
+  if (remaining >= cost) {
+    if (!contactPhone) return NO_CONTACT;
+    const consumed = await consumePlusContactCredits(admin, userId, cost);
+    if (consumed.ok) {
+      const result = await unlockWithPlus(
+        admin,
+        userId,
+        data.listingId,
+        contactPhone,
+        contactPhones,
+        fee,
+      );
+      return { ...result, plusContactCredits: consumed.remaining, creditsUsed: cost };
+    }
+  }
+  if (!data.method) {
+    return {
+      unlocked: false as const,
+      status: "payment_required" as const,
+      fee,
+      paymentType: "contact_unlock" as const,
+      plusContactCredits: remaining,
+      creditsRequired: cost,
+      message:
+        remaining < cost
+          ? "You've used your included contact credits. Pay once for this listing or buy more by renewing Plus."
+          : undefined,
+    };
+  }
+  return null;
+}
+
 export async function unlockListingContactCore(
   admin: UnlockAdmin,
   userId: string,
   data: UnlockListingInput,
 ) {
+  // Plus = monthly credit allotment, not unlimited reveals. Rate-limit every unlock path.
+  const { assertContactRevealRateLimit } = await import("@/lib/payments/contact-reveal-rate-limit");
+  await assertContactRevealRateLimit(admin, userId);
+
   const { data: existing } = await admin
     .from("contact_unlocks")
     .select("id, method")
@@ -311,45 +365,15 @@ export async function unlockListingContactCore(
   const fee = unlockFeeForRent(property?.rent_kes ?? 0);
 
   if (plus.tenantPlan === "plus") {
-    const { TENANT_PLUS_CONFIG, contactCreditsForFee } =
-      await import("@/lib/revenue/tenant-plus-config");
-    if (!TENANT_PLUS_CONFIG.flags.contactCreditsEnabled) {
-      if (!contactPhone) return NO_CONTACT;
-      return unlockWithPlus(admin, userId, data.listingId, contactPhone, contactPhones, fee);
-    }
-    const cost = contactCreditsForFee(fee);
-    const { consumePlusContactCredits, getPlusContactCredits } =
-      await import("@/lib/revenue/plus-contact-credits");
-    const remaining = await getPlusContactCredits(admin, userId);
-    if (remaining >= cost) {
-      if (!contactPhone) return NO_CONTACT;
-      const consumed = await consumePlusContactCredits(admin, userId, cost);
-      if (consumed.ok) {
-        const result = await unlockWithPlus(
-          admin,
-          userId,
-          data.listingId,
-          contactPhone,
-          contactPhones,
-          fee,
-        );
-        return { ...result, plusContactCredits: consumed.remaining, creditsUsed: cost };
-      }
-    }
-    if (!data.method) {
-      return {
-        unlocked: false as const,
-        status: "payment_required" as const,
-        fee,
-        paymentType: "contact_unlock" as const,
-        plusContactCredits: remaining,
-        creditsRequired: cost,
-        message:
-          remaining < cost
-            ? "You've used your included contact credits. Pay once for this listing or buy more by renewing Plus."
-            : undefined,
-      };
-    }
+    const plusResult = await tryUnlockWithPlusPlan(
+      admin,
+      userId,
+      data,
+      contactPhone,
+      contactPhones,
+      fee,
+    );
+    if (plusResult) return plusResult;
   } else {
     const trial = await ensureTenantTrial(admin, userId);
     if (trial.trialActive && trial.trialUnlocksRemaining > 0) {

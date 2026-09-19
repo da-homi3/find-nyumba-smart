@@ -52,8 +52,7 @@ const AmbientBackdrop = lazy(() =>
 );
 
 function shouldShowAmbientBackdrop(pathname: string): boolean {
-  // Shown on marketing surfaces including mobile / WebView; particle budget
-  // scales down inside AmbientBackdrop. Reduced-motion still opts out in-component.
+  // Marketing surfaces only — portal shells use SectorAmbientBackground.
   if (pathname === "/") return true;
   return (
     pathname.startsWith("/about") ||
@@ -62,8 +61,7 @@ function shouldShowAmbientBackdrop(pathname: string): boolean {
     pathname.startsWith("/contact") ||
     pathname.startsWith("/services") ||
     pathname.startsWith("/areas") ||
-    pathname.startsWith("/partnership") ||
-    pathname.startsWith("/tenant")
+    pathname.startsWith("/partnership")
   );
 }
 
@@ -232,7 +230,8 @@ function AnimatedOutlet() {
     pathname.startsWith("/tenant/") ||
     pathname.startsWith("/landlord") ||
     pathname.startsWith("/agency") ||
-    pathname.startsWith("/manager");
+    pathname.startsWith("/manager") ||
+    pathname.startsWith("/partner");
 
   if (skipTransition) {
     return <Outlet />;
@@ -309,10 +308,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <a href="#main-content" className="skip-to-content">
+          Skip to content
+        </a>
         <AmbientBackdropHost />
         <div className="relative z-10">
           <ErrorBoundary>
-            <AnimatedOutlet />
+            <main id="main-content" tabIndex={-1}>
+              <AnimatedOutlet />
+            </main>
           </ErrorBoundary>
           <TenantMobileNav />
           <Toaster />

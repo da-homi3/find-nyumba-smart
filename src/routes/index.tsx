@@ -16,10 +16,7 @@ import { fetchProperties } from "@/lib/properties";
 import type { PublicStats } from "@/lib/api/stats.functions";
 import { FALLBACK_TESTIMONIALS } from "@/lib/api/homepage-shared";
 import { countListingsByHomepageCategory } from "@/lib/landing/homepage-categories";
-import {
-  fetchFeaturedTestimonialsApi,
-  fetchIntelligenceStatsApi,
-} from "@/lib/homepage-client";
+import { fetchFeaturedTestimonialsApi, fetchIntelligenceStatsApi } from "@/lib/homepage-client";
 import { prefetchHomepageQueries, HOMEPAGE_LISTINGS_LIMIT } from "@/lib/seo/prefetch-homepage";
 import { buildPageHead } from "@/lib/seo/head";
 import { buildHomepageJsonLd } from "@/lib/seo/brand-entity";

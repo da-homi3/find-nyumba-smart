@@ -39,9 +39,9 @@ export function TrustStrip({
 }: Readonly<{ stats?: Partial<TrustStripStats>; ready?: boolean }>) {
   if (!ready) return <StatsSkeleton />;
 
-  const verifiedHomes = stats?.verifiedHomes ?? FALLBACK_TRUST_STATS.verifiedHomes;
+  // Only fall back when stats never loaded — not when live counts are legitimately 0.
   const s: TrustStripStats = {
-    verifiedHomes: verifiedHomes > 0 ? verifiedHomes : FALLBACK_TRUST_STATS.verifiedHomes,
+    verifiedHomes: stats?.verifiedHomes ?? FALLBACK_TRUST_STATS.verifiedHomes,
     noAgentFeesPct: stats?.noAgentFeesPct ?? FALLBACK_TRUST_STATS.noAgentFeesPct,
     avgResponseHours: stats?.avgResponseHours ?? FALLBACK_TRUST_STATS.avgResponseHours,
     tenantRating: stats?.tenantRating ?? FALLBACK_TRUST_STATS.tenantRating,

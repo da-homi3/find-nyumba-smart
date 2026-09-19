@@ -36,7 +36,13 @@ export const previewListingImport = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+    await requireRole(supabase, userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { getListingCap, listingCapReachedMessage } = await import("@/lib/promo/listing-cap");
     const cap = await getListingCap(supabaseAdmin, userId);
@@ -90,7 +96,13 @@ export const executeListingImport = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+    await requireRole(supabase, userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { getListingCap, listingCapReachedMessage } = await import("@/lib/promo/listing-cap");
     const cap = await getListingCap(supabaseAdmin, userId);
@@ -186,6 +198,21 @@ export const executeListingImport = createServerFn({ method: "POST" })
       });
     }
 
+    if (imported > 0) {
+      void import("@/lib/api/notify")
+        .then(({ notifyOpsNewListing }) =>
+          notifyOpsNewListing({
+            propertyId: propertyIds[0] ?? batch.id,
+            title: `${imported} listing${imported === 1 ? "" : "s"} imported`,
+            neighborhood: "Bulk import",
+            ownerUserId: userId,
+            ownerEmail: email,
+            source: `bulk-import (${data.filename})`,
+          }),
+        )
+        .catch((err) => console.warn("[import] ops listing notify failed:", err));
+    }
+
     return { batchId: batch.id, imported, failed, duplicates: 0 };
   });
 
@@ -194,7 +221,13 @@ export const rollbackListingImport = createServerFn({ method: "POST" })
   .inputValidator(z.object({ batchId: z.string().uuid() }))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+    await requireRole(supabase, userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: batch } = await supabaseAdmin
@@ -228,7 +261,13 @@ export const listMyImportBatches = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = getAuthContext(context);
-    await requireRole(supabase, userId, ["landlord", "manager", "agency"]);
+    await requireRole(supabase, userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("import_batches")

@@ -66,7 +66,7 @@ function CategoryCard({
       </p>
       {count != null && count > 0 ? (
         <p className="mt-2 text-[10px] font-medium text-muted-foreground">
-          {count} listing{count === 1 ? "" : "s"} now
+          {`${count} listing${count === 1 ? "" : "s"} now`}
         </p>
       ) : null}
     </Link>

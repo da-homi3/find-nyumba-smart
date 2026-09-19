@@ -65,6 +65,7 @@ async function resolveSamplePropertyId() {
 function expandPath(path) {
   return (
     path
+      .replace("/categories/$id", "/categories/bedsitter")
       .replaceAll("$id", SAMPLE_UUID)
       .replaceAll("$propertyId", SAMPLE_UUID)
       .replaceAll("$requestId", SAMPLE_UUID)

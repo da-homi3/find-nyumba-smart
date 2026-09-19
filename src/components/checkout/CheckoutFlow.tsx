@@ -28,6 +28,36 @@ function cardRedirectUrl(res: InitiatePaymentResult): string | null {
   return null;
 }
 
+function resolveCheckoutBillingCycle(input: {
+  metadataCycle: string | undefined;
+  localCycle: "monthly" | "quarterly";
+  allowQuarterly: boolean;
+}): "monthly" | "quarterly" {
+  if (input.metadataCycle === "quarterly" || input.metadataCycle === "monthly") {
+    return input.metadataCycle;
+  }
+  if (input.localCycle === "quarterly" && input.allowQuarterly) return "quarterly";
+  return "monthly";
+}
+
+function resolveCheckoutAmountKes(input: {
+  paymentType: string | undefined;
+  metadataCycle: string | undefined;
+  localCycle: "monthly" | "quarterly";
+  allowQuarterly: boolean;
+  lineAmountKes: number;
+}): number {
+  // Tenant Plus: parent always supplies the exact catalog amount — never ×3×0.9.
+  if (input.paymentType === "tenant_plus") return input.lineAmountKes;
+  if (input.metadataCycle === "quarterly" || input.metadataCycle === "monthly") {
+    return input.lineAmountKes;
+  }
+  if (input.localCycle === "quarterly" && input.allowQuarterly) {
+    return Math.round(input.lineAmountKes * 3 * 0.9);
+  }
+  return input.lineAmountKes;
+}
+
 export type CheckoutLineItem = {
   title: string;
   subtitle?: string;
@@ -113,21 +143,18 @@ export function CheckoutFlow({
 
   const waiting = phase !== "idle";
   /** Prefer parent-driven billing cycle (e.g. Tenant Plus offer cards) over local toggle. */
-  const effectiveCycle: "monthly" | "quarterly" =
-    metadata.billingCycle === "quarterly" || metadata.billingCycle === "monthly"
-      ? metadata.billingCycle
-      : cycle === "quarterly" && allowQuarterly
-        ? "quarterly"
-        : "monthly";
-
-  const amountKes =
-    metadata.billingCycle === "quarterly" || metadata.billingCycle === "monthly"
-      ? lineItem.amountKes
-      : cycle === "quarterly" && allowQuarterly
-        ? Math.round(lineItem.amountKes * 3 * 0.9)
-        : lineItem.amountKes;
-
-  const billingCycle = effectiveCycle;
+  const billingCycle = resolveCheckoutBillingCycle({
+    metadataCycle: metadata.billingCycle,
+    localCycle: cycle,
+    allowQuarterly,
+  });
+  const amountKes = resolveCheckoutAmountKes({
+    paymentType: metadata.paymentType,
+    metadataCycle: metadata.billingCycle,
+    localCycle: cycle,
+    allowQuarterly,
+    lineAmountKes: lineItem.amountKes,
+  });
   const payerPhone = phone.trim() || linkedPhone || defaultPhone;
 
   useEffect(() => {

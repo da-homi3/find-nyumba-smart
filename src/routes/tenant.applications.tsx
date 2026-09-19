@@ -163,7 +163,8 @@ function TenantApplicationsPage() {
                           (step === "under_review" &&
                             ["accepted", "approved", "rejected", "declined"].includes(status)) ||
                           (step === "accepted" && ["accepted", "approved"].includes(status)) ||
-                          (step === "rejected" && ["rejected", "declined", "withdrawn"].includes(status));
+                          (step === "rejected" &&
+                            ["rejected", "declined", "withdrawn"].includes(status));
                         return (
                           <li
                             key={step}

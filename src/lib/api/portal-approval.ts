@@ -6,6 +6,8 @@ import { linkAdminListingsByPhone } from "@/lib/listings/link-by-phone";
 
 type Admin = SupabaseClient<Database>;
 
+type OrgType = "agency" | "property_manager" | "developer" | "agent";
+
 function slugify(name: string) {
   return name
     .toLowerCase()
@@ -19,7 +21,7 @@ async function ensureOrganization(
   input: {
     userId: string;
     organizationName: string;
-    orgType: "agency" | "property_manager";
+    orgType: OrgType;
   },
 ): Promise<string | null> {
   const slug = `${slugify(input.organizationName)}-${input.userId.slice(0, 8)}`;
@@ -55,6 +57,14 @@ async function ensureOrganization(
   return organizationId;
 }
 
+function orgTypeForRole(role: PortalListerRole): OrgType | null {
+  if (role === "agency") return "agency";
+  if (role === "manager") return "property_manager";
+  if (role === "property_developer") return "developer";
+  if (role === "agent") return "agent";
+  return null;
+}
+
 async function resolveOrganizationId(
   supabaseAdmin: Admin,
   input: {
@@ -64,24 +74,13 @@ async function resolveOrganizationId(
   },
 ): Promise<string | null> {
   if (!input.organizationName) return null;
-
-  if (input.requestedRole === "agency") {
-    return ensureOrganization(supabaseAdmin, {
-      userId: input.userId,
-      organizationName: input.organizationName,
-      orgType: "agency",
-    });
-  }
-
-  if (input.requestedRole === "manager") {
-    return ensureOrganization(supabaseAdmin, {
-      userId: input.userId,
-      organizationName: input.organizationName,
-      orgType: "property_manager",
-    });
-  }
-
-  return null;
+  const orgType = orgTypeForRole(input.requestedRole);
+  if (!orgType) return null;
+  return ensureOrganization(supabaseAdmin, {
+    userId: input.userId,
+    organizationName: input.organizationName,
+    orgType,
+  });
 }
 
 export async function grantPortalListerAccess(
@@ -125,6 +124,8 @@ export async function grantPortalListerAccess(
     landlord: "landlord",
     manager: "manager",
     agency: "agency",
+    property_developer: "property_developer",
+    agent: "agent",
   };
 
   await supabaseAdmin

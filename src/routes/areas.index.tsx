@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPageShell } from "@/components/SiteNav";
-import { loadIndexableAreas, shouldIndexArea } from "@/lib/seo/areas";
+import { loadIndexableAreas, shouldIndexArea, type GeoArea } from "@/lib/seo/areas";
 import { buildPageHead } from "@/lib/seo/head";
 import { getSiteUrl } from "@/lib/site";
 import { NAIROBI_GEO } from "@/lib/seo/faq";
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/areas/")({
             longitude: NAIROBI_GEO.longitude,
           },
         },
-        hasPart: areas.map((area) => ({
+        hasPart: areas.map((area: GeoArea) => ({
           "@type": "WebPage",
           name: `Homes for rent in ${area.name}`,
           url: `${getSiteUrl()}/areas/${area.slug}`,
@@ -58,7 +58,7 @@ function AreasIndexPage() {
           NyumbaSearch has live inventory — including stable Nairobi neighbourhood URLs.
         </p>
         <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {areas.map((area) => (
+          {areas.map((area: GeoArea) => (
             <li key={area.slug}>
               <Link
                 to="/areas/$slug"

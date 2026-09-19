@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { PROPERTY_TYPES } from "@/lib/property-types";
 
 type Admin = SupabaseClient<Database>;
 type PropertyUpdate = Database["public"]["Tables"]["properties"]["Update"];
@@ -13,6 +14,25 @@ export type ApiKeyAuth = {
   keyId: string;
   scope: string;
 };
+
+export type ApiPermission = "listings:read" | "listings:write" | "webhooks:write";
+
+export function hasApiKeyPermission(scope: string, permission: ApiPermission): boolean {
+  const scopes = new Set(
+    scope
+      .split(/[\s,]+/)
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  if (scopes.has("*") || scopes.has("all")) return true;
+  // Backward compatibility for keys created before explicit permissions.
+  if (scopes.has("listings")) {
+    return permission === "listings:read" || permission === "listings:write";
+  }
+  if (scopes.has("read") && permission === "listings:read") return true;
+  if (scopes.has("write") && permission !== "listings:read") return true;
+  return scopes.has(permission);
+}
 
 export async function hashApiKey(raw: string): Promise<string> {
   const buf = new TextEncoder().encode(raw);
@@ -67,6 +87,17 @@ function errorJson(message: string, code: string, status: number): Response {
   return json({ error: message, code, status }, status);
 }
 
+function databaseError(operation: string, error: { message: string }): Response {
+  console.error(`[api-v1] ${operation}:`, error.message);
+  return errorJson("Database request failed", "DB_ERROR", 500);
+}
+
+function requirePermission(auth: ApiKeyAuth, permission: ApiPermission): Response | null {
+  return hasApiKeyPermission(auth.scope, permission)
+    ? null
+    : errorJson("API key does not have the required scope", "FORBIDDEN", 403);
+}
+
 function readString(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
@@ -85,15 +116,46 @@ function readRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function finiteNumber(
+  value: unknown,
+  field: string,
+  { min = 0, integer = false }: { min?: number; integer?: boolean } = {},
+): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed < min || (integer && !Number.isInteger(parsed))) {
+    throw new Error(`${field} must be a ${integer ? "whole " : ""}number of at least ${min}`);
+  }
+  return parsed;
+}
+
 function buildListingPatch(body: Record<string, unknown>): PropertyUpdate {
   const patch: PropertyUpdate = {};
-  if (body.title !== undefined) patch.title = readString(body.title);
-  if (body.rent_kes !== undefined) patch.rent_kes = Number(body.rent_kes);
-  if (body.neighborhood !== undefined) patch.neighborhood = readString(body.neighborhood);
+  if (body.title !== undefined) {
+    const title = readString(body.title).trim();
+    if (title.length < 3 || title.length > 160) throw new Error("title must be 3–160 characters");
+    patch.title = title;
+  }
+  if (body.rent_kes !== undefined) {
+    patch.rent_kes = finiteNumber(body.rent_kes, "rent_kes", { min: 1 });
+  }
+  if (body.neighborhood !== undefined) {
+    const neighborhood = readString(body.neighborhood).trim();
+    if (neighborhood.length < 2 || neighborhood.length > 120) {
+      throw new Error("neighborhood must be 2–120 characters");
+    }
+    patch.neighborhood = neighborhood;
+  }
   if (body.description !== undefined) patch.description = readOptionalString(body.description);
-  if (body.bedrooms !== undefined) patch.bedrooms = Number(body.bedrooms);
-  if (body.bathrooms !== undefined) patch.bathrooms = Number(body.bathrooms);
-  if (body.is_active !== undefined) patch.is_active = Boolean(body.is_active);
+  if (body.bedrooms !== undefined) {
+    patch.bedrooms = finiteNumber(body.bedrooms, "bedrooms", { min: 0, integer: true });
+  }
+  if (body.bathrooms !== undefined) {
+    patch.bathrooms = finiteNumber(body.bathrooms, "bathrooms", { min: 0 });
+  }
+  if (body.is_active !== undefined) {
+    if (typeof body.is_active !== "boolean") throw new Error("is_active must be a boolean");
+    patch.is_active = body.is_active;
+  }
   return patch;
 }
 
@@ -106,8 +168,14 @@ async function handleSyncStatus(admin: Admin, auth: ApiKeyAuth): Promise<Respons
 }
 
 async function handleListingsGet(admin: Admin, auth: ApiKeyAuth, url: URL): Promise<Response> {
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 100);
-  const offset = Number(url.searchParams.get("offset") ?? 0);
+  const limit = Math.min(
+    finiteNumber(url.searchParams.get("limit") ?? 50, "limit", { min: 1, integer: true }),
+    100,
+  );
+  const offset = finiteNumber(url.searchParams.get("offset") ?? 0, "offset", {
+    min: 0,
+    integer: true,
+  });
   const neighborhood = url.searchParams.get("neighborhood");
 
   let query = admin
@@ -120,7 +188,7 @@ async function handleListingsGet(admin: Admin, auth: ApiKeyAuth, url: URL): Prom
   if (neighborhood) query = query.eq("neighborhood", neighborhood);
 
   const { data, error, count } = await query;
-  if (error) return errorJson(error.message, "DB_ERROR", 500);
+  if (error) return databaseError("list listings", error);
   return json({ items: data ?? [], total: count ?? 0, limit, offset });
 }
 
@@ -131,7 +199,7 @@ async function handleListingGet(admin: Admin, auth: ApiKeyAuth, id: string): Pro
     .eq("id", id)
     .eq("owner_id", auth.userId)
     .maybeSingle();
-  if (error) return errorJson(error.message, "DB_ERROR", 500);
+  if (error) return databaseError("get listing", error);
   if (!data) return errorJson("Not found", "NOT_FOUND", 404);
   return json(data);
 }
@@ -142,15 +210,24 @@ async function handleListingPut(
   id: string,
   request: Request,
 ): Promise<Response> {
-  const body = readRecord(await request.json());
+  const body = readRecord(await request.json().catch(() => null));
+  if (!Object.keys(body).length) return errorJson("Valid JSON body required", "VALIDATION", 400);
+  let patch: PropertyUpdate;
+  try {
+    patch = buildListingPatch(body);
+  } catch (error) {
+    return errorJson(error instanceof Error ? error.message : "Invalid body", "VALIDATION", 400);
+  }
+  if (!Object.keys(patch).length)
+    return errorJson("No supported fields supplied", "VALIDATION", 400);
   const { data, error } = await admin
     .from("properties")
-    .update(buildListingPatch(body))
+    .update(patch)
     .eq("id", id)
     .eq("owner_id", auth.userId)
     .select("*")
     .maybeSingle();
-  if (error) return errorJson(error.message, "DB_ERROR", 500);
+  if (error) return databaseError("update listing", error);
   if (!data) return errorJson("Not found", "NOT_FOUND", 404);
   return json(data);
 }
@@ -161,7 +238,7 @@ async function handleListingDelete(admin: Admin, auth: ApiKeyAuth, id: string): 
     .update({ is_active: false })
     .eq("id", id)
     .eq("owner_id", auth.userId);
-  if (error) return errorJson(error.message, "DB_ERROR", 500);
+  if (error) return databaseError("archive listing", error);
   return json({ archived: true });
 }
 
@@ -170,18 +247,37 @@ async function handleListingsPost(
   auth: ApiKeyAuth,
   request: Request,
 ): Promise<Response> {
-  const body = readRecord(await request.json());
-  const title = readString(body.title);
-  const neighborhood = readString(body.neighborhood);
-  const rentKes = Number(body.rent_kes);
+  const body = readRecord(await request.json().catch(() => null));
+  const title = readString(body.title).trim();
+  const neighborhood = readString(body.neighborhood).trim();
+  let rentKes: number;
+  let bedrooms: number;
+  let bathrooms: number;
 
-  if (!title || !neighborhood || !rentKes) {
+  if (
+    title.length < 3 ||
+    title.length > 160 ||
+    neighborhood.length < 2 ||
+    neighborhood.length > 120
+  ) {
     return errorJson("title, neighborhood, rent_kes required", "VALIDATION", 400);
+  }
+  try {
+    rentKes = finiteNumber(body.rent_kes, "rent_kes", { min: 1 });
+    bedrooms = finiteNumber(body.bedrooms ?? 1, "bedrooms", { min: 0, integer: true });
+    bathrooms = finiteNumber(body.bathrooms ?? 1, "bathrooms", { min: 0 });
+  } catch (error) {
+    return errorJson(error instanceof Error ? error.message : "Invalid body", "VALIDATION", 400);
   }
 
   const rawType = body.property_type;
   const propertyType: PropertyType =
-    typeof rawType === "string" && rawType.length > 0 ? (rawType as PropertyType) : "one_bedroom";
+    typeof rawType === "string" && PROPERTY_TYPES.includes(rawType as PropertyType)
+      ? (rawType as PropertyType)
+      : "one_bedroom";
+  if (rawType !== undefined && propertyType !== rawType) {
+    return errorJson("Unsupported property_type", "VALIDATION", 400);
+  }
 
   const { data, error } = await admin
     .from("properties")
@@ -190,8 +286,8 @@ async function handleListingsPost(
       neighborhood,
       rent_kes: rentKes,
       rent_kes_max: null,
-      bedrooms: Number(body.bedrooms ?? 1),
-      bathrooms: Number(body.bathrooms ?? 1),
+      bedrooms,
+      bathrooms,
       property_type: propertyType,
       description: readOptionalString(body.description),
       owner_id: auth.userId,
@@ -201,7 +297,7 @@ async function handleListingsPost(
     })
     .select("*")
     .single();
-  if (error) return errorJson(error.message, "DB_ERROR", 500);
+  if (error) return databaseError("create listing", error);
   return json(data, 201);
 }
 
@@ -210,9 +306,33 @@ async function handleWebhooksPost(
   auth: ApiKeyAuth,
   request: Request,
 ): Promise<Response> {
-  const body = readRecord(await request.json());
+  const body = readRecord(await request.json().catch(() => null));
+  if (!Object.keys(body).length) return errorJson("Valid JSON body required", "VALIDATION", 400);
   const webhookUrl = readString(body.url);
   if (!webhookUrl) return errorJson("url required", "VALIDATION", 400);
+  let parsedWebhook: URL;
+  try {
+    parsedWebhook = new URL(webhookUrl);
+  } catch {
+    return errorJson("url must be a valid HTTPS URL", "VALIDATION", 400);
+  }
+  const hostname = parsedWebhook.hostname.toLowerCase();
+  const privateHost =
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname.endsWith(".local") ||
+    hostname.startsWith("127.") ||
+    hostname.startsWith("10.") ||
+    hostname.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname);
+  if (
+    parsedWebhook.protocol !== "https:" ||
+    privateHost ||
+    parsedWebhook.username ||
+    parsedWebhook.password
+  ) {
+    return errorJson("url must use HTTPS and a public host", "VALIDATION", 400);
+  }
 
   const events = Array.isArray(body.events)
     ? body.events.filter((e): e is string => typeof e === "string")
@@ -227,7 +347,7 @@ async function handleWebhooksPost(
     })
     .select("*")
     .single();
-  if (error) return errorJson(error.message, "DB_ERROR", 500);
+  if (error) return databaseError("create webhook", error);
   return json(data, 201);
 }
 
@@ -241,6 +361,55 @@ async function handleListingById(
   if (request.method === "PUT") return handleListingPut(admin, auth, id, request);
   if (request.method === "DELETE") return handleListingDelete(admin, auth, id);
   return null;
+}
+
+async function withPermission(
+  auth: ApiKeyAuth,
+  permission: ApiPermission,
+  action: () => Promise<Response>,
+): Promise<Response> {
+  const denied = requirePermission(auth, permission);
+  return denied ?? action();
+}
+
+async function handleListingRoute(
+  admin: Admin,
+  auth: ApiKeyAuth,
+  request: Request,
+  path: string,
+): Promise<Response | null> {
+  const match = LISTING_ID_RE.exec(path);
+  if (!match) return null;
+  const permission = request.method === "GET" ? "listings:read" : "listings:write";
+  return withPermission(auth, permission, async () => {
+    const response = await handleListingById(admin, auth, request, match[1]);
+    return response ?? errorJson("Not found", "NOT_FOUND", 404);
+  });
+}
+
+async function dispatchV1Request(
+  admin: Admin,
+  auth: ApiKeyAuth,
+  request: Request,
+  url: URL,
+  path: string,
+): Promise<Response> {
+  if (path === "/sync/status" && request.method === "GET") {
+    return withPermission(auth, "listings:read", () => handleSyncStatus(admin, auth));
+  }
+  if (path === "/listings" && request.method === "GET") {
+    return withPermission(auth, "listings:read", () => handleListingsGet(admin, auth, url));
+  }
+  if (path === "/listings" && request.method === "POST") {
+    return withPermission(auth, "listings:write", () => handleListingsPost(admin, auth, request));
+  }
+  if (path === "/webhooks" && request.method === "POST") {
+    return withPermission(auth, "webhooks:write", () => handleWebhooksPost(admin, auth, request));
+  }
+  return (
+    (await handleListingRoute(admin, auth, request, path)) ??
+    errorJson("Not found", "NOT_FOUND", 404)
+  );
 }
 
 export async function handleV1Api(request: Request): Promise<Response> {
@@ -259,27 +428,5 @@ export async function handleV1Api(request: Request): Promise<Response> {
     return errorJson("Too many requests", "RATE_LIMIT", 429);
   }
 
-  if (path === "/sync/status" && request.method === "GET") {
-    return handleSyncStatus(supabaseAdmin, auth);
-  }
-
-  if (path === "/listings" && request.method === "GET") {
-    return handleListingsGet(supabaseAdmin, auth, url);
-  }
-
-  if (path === "/listings" && request.method === "POST") {
-    return handleListingsPost(supabaseAdmin, auth, request);
-  }
-
-  if (path === "/webhooks" && request.method === "POST") {
-    return handleWebhooksPost(supabaseAdmin, auth, request);
-  }
-
-  const listingMatch = LISTING_ID_RE.exec(path);
-  if (listingMatch) {
-    const listingResponse = await handleListingById(supabaseAdmin, auth, request, listingMatch[1]);
-    if (listingResponse) return listingResponse;
-  }
-
-  return errorJson("Not found", "NOT_FOUND", 404);
+  return dispatchV1Request(supabaseAdmin, auth, request, url, path);
 }

@@ -37,6 +37,8 @@ type Props = {
   readonly preview?: boolean;
   /** Eager-load + high fetchpriority for the first above-the-fold card (LCP). */
   readonly priority?: boolean;
+  /** Subtle Official Partner chip when listing is on an active pilot. */
+  readonly partnerBadge?: { name: string; slug: string } | null;
 };
 
 function intelColor(label: string) {
@@ -90,6 +92,7 @@ function PropertyCardBadges({
   score,
   plusMember,
   earlyAccess,
+  partnerBadge,
 }: Readonly<{
   property: Property;
   verifiedLabel: string | null;
@@ -97,6 +100,7 @@ function PropertyCardBadges({
   score: number;
   plusMember: boolean;
   earlyAccess: boolean;
+  partnerBadge?: { name: string; slug: string } | null;
 }>) {
   const isFeatured = property.featured_until && new Date(property.featured_until) > new Date();
 
@@ -106,6 +110,17 @@ function PropertyCardBadges({
         <span className="inline-flex rounded-full bg-gradient-gold px-2 py-0.5 text-[10px] font-bold text-gold-foreground">
           Featured
         </span>
+      ) : null}
+      {partnerBadge ? (
+        <Link
+          to="/partners/$slug"
+          params={{ slug: partnerBadge.slug }}
+          onClick={(e) => e.stopPropagation()}
+          className="pointer-events-auto inline-flex items-center rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold text-foreground backdrop-blur"
+          title={partnerBadge.name}
+        >
+          Official Partner
+        </Link>
       ) : null}
       {verifiedLabel ? (
         <span className="inline-flex items-center gap-1 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
@@ -132,6 +147,7 @@ function PropertyCardImage({
   score,
   plusMember,
   earlyAccess,
+  partnerBadge,
   saved,
   showSave,
   onToggleSave,
@@ -147,6 +163,7 @@ function PropertyCardImage({
   score: number;
   plusMember: boolean;
   earlyAccess: boolean;
+  partnerBadge?: { name: string; slug: string } | null;
   saved?: boolean;
   showSave: boolean;
   onToggleSave?: (e: React.MouseEvent, propertyId: string) => void;
@@ -187,6 +204,7 @@ function PropertyCardImage({
         score={score}
         plusMember={plusMember}
         earlyAccess={earlyAccess}
+        partnerBadge={partnerBadge}
       />
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 pointer-events-auto">
         <ShareListingButton property={property} variant="card" />
@@ -303,6 +321,7 @@ export const PropertyCard = memo(function PropertyCard({
   plusMember = false,
   preview = false,
   priority = false,
+  partnerBadge = null,
 }: Readonly<Props>) {
   const cardRef = useRef<HTMLElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -373,6 +392,7 @@ export const PropertyCard = memo(function PropertyCard({
             score={score}
             plusMember={plusMember}
             earlyAccess={earlyAccess}
+            partnerBadge={partnerBadge}
             saved={saved}
             showSave={showSave}
             onToggleSave={onToggleSave}

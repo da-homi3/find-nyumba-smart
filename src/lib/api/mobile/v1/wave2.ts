@@ -11,7 +11,16 @@ import {
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
-const ACTIVE_PORTALS = ["tenant", "landlord", "agency", "manager", "admin", "caretaker"] as const;
+const ACTIVE_PORTALS = [
+  "tenant",
+  "landlord",
+  "agency",
+  "manager",
+  "property_developer",
+  "agent",
+  "admin",
+  "caretaker",
+] as const;
 type ActivePortal = (typeof ACTIVE_PORTALS)[number];
 
 const PROPERTY_LIST_SELECT =
@@ -344,7 +353,7 @@ async function handleSetActivePortal(req: Request): Promise<Response> {
   const portal = body.portal;
   if (!portal || !(ACTIVE_PORTALS as readonly string[]).includes(portal)) {
     return mobileError(
-      "portal must be tenant|landlord|agency|manager|admin|caretaker",
+      "portal must be tenant|landlord|agency|manager|property_developer|agent|admin|caretaker",
       "BAD_REQUEST",
       400,
     );

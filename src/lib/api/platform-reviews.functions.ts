@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { checkRateLimit } from "@/lib/api/rate-limit";
+import { rateLimitDistributed, rateLimitKeyFromHeaders } from "@/lib/api/rate-limit";
 import type { Database } from "@/integrations/supabase/types";
 
 const submitSchema = z.object({
@@ -17,6 +17,7 @@ export type PlatformReviewPublic = {
   rating: number;
   comment: string;
   createdAt: string;
+  isPublished: boolean;
 };
 
 async function resolveOptionalUserId(): Promise<string | null> {
@@ -58,6 +59,7 @@ export const listPlatformReviews = createServerFn({ method: "GET" }).handler(asy
     rating: row.rating,
     comment: row.comment,
     createdAt: row.created_at,
+    isPublished: true,
   })) satisfies PlatformReviewPublic[];
 });
 
@@ -65,10 +67,15 @@ export const submitPlatformReview = createServerFn({ method: "POST" })
   .inputValidator(submitSchema)
   .handler(async ({ data }) => {
     const userId = await resolveOptionalUserId();
-    const rateKey = userId
-      ? `platform-review:user:${userId}`
-      : `platform-review:name:${data.displayName.toLowerCase()}`;
-    checkRateLimit(rateKey);
+    const request = getRequest();
+    const requester = userId ?? rateLimitKeyFromHeaders(request?.headers);
+    const rate = await rateLimitDistributed(`platform-review:${requester}`, {
+      max: userId ? 3 : 1,
+      windowMs: 24 * 60 * 60 * 1000,
+    });
+    if (rate.limited) {
+      throw new Error("A review was already submitted recently. Please try again later.");
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -90,9 +97,10 @@ export const submitPlatformReview = createServerFn({ method: "POST" })
         display_name: data.displayName,
         rating: data.rating,
         comment: data.comment,
-        is_published: true,
+        // Authenticated users can publish directly; anonymous reviews require moderation.
+        is_published: Boolean(userId),
       })
-      .select("id, display_name, rating, comment, created_at")
+      .select("id, display_name, rating, comment, created_at, is_published")
       .single();
 
     if (error) {
@@ -109,5 +117,6 @@ export const submitPlatformReview = createServerFn({ method: "POST" })
       rating: row.rating,
       comment: row.comment,
       createdAt: row.created_at,
+      isPublished: row.is_published,
     } satisfies PlatformReviewPublic;
   });

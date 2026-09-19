@@ -150,8 +150,7 @@ export function LandingHero({
             transition={{ duration: 0.55, delay: 0.08 }}
             className="display-heading mt-5 max-w-xl text-4xl font-semibold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.25rem]"
           >
-            Your next home in Nairobi{" "}
-            <span className="text-primary-glow">starts here</span>
+            Your next home in Nairobi <span className="text-primary-glow">starts here</span>
           </motion.h1>
 
           <motion.p

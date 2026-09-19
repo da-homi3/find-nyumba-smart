@@ -11,13 +11,21 @@ export type PortalAccessDecision =
       redirectSearch?: Record<string, string | undefined>;
     };
 
-const LISTER_PORTALS = new Set<GuardPortal>(["landlord", "manager", "agency"]);
+const LISTER_PORTALS = new Set<GuardPortal>([
+  "landlord",
+  "manager",
+  "agency",
+  "property_developer",
+  "agent",
+]);
 
 /** Marketing / signup entry points — no session required. */
 export const PORTAL_PUBLIC_ENTRY: Partial<Record<GuardPortal, readonly string[]>> = {
   landlord: ["/landlord", "/landlord/"],
   manager: ["/manager", "/manager/"],
   agency: ["/agency", "/agency/"],
+  property_developer: ["/developer", "/developer/"],
+  agent: ["/agent", "/agent/"],
   caretaker: ["/caretaker", "/caretaker/"],
 };
 
@@ -26,6 +34,8 @@ export const PORTAL_AUTH_ONLY_PREFIXES: Partial<Record<GuardPortal, readonly str
   landlord: ["/landlord/checkout", "/landlord/boost", "/landlord/dashboard/plan"],
   manager: ["/manager/checkout"],
   agency: ["/agency/checkout"],
+  property_developer: ["/developer/checkout"],
+  agent: ["/agent/checkout"],
 };
 
 function normalizePath(pathname: string): string {
@@ -68,6 +78,12 @@ export function evaluatePortalAccess(input: {
   const path = normalizePath(input.pathname);
 
   if (isPortalPublicEntry(input.portal, path)) {
+    return { allowed: true };
+  }
+
+  // Caretaker uses phone+PIN tokens (not Supabase roles). Dashboard validates PIN client-side
+  // and redirects to /caretaker when the session is missing/invalid. Phone-OTP identity is future work.
+  if (input.portal === "caretaker") {
     return { allowed: true };
   }
 
@@ -117,5 +133,8 @@ export function portalFromPathname(pathname: string): GuardPortal | null {
   if (path === "/landlord" || path.startsWith("/landlord/")) return "landlord";
   if (path === "/manager" || path.startsWith("/manager/")) return "manager";
   if (path === "/agency" || path.startsWith("/agency/")) return "agency";
+  if (path === "/developer" || path.startsWith("/developer/")) return "property_developer";
+  if (path === "/agent" || path.startsWith("/agent/")) return "agent";
+  if (path === "/caretaker" || path.startsWith("/caretaker/")) return "caretaker";
   return null;
 }

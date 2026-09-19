@@ -55,13 +55,16 @@ async function handleContact(req: Request): Promise<Response> {
   try {
     const { checkRateLimit } = await import("@/lib/api/rate-limit");
     checkRateLimit(`contact:${parsed.data.email}`);
-    const { sendEmailNotification, OPS_EMAIL } = await import("@/lib/api/notify");
-    const sent = await sendEmailNotification({
+    const { sendEmailResult } = await import("@/lib/email/send");
+    const { OPS_EMAIL } = await import("@/lib/api/notify");
+    const sent = await sendEmailResult({
       to: OPS_EMAIL,
       subject: `[NyumbaSearch] Contact form — ${parsed.data.email}`,
       text: `From: ${parsed.data.email}\n\n${parsed.data.message}`,
+      html: `From: ${parsed.data.email}<br><br>${parsed.data.message.replaceAll("\n", "<br>")}`,
+      templateId: "mobile-contact-form",
     });
-    if (!sent) {
+    if (!sent.ok) {
       return mobileError(
         "Could not send your message right now. Please email us directly.",
         "EMAIL_FAILED",
@@ -79,7 +82,13 @@ async function handleImportPreview(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
   try {
-    await requireRole(auth.admin, auth.userId, ["landlord", "manager", "agency"]);
+    await requireRole(auth.admin, auth.userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
   } catch {
     return mobileError("Forbidden", "FORBIDDEN", 403);
   }
@@ -132,7 +141,13 @@ async function handleImportExecute(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
   try {
-    await requireRole(auth.admin, auth.userId, ["landlord", "manager", "agency"]);
+    await requireRole(auth.admin, auth.userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+    ]);
   } catch {
     return mobileError("Forbidden", "FORBIDDEN", 403);
   }
@@ -210,6 +225,20 @@ async function handleImportExecute(req: Request): Promise<Response> {
     })
     .eq("id", batch.id);
 
+  if (imported > 0) {
+    void import("@/lib/api/notify")
+      .then(({ notifyOpsNewListing }) =>
+        notifyOpsNewListing({
+          propertyId: batch.id,
+          title: `${imported} listing${imported === 1 ? "" : "s"} imported`,
+          neighborhood: "Bulk import",
+          ownerUserId: auth.userId,
+          source: `bulk-import (${parsed.data.filename})`,
+        }),
+      )
+      .catch((err) => console.warn("[import] ops listing notify failed:", err));
+  }
+
   return mobileJson({
     apiVersion: "v1",
     batchId: batch.id,
@@ -223,7 +252,14 @@ async function handleIntegrationsList(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
   try {
-    await requireRole(auth.admin, auth.userId, ["landlord", "manager", "agency", "admin"]);
+    await requireRole(auth.admin, auth.userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+      "admin",
+    ]);
   } catch {
     return mobileError("Forbidden", "FORBIDDEN", 403);
   }
@@ -241,7 +277,14 @@ async function handleIntegrationsCreate(req: Request): Promise<Response> {
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
   try {
-    await requireRole(auth.admin, auth.userId, ["landlord", "manager", "agency", "admin"]);
+    await requireRole(auth.admin, auth.userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+      "admin",
+    ]);
   } catch {
     return mobileError("Forbidden", "FORBIDDEN", 403);
   }
@@ -253,7 +296,7 @@ async function handleIntegrationsCreate(req: Request): Promise<Response> {
     return mobileError("Name must be 2–80 characters", "VALIDATION", 400);
   }
 
-  const raw = `nsk_${crypto.randomUUID().replace(/-/g, "")}`;
+  const raw = `nsk_${crypto.randomUUID().replaceAll("-", "")}`;
   const keyHash = await hashApiKey(raw);
   const prefix = raw.slice(0, 12);
 
@@ -277,7 +320,14 @@ async function handleIntegrationsRevoke(req: Request, keyId: string): Promise<Re
   const auth = await requireMobileBearer(req);
   if (auth instanceof Response) return auth;
   try {
-    await requireRole(auth.admin, auth.userId, ["landlord", "manager", "agency", "admin"]);
+    await requireRole(auth.admin, auth.userId, [
+      "landlord",
+      "manager",
+      "agency",
+      "property_developer",
+      "agent",
+      "admin",
+    ]);
   } catch {
     return mobileError("Forbidden", "FORBIDDEN", 403);
   }
@@ -406,7 +456,7 @@ async function handleAdvertiseInquiry(req: Request): Promise<Response> {
     const { checkRateLimit } = await import("@/lib/api/rate-limit");
     checkRateLimit(`inquiry:${parsed.data.email}`);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { sendEmail } = await import("@/lib/email/send");
+    const { sendEmailResult } = await import("@/lib/email/send");
     const { ADVERTISE_PACKAGES } = await import("@/lib/revenue/plans");
     const pkg =
       ADVERTISE_PACKAGES.find((p) => p.id === parsed.data.packageId) ?? ADVERTISE_PACKAGES[0];
@@ -439,7 +489,7 @@ async function handleAdvertiseInquiry(req: Request): Promise<Response> {
     }
 
     const opsTo = process.env.ADVERTISE_OPS_EMAIL ?? "nyumbasearch101@gmail.com";
-    const emailedOps = await sendEmail({
+    const emailedOps = await sendEmailResult({
       to: opsTo,
       subject: `[Advertise] ${pkg.name} — ${parsed.data.company ?? parsed.data.name}`,
       text: `From: ${parsed.data.name} <${parsed.data.email}>\nPhone: ${parsed.data.phone ?? "—"}\nPackage: ${pkg.name}\n\n${parsed.data.message}`,
@@ -448,7 +498,7 @@ async function handleAdvertiseInquiry(req: Request): Promise<Response> {
     });
 
     const firstName = parsed.data.name.split(/\s+/)[0] ?? "there";
-    const emailedUser = await sendEmail({
+    const emailedUser = await sendEmailResult({
       to: parsed.data.email,
       subject: "NyumbaSearch — advertising inquiry received",
       text: `Hi ${firstName},\n\nWe received your ${pkg.name} inquiry and will reply within 24 hours.\n\nNyumbaSearch`,
@@ -460,7 +510,7 @@ async function handleAdvertiseInquiry(req: Request): Promise<Response> {
       apiVersion: "v1",
       stored: Boolean(inserted?.id),
       inquiryId: inserted?.id ?? null,
-      emailed: Boolean(emailedOps || emailedUser),
+      emailed: Boolean(emailedOps.ok || emailedUser.ok),
     });
   } catch (err) {
     console.error("[wave19] advertise inquiry", err);
@@ -474,7 +524,8 @@ async function handleAdvertisePay(req: Request): Promise<Response> {
 
   try {
     const { ADVERTISE_PACKAGES, advertisePackagePrice } = await import("@/lib/revenue/plans");
-    const packageId = String(body.advertisePackage ?? body.packageId ?? "");
+    const packageRaw = body.advertisePackage ?? body.packageId;
+    const packageId = typeof packageRaw === "string" ? packageRaw : "";
     const pkg = ADVERTISE_PACKAGES.find((p) => p.id === packageId);
     if (!pkg) return mobileError("Unknown advertising package", "VALIDATION", 400);
 
@@ -484,25 +535,28 @@ async function handleAdvertisePay(req: Request): Promise<Response> {
       return mobileError(`Amount must be KES ${expected} for ${pkg.name}`, "VALIDATION", 400);
     }
 
-    const email = String(body.email ?? "")
-      .trim()
-      .toLowerCase();
+    const emailRaw = body.email;
+    const email = typeof emailRaw === "string" ? emailRaw.trim().toLowerCase() : "";
     if (!email.includes("@")) return mobileError("Email required", "VALIDATION", 400);
 
     const auth = await requireMobileBearer(req);
     if (auth instanceof Response) return auth;
     const userId = auth.userId;
 
+    const phoneRaw = body.phoneNumber;
+    const nameRaw = body.name;
+    const inquiryRaw = body.inquiryId;
+
     const { initiatePaymentCore } = await import("@/lib/payments/initiate-payment-core");
     const result = await initiatePaymentCore(userId, {
       paymentType: "invoice",
       amountKes,
       method: (body.method as "mpesa_stk" | "card") ?? "mpesa_stk",
-      phoneNumber: String(body.phoneNumber ?? ""),
+      phoneNumber: typeof phoneRaw === "string" ? phoneRaw : "",
       email,
-      name: body.name ? String(body.name) : undefined,
+      name: typeof nameRaw === "string" ? nameRaw : undefined,
       advertisePackage: packageId,
-      inquiryId: body.inquiryId ? String(body.inquiryId) : undefined,
+      inquiryId: typeof inquiryRaw === "string" ? inquiryRaw : undefined,
       requesterEmail: email,
       plan: packageId,
     } as never);
@@ -524,18 +578,23 @@ export async function tryHandleWave19(
   rest: string,
   method: string,
 ): Promise<Response | null> {
-  if (method === "POST" && rest === "/contact") return handleContact(req);
-  if (method === "GET" && rest === "/advertise/packages") return handleAdvertisePackages();
-  if (method === "POST" && rest === "/advertise/inquiries") return handleAdvertiseInquiry(req);
-  if (method === "POST" && rest === "/advertise/pay") return handleAdvertisePay(req);
-  if (method === "POST" && rest === "/listings/import/preview") return handleImportPreview(req);
-  if (method === "POST" && rest === "/listings/import/execute") return handleImportExecute(req);
-  if (method === "GET" && rest === "/integrations/keys") return handleIntegrationsList(req);
-  if (method === "POST" && rest === "/integrations/keys") return handleIntegrationsCreate(req);
+  const exact: Record<string, () => Promise<Response>> = {
+    "POST /contact": () => handleContact(req),
+    "GET /advertise/packages": () => handleAdvertisePackages(),
+    "POST /advertise/inquiries": () => handleAdvertiseInquiry(req),
+    "POST /advertise/pay": () => handleAdvertisePay(req),
+    "POST /listings/import/preview": () => handleImportPreview(req),
+    "POST /listings/import/execute": () => handleImportExecute(req),
+    "GET /integrations/keys": () => handleIntegrationsList(req),
+    "POST /integrations/keys": () => handleIntegrationsCreate(req),
+    "GET /admin/revenue": () => handleAdminRevenue(req),
+  };
+  const exactHit = exact[`${method} ${rest}`];
+  if (exactHit) return exactHit();
+
   if (method === "POST" && rest.startsWith("/integrations/keys/") && rest.endsWith("/revoke")) {
     const id = rest.slice("/integrations/keys/".length, -"/revoke".length);
     if (id) return handleIntegrationsRevoke(req, id);
   }
-  if (method === "GET" && rest === "/admin/revenue") return handleAdminRevenue(req);
   return null;
 }

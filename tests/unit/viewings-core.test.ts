@@ -16,11 +16,14 @@ describe("viewings core validation", () => {
       }),
     } as never;
 
-    // 2026-08-30 is a Sunday
+    const nextSunday = new Date();
+    const daysUntilSunday = (7 - nextSunday.getUTCDay()) % 7 || 7;
+    nextSunday.setUTCDate(nextSunday.getUTCDate() + daysUntilSunday);
+    nextSunday.setUTCHours(9, 0, 0, 0); // 12:00 in Nairobi
     await expect(
       bookViewingCore(admin, "tenant-1", {
         propertyId: "p1",
-        scheduledAt: "2026-08-30T11:00:00+03:00",
+        scheduledAt: nextSunday.toISOString(),
       }),
     ).rejects.toThrow(/Sunday/i);
   });

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isScamAutoFlagged,
-  SCAM_AUTO_FLAG_DEACTIVATES_LISTING,
-} from "@/lib/trust/scam-auto-flag";
+import { isScamAutoFlagged, SCAM_AUTO_FLAG_DEACTIVATES_LISTING } from "@/lib/trust/scam-auto-flag";
 
 describe("scam auto-flag policy", () => {
   it("never auto-deactivates listings from a single report", () => {

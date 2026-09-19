@@ -7,7 +7,6 @@ import {
   listManagerProperties,
 } from "@/lib/api/nyumba.functions";
 import { getUserEntitlements, listLandlordLeadsPanel } from "@/lib/api/revenue.functions";
-import { canViewLeadDetails } from "@/lib/revenue/entitlements";
 import { LEAD_PACKS } from "@/lib/revenue/plans";
 import { PORTAL_PATHS, type ListingPortal } from "@/lib/portal-paths";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,7 +19,9 @@ type LeadRow = Awaited<ReturnType<typeof listLandlordLeadsPanel>>[number];
 
 async function listPortalProperties(portal: ListingPortal): Promise<Property[]> {
   if (portal === "manager") return listManagerProperties();
-  if (portal === "agency") return listAgencyProperties();
+  if (portal === "agency" || portal === "property_developer" || portal === "agent") {
+    return listAgencyProperties();
+  }
   return listLandlordProperties();
 }
 
@@ -56,8 +57,7 @@ export function PortalAnalyticsPage({ portal }: Readonly<{ portal: ListingPortal
   const totalViews = properties.reduce((sum, p) => sum + (p.views ?? 0), 0);
   const totalLeads = Math.max(panelLeads.length, inquiryLeads.length);
   const maxViews = Math.max(1, ...properties.map((property) => property.views ?? 0));
-  const plan = entitlements?.landlordPlan ?? "free";
-  const showLeadDetails = canViewLeadDetails(plan);
+  const showLeadDetails = Boolean(entitlements?.canViewLeadContacts);
 
   const exportAnalytics = () => {
     if (properties.length === 0) {
@@ -109,7 +109,14 @@ export function PortalAnalyticsPage({ portal }: Readonly<{ portal: ListingPortal
           {!showLeadDetails && (
             <Link
               to={paths.checkout}
-              search={{ plan: portal === "agency" ? "agency-pro" : "pro" }}
+              search={{
+                plan:
+                  portal === "agency" ||
+                  portal === "property_developer" ||
+                  portal === "agent"
+                    ? "agency-pro"
+                    : "pro",
+              }}
               className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground"
             >
               <Lock className="h-3.5 w-3.5" /> Upgrade to view contacts

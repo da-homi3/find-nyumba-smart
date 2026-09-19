@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { PropertyCard } from "@/components/PropertyCard";
 import { PublicPageShell } from "@/components/SiteNav";
 import { EmptyState } from "@/components/EmptyState";
-import { fetchProperties, formatKes } from "@/lib/properties";
+import { fetchProperties, formatKes, type Property } from "@/lib/properties";
 import { resolveAreaFromSlug, shouldIndexArea } from "@/lib/seo/areas";
 import { buildPageHead } from "@/lib/seo/head";
 import { neighborhoodCentroid } from "@/lib/geo/property-map-coords";
@@ -125,11 +125,7 @@ function AreaPage() {
           <Link to="/areas" className="text-muted-foreground">
             All areas
           </Link>
-          <Link
-            to="/guides/$slug"
-            params={{ slug: area.slug }}
-            className="text-muted-foreground"
-          >
+          <Link to="/guides/$slug" params={{ slug: area.slug }} className="text-muted-foreground">
             Renting guide
           </Link>
           <Link to="/tenant/map" className="font-semibold text-primary">
@@ -150,7 +146,7 @@ function AreaPage() {
           <EmptyState type="no_search_results" href="/tenant" cta="Browse all homes" />
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((p, index) => (
+            {listings.map((p: Property, index: number) => (
               <PropertyCard key={p.id} p={p} priority={index < 2} />
             ))}
           </div>

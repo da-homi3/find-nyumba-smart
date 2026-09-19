@@ -153,37 +153,55 @@ function applyOptionalCreateFields(
   body: CreatePropertyBody,
   parsed: ParsedCreateProperty,
 ): ParsedCreateProperty | Response {
-  if (body.description !== undefined && body.description !== null) {
-    if (typeof body.description !== "string") {
-      return mobileError("description must be a string", "BAD_REQUEST", 400);
-    }
-    parsed.description = body.description.trim() || null;
-  }
-
-  if (body.pricing_mode !== undefined && body.pricing_mode !== null) {
-    if (
-      body.pricing_mode !== "rent" &&
-      body.pricing_mode !== "sale" &&
-      body.pricing_mode !== "booking"
-    ) {
-      return mobileError("pricing_mode must be rent|sale|booking", "BAD_REQUEST", 400);
-    }
-    parsed.pricingMode = body.pricing_mode;
-  }
-
-  if (body.is_active !== undefined && body.is_active !== null) {
-    if (typeof body.is_active !== "boolean") {
-      return mobileError("is_active must be a boolean", "BAD_REQUEST", 400);
-    }
-    parsed.isActive = body.is_active;
-  }
-
-  applyOptionalTextFields(body, parsed);
+  const withDescription = applyOptionalDescription(body, parsed);
+  if (withDescription instanceof Response) return withDescription;
+  const withPricing = applyOptionalPricingMode(body, withDescription);
+  if (withPricing instanceof Response) return withPricing;
+  const withActive = applyOptionalIsActive(body, withPricing);
+  if (withActive instanceof Response) return withActive;
+  applyOptionalTextFields(body, withActive);
   if (typeof body.location_id === "string") {
     const id = parseUuid(body.location_id);
-    if (id) parsed.locationId = id;
+    if (id) withActive.locationId = id;
   }
-  return parsed;
+  return withActive;
+}
+
+function applyOptionalDescription(
+  body: CreatePropertyBody,
+  parsed: ParsedCreateProperty,
+): ParsedCreateProperty | Response {
+  if (body.description === undefined || body.description === null) return parsed;
+  if (typeof body.description !== "string") {
+    return mobileError("description must be a string", "BAD_REQUEST", 400);
+  }
+  return { ...parsed, description: body.description.trim() || null };
+}
+
+function applyOptionalPricingMode(
+  body: CreatePropertyBody,
+  parsed: ParsedCreateProperty,
+): ParsedCreateProperty | Response {
+  if (body.pricing_mode === undefined || body.pricing_mode === null) return parsed;
+  if (
+    body.pricing_mode !== "rent" &&
+    body.pricing_mode !== "sale" &&
+    body.pricing_mode !== "booking"
+  ) {
+    return mobileError("pricing_mode must be rent|sale|booking", "BAD_REQUEST", 400);
+  }
+  return { ...parsed, pricingMode: body.pricing_mode };
+}
+
+function applyOptionalIsActive(
+  body: CreatePropertyBody,
+  parsed: ParsedCreateProperty,
+): ParsedCreateProperty | Response {
+  if (body.is_active === undefined || body.is_active === null) return parsed;
+  if (typeof body.is_active !== "boolean") {
+    return mobileError("is_active must be a boolean", "BAD_REQUEST", 400);
+  }
+  return { ...parsed, isActive: body.is_active };
 }
 
 function parseCreatePropertyBody(body: CreatePropertyBody): ParsedCreateProperty | Response {
@@ -311,6 +329,22 @@ async function handleCreateProperty(req: Request): Promise<Response> {
     longitude: typeof row.longitude === "number" ? row.longitude : null,
   });
 
+  void import("@/lib/api/notify")
+    .then(({ notifyOpsNewListing }) =>
+      notifyOpsNewListing({
+        propertyId: row.id,
+        title: typeof row.title === "string" ? row.title : parsed.title,
+        neighborhood:
+          typeof row.neighborhood === "string" ? row.neighborhood : parsed.neighborhood,
+        rentKes: typeof row.rent_kes === "number" ? row.rent_kes : parsed.rentKes,
+        ownerUserId: auth.userId,
+        propertyType: typeof row.property_type === "string" ? row.property_type : null,
+        bedrooms: typeof row.bedrooms === "number" ? row.bedrooms : parsed.bedrooms,
+        source: "mobile",
+      }),
+    )
+    .catch((err) => console.warn("[mobile] ops listing notify failed:", err));
+
   return mobileJson({ apiVersion: "v1", property: row }, 201);
 }
 
@@ -322,7 +356,12 @@ async function handleListMessages(req: Request): Promise<Response> {
 
   const roles = await loadUserRoles(auth.admin, auth.userId);
   const isLister =
-    roles.has("landlord") || roles.has("agency") || roles.has("manager") || roles.has("admin");
+    roles.has("landlord") ||
+    roles.has("agency") ||
+    roles.has("manager") ||
+    roles.has("property_developer") ||
+    roles.has("agent") ||
+    roles.has("admin");
 
   let query = auth.admin
     .from("inquiries")

@@ -1,16 +1,19 @@
 import { getSiteUrl } from "@/lib/site";
 
 function secret(): string {
-  return (
-    process.env.EMAIL_UNSUBSCRIBE_SECRET ??
-    process.env.CARETAKER_SESSION_SECRET ??
-    process.env.CRON_SECRET ??
-    "nyumba-email-unsub"
-  );
+  const value = process.env.EMAIL_UNSUBSCRIBE_SECRET?.trim();
+  if (!value || value.length < 32) {
+    throw new Error("EMAIL_UNSUBSCRIBE_SECRET must be configured with at least 32 characters");
+  }
+  return value;
 }
 
 function b64url(data: string): string {
-  return btoa(data).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+  let encoded = btoa(data).replaceAll("+", "-").replaceAll("/", "_");
+  while (encoded.endsWith("=")) {
+    encoded = encoded.slice(0, -1);
+  }
+  return encoded;
 }
 
 function fromB64url(data: string): string {
@@ -42,7 +45,14 @@ export async function verifyUnsubscribeToken(token: string): Promise<string | nu
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
   const expected = await sign(payload);
-  if (sig !== expected) return null;
+  const suppliedBytes = new TextEncoder().encode(sig);
+  const expectedBytes = new TextEncoder().encode(expected);
+  if (suppliedBytes.byteLength !== expectedBytes.byteLength) return null;
+  let mismatch = 0;
+  for (let index = 0; index < suppliedBytes.byteLength; index += 1) {
+    mismatch |= suppliedBytes[index] ^ expectedBytes[index];
+  }
+  if (mismatch !== 0) return null;
   try {
     const parsed = JSON.parse(fromB64url(payload)) as { u: string; exp: number };
     if (!parsed.u || parsed.exp < Date.now()) return null;

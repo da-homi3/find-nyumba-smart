@@ -131,8 +131,8 @@ function CategoryPage() {
 
   function handleCountyChange(code: string) {
     navigate({
-      search: (prev) => {
-        const next = { ...prev };
+      search: (prev: Record<string, unknown>) => {
+        const next = { ...prev } as Record<string, unknown>;
         if (code) next.county = code;
         else delete next.county;
         return next;
@@ -159,7 +159,9 @@ function CategoryPage() {
         <ServiceCountyFilter selectedCounty={selectedCounty} onChange={handleCountyChange} />
 
         <section className="mt-6 rounded-2xl border bg-card p-5">
-          <h2 className="text-sm font-semibold">How to hire {meta?.label?.toLowerCase() ?? "providers"}</h2>
+          <h2 className="text-sm font-semibold">
+            How to hire {meta?.label?.toLowerCase() ?? "providers"}
+          </h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
             {getServiceCategoryContent(category).hireTips.map((tip) => (
               <li key={tip}>{tip}</li>

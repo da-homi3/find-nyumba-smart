@@ -22,6 +22,7 @@ import { randomUuid } from "@/lib/random-uuid";
 import { TENANT_FREE_UNLOCK_ALLOWANCE } from "@/lib/payments/tenant-trial";
 import { TENANT_PLUS_CONFIG } from "@/lib/revenue/tenant-plus-config";
 import type { Property } from "@/lib/properties";
+import { recordPilotAnalyticsEventFn } from "@/lib/api/pilot-partnership.functions";
 
 type Props = Readonly<{
   listing: Property;
@@ -155,6 +156,16 @@ export function ContactUnlockCard({ listing, onUnlocked }: Props) {
     void qc.invalidateQueries({ queryKey: ["contact-unlock", listing.id] });
     void qc.invalidateQueries({ queryKey: ["entitlements"] });
     onUnlocked?.(phoneValue, phones?.length ? phones : [phoneValue]);
+    void recordPilotAnalyticsEventFn({
+      data: {
+        propertyId: listing.id,
+        eventType: "CONTACT_CLICK",
+        source: "contact_unlock",
+        createLead: true,
+      },
+    }).catch(() => {
+      /* non-blocking */
+    });
   }
 
   async function pollPayment(paymentId: string) {

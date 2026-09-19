@@ -6,7 +6,12 @@ import type { LandlordPlan } from "@/lib/revenue/types";
 
 type Admin = SupabaseClient<Database>;
 
-export type PortalListerRole = "landlord" | "manager" | "agency";
+export type PortalListerRole =
+  | "landlord"
+  | "manager"
+  | "agency"
+  | "property_developer"
+  | "agent";
 
 export function portalRoleToListingPortal(role: PortalListerRole): ListingPortal {
   return role;

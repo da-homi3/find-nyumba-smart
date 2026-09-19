@@ -15,7 +15,7 @@ const announcementSchema = z.object({
   ctaLabel: z.string().trim().min(2).max(80).default("Learn more"),
   ctaUrl: z.string().trim().url().max(500),
   targetRoles: z
-    .array(z.enum(["tenant", "landlord", "agency", "manager", "all"]))
+    .array(z.enum(["tenant", "landlord", "agency", "manager", "property_developer", "agent", "all"]))
     .min(1)
     .max(5)
     .default(["all"]),

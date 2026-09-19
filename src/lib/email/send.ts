@@ -65,6 +65,18 @@ async function logEmailAttempt(
         ...((payload.metadata ?? undefined) as Record<string, unknown> | undefined),
         ...(failureReason ? { failureReason } : undefined),
         ...(provider ? { provider } : undefined),
+        ...(status === "failed"
+          ? {
+              retryPayload: {
+                to: payload.to,
+                subject: payload.subject,
+                text: payload.text,
+                html: payload.html,
+                templateId: payload.templateId,
+                metadata: payload.metadata,
+              },
+            }
+          : undefined),
       } as Json,
     });
   } catch (err) {

@@ -182,6 +182,8 @@ export const PORTAL_PLANS: Record<ListingPortal, PlanCardDef[]> = {
   landlord: LANDLORD_PLANS,
   manager: MANAGER_PLANS,
   agency: AGENCY_PLANS,
+  property_developer: AGENCY_PLANS,
+  agent: AGENCY_PLANS,
 };
 
 /** Plan pre-selected when a portal user taps "Upgrade". */
@@ -189,6 +191,8 @@ export const PORTAL_UPGRADE_PLAN: Record<ListingPortal, LandlordPlan> = {
   landlord: "pro",
   manager: "manager-team",
   agency: "agency-pro",
+  property_developer: "agency-pro",
+  agent: "agency-pro",
 };
 
 /** Resolve a plan id to one that belongs to the given portal, else its default upgrade plan. */

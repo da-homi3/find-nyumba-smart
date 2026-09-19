@@ -552,6 +552,20 @@ async function handleAdminCreateProperty(req: Request): Promise<Response> {
     // best-effort
   }
 
+  void import("@/lib/api/notify")
+    .then(({ notifyOpsNewListing }) =>
+      notifyOpsNewListing({
+        propertyId: row.id,
+        title: parsed.title,
+        neighborhood: parsed.neighborhood,
+        rentKes: parsed.rentKes,
+        ownerUserId: auth.userId,
+        bedrooms: parsed.bedrooms,
+        source: "admin-mobile",
+      }),
+    )
+    .catch((err) => console.warn("[admin-mobile] ops listing notify failed:", err));
+
   return mobileJson({ apiVersion: "v1", property: row }, 201);
 }
 
